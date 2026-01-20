@@ -1,0 +1,555 @@
+@startuml sie-csdm-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+' TODO:
+' - Indicate which entity properties only reference and don't own other
+'   entities (lazy loading), other state's persistence.
+' - Define heterarchy relationships between systems (super/sub system).
+' - Add status/lifecycle to entities.
+' - Add temporal aspects to states (time series, history, versioning).
+' - Maybe remove State entities.
+' - In mechanisms logic, only instance properties can be referenced
+'   (instance's mechanisms definition).
+' - ConstraintBinding = "logical" link between constraints?
+' - Adapt Interaction and channel.
+' - Referencing triggers asynchronously on new mechanism creation.
+' - Belongs to some other engine (e.g. governance engine):
+'   - ConstraintConflict.
+'   - ConstraintConflictResolution.
+'   - Emergence.
+'   - Feedback loop.
+' ============================================================
+
+frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Definition Model) - v1" {
+
+  ' ============================================================
+  ' SCHEMA
+  ' ============================================================
+
+  note top of Schema
+    Defines the structure and semantics of systemic primitive, their instances
+    and qualifiers, using schemas.
+
+    This enables extensible systemic definitions, data validations, and
+    exploitation.
+
+    **Rules**:
+    - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
+    - "uri" MUST be unique among all schemas.
+  end note
+
+  class Schema {
+    +getId(): UUID
+    +getUri(): URI
+  }
+
+  ' ============================================================
+  ' SYSTEMIC PRIMITIVE
+  ' ============================================================
+
+  note top of SystemicPrimitive
+    A systemic primitive represents a systemics "second-order dynamics" concept
+    of a system definition.
+
+    **Rules**:
+    - The systemic primitive MUST conform to the structure and semantics
+      defined in its schema (or vice-versa) held by its definition.
+    - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
+    - "name" MUST be maximum 255 characters long.
+  end note
+
+  abstract class SystemicPrimitive {
+    +getId(): UUID
+    +getName(): String
+    +getDefinition(): SystemicPrimitiveDefinition
+    +getQualifierDefinitions(): SystemicPrimitiveQualifierDefinition[]
+    +getQualifiers(): SystemicPrimitiveQualifier[]
+  }
+  SystemicPrimitive "0..*" o--> "1" SystemicPrimitiveDefinition : has
+  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierDefinition : has
+  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifier : has
+
+  note top of SystemicPrimitiveDefinition
+    Defines the structure and semantics of an extendable class of systemic
+    primitive.
+
+    **Rules**:
+    - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all systemic primitive definitions.
+    - "name" MUST be maximum 255 characters long.
+  end note
+
+  class SystemicPrimitiveDefinition {
+    +getId(): UUID
+    +getName(): String
+    +getSchema(): Schema
+    +getQualifierDefinitions(): SystemicPrimitiveDefinitionQualifierDefinition[]
+  }
+  SystemicPrimitiveDefinition "1" *--> "1" Schema : has
+  SystemicPrimitiveDefinition "1" *--> "0..*" SystemicPrimitiveDefinitionQualifierDefinition : has
+
+  note top of SystemicPrimitiveDefinitionQualifierDefinition
+    Defines the structure and semantics of a qualifier that can be applied to
+    all instances of a systemic primitive.
+
+    This enables extensible semantic metadata associated to systemic primitives,
+    enabling systemic exploitations of specific domain data.
+
+    **Rules**:
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all qualifier definitions of this systemic
+      primitive's definition, and among all qualifier definitions of systemic
+      primitives instances of this definition.
+  end note
+
+  class SystemicPrimitiveDefinitionQualifierDefinition {
+    +getSchema(): Schema
+    +getSystemicPrimitiveDefinition(): SystemicPrimitiveDefinition
+  }
+  SystemicPrimitive <|-- SystemicPrimitiveDefinitionQualifierDefinition : is
+  SystemicPrimitiveDefinitionQualifierDefinition "1" *--> "1" Schema : has
+  SystemicPrimitiveDefinitionQualifierDefinition "1" o--> "1" SystemicPrimitiveDefinition : belongsTo
+
+  note top of SystemicPrimitiveQualifierDefinition
+    Defines the structure and semantics of a qualifier that can be applied to
+    a systemic primitive instance specifically.
+
+    This enables extensible semantic metadata associated to systemic primitives,
+    enabling systemic exploitations of specific domain data.
+
+    **Rules**:
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all qualifier definitions of the systemic
+      primitive instances having the same definition as this instance, and among
+      all qualifier definitions of this systemic primitive definition.
+  end note
+
+  class SystemicPrimitiveQualifierDefinition {
+    +getSchema(): Schema
+    +getSystemicPrimitive(): SystemicPrimitive
+  }
+  SystemicPrimitive <|-- SystemicPrimitiveQualifierDefinition : is
+  SystemicPrimitiveQualifierDefinition "1" *--> "1" Schema : has
+  SystemicPrimitiveQualifierDefinition "1" o--> "1" SystemicPrimitive : belongsTo
+
+  note top of SystemicPrimitiveQualifier
+    A qualifier applied to a systemic primitive instance, providing
+    additional semantic metadata about the primitive.
+
+    **Rules**:
+    - The qualifier's value is formatted as JSON. It MUST conform to the
+      structure, semantics, types, defined in its definition's schema.
+  end note
+
+  class SystemicPrimitiveQualifier {
+    +getDefinition(): SystemicPrimitiveQualifierDefinition
+    +getValue(): String
+  }
+  SystemicPrimitive <|-- SystemicPrimitiveQualifier : is
+  SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierDefinition : has
+
+  ' ============================================================
+  ' SYSTEM
+  ' ============================================================
+
+  class System {
+    +getType(): String
+    +getRole(): String
+    +getPurpose(): String
+    +getPrinciples(): Principle[]
+    +getCapacities(): Capacity[]
+    +getInterfaces(): Interface[]
+    +getSubSystems(): System[]
+    +getPersistenceConditions(): Condition[]
+    +getStateVariables(): PropertyReference[]
+
+    +getGovernors(): Governor[]
+    +getRegulators(): Regulator[]
+    +getPolicies(): Policy[]
+    +getRules(): Rule[]
+
+    +getChannels(): Channel[]
+
+    +getWorkflows(): Workflow[]
+    +getFunctions(): Function[]
+    +getDomainProperties(): PropertyReference[]
+
+    +getMechanisms(): Mechanism[]
+    +getReceptors(): Receptor[]
+    +getEffectors(): Effector[]
+    +getReactions(): Reaction[]
+    +getInteractions(): Interaction[]
+    +getPreconditions(): Condition[]
+    +getPostconditions(): Condition[]
+    +getInvariants(): Condition[]
+    +getEvents(): Event[]
+    +getBehavioralProperties(): BehavioralPropertyReference[]
+  }
+  SystemicPrimitive <|-- System : is
+
+  ' ============================================================
+  ' CAPACITY
+  ' ============================================================
+
+  class Capacity {
+    +getDescription(): String
+    +getWorkflows(): Workflow[]
+  }
+  SystemicPrimitive <|-- Capacity : is
+
+  ' ============================================================
+  ' INTERFACE
+  ' ============================================================
+
+  class Interface {
+    +getReceptors(): Receptor[]
+    +getEffectors(): Effector[]
+    +getChannels(): Channel[]
+  }
+  SystemicPrimitive <|-- Interface : is
+
+  class ExternalInterface
+  Interface <|-- ExternalInterface : is
+
+  class InternalInterface
+  Interface <|-- InternalInterface : is
+
+  ' ============================================================
+  ' CHANNEL
+  ' ============================================================
+
+  class Channel {
+    +getProtocol(): String
+    +getInteractions(): Interaction[]
+    +getExternalSystemInterface(): Interface
+  }
+  SystemicPrimitive <|-- Channel : is
+
+  ' ============================================================
+  ' WORKFLOW
+  ' ============================================================
+
+  class Workflow {
+    +getPurpose(): String
+    +getFunctionsSequence(): Function[]
+  }
+  SystemicPrimitive <|-- Workflow : is
+
+  ' ============================================================
+  ' FUNCTION
+  ' ============================================================
+
+  class Function {
+    +getPurpose(): String
+    +getMechanism(): Mechanism
+  }
+  SystemicPrimitive <|-- Function : is
+
+  ' ============================================================
+  ' MECHANISM
+  ' ============================================================
+
+  class Mechanism {
+    +getReaction(): Reaction
+    +getReceptors(): Receptor[]
+    +getEffectors(): Effector[]
+    +getRegulator(): Regulator
+    +getGovernor(): Governor
+  }
+  SystemicPrimitive <|-- Mechanism : is
+
+  ' ============================================================
+  ' GOVERNOR
+  ' ============================================================
+
+  class Governor {
+    +getPolicies(): Policy[]
+    +getAssignedMechanisms(): Mechanism[]
+  }
+  SystemicPrimitive <|-- Governor : is
+
+  ' ============================================================
+  ' REGULATOR
+  ' ============================================================
+
+  class Regulator {
+    +getRules(): Rule[]
+    +getAssignedMechanisms(): Mechanism[]
+  }
+  SystemicPrimitive <|-- Regulator : is
+
+  ' ============================================================
+  ' RECEPTOR
+  ' ============================================================
+
+  class Receptor {
+    +getReceivedEvent(): Event
+  }
+  SystemicPrimitive <|-- Receptor : is
+
+  ' ============================================================
+  ' EFFECTOR
+  ' ============================================================
+
+  class Effector {
+    +getResultingEvent(): Event
+    +getOperation(): EffectorOperation
+  }
+  SystemicPrimitive <|-- Effector : is
+
+  ' ============================================================
+  ' REACTION
+  ' ============================================================
+
+  class Reaction {
+    +getLogic(): ReactionLogic
+  }
+  SystemicPrimitive <|-- Reaction : is
+
+  ' ============================================================
+  ' REACTION LOGIC (opaque)
+  ' ============================================================
+
+  class ReactionLogic
+
+  abstract class EffectorOperation
+
+  ' ============================================================
+  ' INTERACTION
+  ' ============================================================
+
+  class Interaction {
+    +getEvent(): Event
+    +getChannels(): Channel[]
+  }
+  SystemicPrimitive <|-- Interaction : is
+
+  ' ============================================================
+  ' CONSTRAINT
+  ' ============================================================
+
+  abstract class Constraint {
+    +getId(): UUID
+    +getStatus(): Enum <<ConstraintStatusEnum>>
+  }
+
+  enum ConstraintStatusEnum {
+    "proposed"
+    "active"
+    "deprecated"
+    "retired"
+  }
+
+  class Principle {
+    +getStatement(): String
+  }
+
+  class Policy {
+    +getStatement(): String
+    +getPrincipleBindings(): PrinciplePolicyBinding[]
+  }
+
+  class Rule {
+    +getStatement(): String
+    +getPolicyBindings(): PolicyRuleBinding[]
+  }
+
+  abstract class ConstraintsBinding {
+    +getId(): UUID
+    +getStatus(): Enum <<ConstraintsBindingStatusEnum>>
+  }
+
+  enum ConstraintsBindingStatusEnum {
+    "proposed"
+    "active"
+    "deprecated"
+    "retired"
+  }
+
+  class PrinciplePolicyBinding {
+    +getRationale(): String
+    +getPrinciple(): Principle
+    +getPolicy(): Policy
+    +getPriority(): Int
+  }
+
+  class PolicyRuleBinding {
+    +getRationale(): String
+    +getPolicy(): Policy
+    +getRule(): Rule
+    +getPriority(): Int
+  }
+
+  ' ============================================================
+  ' STATEFUL OBJECT
+  ' ============================================================
+
+  abstract class StatefulObject {
+    +getStateDefinition(): ObjectStateDefinition
+  }
+  SystemicPrimitive <|-- StatefulObject : is
+  StatefulObject "1" *--> "1" ObjectStateDefinition : has
+
+  ' ============================================================
+  ' STATE DEFINITION
+  ' ============================================================
+
+  class ObjectStateDefinition {
+    +getSchema(): Schema
+  }
+  SystemicPrimitive <|-- ObjectStateDefinition : is
+  ObjectStateDefinition "1" *--> "1" Schema : has
+  ' ============================================================
+  ' EVENT
+  ' ============================================================
+
+  class Event
+  StatefulObject <|-- Event : is
+
+  ' ============================================================
+  ' STATE VARIABLE
+  ' ============================================================
+
+  class StateVariable
+  StatefulObject <|-- StateVariable : is
+
+  ' ============================================================
+  ' REFERENCING
+  ' ============================================================
+
+  class OperandReferencing {
+    +getCriteria(): String
+    +getHoldingMechanism(): Mechanism
+    +getReferences(): OperandReference[]
+  }
+  SystemicPrimitive <|-- OperandReferencing : is
+  OperandReferencing "1" *--> "1" Criteria : has
+  OperandReferencing "0..1" o--> "1" Mechanism : heldBy
+  OperandReferencing "1" *--> "0..*" OperandReference : has
+
+  ' ============================================================
+  ' REFERENCE
+  ' ============================================================
+
+  class OperandReference {
+    +getHoldingReferencing(): OperandReferencing
+    +getHoldingOperator(): ReferenceOperator
+  }
+  SystemicPrimitive <|-- OperandReference : is
+  OperandReference "0..*" o--> "1" OperandReferencing : heldBy
+  OperandReference "1" *--> "1" ReferenceOperator : heldBy
+
+  class SystemicPrimitiveOperandReference {
+    +getReferencedSystemicPrimitive(): SystemicPrimitive
+  }
+  OperandReference <|-- SystemicPrimitiveOperandReference : is
+  SystemicPrimitiveOperandReference "0..*" o--> "1" SystemicPrimitive : references
+
+  class StatefulObjectOperandReference {
+    +getStatefulObject(): StatefulObject
+  }
+  OperandReference <|-- StatefulObjectOperandReference : is
+  StatefulObjectOperandReference "0..*" o--> "1" StatefulObject : references
+
+  ' ============================================================
+  ' REFERENCE
+  ' ============================================================
+
+  abstract class ReferenceOperator
+  SystemicPrimitive <|-- ReferenceOperator : is
+
+  class CreateReferenceOperator {
+
+  }
+
+  ' ============================================================
+  ' RELATIONSHIPS
+  ' ============================================================
+
+  System "1" *--> "1" Boundary : has
+  System "1" *--> "0..*" Component : has
+  System "1" *--> "0..*" Capacity : has
+  System "1" *--> "0..*" Condition : has
+  System "1" *--> "0..*" StateVariable : has
+
+  System "0..*" o--> "0..*" System : hasSuper
+  System "0..*" *--> "0..*" System : hasSub
+  System "1" *--> "0..*" Interface : has
+
+  System "1" *--> "0..*" Function : has
+  System "1" *--> "0..*" Workflow : has
+
+  System "1" *--> "0..*" Mechanism : implements
+  System "1" *--> "0..*" Interaction : participatesIn
+  System "1" o--> "0..*" Event : handles
+
+  Interface "1" *--> "0..*" Receptor : has
+  Interface "1" *--> "0..*" Effector : has
+  Interface "1" *--> "0..*" Channel : has
+  Receptor "0..*" o--> "1" ExternalEvent : receives
+  Receptor "0..*" o--> "1" InternalEvent : internalizes
+  Receptor "0..*" o--> "1" Interaction : boundTo
+  Receptor "0..*" o--> "1" Channel : boundTo
+  Receptor "1..*" o--> "1" Interface : partOf
+  Effector "0..*" o--> "1" ExternalEvent : emits
+  Effector "0..*" o--> "1" InternalEvent : externalizes
+  Effector "0..*" o--> "1" Interaction : boundTo
+  Effector "0..*" o--> "1" Channel : boundTo
+  Effector "1..*" o--> "1" Interface : partOf
+  Channel "1..*" *--> "0..*" Interaction : binds
+  Channel "0..*" o--> "1" Interface : boundToExternalSystem
+
+  Workflow "0..*" o--> "1..*" Function : sequences
+  Function "1" *--> "1..*" Mechanism : implements
+
+  Mechanism "0..*" o--> "1" Governor : has
+  Mechanism "1" *--> "1" Regulator : has
+  Interaction "0..*" o--> "1" Event : involves
+  Interaction "0..*" o--> "1" System : withExternal
+  Interaction "0..*" o--> "1..*" Channel : boundTo
+
+  Event <|-- InternalEvent : is
+  Event <|-- ExternalEvent : is
+
+  Constraint <|-- Principle : is
+  Constraint <|-- Policy : is
+  Constraint <|-- Rule : is
+
+  ConstraintsBinding <|-- PrinciplePolicyBinding : is
+  ConstraintsBinding <|-- PolicyRuleBinding : is
+  ConstraintsBinding <|-- RuleConditionBinding : is
+
+  PrinciplePolicyBinding "0..*" o--> "1" Principle : binds
+  PrinciplePolicyBinding "1..*" *--> "1" Policy : binds
+  PolicyRuleBinding "1..*" *--> "1" Policy : binds
+  PolicyRuleBinding "1..*" *--> "1" Rule : binds
+
+  Policy "0..*" o--> "1..*" Principle : incorporates
+  Rule "0..*" o--> "1..*" Policy : operationalizes
+}
+
+@enduml

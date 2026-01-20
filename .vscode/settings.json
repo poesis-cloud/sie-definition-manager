@@ -1,0 +1,13 @@
+{
+  // PlantUML (jebbs.plantuml): make !include work even when rendering via -pipe
+  "plantuml.render": "Local",
+  "plantuml.java": "/usr/bin/java",
+  "plantuml.commandArgs": [
+    "-Dplantuml.include.path=${workspaceFolder}/concept/cam/base:${workspaceFolder}/concept/sie/model"
+  ],
+  "plantuml.diagramsRoot": "concept",
+  "plantuml.includepaths": [
+    "concept/cam/base",
+    "concept/sie/model"
+  ]
+}

@@ -1,0 +1,328 @@
+' Standalone diagram
+@startuml sie-dslm-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam packageStyle rectangle
+
+' ============================================================
+' TODO:
+' - Define what types of operands are possible depending their operator types
+'   (>=, AND, etc.)
+' - Maybe explicitly type operands for operators to avoid invalid combinations?
+' - QueryNode
+' ============================================================
+
+frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language Model) - v1" {
+
+  ' ============================================================
+  ' AST NODES
+  ' ============================================================
+
+  abstract class AstNode
+
+  abstract class StatementNode
+  AstNode <|-- StatementNode : is
+
+  abstract class ExpressionNode
+  AstNode <|-- ExpressionNode : is
+
+  ' ============================================================
+  ' EXPRESSION NODES
+  ' ============================================================
+
+  abstract class OperandExpressionNode
+  ExpressionNode <|-- OperandExpressionNode : is
+
+  abstract class BooleanExpressionNode
+  OperandExpressionNode <|-- BooleanExpressionNode : is
+
+  class VariableExpression {
+    +getName(): String
+  }
+  OperandExpressionNode <|-- VariableExpression : is
+
+  class LiteralExpression {
+    +getValue(): String
+  }
+  OperandExpressionNode <|-- LiteralExpression : is
+
+  ' Useful?
+  class ReferenceExpression {
+    +getReference(): Reference
+  }
+  OperandExpressionNode <|-- ReferenceExpression : is
+
+  ' Maybe OperandExpressionNode instead of BooleanExpressionNode?
+  class AndExpression {
+    +getOperands(): BooleanExpressionNode[]
+  }
+  BooleanExpressionNode <|-- AndExpression : is
+
+  ' Maybe OperandExpressionNode instead of BooleanExpressionNode?
+  class OrExpression {
+    +getOperands(): BooleanExpressionNode[]
+  }
+  BooleanExpressionNode <|-- OrExpression : is
+
+  ' Maybe OperandExpressionNode instead of BooleanExpressionNode?
+  class NotExpression {
+    +getOperand(): BooleanExpressionNode
+  }
+  BooleanExpressionNode <|-- NotExpression : is
+
+  ' BooleanExpressionNode as OperandExpressionNode (test1 OR test2 == test3 AND test4)?
+  abstract class ComparisonOperatorExpression {
+    +getLeftOperand(): OperandExpressionNode
+    +getRightOperand(): OperandExpressionNode
+  }
+  BooleanExpressionNode <|-- ComparisonOperatorExpression : is
+
+  class EqualsExpression
+  ComparisonOperatorExpression <|-- EqualsExpression : is
+
+  class NotEqualsExpression
+  ComparisonOperatorExpression <|-- NotEqualsExpression : is
+
+  class GreaterThanExpression
+  ComparisonOperatorExpression <|-- GreaterThanExpression : is
+
+  class LessThanExpression
+  ComparisonOperatorExpression <|-- LessThanExpression : is
+
+  class GreaterOrEqualExpression
+  ComparisonOperatorExpression <|-- GreaterOrEqualExpression : is
+
+  class LessOrEqualExpression
+  ComparisonOperatorExpression <|-- LessOrEqualExpression : is
+
+  class InExpression
+  ComparisonOperatorExpression <|-- InExpression : is
+
+  class MatchesExpression
+  ComparisonOperatorExpression <|-- MatchesExpression : is
+
+  ' ============================================================
+  ' STATEMENT NODES
+  ' ============================================================
+
+  class BlockStatement {
+    +getStatements(): StatementNode[]
+  }
+  StatementNode <|-- BlockStatement : is
+
+  class IfStatement {
+    +getCondition(): BooleanExpressionNode
+    +getThen(): BlockStatement
+    +getElse(): BlockStatement
+  }
+  StatementNode <|-- IfStatement : is
+
+  class LoopStatement {
+    +getCondition(): BooleanExpressionNode
+    +getBody(): BlockStatement
+  }
+  StatementNode <|-- LoopStatement : is
+
+  class BreakStatement {
+    +getParentNodeIncrement(): Int
+  }
+  StatementNode <|-- BreakStatement : is
+
+  class ExitStatement
+  StatementNode <|-- ExitStatement : is
+
+  ' Checkpoint
+  class ReceptorExpression {
+    +getReceptor(): Receptor
+    +getBody(): BlockStatement
+  }
+  StatementNode <|-- ReceptorExpression : is
+
+  class EffectorExpression {
+    +getEffector(): Effector
+  }
+  StatementNode <|-- EffectorExpression : is
+
+  abstract class CrudStatement {
+    +getSystemicPrimitivePrototypeName(): LiteralExpression
+  }
+  StatementNode <|-- CrudStatement : is
+
+  class CreateInstanceStatement {
+    +getValue(): LiteralExpression
+    +getResultVariable(): VariableExpression
+  }
+  CrudStatement <|-- CreateInstanceStatement : is
+
+  class ReadInstanceStatement {
+    +getInstanceId(): LiteralExpression
+    +getResultVariable(): VariableExpression
+  }
+  CrudStatement <|-- ReadInstanceStatement : is
+
+  class UpdateInstanceStatement {
+    +getValue(): LiteralExpression
+    +getResultVariable(): VariableExpression
+  }
+  CrudStatement <|-- UpdateInstanceStatement : is
+
+  class DeleteInstanceStatement {
+    +getInstanceId(): LiteralExpression
+  }
+  CrudStatement <|-- DeleteInstanceStatement : is
+
+  class SystemicPrimitiveInternalStateChangeEffectorExpression {
+    +getEffector(): Effector
+    +getAssignment(): AssignmentOperatorStatement
+  }
+  StatementNode <|-- SystemicPrimitiveInternalStateChangeEffectorExpression : is
+
+  abstract class AssignableReference
+  Reference <|-- AssignableReference : is
+
+  AssignableReference <|-- VariableExpression : is
+  AssignableReference <|-- SystemicPrimitiveTypePropertyPathReference : is
+
+  abstract class AssignmentOperatorStatement {
+    +getLeft(): AssignableReference
+    +getRight(): OperandExpressionNode
+  }
+  StatementNode <|-- AssignmentOperatorStatement : is
+
+  class SetAssignmentStatement
+  AssignmentOperatorStatement <|-- SetAssignmentStatement : is
+
+  class DeclareAssignmentStatement
+  AssignmentOperatorStatement <|-- DeclareAssignmentStatement : is
+
+  class AddAssignmentStatement
+  AssignmentOperatorStatement <|-- AddAssignmentStatement : is
+
+  class SubAssignmentStatement
+  AssignmentOperatorStatement <|-- SubAssignmentStatement : is
+
+  class MulAssignmentStatement
+  AssignmentOperatorStatement <|-- MulAssignmentStatement : is
+
+  class DivAssignmentStatement
+  AssignmentOperatorStatement <|-- DivAssignmentStatement : is
+
+  class AppendAssignmentStatement
+  AssignmentOperatorStatement <|-- AppendAssignmentStatement : is
+
+  class MergeAssignmentStatement
+  AssignmentOperatorStatement <|-- MergeAssignmentStatement : is
+
+  ' ============================================================
+  ' RELATIONSHIPS
+  ' ============================================================
+
+  ' Expression dependency tracking (optional, for impact analysis)
+  ReferenceExpression "0..*" o--> "0..1" SystemicPrimitiveTypePropertyPathReference : resolvedReference
+
+  BlockStatement "1" *--> "0..*" StatementNode : has
+
+  ReferenceExpression "1" *--> "1" Reference : refersTo
+
+  AndExpression "1" *--> "1..*" BooleanExpressionNode : has
+  OrExpression "1" *--> "1..*" BooleanExpressionNode : has
+  NotExpression "1" *--> "1" BooleanExpressionNode : has
+  ComparisonOperatorExpression "1" *--> "1" OperandExpressionNode : hasLeft
+  ComparisonOperatorExpression "1" *--> "1" OperandExpressionNode : hasRight
+
+  CrudStatement "1" *--> "1" LiteralExpression : hasPrototypeName
+
+  CreateInstanceStatement "1" *--> "1" LiteralExpression : hasValue
+  CreateInstanceStatement "1" o--> "1" VariableExpression : storesResultIn
+
+  GetInstanceStatement "1" *--> "1" LiteralExpression : hasInstanceId
+  GetInstanceStatement "1" o--> "1" VariableExpression : storesResultIn
+
+  UpdateInstanceStatement "1" *--> "1" LiteralExpression : hasValue
+  UpdateInstanceStatement "1" o--> "1" VariableExpression : storesResultIn
+
+  DeleteInstanceStatement "1" *--> "1" LiteralExpression : hasInstanceId
+
+  IfStatement "1" *--> "1" BooleanExpressionNode : hasCondition
+  IfStatement "1" *--> "1" BlockStatement : hasThen
+  IfStatement "1" *--> "0..1" BlockStatement : hasElse
+  LoopStatement "1" *--> "1" BooleanExpressionNode : hasCondition
+  LoopStatement "1" *--> "1" BlockStatement : hasBody
+
+  AssignmentOperatorStatement "1" *--> "1" AssignableReference : hasLeft
+  AssignmentOperatorStatement "1" *--> "1" OperandExpressionNode : hasRight
+
+  ReceptorExpression "1" o--> "1" Receptor : has
+  ReceptorExpression "1" *--> "1" BlockStatement : hasBody
+  EffectorExpression "1" o--> "1" Effector : has
+
+  SystemicPrimitiveInternalStateChangeEffectorExpression "1" o--> "1" Effector : has
+  SystemicPrimitiveInternalStateChangeEffectorExpression "1" *--> "1" AssignmentOperatorStatement : hasAssignment
+
+  Effector "1" *--> "1" EffectorOperation : performs
+
+  note as SieDslDoc
+    **SIE DSL (descriptive, not executable):**
+
+    - This diagram models the DSL *structures* (AST + operations), not runtime behavior.
+    - All operand values are JSON-typed; their literal syntax is JSON.
+    - JSON literals are carried as strings in LiteralExpression.getValueJson() via `json(<json>)`.
+    - Parsing/typing/validation is intentionally out of scope here.
+
+    **Example Syntax (illustrative, declarative, not executed):**
+
+    Grammar sketch:
+    - Receptor trigger: `on <EventType> { <stmt>* }`
+    - Conditional: `if (<bool-expr>) { <stmt>* } else { <stmt>* }`
+    - Loop: `loop (<bool-expr>) { <stmt>* }`  (expr is loop condition)
+    - Effector action: `emit <EventType> { <assignment> (';' <assignment>)* }`
+    - Assignment (reusable): `<left> <op> <right>`
+      - left: `<Type>.<path>` or `<localVar>`
+      - op: determined by the AssignmentOperatorStatement subtype (e.g., "=", ":=", "append")
+      - right: reference or `json(<json>)`
+    - Reference ops (CRUD):
+      - `create(<prototypeName>, <json>) -> <var>`
+      - `get(<prototypeName>, <instanceId>) -> <var>`
+      - `update(<prototypeName>, <json>) -> <var>`
+      - `delete(<prototypeName>, <instanceId>)`
+    - Expression leaves:
+      - JSON literal: `json(<json>)`
+      - Reference: `<Type>` / `<Type>.<path>` / `<name>`
+      - (Atomic operands are LiteralExpression and ReferenceExpression)
+
+    Complete example:
+    ```
+    on ExternalEvent {
+      payload := json({"source":"gateway","severity":"high"});
+
+      if (System.status == json("active")) {
+        emit InternalEvent {
+          InternalEvent.payload = payload;
+          InternalEvent.payload.userId = ExternalEvent.userId;
+          InternalEvent.payload.tags append json(["sie","derived"]);
+        };
+      } else {
+        emit InternalEvent {
+          InternalEvent.payload = json({"source":"gateway","severity":"low"});
+        };
+      }
+    }
+    ```
+
+    Mapping hints:
+    - `on <EventType>` -> ReceptorExpression (selected by event type)
+    - `emit <EventType> { ... }` -> EffectorExpression + EffectorOperation(EmitEventEffectorOperation)
+    - `<localVar> <op> ...` and `<Type>.<path> <op> ...` -> AssignmentOperatorStatement (op = subtype)
+    - `<Type>.<path>` tokens -> SystemicPrimitiveTypePropertyPathReference
+    - `create/get/update/delete` -> CrudStatement (create/get/update store result in VariableExpression)
+  end note
+}
+
+@enduml
+
