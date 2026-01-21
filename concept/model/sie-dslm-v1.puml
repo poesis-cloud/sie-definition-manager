@@ -42,49 +42,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   abstract class OperandExpressionNode
   ExpressionNode <|-- OperandExpressionNode : is
 
-  abstract class BooleanExpressionNode
-  OperandExpressionNode <|-- BooleanExpressionNode : is
+  abstract class LogicalOperatorNode
+  ExpressionNode <|-- LogicalOperatorNode : is
 
-  class VariableExpression {
-    +getName(): String
-  }
-  OperandExpressionNode <|-- VariableExpression : is
-
-  class LiteralExpression {
-    +getValue(): String
-  }
-  OperandExpressionNode <|-- LiteralExpression : is
-
-  ' Useful?
-  class ReferenceExpression {
-    +getReference(): Reference
-  }
-  OperandExpressionNode <|-- ReferenceExpression : is
-
-  ' Maybe OperandExpressionNode instead of BooleanExpressionNode?
   class AndExpression {
-    +getOperands(): BooleanExpressionNode[]
+    +getOperands(): LogicalOperatorNode[]
   }
-  BooleanExpressionNode <|-- AndExpression : is
+  LogicalOperatorNode <|-- AndExpression : is
 
-  ' Maybe OperandExpressionNode instead of BooleanExpressionNode?
   class OrExpression {
-    +getOperands(): BooleanExpressionNode[]
+    +getOperands(): LogicalOperatorNode[]
   }
-  BooleanExpressionNode <|-- OrExpression : is
+  LogicalOperatorNode <|-- OrExpression : is
 
-  ' Maybe OperandExpressionNode instead of BooleanExpressionNode?
   class NotExpression {
-    +getOperand(): BooleanExpressionNode
+    +getOperand(): LogicalOperatorNode
   }
-  BooleanExpressionNode <|-- NotExpression : is
+  LogicalOperatorNode <|-- NotExpression : is
 
-  ' BooleanExpressionNode as OperandExpressionNode (test1 OR test2 == test3 AND test4)?
   abstract class ComparisonOperatorExpression {
     +getLeftOperand(): OperandExpressionNode
     +getRightOperand(): OperandExpressionNode
   }
-  BooleanExpressionNode <|-- ComparisonOperatorExpression : is
+  LogicalOperatorNode <|-- ComparisonOperatorExpression : is
 
   class EqualsExpression
   ComparisonOperatorExpression <|-- EqualsExpression : is
@@ -110,6 +90,34 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   class MatchesExpression
   ComparisonOperatorExpression <|-- MatchesExpression : is
 
+  class VariableExpression {
+    +getName(): String
+  }
+  OperandExpressionNode <|-- VariableExpression : is
+
+  abstract class LiteralExpression {
+    +getValue(): String
+  }
+  OperandExpressionNode <|-- LiteralExpression : is
+
+  class StringLiteralExpression
+  LiteralExpression <|-- StringLiteralExpression : is
+
+  class NumberLiteralExpression
+  LiteralExpression <|-- NumberLiteralExpression : is
+
+  class BooleanLiteralExpression
+  LiteralExpression <|-- BooleanLiteralExpression : is
+
+  class NullLiteralExpression
+  LiteralExpression <|-- NullLiteralExpression : is
+
+  class ArrayLiteralExpression
+  LiteralExpression <|-- ArrayLiteralExpression : is
+
+  class ObjectLiteralExpression
+  LiteralExpression <|-- ObjectLiteralExpression : is
+
   ' ============================================================
   ' STATEMENT NODES
   ' ============================================================
@@ -120,29 +128,35 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   StatementNode <|-- BlockStatement : is
 
   class IfStatement {
-    +getCondition(): BooleanExpressionNode
+    +getCondition(): LogicalOperatorNode
     +getThen(): BlockStatement
     +getElse(): BlockStatement
   }
   StatementNode <|-- IfStatement : is
 
-  class LoopStatement {
-    +getCondition(): BooleanExpressionNode
+  class WhileStatement {
+    +getCondition(): LogicalOperatorNode
     +getBody(): BlockStatement
   }
-  StatementNode <|-- LoopStatement : is
+  StatementNode <|-- WhileStatement : is
+
+  class ForeachStatement {
+    +getOperand(): OperandExpressionNode
+    +getBody(): BlockStatement
+  }
+  StatementNode <|-- ForeachStatement : is
 
   class BreakStatement {
     +getParentNodeIncrement(): Int
   }
   StatementNode <|-- BreakStatement : is
 
-  class ExitStatement
-  StatementNode <|-- ExitStatement : is
+  class ReturnStatement
+  StatementNode <|-- ReturnStatement : is
 
   abstract class AssignmentOperatorStatement {
     +getSourceOperand(): OperandExpressionNode
-    +getTargetOperand(): AssignableReference
+    +getTargetOperand(): VariableExpression
   }
   StatementNode <|-- AssignmentOperatorStatement : is
 
@@ -177,50 +191,34 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   }
   StatementNode <|-- ReceptorExpression : is
 
-  class EffectorExpression {
-    +getEffector(): Effector
-  }
+  abstract class EffectorExpression
   StatementNode <|-- EffectorExpression : is
 
-  abstract class CrudStatement {
-    +getSystemicPrimitivePrototypeName(): LiteralExpression
+  class SelectEffectorExpression {
+    +getDefinitionPrototypeName(): StringLiteralExpression
+    +getExecutionInstanceName(): StringLiteralExpression
+    +getCriteria(): LogicalOperatorNode
+    +getEventName(): StringLiteralExpression
   }
-  StatementNode <|-- CrudStatement : is
+  EffectorExpression <|-- SelectEffectorExpression : is
 
-  class CreateInstanceStatement {
-    +getValue(): LiteralExpression
-    +getResultVariable(): VariableExpression
+  class CreateEffectorExpression {
+    +getDefinitionPrototypeName(): StringLiteralExpression
+    +getExecutionInstanceName(): StringLiteralExpression
+    +getPropertyNameValueMap(): ObjectLiteralExpression
+    +getEventName(): StringLiteralExpression
   }
-  CrudStatement <|-- CreateInstanceStatement : is
+  EffectorExpression <|-- CreateEffectorExpression : is
 
-  class ReadInstanceStatement {
-    +getInstanceId(): LiteralExpression
-    +getResultVariable(): VariableExpression
+  ' Implement selector concept?
+  class UpdateEffectorExpression {
+    +getDefinitionPrototypeName(): StringLiteralExpression
+    +getExecutionInstanceName(): StringLiteralExpression
+    +getCriteria(): LogicalOperatorNode
+    +getPropertyNameValueMap(): ObjectLiteralExpression
+    +getEventName(): StringLiteralExpression
   }
-  CrudStatement <|-- ReadInstanceStatement : is
-
-  class UpdateInstanceStatement {
-    +getValue(): LiteralExpression
-    +getResultVariable(): VariableExpression
-  }
-  CrudStatement <|-- UpdateInstanceStatement : is
-
-  class DeleteInstanceStatement {
-    +getInstanceId(): LiteralExpression
-  }
-  CrudStatement <|-- DeleteInstanceStatement : is
-
-  class SystemicPrimitiveInternalStateChangeEffectorExpression {
-    +getEffector(): Effector
-    +getAssignment(): AssignmentOperatorStatement
-  }
-  StatementNode <|-- SystemicPrimitiveInternalStateChangeEffectorExpression : is
-
-  abstract class AssignableReference
-  Reference <|-- AssignableReference : is
-
-  AssignableReference <|-- VariableExpression : is
-  AssignableReference <|-- SystemicPrimitiveTypePropertyPathReference : is
+  EffectorExpression <|-- UpdateEffectorExpression : is
 
   ' ============================================================
   ' RELATIONSHIPS
