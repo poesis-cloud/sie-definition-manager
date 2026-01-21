@@ -222,6 +222,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   SystemicPrimitive <|-- Capacity : is
 
   ' ============================================================
+  ' GOVERNOR
+  ' ============================================================
+
+  class Governor {
+    +getPolicies(): Policy[]
+    +getAssignedMechanisms(): Mechanism[]
+  }
+  SystemicPrimitive <|-- Governor : is
+
+  ' ============================================================
+  ' REGULATOR
+  ' ============================================================
+
+  class Regulator {
+    +getRules(): Rule[]
+    +getAssignedMechanisms(): Mechanism[]
+  }
+  SystemicPrimitive <|-- Regulator : is
+
+  ' ============================================================
   ' INTERFACE
   ' ============================================================
 
@@ -283,26 +303,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   SystemicPrimitive <|-- Mechanism : is
 
   ' ============================================================
-  ' GOVERNOR
-  ' ============================================================
-
-  class Governor {
-    +getPolicies(): Policy[]
-    +getAssignedMechanisms(): Mechanism[]
-  }
-  SystemicPrimitive <|-- Governor : is
-
-  ' ============================================================
-  ' REGULATOR
-  ' ============================================================
-
-  class Regulator {
-    +getRules(): Rule[]
-    +getAssignedMechanisms(): Mechanism[]
-  }
-  SystemicPrimitive <|-- Regulator : is
-
-  ' ============================================================
   ' RECEPTOR
   ' ============================================================
 
@@ -317,7 +317,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   class Effector {
     +getResultingEvent(): Event
-    +getOperation(): EffectorOperation
   }
   SystemicPrimitive <|-- Effector : is
 
@@ -331,10 +330,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   SystemicPrimitive <|-- Reaction : is
 
   ' ============================================================
-  ' REACTION LOGIC (opaque)
+  ' LOGIC
   ' ============================================================
 
-  class ReactionLogic
+  class ReactionLogic {
+    +getAst(): Ast
+  }
 
   abstract class EffectorOperation
 
@@ -415,14 +416,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   StatefulObject "1" *--> "1" ObjectStateDefinition : has
 
   ' ============================================================
-  ' STATE DEFINITION
+  ' OBJECT STATE DEFINITION
   ' ============================================================
 
-  class ObjectStateDefinition {
+  class StatefulObjectStateDefinition {
     +getSchema(): Schema
   }
-  SystemicPrimitive <|-- ObjectStateDefinition : is
-  ObjectStateDefinition "1" *--> "1" Schema : has
+  SystemicPrimitive <|-- StatefulObjectStateDefinition : is
+  StatefulObjectStateDefinition "1" *--> "1" Schema : has
+  
   ' ============================================================
   ' EVENT
   ' ============================================================
@@ -438,33 +440,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   StatefulObject <|-- StateVariable : is
 
   ' ============================================================
-  ' REFERENCING
+  ' OPERAND REFERENCE HOLDER
   ' ============================================================
 
-  class OperandReferencing {
+  class OperandReferenceHolder {
     +getCriteria(): String
     +getHoldingMechanism(): Mechanism
     +getReferences(): OperandReference[]
   }
-  SystemicPrimitive <|-- OperandReferencing : is
-  OperandReferencing "1" *--> "1" Criteria : has
-  OperandReferencing "0..1" o--> "1" Mechanism : heldBy
-  OperandReferencing "1" *--> "0..*" OperandReference : has
+  SystemicPrimitive <|-- OperandReferenceHolder : is
+  OperandReferenceHolder "1" *--> "1" Criteria : has
+  OperandReferenceHolder "0..1" o--> "1" Mechanism : heldBy
+  OperandReferenceHolder "1" *--> "0..*" OperandReference : has
 
   ' ============================================================
-  ' REFERENCE
+  ' OPERAND REFERENCE
   ' ============================================================
 
-  class OperandReference {
-    +getHoldingReferencing(): OperandReferencing
-    +getHoldingOperator(): ReferenceOperator
+  abstract class OperandReference {
+    +getOperandReferenceHolder(): OperandReferenceHolder
+    +getOperatorReference(): OperatorReference
   }
   SystemicPrimitive <|-- OperandReference : is
-  OperandReference "0..*" o--> "1" OperandReferencing : heldBy
-  OperandReference "1" *--> "1" ReferenceOperator : heldBy
+  OperandReference "0..*" o--> "1" OperandReferenceHolder : heldBy
+  OperandReference "1" *--> "1" OperatorReference : heldBy
 
   class SystemicPrimitiveOperandReference {
-    +getReferencedSystemicPrimitive(): SystemicPrimitive
+    +getSystemicPrimitive(): SystemicPrimitive
   }
   OperandReference <|-- SystemicPrimitiveOperandReference : is
   SystemicPrimitiveOperandReference "0..*" o--> "1" SystemicPrimitive : references
@@ -475,16 +477,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   OperandReference <|-- StatefulObjectOperandReference : is
   StatefulObjectOperandReference "0..*" o--> "1" StatefulObject : references
 
-  ' ============================================================
-  ' REFERENCE
-  ' ============================================================
-
-  abstract class ReferenceOperator
-  SystemicPrimitive <|-- ReferenceOperator : is
-
-  class CreateReferenceOperator {
-
+  class LiteralOperandReference {
+    +getValue(): String
   }
+  OperandReference <|-- LiteralOperandReference : is
+
+  class VariableOperandReference
+  OperandReference <|-- VariableOperandReference : is
+
+  ' ============================================================
+  ' OPERATOR REFERENCE
+  ' ============================================================
+
+  class OperatorReference {
+    +getSourceOperandReference(): OperandReference
+    +getTargetOperandReference(): OperandReference
+  }
+
+  SystemicPrimitive <|-- OperatorReference : is
 
   ' ============================================================
   ' RELATIONSHIPS
