@@ -16,6 +16,9 @@ skinparam packageStyle rectangle
 '   (>=, AND, etc.)
 ' - Maybe explicitly type operands for operators to avoid invalid combinations?
 ' - QueryNode
+' - LogicalOperatorNode, ComparisonOperatorNode, AssignmentOperatorNode
+' - Consider having ExpressionNode and StatementNode implement separate interfaces
+'   or get removed.
 ' ============================================================
 
 frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language Model) - v1" {
@@ -137,6 +140,36 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   class ExitStatement
   StatementNode <|-- ExitStatement : is
 
+  abstract class AssignmentOperatorStatement {
+    +getSourceOperand(): OperandExpressionNode
+    +getTargetOperand(): AssignableReference
+  }
+  StatementNode <|-- AssignmentOperatorStatement : is
+
+  class SetAssignmentStatement
+  AssignmentOperatorStatement <|-- SetAssignmentStatement : is
+
+  class DeclareAssignmentStatement
+  AssignmentOperatorStatement <|-- DeclareAssignmentStatement : is
+
+  class AddAssignmentStatement
+  AssignmentOperatorStatement <|-- AddAssignmentStatement : is
+
+  class SubAssignmentStatement
+  AssignmentOperatorStatement <|-- SubAssignmentStatement : is
+
+  class MulAssignmentStatement
+  AssignmentOperatorStatement <|-- MulAssignmentStatement : is
+
+  class DivAssignmentStatement
+  AssignmentOperatorStatement <|-- DivAssignmentStatement : is
+
+  class AppendAssignmentStatement
+  AssignmentOperatorStatement <|-- AppendAssignmentStatement : is
+
+  class MergeAssignmentStatement
+  AssignmentOperatorStatement <|-- MergeAssignmentStatement : is
+
   ' Checkpoint
   class ReceptorExpression {
     +getReceptor(): Receptor
@@ -188,36 +221,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
 
   AssignableReference <|-- VariableExpression : is
   AssignableReference <|-- SystemicPrimitiveTypePropertyPathReference : is
-
-  abstract class AssignmentOperatorStatement {
-    +getLeft(): AssignableReference
-    +getRight(): OperandExpressionNode
-  }
-  StatementNode <|-- AssignmentOperatorStatement : is
-
-  class SetAssignmentStatement
-  AssignmentOperatorStatement <|-- SetAssignmentStatement : is
-
-  class DeclareAssignmentStatement
-  AssignmentOperatorStatement <|-- DeclareAssignmentStatement : is
-
-  class AddAssignmentStatement
-  AssignmentOperatorStatement <|-- AddAssignmentStatement : is
-
-  class SubAssignmentStatement
-  AssignmentOperatorStatement <|-- SubAssignmentStatement : is
-
-  class MulAssignmentStatement
-  AssignmentOperatorStatement <|-- MulAssignmentStatement : is
-
-  class DivAssignmentStatement
-  AssignmentOperatorStatement <|-- DivAssignmentStatement : is
-
-  class AppendAssignmentStatement
-  AssignmentOperatorStatement <|-- AppendAssignmentStatement : is
-
-  class MergeAssignmentStatement
-  AssignmentOperatorStatement <|-- MergeAssignmentStatement : is
 
   ' ============================================================
   ' RELATIONSHIPS
