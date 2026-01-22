@@ -36,6 +36,8 @@ skinparam noteBorderColor #57606A
 ' - ConstraintBinding = "logical" link between constraints?
 ' - Adapt Interaction and channel.
 ' - Referencing triggers asynchronously on new mechanism creation.
+' - Change all "definitions" to "prototypes".
+' - Remove getName() from SystemicPrimitive superclass, and adapt.
 ' - Belongs to some other engine (e.g. governance engine):
 '   - ConstraintConflict.
 '   - ConstraintConflictResolution.
@@ -420,6 +422,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class StatefulObjectStateDefinition {
+    +getName(): String
     +getSchema(): Schema
   }
   SystemicPrimitive <|-- StatefulObjectStateDefinition : is

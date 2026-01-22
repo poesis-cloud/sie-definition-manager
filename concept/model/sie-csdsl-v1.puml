@@ -21,7 +21,7 @@ skinparam packageStyle rectangle
 '   or get removed.
 ' ============================================================
 
-frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language Model) - v1" {
+frame "CD - SIE (Systemic Intelligence Engine) - CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
   ' ============================================================
   ' AST NODES
@@ -185,6 +185,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   AssignmentOperatorStatement <|-- MergeAssignmentStatement : is
 
   ' Checkpoint
+  class InstanceSelectionExpression {
+    +getPrototypeName(): StringLiteralExpression
+    +getCriteria(): LogicalOperatorNode
+  }
+  StatementNode <|-- InstanceSelectionExpression : is
+
   class ReceptorExpression {
     +getReceptor(): Receptor
     +getBody(): BlockStatement
@@ -194,13 +200,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
   abstract class EffectorExpression
   StatementNode <|-- EffectorExpression : is
 
-  class SelectEffectorExpression {
-    +getDefinitionPrototypeName(): StringLiteralExpression
-    +getExecutionInstanceName(): StringLiteralExpression
-    +getCriteria(): LogicalOperatorNode
+  abstract class ActuateEffectorExpression
+  EffectorExpression <|-- ActuateEffectorExpression : is
+
+  class GetEffectorExpression {
+    +getInstanceSelector(): InstanceSelectionExpression
     +getEventName(): StringLiteralExpression
   }
-  EffectorExpression <|-- SelectEffectorExpression : is
+  ActuateEffectorExpression <|-- SelectEffectorExpression : is
 
   class CreateEffectorExpression {
     +getDefinitionPrototypeName(): StringLiteralExpression
@@ -208,17 +215,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - DSLM (Domain Specific Language 
     +getPropertyNameValueMap(): ObjectLiteralExpression
     +getEventName(): StringLiteralExpression
   }
-  EffectorExpression <|-- CreateEffectorExpression : is
+  ActuateEffectorExpression <|-- CreateEffectorExpression : is
 
-  ' Implement selector concept?
   class UpdateEffectorExpression {
-    +getDefinitionPrototypeName(): StringLiteralExpression
-    +getExecutionInstanceName(): StringLiteralExpression
-    +getCriteria(): LogicalOperatorNode
+    +getInstanceSelector(): InstanceSelectionExpression
     +getPropertyNameValueMap(): ObjectLiteralExpression
     +getEventName(): StringLiteralExpression
   }
-  EffectorExpression <|-- UpdateEffectorExpression : is
+  ActuateEffectorExpression <|-- UpdateEffectorExpression : is
+
+  class DeleteEffectorExpression {
+    +getInstanceSelector(): InstanceSelectionExpression
+    +getEventName(): StringLiteralExpression
+  }
+  ActuateEffectorExpression <|-- DeleteEffectorExpression : is
+
+  class ControlEffectorExpression {
+  }
+  EffectorExpression <|-- ControlEffectorExpression : is
+
+  class FeedbackEffectorExpression {
+  }
+  EffectorExpression <|-- FeedbackEffectorExpression : is
 
   ' ============================================================
   ' RELATIONSHIPS
