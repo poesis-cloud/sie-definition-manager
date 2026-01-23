@@ -36,7 +36,6 @@ skinparam noteBorderColor #57606A
 ' - ConstraintBinding = "logical" link between constraints?
 ' - Adapt Interaction and channel.
 ' - Referencing triggers asynchronously on new mechanism creation.
-' - Change all "definitions" to "prototypes".
 ' - Remove getName() from SystemicPrimitive superclass, and adapt.
 ' - Belongs to some other engine (e.g. governance engine):
 '   - ConstraintConflict.
@@ -78,7 +77,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - The systemic primitive MUST conform to the structure and semantics
-      defined in its schema (or vice-versa) held by its definition.
+      defined in its schema (or vice-versa) held by its prototype.
     - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
     - "name" MUST be maximum 255 characters long.
   end note
@@ -86,35 +85,35 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   abstract class SystemicPrimitive {
     +getId(): UUID
     +getName(): String
-    +getDefinition(): SystemicPrimitiveDefinition
-    +getQualifierDefinitions(): SystemicPrimitiveQualifierDefinition[]
+    +getPrototype(): SystemicPrimitivePrototype
+    +getQualifierPrototypes(): SystemicPrimitiveQualifierPrototype[]
     +getQualifiers(): SystemicPrimitiveQualifier[]
   }
-  SystemicPrimitive "0..*" o--> "1" SystemicPrimitiveDefinition : has
-  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierDefinition : has
+  SystemicPrimitive "0..*" o--> "1" SystemicPrimitivePrototype : has
+  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierPrototype : has
   SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifier : has
 
-  note top of SystemicPrimitiveDefinition
-    Defines the structure and semantics of an extendable class of systemic
-    primitive.
+  note top of SystemicPrimitivePrototype
+    Defines the structure and semantics of a systemic primitive that can be
+    instantiated.
 
     **Rules**:
     - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
     - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all systemic primitive definitions.
+    - "name" MUST be unique among all systemic primitive prototypes.
     - "name" MUST be maximum 255 characters long.
   end note
 
-  class SystemicPrimitiveDefinition {
+  class SystemicPrimitivePrototype {
     +getId(): UUID
     +getName(): String
     +getSchema(): Schema
-    +getQualifierDefinitions(): SystemicPrimitiveDefinitionQualifierDefinition[]
+    +getQualifierPrototypes(): SystemicPrimitivePrototypeQualifierPrototype[]
   }
-  SystemicPrimitiveDefinition "1" *--> "1" Schema : has
-  SystemicPrimitiveDefinition "1" *--> "0..*" SystemicPrimitiveDefinitionQualifierDefinition : has
+  SystemicPrimitivePrototype "1" *--> "1" Schema : has
+  SystemicPrimitivePrototype "1" *--> "0..*" SystemicPrimitivePrototypeQualifierPrototype : has
 
-  note top of SystemicPrimitiveDefinitionQualifierDefinition
+  note top of SystemicPrimitivePrototypeQualifierPrototype
     Defines the structure and semantics of a qualifier that can be applied to
     all instances of a systemic primitive.
 
@@ -123,20 +122,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all qualifier definitions of this systemic
-      primitive's definition, and among all qualifier definitions of systemic
-      primitives instances of this definition.
+    - "name" MUST be unique among all qualifier prototypes of this systemic
+      primitive's prototype, and among all qualifier prototypes of systemic
+      primitives instances of this prototype.
   end note
 
-  class SystemicPrimitiveDefinitionQualifierDefinition {
+  class SystemicPrimitivePrototypeQualifierPrototype {
     +getSchema(): Schema
-    +getSystemicPrimitiveDefinition(): SystemicPrimitiveDefinition
+    +getSystemicPrimitivePrototype(): SystemicPrimitivePrototype
   }
-  SystemicPrimitive <|-- SystemicPrimitiveDefinitionQualifierDefinition : is
-  SystemicPrimitiveDefinitionQualifierDefinition "1" *--> "1" Schema : has
-  SystemicPrimitiveDefinitionQualifierDefinition "1" o--> "1" SystemicPrimitiveDefinition : belongsTo
+  SystemicPrimitivePrototype <|-- SystemicPrimitivePrototypeQualifierPrototype : is
+  SystemicPrimitivePrototypeQualifierPrototype "1" *--> "1" Schema : has
+  SystemicPrimitivePrototypeQualifierPrototype "1" o--> "1" SystemicPrimitivePrototype : belongsTo
 
-  note top of SystemicPrimitiveQualifierDefinition
+  note top of SystemicPrimitiveQualifierPrototype
     Defines the structure and semantics of a qualifier that can be applied to
     a systemic primitive instance specifically.
 
@@ -145,18 +144,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all qualifier definitions of the systemic
-      primitive instances having the same definition as this instance, and among
-      all qualifier definitions of this systemic primitive definition.
+    - "name" MUST be unique among all qualifier prototypes of the systemic
+      primitive instances having the same prototype as this instance, and among
+      all qualifier prototypes of this systemic primitive prototype.
   end note
 
-  class SystemicPrimitiveQualifierDefinition {
+  class SystemicPrimitiveQualifierPrototype {
     +getSchema(): Schema
     +getSystemicPrimitive(): SystemicPrimitive
   }
-  SystemicPrimitive <|-- SystemicPrimitiveQualifierDefinition : is
-  SystemicPrimitiveQualifierDefinition "1" *--> "1" Schema : has
-  SystemicPrimitiveQualifierDefinition "1" o--> "1" SystemicPrimitive : belongsTo
+  SystemicPrimitive <|-- SystemicPrimitiveQualifierPrototype : is
+  SystemicPrimitiveQualifierPrototype "1" *--> "1" Schema : has
+  SystemicPrimitiveQualifierPrototype "1" o--> "1" SystemicPrimitive : belongsTo
 
   note top of SystemicPrimitiveQualifier
     A qualifier applied to a systemic primitive instance, providing
@@ -164,16 +163,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - The qualifier's value is formatted as JSON. It MUST conform to the
-      structure, semantics, types, defined in its definition's schema.
+      structure, semantics, types, defined in its prototype's schema.
   end note
 
   class SystemicPrimitiveQualifier {
-    +getDefinition(): SystemicPrimitiveQualifierDefinition
+    +getPrototype(): SystemicPrimitiveQualifierPrototype
     +getValue(): String
   }
   SystemicPrimitive <|-- SystemicPrimitiveQualifier : is
-  SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierDefinition : has
-
+  SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierPrototype : has
   ' ============================================================
   ' SYSTEM
   ' ============================================================
@@ -412,21 +410,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   abstract class StatefulObject {
-    +getStateDefinition(): ObjectStateDefinition
+    +getStatePrototype(): ObjectStatePrototype
   }
   SystemicPrimitive <|-- StatefulObject : is
-  StatefulObject "1" *--> "1" ObjectStateDefinition : has
+  StatefulObject "1" *--> "1" ObjectStatePrototype : has
 
   ' ============================================================
-  ' OBJECT STATE DEFINITION
+  ' OBJECT STATE PROTOTYPE
   ' ============================================================
 
-  class StatefulObjectStateDefinition {
+  class StatefulObjectStatePrototype {
     +getName(): String
     +getSchema(): Schema
   }
-  SystemicPrimitive <|-- StatefulObjectStateDefinition : is
-  StatefulObjectStateDefinition "1" *--> "1" Schema : has
+  SystemicPrimitive <|-- StatefulObjectStatePrototype : is
+  StatefulObjectStatePrototype "1" *--> "1" Schema : has
   
   ' ============================================================
   ' EVENT
