@@ -77,7 +77,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - The systemic primitive MUST conform to the structure and semantics
-      defined in its schema (or vice-versa) held by its prototype.
+      defined in its schema (or vice-versa) held by its archetype.
     - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
     - "name" MUST be maximum 255 characters long.
   end note
@@ -85,35 +85,35 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   abstract class SystemicPrimitive {
     +getId(): UUID
     +getName(): String
-    +getPrototype(): SystemicPrimitivePrototype
-    +getQualifierPrototypes(): SystemicPrimitiveQualifierPrototype[]
+    +getArchetype(): SystemicPrimitiveArchetype
+    +getQualifierArchetypes(): SystemicPrimitiveQualifierArchetype[]
     +getQualifiers(): SystemicPrimitiveQualifier[]
   }
-  SystemicPrimitive "0..*" o--> "1" SystemicPrimitivePrototype : has
-  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierPrototype : has
+  SystemicPrimitive "0..*" o--> "1" SystemicPrimitiveArchetype : has
+  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierArchetype : has
   SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifier : has
 
-  note top of SystemicPrimitivePrototype
+  note top of SystemicPrimitiveArchetype
     Defines the structure and semantics of a systemic primitive that can be
     instantiated.
 
     **Rules**:
     - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
     - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all systemic primitive prototypes.
+    - "name" MUST be unique among all systemic primitive archetypes.
     - "name" MUST be maximum 255 characters long.
   end note
 
-  class SystemicPrimitivePrototype {
+  class SystemicPrimitiveArchetype {
     +getId(): UUID
     +getName(): String
     +getSchema(): Schema
-    +getQualifierPrototypes(): SystemicPrimitivePrototypeQualifierPrototype[]
+    +getQualifierArchetypes(): SystemicPrimitiveArchetypeQualifierArchetype[]
   }
-  SystemicPrimitivePrototype "1" *--> "1" Schema : has
-  SystemicPrimitivePrototype "1" *--> "0..*" SystemicPrimitivePrototypeQualifierPrototype : has
+  SystemicPrimitiveArchetype "1" *--> "1" Schema : has
+  SystemicPrimitiveArchetype "1" *--> "0..*" SystemicPrimitiveArchetypeQualifierArchetype : has
 
-  note top of SystemicPrimitivePrototypeQualifierPrototype
+  note top of SystemicPrimitiveArchetypeQualifierArchetype
     Defines the structure and semantics of a qualifier that can be applied to
     all instances of a systemic primitive.
 
@@ -122,20 +122,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all qualifier prototypes of this systemic
-      primitive's prototype, and among all qualifier prototypes of systemic
-      primitives instances of this prototype.
+    - "name" MUST be unique among all qualifier archetypes of this systemic
+      primitive's archetype, and among all qualifier archetypes of systemic
+      primitives instances of this archetype.
   end note
 
-  class SystemicPrimitivePrototypeQualifierPrototype {
+  class SystemicPrimitiveArchetypeQualifierArchetype {
     +getSchema(): Schema
-    +getSystemicPrimitivePrototype(): SystemicPrimitivePrototype
+    +getSystemicPrimitiveArchetype(): SystemicPrimitiveArchetype
   }
-  SystemicPrimitivePrototype <|-- SystemicPrimitivePrototypeQualifierPrototype : is
-  SystemicPrimitivePrototypeQualifierPrototype "1" *--> "1" Schema : has
-  SystemicPrimitivePrototypeQualifierPrototype "1" o--> "1" SystemicPrimitivePrototype : belongsTo
+  SystemicPrimitiveArchetype <|-- SystemicPrimitiveArchetypeQualifierArchetype : is
+  SystemicPrimitiveArchetypeQualifierArchetype "1" *--> "1" Schema : has
+  SystemicPrimitiveArchetypeQualifierArchetype "1" o--> "1" SystemicPrimitiveArchetype : belongsTo
 
-  note top of SystemicPrimitiveQualifierPrototype
+  note top of SystemicPrimitiveQualifierArchetype
     Defines the structure and semantics of a qualifier that can be applied to
     a systemic primitive instance specifically.
 
@@ -144,18 +144,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all qualifier prototypes of the systemic
-      primitive instances having the same prototype as this instance, and among
-      all qualifier prototypes of this systemic primitive prototype.
+    - "name" MUST be unique among all qualifier archetypes of the systemic
+      primitive instances having the same archetype as this instance, and among
+      all qualifier archetypes of this systemic primitive archetype.
   end note
 
-  class SystemicPrimitiveQualifierPrototype {
+  class SystemicPrimitiveQualifierArchetype {
     +getSchema(): Schema
     +getSystemicPrimitive(): SystemicPrimitive
   }
-  SystemicPrimitive <|-- SystemicPrimitiveQualifierPrototype : is
-  SystemicPrimitiveQualifierPrototype "1" *--> "1" Schema : has
-  SystemicPrimitiveQualifierPrototype "1" o--> "1" SystemicPrimitive : belongsTo
+  SystemicPrimitive <|-- SystemicPrimitiveQualifierArchetype : is
+  SystemicPrimitiveQualifierArchetype "1" *--> "1" Schema : has
+  SystemicPrimitiveQualifierArchetype "1" o--> "1" SystemicPrimitive : belongsTo
 
   note top of SystemicPrimitiveQualifier
     A qualifier applied to a systemic primitive instance, providing
@@ -163,15 +163,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Rules**:
     - The qualifier's value is formatted as JSON. It MUST conform to the
-      structure, semantics, types, defined in its prototype's schema.
+      structure, semantics, types, defined in its archetype's schema.
   end note
 
   class SystemicPrimitiveQualifier {
-    +getPrototype(): SystemicPrimitiveQualifierPrototype
+    +getArchetype(): SystemicPrimitiveQualifierArchetype
     +getValue(): String
   }
   SystemicPrimitive <|-- SystemicPrimitiveQualifier : is
-  SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierPrototype : has
+  SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierArchetype : has
   ' ============================================================
   ' SYSTEM
   ' ============================================================
@@ -185,7 +185,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getInterfaces(): Interface[]
     +getSubSystems(): System[]
     +getPersistenceConditions(): Condition[]
-    +getStateVariables(): PropertyReference[]
+    +getStateObjectArchetypes(): StateObjectArchetype[]
 
     +getGovernors(): Governor[]
     +getRegulators(): Regulator[]
@@ -206,7 +206,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getPreconditions(): Condition[]
     +getPostconditions(): Condition[]
     +getInvariants(): Condition[]
-    +getEvents(): Event[]
+    +getEventArchetypes(): EventArchetype[]
     +getBehavioralProperties(): BehavioralPropertyReference[]
   }
   SystemicPrimitive <|-- System : is
@@ -307,7 +307,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Receptor {
-    +getReceivedEvent(): Event
+    +getReceivedEventArchetype(): EventArchetype
   }
   SystemicPrimitive <|-- Receptor : is
 
@@ -316,7 +316,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Effector {
-    +getResultingEvent(): Event
+    +getResultingEventArchetype(): EventArchetype
   }
   SystemicPrimitive <|-- Effector : is
 
@@ -344,7 +344,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Interaction {
-    +getEvent(): Event
+    +getEventArchetype(): EventArchetype
     +getChannels(): Channel[]
   }
   SystemicPrimitive <|-- Interaction : is
@@ -406,97 +406,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   ' ============================================================
-  ' STATEFUL OBJECT
+  ' EVENT ARCHETYPE
   ' ============================================================
 
-  abstract class StatefulObject {
-    +getStatePrototype(): ObjectStatePrototype
-  }
-  SystemicPrimitive <|-- StatefulObject : is
-  StatefulObject "1" *--> "1" ObjectStatePrototype : has
-
-  ' ============================================================
-  ' OBJECT STATE PROTOTYPE
-  ' ============================================================
-
-  class StatefulObjectStatePrototype {
+  class EventArchetype {
     +getName(): String
     +getSchema(): Schema
   }
-  SystemicPrimitive <|-- StatefulObjectStatePrototype : is
-  StatefulObjectStatePrototype "1" *--> "1" Schema : has
+  SystemicPrimitive <|-- StatefulObjectStateArchetype : is
+  StatefulObjectStateArchetype "1" *--> "1" Schema : has
   
   ' ============================================================
-  ' EVENT
+  ' STATE OBJECT ARCHETYPE
   ' ============================================================
 
-  class Event
-  StatefulObject <|-- Event : is
-
-  ' ============================================================
-  ' STATE VARIABLE
-  ' ============================================================
-
-  class StateVariable
-  StatefulObject <|-- StateVariable : is
-
-  ' ============================================================
-  ' OPERAND REFERENCE HOLDER
-  ' ============================================================
-
-  class OperandReferenceHolder {
-    +getCriteria(): String
-    +getHoldingMechanism(): Mechanism
-    +getReferences(): OperandReference[]
+  class StateObjectArchetype {
+    +getName(): String
+    +getSchema(): Schema
   }
-  SystemicPrimitive <|-- OperandReferenceHolder : is
-  OperandReferenceHolder "1" *--> "1" Criteria : has
-  OperandReferenceHolder "0..1" o--> "1" Mechanism : heldBy
-  OperandReferenceHolder "1" *--> "0..*" OperandReference : has
-
-  ' ============================================================
-  ' OPERAND REFERENCE
-  ' ============================================================
-
-  abstract class OperandReference {
-    +getOperandReferenceHolder(): OperandReferenceHolder
-    +getOperatorReference(): OperatorReference
-  }
-  SystemicPrimitive <|-- OperandReference : is
-  OperandReference "0..*" o--> "1" OperandReferenceHolder : heldBy
-  OperandReference "1" *--> "1" OperatorReference : heldBy
-
-  class SystemicPrimitiveOperandReference {
-    +getSystemicPrimitive(): SystemicPrimitive
-  }
-  OperandReference <|-- SystemicPrimitiveOperandReference : is
-  SystemicPrimitiveOperandReference "0..*" o--> "1" SystemicPrimitive : references
-
-  class StatefulObjectStateOperandReference {
-    +getStatefulObject(): StatefulObject
-  }
-  OperandReference <|-- StatefulObjectOperandReference : is
-  StatefulObjectOperandReference "0..*" o--> "1" StatefulObject : references
-
-  class LiteralOperandReference {
-    +getValue(): String
-  }
-  OperandReference <|-- LiteralOperandReference : is
-
-  class VariableOperandReference
-  OperandReference <|-- VariableOperandReference : is
-
-  ' ============================================================
-  ' OPERATOR REFERENCE
-  ' ============================================================
-
-  class AssignmentOperatorReference {
-    +getSourceOperandReference(): OperandReference
-    +getTargetOperandReference(): OperandReference
-    +getType(): Enum <<AssignmentOperatorTypeEnum>>
-  }
-
-  SystemicPrimitive <|-- AssignmentOperatorReference : is
+  SystemicPrimitive <|-- StatefulObjectStateArchetype : is
+  StatefulObjectStateArchetype "1" *--> "1" Schema : has
 
   ' ============================================================
   ' RELATIONSHIPS
@@ -506,7 +435,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   System "1" *--> "0..*" Component : has
   System "1" *--> "0..*" Capacity : has
   System "1" *--> "0..*" Condition : has
-  System "1" *--> "0..*" StateVariable : has
+  System "1" *--> "0..*" StateObjectArchetype : has
 
   System "0..*" o--> "0..*" System : hasSuper
   System "0..*" *--> "0..*" System : hasSub
@@ -517,18 +446,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   System "1" *--> "0..*" Mechanism : implements
   System "1" *--> "0..*" Interaction : participatesIn
-  System "1" o--> "0..*" Event : handles
+  System "1" o--> "0..*" EventArchetype : handles
 
   Interface "1" *--> "0..*" Receptor : has
   Interface "1" *--> "0..*" Effector : has
   Interface "1" *--> "0..*" Channel : has
-  Receptor "0..*" o--> "1" ExternalEvent : receives
-  Receptor "0..*" o--> "1" InternalEvent : internalizes
+  Receptor "0..*" o--> "1" EventArchetype : receives
   Receptor "0..*" o--> "1" Interaction : boundTo
   Receptor "0..*" o--> "1" Channel : boundTo
   Receptor "1..*" o--> "1" Interface : partOf
-  Effector "0..*" o--> "1" ExternalEvent : emits
-  Effector "0..*" o--> "1" InternalEvent : externalizes
+  Effector "0..*" o--> "1" EventArchetype : emits
   Effector "0..*" o--> "1" Interaction : boundTo
   Effector "0..*" o--> "1" Channel : boundTo
   Effector "1..*" o--> "1" Interface : partOf
@@ -540,12 +467,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   Mechanism "0..*" o--> "1" Governor : has
   Mechanism "1" *--> "1" Regulator : has
-  Interaction "0..*" o--> "1" Event : involves
+  Interaction "0..*" o--> "1" EventArchetype : involves
   Interaction "0..*" o--> "1" System : withExternal
   Interaction "0..*" o--> "1..*" Channel : boundTo
-
-  Event <|-- InternalEvent : is
-  Event <|-- ExternalEvent : is
 
   Constraint <|-- Principle : is
   Constraint <|-- Policy : is
