@@ -186,7 +186,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDSL (Canonical Systemic Domai
 
   ' Checkpoint
   class InstanceSelectionExpression {
-    +getPrototypeName(): StringLiteralExpression
+    +getArchetypeName(): StringLiteralExpression
     +getCriteria(): LogicalOperatorNode
   }
   StatementNode <|-- InstanceSelectionExpression : is
@@ -210,7 +210,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDSL (Canonical Systemic Domai
   ActuateEffectorExpression <|-- SelectEffectorExpression : is
 
   class CreateEffectorExpression {
-    +getDefinitionPrototypeName(): StringLiteralExpression
+    +getDefinitionArchetypeName(): StringLiteralExpression
     +getExecutionInstanceName(): StringLiteralExpression
     +getPropertyNameValueMap(): ObjectLiteralExpression
     +getEventName(): StringLiteralExpression
@@ -255,7 +255,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDSL (Canonical Systemic Domai
   ComparisonOperatorExpression "1" *--> "1" OperandExpressionNode : hasLeft
   ComparisonOperatorExpression "1" *--> "1" OperandExpressionNode : hasRight
 
-  CrudStatement "1" *--> "1" LiteralExpression : hasPrototypeName
+  CrudStatement "1" *--> "1" LiteralExpression : hasArchetypeName
 
   CreateInstanceStatement "1" *--> "1" LiteralExpression : hasValue
   CreateInstanceStatement "1" o--> "1" VariableExpression : storesResultIn

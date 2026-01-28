@@ -68,6 +68,55 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   ' ============================================================
+  ' ACTUATION EVENT SCHEMAS
+  ' ============================================================
+
+  note top of ActuationEventSchema
+    Actuation event schemas define the canonical structure of events whose
+    meaning is: execute a specific actuation.
+
+    name: CreationActuationEventSchema    
+    properties:
+      - operation: "create"
+      - objectArchetypeName: String
+      - valueMapping: Map
+
+    name: ModificationActuationEventSchema
+    properties:
+      - operation: "modify"
+      - objectArchetypeName: String
+      - criteria: LogicalOperatorNode
+      - valueMapping: Map
+
+    name: DeletionActuationEventSchema
+    properties:
+      - operation: "delete"
+      - objectArchetypeName: String
+      - criteria: LogicalOperatorNode
+
+    name: AcquisitionActuationEventSchema
+    properties:
+      - operation: "acquire"
+      - objectArchetypeName: String
+      - criteria: LogicalOperatorNode
+  end note
+
+  abstract class ActuationEventSchema
+  Schema <|-- ActuationEventSchema : is
+
+  class CreationActuationEventSchema
+  ActuationEventSchema <|-- CreationActuationEventSchema : is
+
+  class ModificationActuationEventSchema
+  ActuationEventSchema <|-- ModificationActuationEventSchema : is
+
+  class DeletionActuationEventSchema
+  ActuationEventSchema <|-- DeletionActuationEventSchema : is
+
+  class AcquisitionActuationEventSchema
+  ActuationEventSchema <|-- AcquisitionActuationEventSchema : is
+
+  ' ============================================================
   ' SYSTEMIC PRIMITIVE
   ' ============================================================
 
@@ -172,6 +221,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
   SystemicPrimitive <|-- SystemicPrimitiveQualifier : is
   SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierArchetype : has
+
   ' ============================================================
   ' SYSTEM
   ' ============================================================
@@ -220,26 +270,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getWorkflows(): Workflow[]
   }
   SystemicPrimitive <|-- Capacity : is
-
-  ' ============================================================
-  ' GOVERNOR
-  ' ============================================================
-
-  class Governor {
-    +getPolicies(): Policy[]
-    +getAssignedMechanisms(): Mechanism[]
-  }
-  SystemicPrimitive <|-- Governor : is
-
-  ' ============================================================
-  ' REGULATOR
-  ' ============================================================
-
-  class Regulator {
-    +getRules(): Rule[]
-    +getAssignedMechanisms(): Mechanism[]
-  }
-  SystemicPrimitive <|-- Regulator : is
 
   ' ============================================================
   ' INTERFACE
@@ -293,51 +323,288 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' MECHANISM
   ' ============================================================
 
-  class Mechanism {
-    +getReaction(): Reaction
+  abstract class Mechanism {
+    +getName(): String
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
-    +getRegulator(): Regulator
-    +getGovernor(): Governor
   }
   SystemicPrimitive <|-- Mechanism : is
+  Mechanism "1" *--> "1..*" Receptor : has
+  Mechanism "1" *--> "1..*" Effector : has
 
   ' ============================================================
   ' RECEPTOR
   ' ============================================================
 
+  note top of Receptor
+    A receptor represents a mechanism's capability to receive events produced by
+    mechanism's effectors.
+
+    **Rules**:
+    - A receptor MUST be bound to exactly one event archetype.
+    - If the bound event archetype is deleted, the receptor MUST be deleted.
+    - If the receptor is deleted, the bound event archetype MUST NOT be deleted.
+  end note
+
   class Receptor {
+    +getName(): String
     +getReceivedEventArchetype(): EventArchetype
   }
   SystemicPrimitive <|-- Receptor : is
+  Receptor "1" o--> "1" EventArchetype : on
 
   ' ============================================================
   ' EFFECTOR
   ' ============================================================
 
+  note top of Effector
+    An effector represents a mechanism's capability to produce events.
+
+    **Rules**:
+    - An effector MUST be bound to exactly one event archetype.
+    - An event archetype MUST be bound to exactly one effector.
+    - If the bound event archetype is deleted, its effector MUST be deleted.
+    - If the effector is deleted, the bound event archetype MUST be deleted.
+    - An effector MUST have exactly one event mapping defining how the produced
+      event instance is constructed from source events.
+    - If the effector is deleted, its event mapping MUST be deleted.
+    - The event mapping MUST NOT be deleted without its effector MUST being
+      deleted.
+  end note
+
   class Effector {
-    +getResultingEventArchetype(): EventArchetype
+    +getName(): String
+    +getProducedEventArchetype(): EventArchetype
+    +getProducedEventMapping(): EffectorEventMapping
   }
   SystemicPrimitive <|-- Effector : is
+  Effector "1" *--> "1" EventArchetype : on
+  Effector "1" *--> "1" EffectorEventMapping : has
 
   ' ============================================================
-  ' REACTION
+  ' EFFECTOR EVENT MAPPING
   ' ============================================================
 
-  class Reaction {
-    +getLogic(): ReactionLogic
+  note top of EffectorEventMapping
+    Captures, at design time, how an effector's produced event instance is
+    constructed from one or more source events.
+
+    This enables end-to-end data transformation traceability.
+
+    **Designer algorithm (mapping-first)**:
+    - For each effector event mapping M:
+      - Ensure M.mapsTo == effector.on (target event archetype).
+      - (Until join is introduced) enforce |M.mapsFrom| == 1.
+    - Ensure a receptor exists for each M.mapsFrom event archetype.
+    - Ensure a control sequence exists for each distinct M.mapsFrom, with
+      triggering event == M.mapsFrom.
+    - Ensure a control exists in that sequence which selects the effector.
+    - When multiple controls exist in a sequence, order deterministically
+      (e.g., by effector name) to keep regeneration idempotent.
+
+    **Rules**:
+    - A mapping MUST reference exactly one target event archetype (the one
+      bound to the effector).
+    - A mapping MUST reference zero or more source event archetypes.
+  end note
+
+  class EffectorEventMapping {
+    +getTargetEventArchetype(): EventArchetype
+    +getSourceEventArchetypes(): EventArchetype[]
+    +getEventPropertyMappings(): EffectorEventPropertyMapping[]
   }
-  SystemicPrimitive <|-- Reaction : is
+  SystemicPrimitive <|-- EffectorEventMapping : is
+  EffectorEventMapping "1" o--> "1" EventArchetype : mapsTo
+  EffectorEventMapping "1" o--> "0..*" EventArchetype : mapsFrom
+  EffectorEventMapping "1" *--> "1..*" EffectorEventPropertyMapping : has
+
+  note top of EffectorEventPropertyMapping
+    Defines how a specific property of the target event is derived from source
+    events, using an expression.
+
+    This enables end-to-end data transformation traceability, at property level.
+
+    **Rules**:
+    - The target and source pathes MUST reference a valid property in the target
+      and source event archetype schema.
+  end note
+  
+  class EffectorEventPropertyMapping {
+    +getTargetPath(): String
+    +getSourcePath(): String
+  }
+  SystemicPrimitive <|-- EffectorEventPropertyMapping : is
 
   ' ============================================================
-  ' LOGIC
+  ' GOVERNOR MECHANISM
   ' ============================================================
 
-  class ReactionLogic {
-    +getAst(): Ast
+  note top of GovernorMechanism
+    A governor mechanism establishes high-level policies that guide the overall
+    behavior of the system it governs, via supervisor mechanisms receiving
+    these policy events and operationalizing these policies as rules.
+
+    **Rules**:
+    - A governor mechanism MUST own at least one policy.
+    - Policies associated with a governor mechanism MUST be unique within the
+      context of that mechanism.
+  end note
+
+  class GovernorMechanism {
+    +getPolicies(): Policy[]
+  }
+  ControllerMechanism <|-- GovernorMechanism : is
+  GovernorMechanism "1" *--> "0..*" Policy : has
+
+  ' ============================================================
+  ' SUPERVISOR MECHANISM
+  ' ============================================================
+
+  note top of SupervisorMechanism
+    A supervisor mechanism oversees the operation of other mechanisms within
+    the system, ensuring they adhere to defined rules and policies.
+
+    **Rules**:
+    - A supervisor mechanism MUST receive at least one governor event.
+    - A supervisor mechanism MUST have at least one associated rule.
+    - Rules associated with a supervisor mechanism MUST be unique within the
+      context of that mechanism.
+  end note
+
+  class SupervisorMechanism {
+    +getRules(): Rule[]
+  }
+  ControllerMechanism <|-- SupervisorMechanism : is
+  SupervisorMechanism "1" *--> "0..*" Rule : has
+
+  ' ============================================================
+  ' CONTROLLER MECHANISM
+  ' ============================================================
+
+  class ControllerMechanism {
+    +getControlSequences(): ControlSequence[]
+  }
+  Mechanism <|-- ControllerMechanism : is
+  ControllerMechanism "1" *--> "1..*" ControlSequence : has
+
+  ' ============================================================
+  ' ACTUATOR MECHANISM
+  ' ============================================================
+
+  note top of ActuatorMechanism
+    An actuator mechanism is an execution mechanism.
+
+    To keep actuators as dumb as possible, actuator mechanisms MAY be derived
+    automatically from actuation command events.
+
+    **Derivation rule (design time)**:
+    - For each event archetype bearing an actuation, the designer SHOULD
+      propose or generate an actuator mechanism bearing that actuation.
+  end note
+
+  class ActuatorMechanism {
+    +getActuation(): Actuation
+  }
+  Mechanism <|-- ActuatorMechanism : is
+  ActuatorMechanism "1" *--> "1" Actuation : has
+
+  ' ============================================================
+  ' SENSOR MECHANISM
+  ' ============================================================
+
+  class SensorMechanism {
+    +getSensing(): Sensing
+  }
+  Mechanism <|-- SensorMechanism : is
+  SensorMechanism "1" *--> "1" Sensing : has
+
+  ' ============================================================
+  ' CONTROL SEQUENCE
+  ' ============================================================
+  
+  class ControlSequence {
+    +getTriggeringEvent(): EventArchetype
+    +getConditions(): LogicalOperatorNode
+    +getIterationConditions(): LogicalOperatorNode
+    +getControls(): Control[]
+  }
+  SystemicPrimitive <|-- ControlSequence : is
+  ControlSequence "1" o--> "1" EventArchetype : on
+  ControlSequence "1" *--> "1..*" Control : has
+
+  ' ============================================================
+  ' CONTROL
+  ' ============================================================
+
+  note top of Control
+    A control selects an effector to execute.
+
+    The effector's mapping declares which source event archetypes are required
+    to build the produced event payload.
+
+    Designer behavior:
+    - When a control is added to a control sequence, required source event
+      archetypes SHOULD be inferred from the selected effector's mapping.
+    - If the enclosing mechanism does not yet have receptors for those source
+      archetypes, the designer SHOULD propose creating them.
+    - If the required source archetype does not match the control sequence's
+      triggering event, the designer SHOULD propose creating a new control
+      sequence triggered by that source archetype (chained sequences).
+  end note
+
+  class Control {
+    +getName(): String
+    +getConditions(): LogicalOperatorNode
+    +getIterationConditions(): LogicalOperatorNode
+    +getEffector(): Effector
+  }
+  SystemicPrimitive <|-- Control : is
+  Control "1" *--> "1" Effector : has
+
+  ' ============================================================
+  ' ACTUATION
+  ' ============================================================
+
+  note top of Actuation
+    An actuation represents a mechanism's capability to perform actions that
+    modify a state object of the system.
+
+    Actuation actuate either first-order dynamics objects (functional) or
+    second-order dynamics objects (system, interface, policy, rule, control,
+    actuation, etc).
+
+    **Rules**:
+    - If type == "create", valueMapping MUST be provided.
+    - If type == "modify", criteria and valueMapping MUST be provided.
+    - If type == "delete", criteria MUST be provided.
+    - If type == "acquire", criteria MUST be provided.
+  end note
+
+  class Actuation {
+    +getName(): String
+    +getType(): Enum <<ActuationTypeEnum>>
+    +getObjectArchetypeName(): String
+    +getCriteria(): LogicalOperatorNode
+    +getValueMapping(): Map
+  }
+  SystemicPrimitive <|-- Actuation : is
+
+  enum ActuationTypeEnum {
+    "create"
+    "modify"
+    "delete"
+    "acquire"
   }
 
-  abstract class EffectorOperation
+  ' ============================================================
+  ' SENSING
+  ' ============================================================
+
+  class Sensing {
+    +getName(): String
+    +getActuation(): Actuation
+  }
+  SystemicPrimitive <|-- Sensing : is
 
   ' ============================================================
   ' INTERACTION
@@ -348,6 +615,52 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getChannels(): Channel[]
   }
   SystemicPrimitive <|-- Interaction : is
+
+  ' ============================================================
+  ' EVENT ARCHETYPE
+  ' ============================================================
+
+  note top of EventArchetype
+    Defines the structure and semantics of an event that can be emitted or
+    received by a system via its effectors and receptors.
+
+    This enables extensible event definitions, data validations, and
+    exploitations.
+
+    **Rules**:
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all entities classified as "archetype".
+  end note
+
+  abstract class EventArchetype {
+    +getName(): String
+    +getSchema(): Schema
+  }
+  SystemicPrimitive <|-- EventArchetype : is
+  EventArchetype "1" *--> "0..1" Schema : has
+  
+  ' ============================================================
+  ' STATE OBJECT ARCHETYPE
+  ' ============================================================
+
+  note top of StateObjectArchetype
+    Defines the structure and semantics of a state object that can be used to
+    represent the state of a system.
+
+    This enables extensible state object definitions, data validations, and
+    exploitations.
+
+    **Rules**:
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all entities classified as "archetype".
+  end note
+
+  class StateObjectArchetype {
+    +getName(): String
+    +getSchema(): Schema
+  }
+  SystemicPrimitive <|-- StateObjectArchetype : is
+  StateObjectArchetype "1" *--> "1" Schema : has
 
   ' ============================================================
   ' CONSTRAINT
@@ -404,28 +717,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getRule(): Rule
     +getPriority(): Int
   }
-
-  ' ============================================================
-  ' EVENT ARCHETYPE
-  ' ============================================================
-
-  class EventArchetype {
-    +getName(): String
-    +getSchema(): Schema
-  }
-  SystemicPrimitive <|-- StatefulObjectStateArchetype : is
-  StatefulObjectStateArchetype "1" *--> "1" Schema : has
-  
-  ' ============================================================
-  ' STATE OBJECT ARCHETYPE
-  ' ============================================================
-
-  class StateObjectArchetype {
-    +getName(): String
-    +getSchema(): Schema
-  }
-  SystemicPrimitive <|-- StatefulObjectStateArchetype : is
-  StatefulObjectStateArchetype "1" *--> "1" Schema : has
 
   ' ============================================================
   ' RELATIONSHIPS
