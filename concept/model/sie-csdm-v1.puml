@@ -37,6 +37,7 @@ skinparam noteBorderColor #57606A
 ' - Adapt Interaction and channel.
 ' - Referencing triggers asynchronously on new mechanism creation.
 ' - Remove getName() from SystemicPrimitive superclass, and adapt.
+' - Extract all notes into a separate puml.
 ' - Belongs to some other engine (e.g. governance engine):
 '   - ConstraintConflict.
 '   - ConstraintConflictResolution.
@@ -47,27 +48,27 @@ skinparam noteBorderColor #57606A
 frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Definition Model) - v1" {
 
   ' ============================================================
-  ' SCHEMA
+  ' ARCHETYPE SCHEMA
   ' ============================================================
 
-  class Schema {
+  class ArchetypeSchema {
     +getId(): UUID
     +getUri(): URI
   }
 
-  note top of Schema
-    Defines the structure and semantics of systemic primitive, their instances
-    and qualifiers, using schemas.
+  note top of ArchetypeSchema
+    Defines the structure and semantics of systemic primitive archetypes,
+    their instances and qualifiers, using archetype schemas.
 
     This enables extensible systemic definitions, data validations, and
     exploitation.
 
-    **Rules**
+    **Rules**:
     - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
-    - "uri" MUST be unique among all schemas.
+    - "uri" MUST be unique among all archetype schemas.
 
-    **Generic schemas**
-    - *Actuation control event schemas*:
+    **Generic schemas definitions**:
+    - *Actuation Control Event Schemas*:
       define the generic structure of events whose meaning is: execute a
       specific actuation.
 
@@ -96,7 +97,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-    - *Actuation event schemas*:
+    - *Actuation Event Schemas*:
       define the generic structure of events whose meaning is: specific
       actuation executed.
 
@@ -125,7 +126,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-    - *Actuation feedback event schemas*:
+    - *Actuation Feedback Event Schemas*:
       define the generic structure of events whose meaning is: specific
       actuation execution observed.
 
@@ -185,7 +186,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   class SystemicPrimitiveArchetype {
     +getId(): UUID
     +getName(): String
-    +getSchema(): Schema
+    +getSchema(): ArchetypeSchema
     +getQualifierArchetypes(): SystemicPrimitiveArchetypeQualifierArchetype[]
   }
 
@@ -200,11 +201,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - "name" MUST be maximum 255 characters long.
   end note
 
-  SystemicPrimitiveArchetype "1" *--> "1" Schema : has
+  SystemicPrimitiveArchetype "1" *--> "1" ArchetypeSchema : has
   SystemicPrimitiveArchetype "1" *--> "0..*" SystemicPrimitiveArchetypeQualifierArchetype : has
 
   class SystemicPrimitiveArchetypeQualifierArchetype {
-    +getSchema(): Schema
+    +getSchema(): ArchetypeSchema
     +getSystemicPrimitiveArchetype(): SystemicPrimitiveArchetype
   }
 
@@ -223,11 +224,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitiveArchetype <|-- SystemicPrimitiveArchetypeQualifierArchetype : is
-  SystemicPrimitiveArchetypeQualifierArchetype "1" *--> "1" Schema : has
+  SystemicPrimitiveArchetypeQualifierArchetype "1" *--> "1" ArchetypeSchema : has
   SystemicPrimitiveArchetypeQualifierArchetype "1" o--> "1" SystemicPrimitiveArchetype : belongsTo
 
   class SystemicPrimitiveQualifierArchetype {
-    +getSchema(): Schema
+    +getSchema(): ArchetypeSchema
     +getSystemicPrimitive(): SystemicPrimitive
   }
 
@@ -246,7 +247,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitive <|-- SystemicPrimitiveQualifierArchetype : is
-  SystemicPrimitiveQualifierArchetype "1" *--> "1" Schema : has
+  SystemicPrimitiveQualifierArchetype "1" *--> "1" ArchetypeSchema : has
   SystemicPrimitiveQualifierArchetype "1" o--> "1" SystemicPrimitive : belongsTo
 
   class SystemicPrimitiveQualifier {
@@ -374,9 +375,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   note top of Receptor
     A receptor represents a mechanism's capability to receive events produced by
-    mechanism's effectors.
+    mechanism's effectors. Such received event represent a cause for the
+    mechanism to operate.
 
-    **Rules**
+    **Consistency Rules**:
+    - A receptor name MUST be unique among all receptors of the same system.
     - A receptor MUST be bound to exactly one event archetype.
     - If the bound event archetype is deleted, the receptor MUST be deleted.
     - If the receptor is deleted, the bound event archetype MUST NOT be deleted.
@@ -396,18 +399,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of Effector
-    An effector represents a mechanism's capability to produce events.
+    An effector represents a mechanism's capability to produce events. Such
+    produced events represent the effect of a mechanism's operation on the
+    system.
 
-    **Rules**
+    **Consistency Rules**:
+    - An effector name MUST be unique among all effectors of the same system.
     - An effector MUST be bound to exactly one event archetype.
     - An event archetype MUST be bound to exactly one effector.
     - If the bound event archetype is deleted, its effector MUST be deleted.
     - If the effector is deleted, the bound event archetype MUST be deleted.
     - An effector MUST have exactly one event mapping defining how the produced
-      event instance is constructed from source events.
+      event instance is constructed from source receptor's events.
     - If the effector is deleted, its event mapping MUST be deleted.
-    - The event mapping MUST NOT be deleted without its effector MUST being
-      deleted.
+    - The event mapping MUST NOT be deleted without its effector being deleted.
   end note
 
   SystemicPrimitive <|-- Effector : is
@@ -430,18 +435,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     This enables end-to-end data transformation traceability.
 
-    **Designer algorithm (mapping-first)**
+    **Event Mapping Rules**
     - For each effector event mapping M:
-      - Ensure M.mapsTo == effector.on (target event archetype).
-      - (Until join is introduced) enforce |M.mapsFrom| == 1.
-    - Ensure a receptor exists for each M.mapsFrom event archetype.
-    - Ensure a control sequence exists for each distinct M.mapsFrom, with
-      triggering event == M.mapsFrom.
+      - Ensure M.targetEventArchetype == effector.on (target event archetype).
+    - Ensure a receptor exists for each M.sourceEventArchetype.
+    - Ensure a control sequence exists for each distinct M.sourceEventArchetype,
+      with triggering event == M.sourceEventArchetype.
     - Ensure a control exists in that sequence which selects the effector.
     - When multiple controls exist in a sequence, order deterministically
-      (e.g., by effector name) to keep regeneration idempotent.
+      (e.g. by effector name) to keep regeneration idempotent.
 
-    **Rules**
+    **Consistency Rules**:
     - A mapping MUST reference exactly one target event archetype (the one
       bound to the effector).
     - A mapping MUST reference zero or more source event archetypes.
@@ -451,18 +455,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   EffectorEventMapping "1" o--> "1" EventArchetype : mapsTo
   EffectorEventMapping "1" o--> "0..*" EventArchetype : mapsFrom
   EffectorEventMapping "1" *--> "1..*" EffectorEventPropertyMapping : has
+
+  ' ============================================================
+  ' EFFECTOR EVENT PROPERTY MAPPING
+  ' ============================================================
+
   class EffectorEventPropertyMapping {
     +getTargetPath(): String
     +getSourcePath(): String
   }
 
   note top of EffectorEventPropertyMapping
-    Defines how a specific property of the target event is derived from source
-    events, using an expression.
+    Defines how a specific property of the target event is set and derived from
+    source events.
 
     This enables end-to-end data transformation traceability, at property level.
 
-    **Rules**
+    **Consistency Rules**:
     - The target and source pathes MUST reference a valid property in the target
       and source event archetype schema.
   end note
@@ -487,6 +496,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
   }
+
+  note top of Mechanism
+    A mechanism represents a system's capability to process input events
+    received via its receptors, and produce output events via its effectors.
+
+    A mechanism represents an atomic causal unit of behavior within a system.
+
+    **Consistency Rules**:
+    - A mechanism name MUST be unique among all mechanisms of the same system.
+    - A mechanism MUST have at least one receptor and one effector.
+    - If a mechanism is deleted, its receptors and effectors MUST be
+      deleted.
+    - If a receptor or effector is deleted, the mechanism MUST NOT be deleted,
+      except if the receptor or effector is the last one the mechanism owns.
+  end note
+
   SystemicPrimitive <|-- Mechanism : is
   Mechanism "1" *--> "1..*" Receptor : has
   Mechanism "1" *--> "1..*" Effector : has
@@ -504,7 +529,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     behavior of the system it governs, via supervisor mechanisms receiving
     these policy events and operationalizing these policies as rules.
 
-    **Rules**:
+    **Consistency Rules**:
     - A governor mechanism MUST own at least one policy.
     - Policies associated with a governor mechanism MUST be unique within the
       context of that mechanism.
@@ -525,7 +550,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     A supervisor mechanism oversees the operation of other mechanisms within
     the system, ensuring they adhere to defined rules and policies.
 
-    **Rules**
+    **Consistency Rules**:
     - A supervisor mechanism MUST receive at least one governor event.
     - A supervisor mechanism MUST have at least one associated rule.
     - Rules associated with a supervisor mechanism MUST be unique within the
@@ -547,13 +572,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     A controller mechanism is a control mechanism. It conditionnally produces
     effectors (output events) based on events received via its receptors.
 
-    **Todo**
-    - Implement join/fork of control sequences.
+    **Todo**:
+    - Implement join/fork of control sequences (which may define parallel
+      execution).
 
-    **Rules**
+    **Consistency Rules**:
     - A controller mechanism MUST own at least one control sequence.
     - Control sequences associated with a controller mechanism MUST be unique
-      within the context of that mechanism.
+      within the context of the system.
+    - If a controller mechanism is deleted, its control sequences MUST be
+      deleted, and vice-versa IF it is the last control sequence the mechanism
+      owns.
   end note
 
   Mechanism <|-- ControllerMechanism : is
@@ -568,11 +597,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of ActuatorMechanism
-    An actuator mechanism is an execution mechanism.
+    An actuator mechanism is an execution mechanism acting on a state object.
 
-    **Derivation rule (design time)**
-    - For each event archetype bearing an actuation, the designer SHOULD
-      propose or generate an actuator mechanism bearing that actuation.
+    **Auto Definition Rules**:
+    - For every event archetype E whose schema is a subtype of
+      ActuationControlEventSchema, the actuator mechanism MUST have (or derive)
+      a receptor bound to E.
+    - For every receptor bound to E, the actuator mechanism MUST have an
+      effector bound to event O whose schema is subtype of ActuationEventSchema.
+    - For every effector bound to O, the actuator mechanism MUST have an
+      actuation representing the action performed on the state object.
+
+    **Consistency Rules**:
+    - An actuator mechanism MUST own exactly one actuation.
+    - Actuations associated with an actuator mechanism MUST be unique
+      within the context of the system.
+    - If an actuator mechanism is deleted, its actuation MUST be deleted,
+      and vice-versa.
   end note
 
   Mechanism <|-- ActuatorMechanism : is
@@ -587,26 +628,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of SensorMechanism
-    A sensor mechanism is an observation mechanism.
+    A sensor mechanism is an observation mechanism on actuations.
 
-    **Derivation rule (design time)**
-    - A sensor mechanism MUST automatically take as input any actuation event
-      emitted by actuators.
-
-    **Operational meaning**
+    **Auto Definition Rules**:
     - For every event archetype E whose schema is a subtype of
       ActuationEventSchema, the sensor mechanism MUST have (or derive) a
       receptor bound to E.
+    - For every receptor bound to E, the sensor mechanism MUST have an
+      effector bound to event O whose schema is subtype of
+      ActuationFeedbackEventSchema.
+    - For every effector bound to O, the sensor mechanism MUST have a
+      sensing representing the observation of the actuation.
 
-    **Automatic output**
-    - For every observed actuation event instance A received via those
-      receptors, the sensor mechanism MUST emit exactly one sensing event
-      instance O whose schema is subtype of ActuationFeedbackEventSchema.
-    - O describes that the actuation command was observed (not that it was
-      successfully executed), and SHOULD embed the observed actuation for
-      traceability.
-    - O MUST embed the ActuationEventSchema corresponding to A for semantic
-      traceability.
+    **Consistency Rules**:
+    - A sensor mechanism MUST own exactly one sensing.
+    - Sensing associated with a sensor mechanism MUST be unique within the
+      context of the system.
   end note
 
   Mechanism <|-- SensorMechanism : is
@@ -622,6 +659,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getIterationConditions(): LogicalOperatorNode
     +getControls(): Control[]
   }
+
+  note top of ControlSequence
+    A control sequence represents a series of controls that are executed in
+    response to a specific triggering event.
+
+    A control sequence may be iterated while its iteration conditions hold.
+
+    **Validation Rules**:
+    - The conditions operands referencing event properties MUST exist in the
+      corresponding event archetype schemas beared by the mechanism receptor.
+    - The conditions operands representing a literal value MUST be validated
+      against the corresponding event archetype schema beared by the mechanism
+      receptor.
+
+    **Consistency Rules**:
+    - A control sequence MUST be triggered by exactly one event archetype.
+    - A control sequence MUST have at least one control.
+    - If a control sequence is deleted, its controls MUST be deleted, and
+      vice-versa IF it is the last control the sequence owns.
+  end note
+
   SystemicPrimitive <|-- ControlSequence : is
   ControlSequence "1" o--> "1" EventArchetype : on
   ControlSequence "1" *--> "1..*" Control : has
@@ -638,19 +696,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of Control
-    A control selects an effector to execute.
+    A control consists to map data to its effector's event.
 
-    The effector's mapping declares which source event archetypes are required
-    to build the produced event payload.
-
-    Designer behavior:
+    **Auto Definition Rules**:
     - When a control is added to a control sequence, required source event
       archetypes SHOULD be inferred from the selected effector's mapping.
     - If the enclosing mechanism does not yet have receptors for those source
-      archetypes, the designer SHOULD propose creating them.
+      archetypes, the application SHOULD propose creating them.
     - If the required source archetype does not match the control sequence's
-      triggering event, the designer SHOULD propose creating a new control
+      triggering event, the application SHOULD propose creating a new control
       sequence triggered by that source archetype (chained sequences).
+
+    **Validation Rules**:
+    - The conditions operands referencing event properties MUST exist in the
+      corresponding event archetype schemas beared by the mechanism receptor.
+    - The conditions operands representing a literal value MUST be validated
+      against the corresponding event archetype schema beared by the mechanism
+      receptor.
+
+    **Consistency Rules**:
+    - A control name MUST be unique among all controls of the system.
+    - A control MUST have exactly one effector.
+    - If a control is deleted, its effector MUST be deleted, and vice-versa.
   end note
 
   SystemicPrimitive <|-- Control : is
@@ -671,12 +738,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     Actuation actuate either *first-order dynamics* objects (functional) or
     *second-order dynamics* objects (system, interface, policy, rule, control,
     actuation, etc).
+
+    **Consistency Rules**:
+    - The actuation name MUST be unique among all actuations of the same system.
   end note
 
   SystemicPrimitive <|-- Actuation : is
 
   ' ============================================================
-  ' SENSING
+  ' SENSING (checkpoint)
   ' ============================================================
 
   class Sensing {
@@ -690,7 +760,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   class EventArchetype {
     +getName(): String
-    +getSchema(): Schema
+    +getSchema(): ArchetypeSchema
   }
 
   note top of EventArchetype
@@ -706,7 +776,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitive <|-- EventArchetype : is
-  EventArchetype "0..*" o--> "1" Schema : has
+  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
   
   ' ============================================================
   ' STATE OBJECT ARCHETYPE
@@ -714,7 +784,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   class StateObjectArchetype {
     +getName(): String
-    +getSchema(): Schema
+    +getSchema(): ArchetypeSchema
   }
 
   note top of StateObjectArchetype
@@ -730,7 +800,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitive <|-- StateObjectArchetype : is
-  StateObjectArchetype "1" *--> "1" Schema : has
+  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
 
   ' ============================================================
   ' CONSTRAINT
