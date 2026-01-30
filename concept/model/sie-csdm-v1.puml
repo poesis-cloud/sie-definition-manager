@@ -25,20 +25,12 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Indicate which entity properties only reference and don't own other
-'   entities (lazy loading), other state's persistence.
 ' - Define heterarchy relationships between systems (super/sub system).
 ' - Add status/lifecycle to entities.
-' - Add temporal aspects to states (time series, history, versioning).
-' - Maybe remove State entities.
-' - In mechanisms logic, only instance properties can be referenced
-'   (instance's mechanisms definition).
-' - ConstraintBinding = "logical" link between constraints?
 ' - Adapt Interaction and channel.
-' - Referencing triggers asynchronously on new mechanism creation.
-' - Remove getName() from SystemicPrimitive superclass, and adapt.
 ' - Extract all notes into a separate puml.
-' - Belongs to some other engine (e.g. governance engine):
+' - Challenge meta model, technically.
+' - Handle:
 '   - ConstraintConflict.
 '   - ConstraintConflictResolution.
 '   - Emergence.
@@ -46,6 +38,46 @@ skinparam noteBorderColor #57606A
 ' ============================================================
 
 frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Definition Model) - v1" {
+
+  note as CsdmNote
+    This model defines a reference set of notions for defining systems, with the
+    objective of being accepted as canonical:
+    their components, capacities, interfaces, mechanisms, behaviors, and
+    dynamics.
+
+    It provides a structured framework for modeling complex systems of any type
+    in a consistent and extensible manner, enabling **active** and **automatic**
+    systemic design, cross-cutting causal analysis, and coherent end-to-end
+    governance.
+
+    In systemics theory terms, these notions and their relations are widely
+    accepted as *second-order* elements: they define how to represent and define
+    systems. That is why this model is said to be *systemic*.
+
+    For IT profiles, a useful (but imperfect) analogy is Kubernetes' *control
+    plane*: just like CSDM, it defines governance constraints over a desired
+    state, and it continuously acts to reach and maintain that desired state for
+    the *data plane*. The Kubernetes *data plane*, like systems described with CSDM,
+    corresponds to *first-order* elements in systemics theory terms.
+
+    The key conceptual difference is scope: Kubernetes targets one class of
+    systems (container orchestration), whereas CSDM is designed as a
+    general-purpose definition model for systems of any kind.
+
+    Even though CSDM (the system definition informations structure) is
+    general-purpose, it supports extensible information attributes and
+    semantics. Structural constancy with semantic variation of informations
+    is one key enabler of cross-domain, global systemic automatic reasoning.
+
+    This version 1.0.0 of the CSDM focuses on core concepts and relationships,
+    laying the foundation for future extensions and refinements.
+  end note
+
+  ' ============================================================
+  ' META MODEL
+  '
+  ' (systemic primitives, qualifiers, archetypes, schemas)
+  ' ============================================================
 
   ' ============================================================
   ' ARCHETYPE SCHEMA
@@ -57,41 +89,42 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of ArchetypeSchema
-    Defines the structure and semantics of systemic primitive archetypes,
-    their instances and qualifiers, using archetype schemas.
+    Defines the structure and semantics of archetypes.
 
-    This enables extensible systemic definitions, data validations, and
-    exploitation.
+    Schemas enable informationnal extensibility for cross-domain, global
+    systemic automatic reasoning to capture domain specific knowledge and
+    semantics.
 
-    **Rules**:
-    - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
+    **Consistency Rules**:
     - "uri" MUST be unique among all archetype schemas.
+    - An archetype schema instance MUST NOT be deleted if it is referenced by any
+      archetype instance.
 
     **Generic schemas definitions**:
     - *Actuation Control Event Schemas*:
       define the generic structure of events whose meaning is: execute a
       specific actuation.
 
-      name: CreationActuationControlEventSchema
+      name: CreationActuationControlEvent
       properties:
         - operation: "create"
         - objectArchetypeName: String
         - valueMapping: Map
 
-      name: ModificationActuationControlEventSchema
+      name: ModificationActuationControlEvent
       properties:
         - operation: "modify"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
         - valueMapping: Map
 
-      name: DeletionActuationControlEventSchema
+      name: DeletionActuationControlEvent
       properties:
         - operation: "delete"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-      name: AcquisitionActuationControlEventSchema
+      name: AcquisitionActuationControlEvent
       properties:
         - operation: "acquire"
         - objectArchetypeName: String
@@ -101,26 +134,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       define the generic structure of events whose meaning is: specific
       actuation executed.
 
-      name: CreationActuationEventSchema
+      name: CreationActuationEvent
       properties:
         - operation: "create"
         - objectArchetypeName: String
         - valueMapping: Map
 
-      name: ModificationActuationEventSchema
+      name: ModificationActuationEvent
       properties:
         - operation: "modify"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
         - valueMapping: Map
 
-      name: DeletionActuationEventSchema
+      name: DeletionActuationEvent
       properties:
         - operation: "delete"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-      name: AcquisitionActuationEventSchema
+      name: AcquisitionActuationEvent
       properties:
         - operation: "acquire"
         - objectArchetypeName: String
@@ -130,30 +163,46 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       define the generic structure of events whose meaning is: specific
       actuation execution observed.
 
-      name: CreationActuationFeedbackEventSchema
+      name: CreationActuationFeedbackEvent
       properties:
         - operation: "create"
         - objectArchetypeName: String
         - valueMapping: Map
 
-      name: ModificationActuationFeedbackEventSchema
+      name: ModificationActuationFeedbackEvent
       properties:
         - operation: "modify"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
         - valueMapping: Map
 
-      name: DeletionActuationFeedbackEventSchema
+      name: DeletionActuationFeedbackEvent
       properties:
         - operation: "delete"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-      name: AcquisitionActuationFeedbackEventSchema
+      name: AcquisitionActuationFeedbackEvent
       properties:
         - operation: "acquire"
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
+
+    - *Control Feedback Event Schemas*:
+
+      name: ControlSupervisionFeedbackEvent
+      properties:
+        - control: Control
+        - rule: Rule
+        - status: Enum { "triggered", "in-progress", "completed", "failed" }
+
+    - *Supervision Feedback Event Schemas*:
+
+      name: SupervisionGovernanceFeedbackEvent
+      properties:
+        - rule: Rule
+        - policy: Policy
+        - status: Enum { "escalated", "de-escalated" }
   end note
 
   ' ============================================================
@@ -162,26 +211,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   abstract class SystemicPrimitive {
     +getId(): UUID
-    +getName(): String
     +getArchetype(): SystemicPrimitiveArchetype
     +getQualifierArchetypes(): SystemicPrimitiveQualifierArchetype[]
-    +getQualifiers(): SystemicPrimitiveQualifier[]
+    +getQualifiers(): Qualifier[]
   }
 
   note top of SystemicPrimitive
-    A systemic primitive represents a systemics "second-order dynamics" concept
-    of a system definition.
+    A systemic primitive is a foundational modeling construct used to express
+    second-order system descriptions (the concepts and relations used to define
+    systems).
 
-    **Rules**
-    - The systemic primitive MUST conform to the structure and semantics
-      defined in its schema (or vice-versa) held by its archetype.
-    - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
-    - "name" MUST be maximum 255 characters long.
+    **Extention Rules**:
+    - The systemic primitive subtype MUST conform to the structure and semantics
+      defined in the schema (or vice-versa) held by its archetype.
   end note
 
-  SystemicPrimitive "0..*" o--> "1" SystemicPrimitiveArchetype : has
+  SystemicPrimitive "1" o--> "1" SystemicPrimitiveArchetype : has
   SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierArchetype : has
   SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifier : has
+
+  ' ============================================================
+  ' SYSTEMIC PRIMITIVE ARCHETYPE
+  ' ============================================================
 
   class SystemicPrimitiveArchetype {
     +getId(): UUID
@@ -191,67 +242,83 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of SystemicPrimitiveArchetype
-    Defines the structure and semantics of a systemic primitive that can be
-    instantiated.
+    Defines the structure and semantics of a systemic primitive.
 
-    **Rules**
-    - "id" MUST be unique among all systemic primitive instances (=> UUIDv6).
+    **Consistency Rules**:
+    - "name" MUST match the name of the archetyped class.
     - "name" MUST match the name of the schema.
     - "name" MUST be unique among all systemic primitive archetypes.
-    - "name" MUST be maximum 255 characters long.
+    - "name" MUST be maximum 80 characters long.
   end note
 
   SystemicPrimitiveArchetype "1" *--> "1" ArchetypeSchema : has
   SystemicPrimitiveArchetype "1" *--> "0..*" SystemicPrimitiveArchetypeQualifierArchetype : has
 
-  class SystemicPrimitiveArchetypeQualifierArchetype {
+  ' ============================================================
+  ' QUALIFIER ARCHETYPE
+  ' ============================================================
+
+  abstract class QualifierArchetype {
+    +getId(): UUID
+    +getName(): String
     +getSchema(): ArchetypeSchema
+  }
+
+  note top of SystemicPrimitiveArchetypeQualifierArchetype
+    A qualifier is a logical extra attribute attached to a class. This enables
+    informationnal extensibility for cross-domain, global systemic automatic
+    reasoning to capture domain specific knowledge and semantics.
+
+    **Consistency Rules**:
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all qualifier archetypes instances.
+    - "name" MUST be maximum 80 characters long.
+  end note
+
+  QualifierArchetype "1" *--> "1" ArchetypeSchema : has
+
+  ' ============================================================
+  ' SYSTEMIC PRIMITIVE ARCHETYPE QUALIFIER ARCHETYPE
+  ' ============================================================
+
+  class SystemicPrimitiveArchetypeQualifierArchetype {
     +getSystemicPrimitiveArchetype(): SystemicPrimitiveArchetype
   }
 
   note top of SystemicPrimitiveArchetypeQualifierArchetype
-    Defines the structure and semantics of a qualifier that can be applied to
-    all instances of a systemic primitive.
-
-    This enables extensible semantic metadata associated to systemic primitives,
-    enabling systemic exploitations of specific domain data.
-
-    **Rules**
-    - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all qualifier archetypes of this systemic
-      primitive's archetype, and among all qualifier archetypes of systemic
-      primitives instances of this archetype.
+    Defines the structure and semantics of a qualifier that belongs to a
+    systemic primitive archetype instance - meaning to all instances of a
+    systemic primitive subtype.
   end note
 
-  SystemicPrimitiveArchetype <|-- SystemicPrimitiveArchetypeQualifierArchetype : is
-  SystemicPrimitiveArchetypeQualifierArchetype "1" *--> "1" ArchetypeSchema : has
+  QualifierArchetype <|-- SystemicPrimitiveArchetypeQualifierArchetype : is
   SystemicPrimitiveArchetypeQualifierArchetype "1" o--> "1" SystemicPrimitiveArchetype : belongsTo
 
+  ' ============================================================
+  ' SYSTEMIC PRIMITIVE QUALIFIER ARCHETYPE
+  ' ============================================================
+
   class SystemicPrimitiveQualifierArchetype {
-    +getSchema(): ArchetypeSchema
     +getSystemicPrimitive(): SystemicPrimitive
   }
 
   note top of SystemicPrimitiveQualifierArchetype
-    Defines the structure and semantics of a qualifier that can be applied to
-    a systemic primitive instance specifically.
-
-    This enables extensible semantic metadata associated to systemic primitives,
-    enabling systemic exploitations of specific domain data.
-
-    **Rules**
-    - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all qualifier archetypes of the systemic
-      primitive instances having the same archetype as this instance, and among
-      all qualifier archetypes of this systemic primitive archetype.
+    Defines the structure and semantics of a qualifier that belongs to a
+    systemic primitive instance specifically.
   end note
 
-  SystemicPrimitive <|-- SystemicPrimitiveQualifierArchetype : is
-  SystemicPrimitiveQualifierArchetype "1" *--> "1" ArchetypeSchema : has
+  QualifierArchetype <|-- SystemicPrimitiveQualifierArchetype : is
   SystemicPrimitiveQualifierArchetype "1" o--> "1" SystemicPrimitive : belongsTo
 
+  ' ============================================================
+  ' SYSTEMIC PRIMITIVE QUALIFIER
+  ' ============================================================
+
   class SystemicPrimitiveQualifier {
-    +getArchetype(): SystemicPrimitiveQualifierArchetype
+    +getId(): UUID
+    +getName(): String
+    +getArchetype(): QualifierArchetype
+    +getSystemicPrimitive(): SystemicPrimitive
     +getValue(): String
   }
 
@@ -259,19 +326,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     A qualifier applied to a systemic primitive instance, providing
     additional semantic metadata about the primitive.
 
-    **Rules**
-    - The qualifier's value is formatted as JSON. It MUST conform to the
-      structure, semantics, types, defined in its archetype's schema.
+    **Consistency Rules**:
+    - "value" MUST be formated as JSON.
+    - "value" MUST be conform to the structure, semantics, types, defined in
+      archetype's schema of the qualifier.
   end note
 
-  SystemicPrimitive <|-- SystemicPrimitiveQualifier : is
-  SystemicPrimitiveQualifier "1" *--> "1" SystemicPrimitiveQualifierArchetype : has
+  SystemicPrimitiveQualifier "1" *--> "1" QualifierArchetype : has
+  SystemicPrimitiveQualifier "1" o--> "1" SystemicPrimitive : belongsTo
+
+  ' ============================================================
+  ' MAIN MODEL (systemic primitives)
+  ' ============================================================
 
   ' ============================================================
   ' SYSTEM
   ' ============================================================
 
   class System {
+    +getName(): String
     +getType(): String
     +getRole(): String
     +getPurpose(): String
@@ -311,6 +384,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Capacity {
+    +getName(): String
     +getDescription(): String
     +getWorkflows(): Workflow[]
   }
@@ -321,6 +395,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Interface {
+    +getName(): String
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
     +getChannels(): Channel[]
@@ -338,6 +413,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Channel {
+    +getName(): String
     +getProtocol(): String
     +getInteractions(): Interaction[]
     +getExternalSystemInterface(): Interface
@@ -349,6 +425,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Workflow {
+    +getName(): String
     +getPurpose(): String
     +getFunctionsSequence(): Function[]
   }
@@ -359,6 +436,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Function {
+    +getName(): String
     +getPurpose(): String
     +getMechanism(): Mechanism
   }
@@ -379,7 +457,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     mechanism to operate.
 
     **Consistency Rules**:
-    - A receptor name MUST be unique among all receptors of the same system.
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all receptors of the same system.
     - A receptor MUST be bound to exactly one event archetype.
     - If the bound event archetype is deleted, the receptor MUST be deleted.
     - If the receptor is deleted, the bound event archetype MUST NOT be deleted.
@@ -404,7 +483,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     system.
 
     **Consistency Rules**:
-    - An effector name MUST be unique among all effectors of the same system.
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all effectors of the same system.
     - An effector MUST be bound to exactly one event archetype.
     - An event archetype MUST be bound to exactly one effector.
     - If the bound event archetype is deleted, its effector MUST be deleted.
@@ -504,7 +584,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     A mechanism represents an atomic causal unit of behavior within a system.
 
     **Consistency Rules**:
-    - A mechanism name MUST be unique among all mechanisms of the same system.
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all mechanisms of the same system.
     - A mechanism MUST have at least one receptor and one effector.
     - If a mechanism is deleted, its receptors and effectors MUST be
       deleted.
@@ -693,6 +774,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getConditions(): LogicalOperatorNode
     +getIterationConditions(): LogicalOperatorNode
     +getEffector(): Effector
+    +getSupervisionRules(): Rule[]
   }
 
   note top of Control
@@ -706,6 +788,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - If the required source archetype does not match the control sequence's
       triggering event, the application SHOULD propose creating a new control
       sequence triggered by that source archetype (chained sequences).
+    - Control's conditions SHOULD apply rules owned by supervisors. Hence, a
+      control SHOULD be associated to at least one rule, indirectly, via
+      interactions of the controller owning the conditions and supervisors
+      owning the related rules. For such interaction to operate, the controller
+      mechanism MUST have receptors receiving the Supervision event 
+      archetypes produced by the supervisors' effectors.
+    - When a control is added to the system, the application SHOULD propose
+      associating it to relevant rules owned
+      with supervisors.
+    - When a rule is added to the system, the application SHOULD propose adding
+      corresponding conditions to relevant controls.
 
     **Validation Rules**:
     - The conditions operands referencing event properties MUST exist in the
@@ -715,9 +808,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       receptor.
 
     **Consistency Rules**:
-    - A control name MUST be unique among all controls of the system.
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all controls of the system.
     - A control MUST have exactly one effector.
     - If a control is deleted, its effector MUST be deleted, and vice-versa.
+    - A control SHOULD be associated to zero or more supervision rules.
   end note
 
   SystemicPrimitive <|-- Control : is
@@ -737,22 +832,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     Actuation actuate either *first-order dynamics* objects (functional) or
     *second-order dynamics* objects (system, interface, policy, rule, control,
-    actuation, etc).
+    actuation, etc). In the latter case, the actuation participates in an
+    systemics *emergence* (=> the system redefines itself), alias autopoesis.
 
     **Consistency Rules**:
-    - The actuation name MUST be unique among all actuations of the same system.
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all actuations of the same system.
   end note
 
   SystemicPrimitive <|-- Actuation : is
 
   ' ============================================================
-  ' SENSING (checkpoint)
+  ' SENSING
   ' ============================================================
 
   class Sensing {
     +getName(): String
   }
   SystemicPrimitive <|-- Sensing : is
+
+  note top of Sensing
+    A sensing represents a mechanism's capability to observe actuations on a
+    state object of the system.
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all sensings of the same system.
+  end note
 
   ' ============================================================
   ' EVENT ARCHETYPE
@@ -767,12 +873,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     Defines the structure and semantics of an event that can be emitted or
     received by a system via its effectors and receptors.
 
-    This enables extensible event definitions, data validations, and
-    exploitations.
-
-    **Rules**
-    - "name" MUST match the name of the schema.
+    **Consistency Rules**
+    - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all entities classified as "archetype".
+    - "name" MUST match the name of the schema.
+    - If its schema is deleted, the event archetype MUST be deleted.
   end note
 
   SystemicPrimitive <|-- EventArchetype : is
@@ -791,12 +896,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     Defines the structure and semantics of a state object that can be used to
     represent the state of a system.
 
-    This enables extensible state object definitions, data validations, and
-    exploitations.
-
     **Rules**
     - "name" MUST match the name of the schema.
     - "name" MUST be unique among all entities classified as "archetype".
+    - If its schema is deleted, the event archetype MUST be deleted.
   end note
 
   SystemicPrimitive <|-- StateObjectArchetype : is
