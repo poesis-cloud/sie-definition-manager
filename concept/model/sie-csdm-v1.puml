@@ -30,6 +30,9 @@ skinparam noteBorderColor #57606A
 ' - Adapt Interaction and channel.
 ' - Extract all notes into a separate puml.
 ' - Challenge meta model, technically.
+' - The operational controler's implements the structure of a rule. Integrate
+'   that structure into a rule concept that is owned by supervisor and passed
+'   to operator controllers, if ever they still should hold. Or what else?
 ' - Handle:
 '   - ConstraintConflict.
 '   - ConstraintConflictResolution.
@@ -771,7 +774,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getTriggeringEvent(): EventArchetype
     +getConditions(): LogicalOperatorNode
     +getIterationConditions(): LogicalOperatorNode
-    +getControls(): Control[]
+    +getControlSequence(): Control[]
   }
 
   note top of ControlSequence
@@ -807,7 +810,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getConditions(): LogicalOperatorNode
     +getIterationConditions(): LogicalOperatorNode
     +getEffector(): Effector
-    +getSupervisionRules(): Rule[]
   }
 
   note top of Control
