@@ -100,10 +100,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - An archetype schema instance MUST NOT be deleted if it is referenced by any
       archetype instance.
 
-    **Generic schemas definitions**:
-    - *Actuation Control Event Schemas*:
-      define the generic structure of events whose meaning is: execute a
-      specific actuation.
+    **Generic schema definitions**:
+    - *Actuation Control Event*:
 
       name: CreationActuationControlEvent
       properties:
@@ -130,9 +128,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-    - *Actuation Event Schemas*:
-      define the generic structure of events whose meaning is: specific
-      actuation executed.
+    - *Actuation Event*:
 
       name: CreationActuationEvent
       properties:
@@ -159,9 +155,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-    - *Actuation Feedback Event Schemas*:
-      define the generic structure of events whose meaning is: specific
-      actuation execution observed.
+    - *Actuation Feedback Event*:
 
       name: CreationActuationFeedbackEvent
       properties:
@@ -188,21 +182,46 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - objectArchetypeName: String
         - criteria: LogicalOperatorNode
 
-    - *Control Feedback Event Schemas*:
+    - *Governance Control Event*:
 
-      name: ControlSupervisionFeedbackEvent
+      name: PolicyEnactmentControlEvent
       properties:
-        - control: Control
-        - rule: Rule
-        - status: Enum { "triggered", "in-progress", "completed", "failed" }
-
-    - *Supervision Feedback Event Schemas*:
-
-      name: SupervisionGovernanceFeedbackEvent
-      properties:
-        - rule: Rule
         - policy: Policy
-        - status: Enum { "escalated", "de-escalated" }
+
+      name: PolicyRevocationControlEvent
+      properties:
+        - policy: Policy
+
+    - *Supervision Control Event*:
+
+      name: RuleEnactmentControlEvent
+      properties:
+        - rule: Rule
+
+      name: RuleRevocationControlEvent
+      properties:
+        - rule: Rule
+    
+    - *Supervision Feedback Event*:
+
+      name: PolicyEnactmentFeedbackEvent
+      properties:
+        - policy: Policy
+
+      name: PolicyRevocationFeedbackEvent
+      properties:
+        - policy: Policy
+
+    - *Operation Feedback Event*:
+
+      name: RuleEnactmentFeedbackEvent
+      properties:
+        - rule: Rule
+
+      name: RuleRevocationFeedbackEvent
+      properties:
+        - rule: Rule
+
   end note
 
   ' ============================================================
@@ -362,7 +381,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     +getChannels(): Channel[]
 
-    +getWorkflows(): Workflow[]
+    +getProcesses(): Process[]
     +getFunctions(): Function[]
     +getDomainProperties(): PropertyReference[]
 
@@ -386,7 +405,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   class Capacity {
     +getName(): String
     +getDescription(): String
-    +getWorkflows(): Workflow[]
+    +getProcesses(): Process[]
   }
   SystemicPrimitive <|-- Capacity : is
 
@@ -421,15 +440,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   SystemicPrimitive <|-- Channel : is
 
   ' ============================================================
-  ' WORKFLOW
+  ' PROCESS
   ' ============================================================
 
-  class Workflow {
+  class Process {
     +getName(): String
     +getPurpose(): String
     +getFunctionsSequence(): Function[]
   }
-  SystemicPrimitive <|-- Workflow : is
+  SystemicPrimitive <|-- Process : is
 
   ' ============================================================
   ' FUNCTION
@@ -598,54 +617,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Mechanism "1" *--> "1..*" Effector : has
 
   ' ============================================================
-  ' GOVERNOR MECHANISM
-  ' ============================================================
-
-  class GovernorMechanism {
-    +getPolicies(): Policy[]
-  }
-
-  note top of GovernorMechanism
-    A governor mechanism establishes high-level policies that guide the overall
-    behavior of the system it governs, via supervisor mechanisms receiving
-    these policy events and operationalizing these policies as rules.
-
-    **Consistency Rules**:
-    - A governor mechanism MUST own at least one policy.
-    - Policies associated with a governor mechanism MUST be unique within the
-      context of that mechanism.
-  end note
-
-  ControllerMechanism <|-- GovernorMechanism : is
-  GovernorMechanism "1" *--> "0..*" Policy : has
-
-  ' ============================================================
-  ' SUPERVISOR MECHANISM
-  ' ============================================================
-
-  class SupervisorMechanism {
-    +getRules(): Rule[]
-  }
-
-  note top of SupervisorMechanism
-    A supervisor mechanism oversees the operation of other mechanisms within
-    the system, ensuring they adhere to defined rules and policies.
-
-    **Consistency Rules**:
-    - A supervisor mechanism MUST receive at least one governor event.
-    - A supervisor mechanism MUST have at least one associated rule.
-    - Rules associated with a supervisor mechanism MUST be unique within the
-      context of that mechanism.
-  end note
-
-  ControllerMechanism <|-- SupervisorMechanism : is
-  SupervisorMechanism "1" *--> "0..*" Rule : has
-
-  ' ============================================================
   ' CONTROLLER MECHANISM
   ' ============================================================
 
-  class ControllerMechanism {
+  abstract class ControllerMechanism {
     +getControlSequences(): ControlSequence[]
   }
 
@@ -668,6 +643,64 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   Mechanism <|-- ControllerMechanism : is
   ControllerMechanism "1" *--> "1..*" ControlSequence : has
+
+  ' ============================================================
+  ' GOVERNOR CONTROLLER MECHANISM
+  ' ============================================================
+
+  class GovernorControllerMechanism {
+    +getPolicies(): Policy[]
+  }
+
+  note top of GovernorControllerMechanism
+    A governor controller mechanism establishes high-level policies that guide
+    the overall behavior of the system it governs, via supervisor mechanisms
+    receiving these policy events and operationalizing these policies as rules.
+
+    **Consistency Rules**:
+    - A governor controller mechanism MUST own at least one policy.
+    - Policies associated with a governor controller mechanism MUST be unique
+      within the context of that mechanism.
+  end note
+
+  ControllerMechanism <|-- GovernorControllerMechanism : is
+  GovernorControllerMechanism "1" *--> "0..*" Policy : has
+
+  ' ============================================================
+  ' SUPERVISOR CONTROLLER MECHANISM
+  ' ============================================================
+
+  class SupervisorControllerMechanism {
+    +getRules(): Rule[]
+  }
+
+  note top of SupervisorControllerMechanism
+    A supervisor controller mechanism oversees the operation of other mechanisms 
+    within the system, ensuring they adhere to defined rules and policies.
+
+    **Consistency Rules**:
+    - A supervisor controller mechanism MUST receive at least one governor event.
+    - A supervisor controller mechanism MUST have at least one associated rule.
+    - Rules associated with a supervisor mechanism MUST be unique within the
+      context of that mechanism.
+  end note
+
+  ControllerMechanism <|-- SupervisorControllerMechanism : is
+  SupervisorControllerMechanism "1" *--> "0..*" Rule : has
+
+  ' ============================================================
+  ' OPERATOR CONTROLLER MECHANISM
+  ' ============================================================
+
+  class OperatorControllerMechanism
+
+  note top of OperatorControllerMechanism
+    An operator controller mechanism manages operational controls within the
+    system, executing control sequences in response to specific events and
+    conditions.
+  end note
+
+  ControllerMechanism <|-- OperatorControllerMechanism : is
 
   ' ============================================================
   ' ACTUATOR MECHANISM
@@ -884,7 +917,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   EventArchetype "0..*" o--> "1" ArchetypeSchema : has
   
   ' ============================================================
-  ' STATE OBJECT ARCHETYPE
+  ' OPERATIONAL STATE OBJECT ARCHETYPE
   ' ============================================================
 
   class StateObjectArchetype {
@@ -948,7 +981,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   System "1" *--> "0..*" Interface : has
 
   System "1" *--> "0..*" Function : has
-  System "1" *--> "0..*" Workflow : has
+  System "1" *--> "0..*" Process : has
 
   System "1" *--> "0..*" Mechanism : implements
   System "1" *--> "0..*" Interaction : participatesIn
@@ -968,7 +1001,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Channel "1..*" *--> "0..*" Interaction : binds
   Channel "0..*" o--> "1" Interface : boundToExternalSystem
 
-  Workflow "0..*" o--> "1..*" Function : sequences
+  Process "0..*" o--> "1..*" Function : sequences
   Function "1" *--> "1..*" Mechanism : implements
 
   Mechanism "0..*" o--> "1" Governor : has
