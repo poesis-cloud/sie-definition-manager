@@ -827,31 +827,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' CONSTRAINTS
   ' ============================================================
 
-  abstract class Constraint {
-    +getName(): String
-    +getDescription(): String
-  }
-
-  note top of Constraint
-    A constraint is a second-order systemic artifact that restricts some aspect
-    of a system definition or behavior.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier.
-    - "description": Textual explanation of the constraint.
-
-    **Systemic Semantics**:
-    - Constraints are owned by controller mechanisms (governors, supervisors).
-    - Policies and behavioral rules are specialized constraints.
-  end note
-
-  SystemicPrimitive <|-- Constraint : is
-
   ' ============================================================
   ' BEHAVIORAL RULE
   ' ============================================================
   
   class BehavioralRule {
+    +getName(): String
     +getOperationalizedPolicies(): Policy[]
     +getScope(): SystemicPrimitive[]
     +getTrigger(): EventArchetype
@@ -861,17 +842,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of BehavioralRule
-    A behavioral rule is a constraint over the system's behavioral properties:
-    how the system acts over time via mechanisms, sensors, and effectors.
-
-    **Systemic Semantics**:
-    - Behavioral rules operationalize policies:
-      "operationalizedPolicies" references the functional, viability, and/or
-      structural policies whose constraints this rule enforces.
-    - Implemented by controller mechanisms and executed by operator controllers
-      and actuators.
+    A behavioral rule is a governance mechanism that, when triggered, evaluates
+    conditions within a context and, if satisfied, produces a directive over a
+    defined scope.
 
     **Attribute Semantics**:
+    - "name": A human-readable semantic identifier for the behavioral rule.
     - "scope": The set of governed systemic primitives instances (state object
       archetype, mechanisms, interfaces, interactions, etc), whose states are
       evaluated by the rule’s (and behavioral rule effect’s) conditions.
@@ -896,16 +872,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - If a behavioral rule is deleted, its behavioral rule effects MUST be
       deleted, and vice-versa IF it is the last behavioral rule effect the
       behavioral rule owns.
-    - MUST reference at least one policy in "operationalizedPolicies".
-    - "scope" MUST be compatible with the policies' scope.
-    - "trigger" MUST reference an event archetype defined in the same system.
 
     **Todo**:
     - Implement join/fork of effect sequences (which may define parallel
       execution).
   end note
 
-  Constraint <|-- BehavioralRule : is
+  SystemicPrimitive <|-- BehavioralRule : is
   BehavioralRule "1" o--> "1" EventArchetype : on
   BehavioralRule "1" *--> "1..*" BehavioralRuleEffect : has
 
@@ -985,6 +958,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   abstract class Policy {
+    +getName(): String
     +getScope(): SystemicPrimitive[]
     +getIntent(): String
     +getPrinciples(): Principle[]
@@ -992,16 +966,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of Policy
-    A policy is a declarative constraint over a system definition. It does not
-    prescribe behavior directly; instead, it constrains what the system MUST do
-    (functional), MUST withstand (viability), or MUST be (structural).
-
-    **Systemic Semantics**:
-    - Policies are owned by governor controller mechanisms.
-    - Policies are operationalized into behavioral rules by supervisor
-      controller mechanisms.
+    A policy is a high-level governance directive that outlines the intended
+    behavior and constraints for a system.
 
     **Attribute Semantics**:
+    - "name": A human-readable semantic identifier for the policy.
     - "scope": The set of systemic primitive instances (system, interface,
       mechanism, etc) that the policy governs.
     - "intent": A declarative statement expressing the purpose and goals of the
@@ -1018,30 +987,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - A policy MUST have at least one principle.
   end note
 
-  Constraint <|-- Policy : is
+  SystemicPrimitive <|-- Policy : is
 
   ' ============================================================
   ' FUNCTIONAL POLICY
   ' ============================================================
 
-  class FunctionalPolicy {
-    +getTargetFunctions(): Function[]
-    +getTargetProcesses(): Process[]
-  }
+  class FunctionalPolicy
 
   note top of FunctionalPolicy
-    A functional policy constrains the system's functional properties: what the
-    system MUST do to fulfill its purpose.
+    A functional policy defines constraints applying to the system's
+    functional properties: what the system must do, its capacities,
+    use cases, and expected behaviors.
 
-    **Systemic Semantics**:
-    - Direct object of the constraint is purpose, value delivery, or functional
-      behavior.
-    - Input to structural synthesis:
-      Structure = Arch(Functional, Viability).
+    **Examples**:
+    - "The system MUST support real-time order tracking."
+    - "All customer requests MUST be acknowledged within 2 seconds."
 
-    **Attribute Semantics**:
-    - "targetFunctions": Functions whose behavior or existence is constrained.
-    - "targetProcesses": Processes whose sequence or presence is constrained.
+    **Scope Constraints**:
+    - Typically governs: Capacity, Process, Function, Interaction.
   end note
 
   Policy <|-- FunctionalPolicy : is
@@ -1050,28 +1014,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' VIABILITY POLICY
   ' ============================================================
 
-  class ViabilityPolicy {
-    +getViabilityMetric(): String
-    +getThreshold(): String
-    +getRiskCategory(): String
-  }
+  class ViabilityPolicy
 
   note top of ViabilityPolicy
-    A viability policy constrains the system's viability properties: what the
-    system MUST withstand to remain viable in its environment.
+    A viability policy defines constraints applying to the system's
+    viability properties: qualities ensuring the system remains operational,
+    resilient, and fit for purpose over time.
 
-    **Systemic Semantics**:
-    - Direct object of the constraint is the viability envelope.
-    - Input to structural synthesis:
-      Structure = Arch(Functional, Viability).
+    **Examples**:
+    - "The system MUST maintain 99.9% availability."
+    - "Recovery time objective (RTO) MUST NOT exceed 15 minutes."
+    - "All critical operations MUST be observable via distributed tracing."
 
-    **Attribute Semantics**:
-    - "viabilityMetric": Name of the metric (latency, errorRate, availability,
-      cost, etc.).
-    - "threshold": Declarative expression of the acceptable envelope
-      (e.g. "p95 < 200ms", "errorRate < 0.1%").
-    - "riskCategory": Qualitative classification (safety, security, compliance,
-      performance, cost, resilience, etc.).
+    **Scope Constraints**:
+    - Typically governs: System, Mechanism, Interface, Channel.
+    - Maps to non-functional requirements: resilience, scalability,
+      performance, observability, security, maintainability.
   end note
 
   Policy <|-- ViabilityPolicy : is
@@ -1080,27 +1038,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' STRUCTURAL POLICY
   ' ============================================================
 
-  class StructuralPolicy {
-    +getTargetStructures(): SystemicPrimitive[]
-    +getInvariantExpression(): String
-  }
+  class StructuralPolicy
 
   note top of StructuralPolicy
-    A structural policy constrains the system's structural properties: what the
-    system MUST be in terms of architecture, invariants, mechanisms, and
-    topology.
+    A structural policy defines constraints applying to the system's
+    structural properties: how the system is organized, decomposed,
+    and how its components relate.
 
-    **Systemic Semantics**:
-    - Direct object of the constraint is form and invariants.
-    - Typically synthesized from functional and viability policies via the
-      architecture function:
-      Structure = Arch(Functional, Viability).
+    **Examples**:
+    - "Each bounded context MUST have a single owning team."
+    - "External integrations MUST use the Anti-Corruption Layer pattern."
+    - "Subsystems MUST communicate only via defined interfaces."
 
-    **Attribute Semantics**:
-    - "targetStructures": Structural systemic primitives (systems, interfaces,
-      mechanisms, channels, etc.) constrained by this policy.
-    - "invariantExpression": Declarative expression of the structural invariant
-      (e.g. "Service MUST be stateless", "All writes MUST go through X").
+    **Scope Constraints**:
+    - Typically governs: System, Interface, Component, Boundary, Channel.
+    - Enforces architectural invariants and modularity rules.
   end note
 
   Policy <|-- StructuralPolicy : is
@@ -1174,273 +1126,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   Policy "0..*" o--> "1..*" Principle : incorporates
   RuleDefinition "0..*" o--> "1..*" Policy : operationalizes
-
-  ' ============================================================
-  ' SYSTEMIC PROCESSES: EMERGENCE, SYNTHESIS, ENFORCEMENT, FEEDBACK
-  ' ============================================================
-
-  class EmergenceProcess {
-    +getId(): UUID
-    +getName(): String
-    +getTriggerArtifacts(): SystemicPrimitive[]
-    +getProducedConstraints(): Constraint[]
-    +getOwner(): ControllerMechanism
-  }
-
-  note top of EmergenceProcess
-    Represents the systemic process by which new constraints (policies or
-    behavioral rules) emerge from sensed artifacts (use cases, risks, incidents,
-    pain points, environmental changes).
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Collect trigger artifacts via receptors (use cases, risks, incidents,
-      metrics, feedback events).
-    - Apply governor-specific emergence logic (e.g. functional governor from
-      use cases, viability governor from risks/incidents).
-    - Synthesize one or more new constraints (policies or rules) with proper
-      scope, rationale, and provenance.
-    - Emit governance control events (e.g. PolicyEnactmentControlEvent).
-
-    **Systemic Semantics**:
-    - Owned by governor or supervisor controller mechanisms.
-    - Drives autopoiesis: the system produces its own constraints.
-  end note
-
-  SystemicPrimitive <|-- EmergenceProcess : is
-  EmergenceProcess "0..*" o--> "0..*" SystemicPrimitive : triggerArtifacts
-  EmergenceProcess "0..*" o--> "0..*" Constraint : producedConstraints
-  EmergenceProcess "1" o--> "1" ControllerMechanism : owner
-
-  class SynthesisProcess {
-    +getId(): UUID
-    +getName(): String
-    +getInputFunctionalPolicies(): FunctionalPolicy[]
-    +getInputViabilityPolicies(): ViabilityPolicy[]
-    +getProducedStructuralPolicies(): StructuralPolicy[]
-    +getOwner(): GovernorControllerMechanism
-  }
-
-  note top of SynthesisProcess
-    Represents the architecture function:
-      Structure = Arch(Functional, Viability)
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Take a set of functional policies and viability policies as input.
-    - Analyze required capabilities, invariants, and mechanisms.
-    - Synthesize structural policies that define architecture, topology, and
-      structural invariants satisfying both functional and viability constraints.
-    - Optionally detect conflicts and trigger conflict detection/resolution
-      processes when synthesis is impossible without trade-offs.
-
-    **Systemic Semantics**:
-    - Typically owned by structural governors (architecture).
-    - Produces structural policies as second-order structural constraints.
-  end note
-
-  SystemicPrimitive <|-- SynthesisProcess : is
-  SynthesisProcess "0..*" o--> "0..*" FunctionalPolicy : inputFunctionalPolicies
-  SynthesisProcess "0..*" o--> "0..*" ViabilityPolicy : inputViabilityPolicies
-  SynthesisProcess "0..*" o--> "0..*" StructuralPolicy : producedStructuralPolicies
-  SynthesisProcess "1" o--> "1" GovernorControllerMechanism : owner
-
-  class EnforcementProcess {
-    +getId(): UUID
-    +getName(): String
-    +getEnforcedConstraints(): Constraint[]
-    +getOwner(): SupervisorControllerMechanism
-    +getTargetMechanisms(): Mechanism[]
-  }
-
-  note top of EnforcementProcess
-    Represents the systemic process by which constraints are enforced through
-    behavioral rules and mechanisms.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - For each constraint (policy or structural invariant), derive or select
-      behavioral rules that operationalize it.
-    - Bind rules to triggers (event archetypes) and scopes (systemic primitives).
-    - Ensure operator controllers and actuators implement the rules.
-    - Monitor execution via feedback events and adjust rules as needed.
-
-    **Systemic Semantics**:
-    - Owned by supervisor controller mechanisms.
-    - Bridges declarative constraints (policies) and concrete behavior
-      (mechanisms, actuators).
-  end note
-
-  SystemicPrimitive <|-- EnforcementProcess : is
-  EnforcementProcess "0..*" o--> "0..*" Constraint : enforcedConstraints
-  EnforcementProcess "1" o--> "1" SupervisorControllerMechanism : owner
-  EnforcementProcess "0..*" o--> "0..*" Mechanism : targetMechanisms
-
-  class FeedbackEvent {
-    +getId(): UUID
-    +getSourceMechanism(): Mechanism
-    +getRelatedConstraints(): Constraint[]
-    +getPayload(): String
-  }
-
-  note top of FeedbackEvent
-    Represents feedback from system operation or governance processes, used to
-    adapt constraints.
-
-    **Examples**:
-    - Incident reports.
-    - SLO breaches.
-    - Rule violations.
-    - Audit findings.
-    - Performance anomalies.
-
-    **Systemic Semantics**:
-    - Consumed by emergence, conflict detection, and coherence checking
-      processes.
-  end note
-
-  SystemicPrimitive <|-- FeedbackEvent : is
-  FeedbackEvent "1" o--> "1" Mechanism : sourceMechanism
-  FeedbackEvent "0..*" o--> "0..*" Constraint : relatedConstraints
-
-  ' ============================================================
-  ' CONFLICT DETECTION, RESOLUTION, COHERENCE, DEPRECATION
-  ' ============================================================
-
-  class ConflictDetectionProcess {
-    +getId(): UUID
-    +getName(): String
-    +getAnalyzedConstraints(): Constraint[]
-    +getDetectedConflicts(): ConstraintConflict[]
-    +getOwner(): ControllerMechanism
-  }
-
-  note top of ConflictDetectionProcess
-    Represents the systemic process that detects contradictions or
-    incompatibilities between constraints.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Periodically or reactively analyze sets of constraints (policies and
-      behavioral rules).
-    - Check for:
-      - Logical contradictions (e.g. mutually exclusive conditions).
-      - Incompatible thresholds (e.g. latency vs encryption).
-      - Structural incompatibilities (e.g. stateless vs required local state).
-      - Conflicting rule effects (e.g. scale up vs scale down).
-    - Produce ConstraintConflict instances describing each detected conflict.
-
-    **Systemic Semantics**:
-    - Owned by governors, supervisors, or meta-governors.
-    - Feeds resolution strategies and coherence checks.
-  end note
-
-  SystemicPrimitive <|-- ConflictDetectionProcess : is
-  ConflictDetectionProcess "0..*" o--> "0..*" Constraint : analyzedConstraints
-  ConflictDetectionProcess "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
-  ConflictDetectionProcess "1" o--> "1" ControllerMechanism : owner
-
-  class ConstraintConflict {
-    +getId(): UUID
-    +getConflictingConstraints(): Constraint[]
-    +getDescription(): String
-  }
-
-  note top of ConstraintConflict
-    Represents a detected contradiction or incompatibility between constraints
-    (policies and/or behavioral rules).
-  end note
-
-  SystemicPrimitive <|-- ConstraintConflict : is
-  ConstraintConflict "1..*" o--> "2..*" Constraint : conflictingConstraints
-
-  class ResolutionStrategy {
-    +getId(): UUID
-    +getName(): String
-    +getDescription(): String
-    +getAppliedConflict(): ConstraintConflict
-    +getUpdatedConstraints(): Constraint[]
-  }
-
-  note top of ResolutionStrategy
-    Represents a strategy used to resolve a constraint conflict.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Evaluate the conflicting constraints and their provenance (e.g. safety vs
-      performance vs business value).
-    - Apply a resolution pattern, such as:
-      - Priority-based (e.g. viability/safety > functional).
-      - Negotiation between governors (functional, viability, structural).
-      - Synthesis of a new structural policy satisfying both sides.
-      - Relaxation/refinement of existing policies.
-      - Behavioral rule rewriting to avoid runtime conflict.
-    - Produce updated constraints and mark the conflict as resolved.
-
-    **Systemic Semantics**:
-    - Can be instantiated and executed by meta-governors or specialized
-      governors.
-  end note
-
-  SystemicPrimitive <|-- ResolutionStrategy : is
-  ResolutionStrategy "1" o--> "1" ConstraintConflict : appliedConflict
-  ResolutionStrategy "0..*" o--> "0..*" Constraint : updatedConstraints
-
-  class CoherenceCheckingProcess {
-    +getId(): UUID
-    +getName(): String
-    +getScope(): SystemicPrimitive[]
-    +getDetectedIncoherences(): ConstraintConflict[]
-    +getOwner(): ControllerMechanism
-  }
-
-  note top of CoherenceCheckingProcess
-    Represents a higher-order governance process that evaluates systemic
-    coherence across constraints and structures.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Evaluate whether:
-      - Functional policies align with system purpose.
-      - Viability policies align with risk appetite.
-      - Structural policies align with architecture principles.
-      - Behavioral rules have policy provenance and no unresolved conflicts.
-      - No orphaned policies (never operationalized).
-      - No rules without referenced policies.
-    - When incoherences are found, create ConstraintConflict instances and
-      trigger ResolutionStrategy instances.
-
-    **Systemic Semantics**:
-    - Typically owned by meta-governors or structural/viability governors.
-  end note
-
-  SystemicPrimitive <|-- CoherenceCheckingProcess : is
-  CoherenceCheckingProcess "0..*" o--> "0..*" SystemicPrimitive : scope
-  CoherenceCheckingProcess "0..*" o--> "0..*" ConstraintConflict : detectedIncoherences
-  CoherenceCheckingProcess "1" o--> "1" ControllerMechanism : owner
-
-  class DeprecationProcess {
-    +getId(): UUID
-    +getName(): String
-    +getTargetConstraints(): Constraint[]
-    +getOwner(): ControllerMechanism
-  }
-
-  note top of DeprecationProcess
-    Represents the systemic process by which obsolete constraints are
-    deprecated and eventually removed.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Identify constraints that are:
-      - No longer justified by provenance (obsolete use cases, mitigated risks).
-      - Superseded by newer constraints.
-      - Harmful to viability or innovation (over-constraint).
-    - Mark constraints as deprecated and gradually remove their enforcement:
-      - Disable or adjust behavioral rules.
-      - Update structural policies and architecture.
-      - Archive rationale and provenance for traceability.
-
-    **Systemic Semantics**:
-    - Prevents ossification and supports adaptive governance.
-  end note
-
-  SystemicPrimitive <|-- DeprecationProcess : is
-  DeprecationProcess "0..*" o--> "0..*" Constraint : targetConstraints
-  DeprecationProcess "1" o--> "1" ControllerMechanism : owner
 }
 
 @enduml
