@@ -393,6 +393,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class System {
+
+    ' ============================================================
+    ' SYSTEMIC CONSTITUTIVE PROPERTIES
+    ' ============================================================
+
     +getName(): String
     +getType(): String
     +getRole(): String
@@ -401,30 +406,41 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getCapacities(): Capacity[]
     +getInterfaces(): Interface[]
     +getSubSystems(): System[]
-    +getPersistenceConditions(): Condition[]
     +getStateObjectArchetypes(): StateObjectArchetype[]
 
-    +getGovernors(): Governor[]
-    +getRegulators(): Regulator[]
-    +getPolicies(): Policy[]
-    +getRuleDefinitions(): RuleDefinition[]
+    ' ============================================================
+    ' SYSTEMIC ORGANIZATIONAL PROPERTIES
+    ' ============================================================
+    
+    +getGovernors(): GovernorControllerMechanism[]
+    +getSupervisors(): SupervisorControllerMechanism[]
+    +getFunctionalPolicies(): FunctionalPolicy[]
+    +getViabilityPolicies(): ViabilityPolicy[]
+    +getStructuralPolicies(): StructuralPolicy[]
+    +getBehavioralRules(): BehavioralRule[]
 
+    ' ============================================================
+    ' SYSTEMIC STRUCTURAL PROPERTIES
+    ' ============================================================
+    
     +getChannels(): Channel[]
+    +getInteractions(): Interaction[]
 
-    +getProcesses(): Process[]
+    ' ============================================================
+    ' SYSTEMIC FUNCTIONAL PROPERTIES
+    ' ============================================================
+
     +getFunctions(): Function[]
-    +getDomainProperties(): PropertyReference[]
+    +getProcesses(): Process[]
+
+    ' ============================================================
+    ' SYSTEMIC BEHAVIORAL PROPERTIES
+    ' ============================================================
 
     +getMechanisms(): Mechanism[]
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
-    +getReactions(): Reaction[]
-    +getInteractions(): Interaction[]
-    +getPreconditions(): Condition[]
-    +getPostconditions(): Condition[]
-    +getInvariants(): Condition[]
     +getEventArchetypes(): EventArchetype[]
-    +getBehavioralProperties(): BehavioralPropertyReference[]
   }
   SystemicPrimitive <|-- System : is
 
@@ -435,7 +451,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   class Capacity {
     +getName(): String
     +getDescription(): String
-    +getProcesses(): Process[]
+    +getFunctions(): Function[]
   }
   SystemicPrimitive <|-- Capacity : is
 
