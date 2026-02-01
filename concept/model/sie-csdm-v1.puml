@@ -60,8 +60,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     For IT profiles, a useful (but imperfect) analogy is Kubernetes' *control
     plane*: just like CSDM, it defines governance constraints over a desired
     state, and it continuously acts to reach and maintain that desired state for
-    the *data plane*. The Kubernetes *data plane*, like systems described with CSDM,
-    corresponds to *first-order* elements in systemics theory terms.
+    the *data plane*. The Kubernetes *data plane*, like systems described with
+    CSDM, corresponds to *first-order* elements in systemics theory terms.
 
     The key conceptual difference is scope: Kubernetes targets one class of
     systems (container orchestration), whereas CSDM is designed as a
@@ -72,8 +72,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     semantics. Structural constancy with semantic variation of informations
     is one key enabler of cross-domain, global systemic automatic reasoning.
 
-    The autopoiesis (self-definition and self-maintenance) of systems is based on
-    a systemic architecture pattern involving three types of controller
+    The autopoiesis (self-definition and self-maintenance) of systems is based
+    on a systemic architecture pattern involving three types of controller
     mechanisms whose purpose is to define and own 4 types of constraints:
 
     - **Governor Controller Mechanisms**: Define and own high-level *policies*.
@@ -532,7 +532,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   class Effector {
     +getName(): String
     +getProducedEventArchetype(): EventArchetype
-    +getProducedEventMapping(): EffectorEventMapping
+    +getProducedEventSourceMapping(): EffectorEventSourceMapping
   }
 
   note top of Effector
@@ -555,30 +555,41 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   SystemicPrimitive <|-- Effector : is
   Effector "1" *--> "1" EventArchetype : on
-  Effector "1" *--> "1" EffectorEventMapping : has
+  Effector "1" *--> "1" EffectorEventSourceMapping : has
 
   ' ============================================================
-  ' EFFECTOR EVENT MAPPING
+  ' EFFECTOR EVENT SOURCE MAPPING
   ' ============================================================
 
-  class EffectorEventMapping {
-    +getTargetEventArchetype(): EventArchetype
-    +getSourceEventArchetypes(): EventArchetype[]
-    +getEventPropertyMappings(): EffectorEventPropertyMapping[]
+  class EffectorEventSourceMapping {
+    +getValueMapping(): Map<String, String>
   }
 
-  note top of EffectorEventMapping
+  note top of EffectorEventSourceMapping
     Captures, at design time, how an effector's produced event instance is
     constructed from one or more source events.
 
     This enables end-to-end data transformation traceability.
 
+    The mapping is represented as a declarative value mapping specification.
+    It is intentionally *not* decomposed as one object per target property to
+    keep the conceptual model compact while still supporting property-level
+    lineage.
+
+    Example structure (illustrative):
+    - keys: target property paths
+    - values: source event property paths OR JSON literals
+
+    A SourceEventPropertyPath includes the reference to the source event
+    archetype it is defined on.
+
     **Event Mapping Rules**
-    - For each effector event mapping M:
+    - For each effector event source mapping M:
       - Ensure M.targetEventArchetype == effector.on (target event archetype).
-    - Ensure a receptor exists for each M.sourceEventArchetype.
-    - Ensure a rule exists for each distinct M.sourceEventArchetype,
-      with triggering event == M.sourceEventArchetype.
+    - Ensure a receptor exists for each distinct source event archetype
+      referenced by any SourceEventPropertyPath in M.valueMapping.
+    - Ensure a rule exists for each such distinct source event archetype,
+      with triggering event == that source event archetype.
     - Ensure a rule effect exists in that rule which selects the effector.
     - When multiple rule effects exist in a rule, order deterministically
       (e.g. by effector name) to keep regeneration idempotent.
@@ -586,35 +597,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     **Consistency Rules**:
     - A mapping MUST reference exactly one target event archetype (the one
       bound to the effector).
-    - A mapping MUST reference zero or more source event archetypes.
+    - A mapping MAY reference zero or more source event archetypes via
+      SourceEventPropertyPath values (and may be literals-only).
+    - Each valueMapping key MUST be a TargetEventPropertyPath valid with respect
+      to M.targetEventArchetype's schema.
+    - Each valueMapping value MUST be either:
+      - a SourceEventPropertyPath valid with respect to the schema of its
+        referenced source event archetype, OR
+      - a JsonLiteral value.
+    - For each (targetPath -> value) entry, the value type MUST be compatible
+      with the type of the target property specified by the target event
+      archetype schema at targetPath:
+      - If value is a SourceEventPropertyPath, the referenced source property
+        type MUST match (or be safely coercible to) the target property type.
+      - If value is a JsonLiteral, the JSON value MUST validate against the
+        target property type.
   end note
 
-  SystemicPrimitive <|-- EffectorEventMapping : is
-  EffectorEventMapping "1" o--> "1" EventArchetype : mapsTo
-  EffectorEventMapping "1" o--> "0..*" EventArchetype : mapsFrom
-  EffectorEventMapping "1" *--> "1..*" EffectorEventPropertyMapping : has
-
-  ' ============================================================
-  ' EFFECTOR EVENT PROPERTY MAPPING
-  ' ============================================================
-
-  class EffectorEventPropertyMapping {
-    +getTargetPath(): String
-    +getSourcePath(): String
-  }
-
-  note top of EffectorEventPropertyMapping
-    Defines how a specific property of the target event is set and derived from
-    source events.
-
-    This enables end-to-end data transformation traceability, at property level.
-
-    **Consistency Rules**:
-    - The target and source pathes MUST reference a valid property in the target
-      and source event archetype schema.
-  end note
-
-  SystemicPrimitive <|-- EffectorEventPropertyMapping : is
+  SystemicPrimitive <|-- EffectorEventSourceMapping : is
 
   ' ============================================================
   ' MECHANISM
@@ -651,35 +651,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   abstract class ControllerMechanism {
-    +getRules(): BehavioralRule[]
+    +getImplementedRule(): BehavioralRule
   }
 
   note top of ControllerMechanism
-    A controller mechanism is a control mechanism. It conditionnally produces
-    effectors (output events) based on events received via its receptors.
-
-    **Todo**:
-    - Implement join/fork of rules (which may define parallel
-      execution).
+    A controller mechanism is a mechanism that implements a behavioral rule
+    to control other mechanisms within the system.
 
     **Consistency Rules**:
-    - A controller mechanism MUST own at least one rule.
-    - Rules associated with a controller mechanism MUST be unique
-      within the context of the system.
-    - If a controller mechanism is deleted, its rules MUST be
-      deleted, and vice-versa IF it is the last rule the mechanism
-      owns.
+    - A controller mechanism MUST implement exactly one behavioral rule.
   end note
 
   Mechanism <|-- ControllerMechanism : is
-  ControllerMechanism "1" *--> "1..*" BehavioralRule : has
+  ControllerMechanism "1" o--> "1" BehavioralRule : implements
 
   ' ============================================================
   ' GOVERNOR CONTROLLER MECHANISM
   ' ============================================================
 
   class GovernorControllerMechanism {
-    +getPolicies(): Policy[]
+    +getOwnedPolicies(): Policy[]
   }
 
   note top of GovernorControllerMechanism
@@ -694,14 +685,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   ControllerMechanism <|-- GovernorControllerMechanism : is
-  GovernorControllerMechanism "1" *--> "1..*" Policy : has
+  GovernorControllerMechanism "1" *--> "1..*" Policy : owns
 
   ' ============================================================
   ' SUPERVISOR CONTROLLER MECHANISM
   ' ============================================================
 
   class SupervisorControllerMechanism {
-    +getRules(): BehavioralRule[]
+    +getOwnedRules(): BehavioralRule[]
   }
 
   note top of SupervisorControllerMechanism
@@ -717,7 +708,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   ControllerMechanism <|-- SupervisorControllerMechanism : is
-  SupervisorControllerMechanism "1" *--> "1..*" BehavioralRule : has
+  SupervisorControllerMechanism "1" *--> "1..*" BehavioralRule : owns
 
   ' ============================================================
   ' OPERATOR CONTROLLER MECHANISM
@@ -736,9 +727,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ACTUATOR MECHANISM
   ' ============================================================
 
-  class ActuatorMechanism {
-    +getActuation(): Actuation
-  }
+  class ActuatorMechanism
 
   note top of ActuatorMechanism
     An actuator mechanism is an execution mechanism acting on a state object.
@@ -749,27 +738,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       a receptor bound to E.
     - For every receptor bound to E, the actuator mechanism MUST have an
       effector bound to event O whose schema is subtype of ActuationEventSchema.
-    - For every effector bound to O, the actuator mechanism MUST have an
-      actuation representing the action performed on the state object.
-
-    **Consistency Rules**:
-    - An actuator mechanism MUST own exactly one actuation.
-    - Actuations associated with an actuator mechanism MUST be unique
-      within the context of the system.
-    - If an actuator mechanism is deleted, its actuation MUST be deleted,
-      and vice-versa.
   end note
 
   Mechanism <|-- ActuatorMechanism : is
-  ActuatorMechanism "1" *--> "1" Actuation : has
 
   ' ============================================================
   ' SENSOR MECHANISM
   ' ============================================================
 
-  class SensorMechanism {
-    +getSensing(): Sensing
-  }
+  class SensorMechanism
 
   note top of SensorMechanism
     A sensor mechanism is an observation mechanism on actuations.
@@ -781,60 +758,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - For every receptor bound to E, the sensor mechanism MUST have an
       effector bound to event O whose schema is subtype of
       ActuationFeedbackEventSchema.
-    - For every effector bound to O, the sensor mechanism MUST have a
-      sensing representing the observation of the actuation.
-
-    **Consistency Rules**:
-    - A sensor mechanism MUST own exactly one sensing.
-    - Sensing associated with a sensor mechanism MUST be unique within the
-      context of the system.
   end note
 
   Mechanism <|-- SensorMechanism : is
-  SensorMechanism "1" *--> "1" Sensing : has
-
-
-  ' ============================================================
-  ' ACTUATION
-  ' ============================================================
-
-  class Actuation {
-    +getName(): String
-  }
-
-  note top of Actuation
-    An actuation represents a mechanism's capability to perform actions on a
-    state object of the system.
-
-    Actuation actuate either *first-order dynamics* objects (functional) or
-    *second-order dynamics* objects (system, interface, policy, rule, control,
-    actuation, etc). In the latter case, the actuation participates in an
-    systemics *emergence* (=> the system redefines itself), alias autopoesis.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all actuations of the same system.
-  end note
-
-  SystemicPrimitive <|-- Actuation : is
-
-  ' ============================================================
-  ' SENSING
-  ' ============================================================
-
-  class Sensing {
-    +getName(): String
-  }
-  SystemicPrimitive <|-- Sensing : is
-
-  note top of Sensing
-    A sensing represents a mechanism's capability to observe actuations on a
-    state object of the system.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all sensings of the same system.
-  end note
 
   ' ============================================================
   ' EVENT ARCHETYPE
@@ -900,9 +826,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of BehavioralRule
-    A behavioral rule is a governance mechanism that, when triggered, evaluates conditions
-    within a context and, if satisfied, produces a directive over a defined
-    scope.
+    A behavioral rule is a governance mechanism that, when triggered, evaluates
+    conditions within a context and, if satisfied, produces a directive over a
+    defined scope.
 
     **Attribute Semantics**:
     - "name": A human-readable semantic identifier for the behavioral rule.
@@ -914,8 +840,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       behavioral rule to be applied / operate behavioral rule effects.
     - "iteration conditions": A logical expression that, if true, causes the
       controller to re-apply the behavioral rule.
-    - "effect sequence": An ordered list of behavioral rule effects defining effectors
-       when the behavioral rule is applied.
+    - "effect sequence": An ordered list of behavioral rule effects defining
+      effectors when the behavioral rule is applied.
 
     **Validation Rules**:
     - The conditions operands referencing event properties MUST exist in the
@@ -927,8 +853,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     **Consistency Rules**:
     - A behavioral rule MUST be triggered by exactly one event archetype.
     - A behavioral rule MUST have at least one behavioral rule effect.
-    - If a behavioral rule is deleted, its behavioral rule effects MUST be deleted, and
-      vice-versa IF it is the last behavioral rule effect the behavioral rule owns.
+    - If a behavioral rule is deleted, its behavioral rule effects MUST be
+      deleted, and vice-versa IF it is the last behavioral rule effect the
+      behavioral rule owns.
+
+    **Todo**:
+    - Implement join/fork of effect sequences (which may define parallel
+      execution).
   end note
 
   SystemicPrimitive <|-- BehavioralRule : is
@@ -947,35 +878,43 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
 
   note top of BehavioralRuleEffect
-    A behavioral rule effect defines an action to be performed when its enclosing behavioral rule is
-    triggered and applied.
+    A behavioral rule effect defines an action to be performed when its
+    enclosing behavioral rule is triggered and applied.
 
     **Attribute Semantics**:
-    - "rule": The enclosing behavioral rule to which the behavioral rule effect belongs.
+    - "rule": The enclosing behavioral rule to which the behavioral rule effect
+      belongs.
     - "conditions": A logical expression that must evaluate to true for the
-      behavioral rule effect to be executed when the enclosing behavioral rule is applied.
+      behavioral rule effect to be executed when the enclosing behavioral rule
+      is applied.
     - "iteration conditions": A logical expression that, if true, causes the
       controller to re-execute the behavioral rule effect.
-    - "effector": The effector to be activated when the behavioral rule effect is executed.
+    - "effector": The effector to be activated when the behavioral rule effect
+      is executed.
 
     **Auto Definition Rules**:
-    - When a behavioral rule effect is added to a behavioral rule, required source event
-      archetypes SHOULD be inferred from the selected effector's mapping.
+    - When a behavioral rule effect is added to a behavioral rule, required
+      source event archetypes SHOULD be inferred from the selected effector's
+      mapping.
     - If the enclosing mechanism does not yet have receptors for those source
       archetypes, the application SHOULD propose creating them.
     - If the required source archetype does not match the behavioral rule's
-      triggering event, the application SHOULD propose creating a new behavioral rule effect
-      behavioral rule triggered by that source archetype (chained behavioral rules).
-    - Behavioral rule effect's conditions SHOULD apply rule definitions owned by supervisors. Hence, a
-      behavioral rule effect SHOULD be associated to at least one rule definition, indirectly, via
-      interactions of the controller owning the conditions and supervisors
-      owning the related rules. For such interaction to operate, the controller
-      mechanism MUST have receptors receiving the Supervision event 
-      archetypes produced by the supervisors' effectors.
-    - When a behavioral rule effect is added to the system, the application SHOULD propose
-      associating it to relevant rule definitions owned with supervisors.
-    - When a rule definition is added to the system, the application SHOULD propose adding
-      corresponding conditions to relevant behavioral rule effects.
+      triggering event, the application SHOULD propose creating a new behavioral
+      rule effect behavioral rule triggered by that source archetype (chained
+      behavioral rules).
+    - Behavioral rule effect's conditions SHOULD apply rule definitions owned by
+      supervisors. Hence, a behavioral rule effect SHOULD be associated to at
+      least one rule definition, indirectly, via interactions of the controller
+      owning the conditions and supervisors owning the related rules. For such
+      interaction to operate, the controller mechanism MUST have receptors
+      receiving the Supervision event archetypes produced by the supervisors'
+      effectors.
+    - When a behavioral rule effect is added to the system, the application
+      SHOULD propose associating it to relevant rule definitions owned with
+      supervisors.
+    - When a rule definition is added to the system, the application SHOULD
+      propose adding corresponding conditions to relevant behavioral rule
+      effects.
 
     **Validation Rules**:
     - The conditions operands referencing event properties MUST exist in the
@@ -988,8 +927,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all behavioral rule effects of the system.
     - A behavioral rule effect MUST have exactly one effector.
-    - If a behavioral rule effect is deleted, its effector MUST be deleted, and vice-versa.
-    - A behavioral rule effect SHOULD be associated to zero or more supervision rule definitions.
+    - If a behavioral rule effect is deleted, its effector MUST be deleted, and
+      vice-versa.
+    - A behavioral rule effect SHOULD be associated to zero or more supervision
+      rule definitions.
   end note
 
   SystemicPrimitive <|-- BehavioralRuleEffect : is
