@@ -30,9 +30,7 @@ skinparam noteBorderColor #57606A
 ' - Adapt Interaction and channel.
 ' - Extract all notes into a separate puml.
 ' - Challenge meta model, technically.
-' - The operational controler's implements the structure of a rule. Integrate
-'   that structure into a rule concept that is owned by supervisor and passed
-'   to operator controllers, if ever they still should hold. Or what else?
+' - Refer to DSL constructs for model attributes integrating them.
 ' - Handle:
 '   - ConstraintConflict.
 '   - ConstraintConflictResolution.
@@ -399,13 +397,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     ' ============================================================
 
     +getName(): String
-    +getType(): String
-    +getRole(): String
-    +getPurpose(): String
-    +getPrinciples(): Principle[]
+    +getType(): Type
+    +getBoundary(): Boundary
+    +getPurposes(): Purpose[]
     +getCapacities(): Capacity[]
-    +getInterfaces(): Interface[]
-    +getSubSystems(): System[]
     +getStateObjectArchetypes(): StateObjectArchetype[]
 
     ' ============================================================
@@ -421,39 +416,382 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     ' ============================================================
     ' SYSTEMIC STRUCTURAL PROPERTIES
+    ' (derive from purposes, capacities, boundaries)
     ' ============================================================
     
+    +getInterfaces(): Interface[]
     +getChannels(): Channel[]
     +getInteractions(): Interaction[]
-
-    ' ============================================================
-    ' SYSTEMIC FUNCTIONAL PROPERTIES
-    ' ============================================================
-
-    +getFunctions(): Function[]
-    +getProcesses(): Process[]
-
-    ' ============================================================
-    ' SYSTEMIC BEHAVIORAL PROPERTIES
-    ' ============================================================
-
-    +getMechanisms(): Mechanism[]
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
     +getEventArchetypes(): EventArchetype[]
+
+    ' ============================================================
+    ' SYSTEMIC FUNCTIONAL PROPERTIES
+    ' (derive from purposes)
+    ' ============================================================
+
+    +getFunctions(): Function[]
+
+    ' ============================================================
+    ' SYSTEMIC BEHAVIORAL PROPERTIES
+    ' (derive from behavior rules)
+    ' ============================================================
+
+    +getMechanisms(): Mechanism[]
+
+    ' ============================================================
+    ' SYSTEMIC VIABILITY PROPERTIES
+    ' (derive from capacities)
+    ' ============================================================
+
+    +getModalities(): Modality[]
   }
   SystemicPrimitive <|-- System : is
+
+  ' ============================================================
+  ' TYPE
+  ' ============================================================
+
+  class Type {
+    +getName(): String
+    +getDescription(): String
+  }
+  SystemicPrimitive <|-- Type : is
+
+  ' ============================================================
+  ' BOUNDARY
+  ' ============================================================
+
+  class Boundary {
+    +getExternalInterfaces(): Interface[]
+    +getInternalInterfaces(): Interface[]
+    +getSubsystems(): System[]
+  }
+  SystemicPrimitive <|-- Boundary : is
+
+  ' ============================================================
+  ' PURPOSE
+  ' ============================================================
+
+  class Purpose {
+    +getDescription(): String
+    +getFunctions(): Function[]
+  }
+  SystemicPrimitive <|-- Purpose : is
 
   ' ============================================================
   ' CAPACITY
   ' ============================================================
 
   class Capacity {
-    +getName(): String
     +getDescription(): String
-    +getFunctions(): Function[]
+    +getModalities(): Modality[]
   }
   SystemicPrimitive <|-- Capacity : is
+
+  ' ============================================================
+  ' STATE OBJECT ARCHETYPE
+  ' ============================================================
+
+  class StateObjectArchetype {
+    +getName(): String
+    +getSchema(): ArchetypeSchema
+  }
+
+  note top of StateObjectArchetype
+    Defines the structure and semantics of a state object that can be used to
+    represent the state of a system.
+
+    **Rules**
+    - "name" MUST match the name of the schema.
+    - "name" MUST be unique among all entities classified as "archetype".
+    - If its schema is deleted, the event archetype MUST be deleted.
+  end note
+
+  SystemicPrimitive <|-- StateObjectArchetype : is
+  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
+
+  ' ============================================================
+  ' POLICY
+  ' ============================================================
+
+  abstract class Policy {
+    +getName(): String
+    +getApplicabilityConditions(): String
+    +getConstraint(): String
+    +getEvaluationCriteria(): String
+  }
+
+  note top of Policy
+    A policy is a measurable normative regulatory constraint over a system
+    definition. It does not prescribe behavior directly; instead, it constrains
+    what the system MUST do (functional), MUST withstand (viability), or MUST be
+    (structural).
+
+    If a constraint cannot be expressed with evaluation criteria, it is not a
+    policy.
+
+    **Systemic Semantics**:
+    - Policies are owned by governor controller mechanisms.
+    - Policies are operationalized into behavioral rules by supervisor
+      controller mechanisms.
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier.
+    - "applicability conditions": A logical expression that must evaluate to
+      true for the policy to be applicable to the system.
+    - "constraint": A declarative expression of the constraint imposed by the
+      policy.
+    - "evaluation criteria": A declarative expression defining how to evaluate
+      whether the policy is being met by the system.
+
+    **Validation Rules**:
+    - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
+      node.
+    - *constraint* MUST be a valid constraint format CSDSL JSON AST node.
+    - *evaluation criteria* MUST be a valid evaluation criteria format CSDSL JSON AST node.
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all policies of the same system.
+    - A policy MUST have at least one principle.
+  end note
+
+  SystemicPrimitive <|-- Policy : is
+
+  ' ============================================================
+  ' FUNCTIONAL POLICY
+  ' ============================================================
+
+  class FunctionalPolicy {
+    +getScopedPurposes(): Purpose[]
+  }
+
+  note top of FunctionalPolicy
+    A functional policy constrains the system's functional properties: what the
+    system MUST do to fulfill its purpose.
+
+    **Systemic Semantics**:
+    - Direct object of the constraint is purpose, value delivery, or functional
+      behavior.
+    - Input to structural synthesis:
+      Structure = Arch(Functional, Viability).
+
+    **Attribute Semantics**:
+    - "targetFunctions": Functions whose behavior or existence is constrained by
+      this policy.
+  end note
+
+  Policy <|-- FunctionalPolicy : is
+
+  ' ============================================================
+  ' VIABILITY POLICY
+  ' ============================================================
+
+  class ViabilityPolicy {
+    +getScopedCapacities(): Capacity[]
+  }
+
+  note top of ViabilityPolicy
+    A viability policy constrains the system's viability properties: what the
+    system MUST withstand to remain viable in its environment.
+
+    **Systemic Semantics**:
+    - Direct object of the constraint is the viability envelope.
+    - Input to structural synthesis:
+      Structure = Arch(Functional, Viability).
+
+    **Attribute Semantics**:
+    - "scopedCapacities": Capacities whose existence or properties are
+      constrained by this policy.
+  end note
+
+  Policy <|-- ViabilityPolicy : is
+
+  ' ============================================================
+  ' STRUCTURAL POLICY
+  ' ============================================================
+
+  class StructuralPolicy {
+    +getTargetStructures(): SystemicPrimitive[]
+  }
+
+  note top of StructuralPolicy
+    A structural policy constrains the system's structural properties: what the
+    system MUST be in terms of architecture, invariants, mechanisms, and
+    topology.
+
+    **Systemic Semantics**:
+    - Direct object of the constraint is form and invariants.
+    - Typically synthesized from functional and viability policies via the
+      architecture function:
+      Structure = Arch(Functional, Viability).
+
+    **Attribute Semantics**:
+    - "targetStructures": Structural systemic primitives (systems, interfaces,
+      mechanisms, channels, etc.) constrained by this policy.
+    - "invariantExpression": Declarative expression of the structural invariant
+      (e.g. "Service MUST be stateless", "All writes MUST go through X").
+  end note
+
+  Policy <|-- StructuralPolicy : is
+
+  ' ============================================================
+  ' BEHAVIORAL RULE
+  ' ============================================================
+  
+  class BehavioralRule {
+    +getName(): String
+    +getApplyingFunctionalPolicies(): FunctionalPolicy[]
+    +getApplyingViabilityPolicies(): ViabilityPolicy[]
+    +getApplyingStructuralPolicies(): StructuralPolicy[]
+    +getScopedFunctions(): Function[]
+    +getScopedModalities(): Modality[]
+    +getApplicabilityConditions(): String
+    +getIterationConditions(): String
+    +getControlSequence(): BehavioralRuleControl[]
+  }
+
+  note top of BehavioralRule
+    A behavioral rule is a constraint over the system's behavioral properties:
+    how the system acts over time via mechanisms, sensors, and effectors.
+
+    **Systemic Semantics**:
+    - Behavioral rules operationalize policies:
+      "applyingPolicies" references the functional, viability, and/or
+      structural policies whose constraints this rule enforces.
+    - Implemented by controller mechanisms and executed by operator controllers
+      and actuators.
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier.
+    - "applying functional policies": The set of functional policies whose
+      constraints are enforced by the behavioral rule.
+    - "applying viability policies": The set of viability policies whose
+      constraints are enforced by the behavioral rule.
+    - "applying structural policies": The set of structural policies whose
+      constraints are enforced by the behavioral rule.
+    - "applicability conditions": A logical expression that must evaluate to
+      true for the behavioral rule to be applied / operate behavioral rule
+      effects.
+    - "scoped functions": The set of functions whose execution the
+      behavioral rule may impact when applied.
+    - "scoped modalities": The set of modalities whose state the behavioral
+      rule may impact when applied.
+    - "iteration conditions": A logical expression that, if true, causes the
+      controller to re-apply the behavioral rule.
+    - "control sequence": An ordered list of behavioral rule controls defining
+      effectors when the behavioral rule is applied.
+
+    **Validation Rules**:
+    - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
+      node.
+    - *iteration conditions* MUST be a valid logical operator CSDSL JSON AST
+      node.
+    - The conditions operands referencing event properties MUST exist in the
+      corresponding event archetype schemas beared by the mechanism receptor.
+    - The conditions operands representing a literal value MUST be validated
+      against the corresponding event archetype schema beared by the mechanism
+      receptor.
+
+    **Consistency Rules**:
+    - A behavioral rule MUST be triggered by exactly one event archetype.
+    - A behavioral rule MUST have at least one behavioral rule effect.
+    - If a behavioral rule is deleted, its behavioral rule effects MUST be
+      deleted, and vice-versa IF it is the last behavioral rule effect the
+      behavioral rule owns.
+    - MUST reference at least one policy in "applyingPolicies".
+    - "scope" MUST be compatible with the policies' scope.
+    - "trigger" MUST reference an event archetype defined in the same system.
+
+    **Todo**:
+    - Implement join/fork of effect sequences (which may define parallel
+      execution).
+  end note
+
+  SystemicPrimitive <|-- BehavioralRule : is
+  BehavioralRule "1" o--> "1..*" FunctionalPolicy : applies
+  BehavioralRule "1" o--> "1..*" ViabilityPolicy : applies
+  BehavioralRule "1" o--> "1..*" StructuralPolicy : applies
+  BehavioralRule "1" *--> "1..*" BehavioralRuleControl : has
+
+  ' ============================================================
+  ' BEHAVIORAL RULE CONTROL
+  ' ============================================================
+
+  class BehavioralRuleControl {
+    +getName(): String
+    +getApplyingRule(): BehavioralRule
+    +getApplicabilityConditions(): String
+    +getIterationConditions(): String
+    +getEffector(): Effector
+  }
+
+  note top of BehavioralRuleControl
+    A behavioral rule control defines an action to be performed when its
+    enclosing behavioral rule is triggered and applied.
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier.
+    - "applying rule": The enclosing behavioral rule to which the behavioral
+      rule control belongs.
+    - "applicability conditions": A logical expression that must evaluate to
+      true for the behavioral rule control to be applied when the enclosing
+      behavioral rule is applied.
+    - "iteration conditions": A logical expression that, if true, causes the
+      controller to re-execute and re-evaluate the behavioral rule control.
+    - "effector": The effector to be activated when the behavioral rule control
+      is applicated.
+
+    **Auto Definition Rules**:
+    - When a behavioral rule control is added to a behavioral rule, required
+      source event archetypes SHOULD be inferred from the selected effector's
+      mapping.
+    - If the enclosing mechanism does not yet have receptors for those source
+      archetypes, the application SHOULD propose creating them.
+    - If the required source archetype does not match the behavioral rule's
+      triggering event, the application SHOULD propose creating a new behavioral
+      rule control behavioral rule triggered by that source archetype (chained
+      behavioral rules).
+    - Behavioral rule control conditions SHOULD apply rule definitions owned by
+      supervisors. Hence, a behavioral rule control SHOULD be associated to at
+      least one rule definition, indirectly, via interactions of the controller
+      owning the conditions and supervisors owning the related rules. For such
+      interaction to operate, the controller mechanism MUST have receptors
+      receiving the Supervision event archetypes produced by the supervisors'
+      effectors.
+    - When a behavioral rule control is added to the system, the application
+      SHOULD propose associating it to relevant rule definitions owned with
+      supervisors.
+    - When a rule definition is added to the system, the application SHOULD
+      propose adding corresponding conditions to relevant behavioral rule
+      controls.
+
+    **Validation Rules**:
+    - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
+      node.
+    - *iteration conditions* MUST be a valid logical operator CSDSL JSON AST
+      node.
+    - The conditions operands referencing event properties MUST exist in the
+      corresponding event archetype schemas beared by the mechanism receptor.
+    - The conditions operands representing a literal value MUST be validated
+      against the corresponding event archetype schema beared by the mechanism
+      receptor.
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all behavioral rule controls of the system.
+    - A behavioral rule control MUST have exactly one effector.
+    - If a behavioral rule control is deleted, its effector MUST be deleted, and
+      vice-versa.
+    - A behavioral rule control SHOULD be associated to zero or more supervision
+      rule definitions.
+  end note
+
+  SystemicPrimitive <|-- BehavioralRuleControl : is
+  BehavioralRuleControl "1" *--> "1" BehavioralRule : applies
+  BehavioralRuleControl "1" *--> "1" Effector : has
 
   ' ============================================================
   ' INTERFACE
@@ -467,12 +805,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   }
   SystemicPrimitive <|-- Interface : is
 
-  class ExternalInterface
-  Interface <|-- ExternalInterface : is
-
-  class InternalInterface
-  Interface <|-- InternalInterface : is
-
   ' ============================================================
   ' CHANNEL
   ' ============================================================
@@ -484,28 +816,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getExternalSystemInterface(): Interface
   }
   SystemicPrimitive <|-- Channel : is
-
-  ' ============================================================
-  ' PROCESS
-  ' ============================================================
-
-  class Process {
-    +getName(): String
-    +getPurpose(): String
-    +getFunctionsSequence(): Function[]
-  }
-  SystemicPrimitive <|-- Process : is
-
-  ' ============================================================
-  ' FUNCTION
-  ' ============================================================
-
-  class Function {
-    +getName(): String
-    +getPurpose(): String
-    +getMechanism(): Mechanism
-  }
-  SystemicPrimitive <|-- Function : is
 
   ' ============================================================
   ' INTERACTION
@@ -633,6 +943,39 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   SystemicPrimitive <|-- EffectorEventSourceMapping : is
 
   ' ============================================================
+  ' EVENT ARCHETYPE
+  ' ============================================================
+
+  class EventArchetype {
+    +getName(): String
+    +getSchema(): ArchetypeSchema
+  }
+
+  note top of EventArchetype
+    Defines the structure and semantics of an event that can be emitted or
+    received by a system via its effectors and receptors.
+
+    **Consistency Rules**
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all entities classified as "archetype".
+    - "name" MUST match the name of the schema.
+    - If its schema is deleted, the event archetype MUST be deleted.
+  end note
+
+  SystemicPrimitive <|-- EventArchetype : is
+  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
+  
+  ' ============================================================
+  ' FUNCTION
+  ' ============================================================
+
+  class Function {
+    +getName(): String
+    +getPurpose(): Purpose
+  }
+  SystemicPrimitive <|-- Function : is
+
+  ' ============================================================
   ' MECHANISM
   ' ============================================================
 
@@ -667,7 +1010,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   abstract class ControllerMechanism {
-    +getImplementedRule(): BehavioralRule
+    +getImplementedBehavioralRule(): BehavioralRule
   }
 
   note top of ControllerMechanism
@@ -730,7 +1073,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' OPERATOR CONTROLLER MECHANISM
   ' ============================================================
 
-  class OperatorControllerMechanism
+  class OperatorControllerMechanism {
+    +getFunction(): Function
+    +getModality(): Modality
+  }
 
   note top of OperatorControllerMechanism
     An operator controller mechanism implements the rules defined by its
@@ -779,341 +1125,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Mechanism <|-- SensorMechanism : is
 
   ' ============================================================
-  ' EVENT ARCHETYPE
+  ' MODALITY
   ' ============================================================
 
-  class EventArchetype {
+  class Modality {
     +getName(): String
-    +getSchema(): ArchetypeSchema
+    +getCapacity(): Capacity
   }
-
-  note top of EventArchetype
-    Defines the structure and semantics of an event that can be emitted or
-    received by a system via its effectors and receptors.
-
-    **Consistency Rules**
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all entities classified as "archetype".
-    - "name" MUST match the name of the schema.
-    - If its schema is deleted, the event archetype MUST be deleted.
-  end note
-
-  SystemicPrimitive <|-- EventArchetype : is
-  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
-  
-  ' ============================================================
-  ' STATE OBJECT ARCHETYPE
-  ' ============================================================
-
-  class StateObjectArchetype {
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-  }
-
-  note top of StateObjectArchetype
-    Defines the structure and semantics of a state object that can be used to
-    represent the state of a system.
-
-    **Rules**
-    - "name" MUST match the name of the schema.
-    - "name" MUST be unique among all entities classified as "archetype".
-    - If its schema is deleted, the event archetype MUST be deleted.
-  end note
-
-  SystemicPrimitive <|-- StateObjectArchetype : is
-  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
-
-  ' ============================================================
-  ' CONSTRAINTS
-  ' ============================================================
-
-  abstract class Constraint {
-    +getName(): String
-    +getDescription(): String
-  }
-
-  note top of Constraint
-    A constraint is a second-order systemic artifact that restricts some aspect
-    of a system definition or behavior.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier.
-    - "description": Textual explanation of the constraint.
-
-    **Systemic Semantics**:
-    - Constraints are owned by controller mechanisms (governors, supervisors).
-    - Policies and behavioral rules are specialized constraints.
-  end note
-
-  SystemicPrimitive <|-- Constraint : is
-
-  ' ============================================================
-  ' BEHAVIORAL RULE
-  ' ============================================================
-  
-  class BehavioralRule {
-    +getOperationalizedPolicies(): Policy[]
-    +getScope(): SystemicPrimitive[]
-    +getTrigger(): EventArchetype
-    +getConditions(): LogicalOperatorNode
-    +getIterationConditions(): LogicalOperatorNode
-    +getEffectSequence(): BehavioralRuleEffect[]
-  }
-
-  note top of BehavioralRule
-    A behavioral rule is a constraint over the system's behavioral properties:
-    how the system acts over time via mechanisms, sensors, and effectors.
-
-    **Systemic Semantics**:
-    - Behavioral rules operationalize policies:
-      "operationalizedPolicies" references the functional, viability, and/or
-      structural policies whose constraints this rule enforces.
-    - Implemented by controller mechanisms and executed by operator controllers
-      and actuators.
-
-    **Attribute Semantics**:
-    - "scope": The set of governed systemic primitives instances (state object
-      archetype, mechanisms, interfaces, interactions, etc), whose states are
-      evaluated by the rule’s (and behavioral rule effect’s) conditions.
-    - "trigger": The event trigger that make the behavioral rule to be eligible.
-    - "conditions": A logical expression that must evaluate to true for the
-      behavioral rule to be applied / operate behavioral rule effects.
-    - "iteration conditions": A logical expression that, if true, causes the
-      controller to re-apply the behavioral rule.
-    - "effect sequence": An ordered list of behavioral rule effects defining
-      effectors when the behavioral rule is applied.
-
-    **Validation Rules**:
-    - The conditions operands referencing event properties MUST exist in the
-      corresponding event archetype schemas beared by the mechanism receptor.
-    - The conditions operands representing a literal value MUST be validated
-      against the corresponding event archetype schema beared by the mechanism
-      receptor.
-
-    **Consistency Rules**:
-    - A behavioral rule MUST be triggered by exactly one event archetype.
-    - A behavioral rule MUST have at least one behavioral rule effect.
-    - If a behavioral rule is deleted, its behavioral rule effects MUST be
-      deleted, and vice-versa IF it is the last behavioral rule effect the
-      behavioral rule owns.
-    - MUST reference at least one policy in "operationalizedPolicies".
-    - "scope" MUST be compatible with the policies' scope.
-    - "trigger" MUST reference an event archetype defined in the same system.
-
-    **Todo**:
-    - Implement join/fork of effect sequences (which may define parallel
-      execution).
-  end note
-
-  Constraint <|-- BehavioralRule : is
-  BehavioralRule "1" o--> "1" EventArchetype : on
-  BehavioralRule "1" *--> "1..*" BehavioralRuleEffect : has
-
-  ' ============================================================
-  ' BEHAVIORAL RULE EFFECT
-  ' ============================================================
-
-  class BehavioralRuleEffect {
-    +getRule(): BehavioralRule
-    +getConditions(): LogicalOperatorNode
-    +getIterationConditions(): LogicalOperatorNode
-    +getEffector(): Effector
-  }
-
-  note top of BehavioralRuleEffect
-    A behavioral rule effect defines an action to be performed when its
-    enclosing behavioral rule is triggered and applied.
-
-    **Attribute Semantics**:
-    - "rule": The enclosing behavioral rule to which the behavioral rule effect
-      belongs.
-    - "conditions": A logical expression that must evaluate to true for the
-      behavioral rule effect to be executed when the enclosing behavioral rule
-      is applied.
-    - "iteration conditions": A logical expression that, if true, causes the
-      controller to re-execute the behavioral rule effect.
-    - "effector": The effector to be activated when the behavioral rule effect
-      is executed.
-
-    **Auto Definition Rules**:
-    - When a behavioral rule effect is added to a behavioral rule, required
-      source event archetypes SHOULD be inferred from the selected effector's
-      mapping.
-    - If the enclosing mechanism does not yet have receptors for those source
-      archetypes, the application SHOULD propose creating them.
-    - If the required source archetype does not match the behavioral rule's
-      triggering event, the application SHOULD propose creating a new behavioral
-      rule effect behavioral rule triggered by that source archetype (chained
-      behavioral rules).
-    - Behavioral rule effect's conditions SHOULD apply rule definitions owned by
-      supervisors. Hence, a behavioral rule effect SHOULD be associated to at
-      least one rule definition, indirectly, via interactions of the controller
-      owning the conditions and supervisors owning the related rules. For such
-      interaction to operate, the controller mechanism MUST have receptors
-      receiving the Supervision event archetypes produced by the supervisors'
-      effectors.
-    - When a behavioral rule effect is added to the system, the application
-      SHOULD propose associating it to relevant rule definitions owned with
-      supervisors.
-    - When a rule definition is added to the system, the application SHOULD
-      propose adding corresponding conditions to relevant behavioral rule
-      effects.
-
-    **Validation Rules**:
-    - The conditions operands referencing event properties MUST exist in the
-      corresponding event archetype schemas beared by the mechanism receptor.
-    - The conditions operands representing a literal value MUST be validated
-      against the corresponding event archetype schema beared by the mechanism
-      receptor.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all behavioral rule effects of the system.
-    - A behavioral rule effect MUST have exactly one effector.
-    - If a behavioral rule effect is deleted, its effector MUST be deleted, and
-      vice-versa.
-    - A behavioral rule effect SHOULD be associated to zero or more supervision
-      rule definitions.
-  end note
-
-  SystemicPrimitive <|-- BehavioralRuleEffect : is
-  BehavioralRuleEffect "1" *--> "1" BehavioralRule : belongsTo
-  BehavioralRuleEffect "1" *--> "1" Effector : has
-
-  ' ============================================================
-  ' POLICY
-  ' ============================================================
-
-  abstract class Policy {
-    +getScope(): SystemicPrimitive[]
-    +getIntent(): String
-    +getPrinciples(): Principle[]
-    +getDirectives(): String[]
-  }
-
-  note top of Policy
-    A policy is a declarative constraint over a system definition. It does not
-    prescribe behavior directly; instead, it constrains what the system MUST do
-    (functional), MUST withstand (viability), or MUST be (structural).
-
-    **Systemic Semantics**:
-    - Policies are owned by governor controller mechanisms.
-    - Policies are operationalized into behavioral rules by supervisor
-      controller mechanisms.
-
-    **Attribute Semantics**:
-    - "scope": The set of systemic primitive instances (system, interface,
-      mechanism, etc) that the policy governs.
-    - "intent": A declarative statement expressing the purpose and goals of the
-      policy.
-    - "principles": A set of fundamental truths or propositions that guide the
-      formulation and application of the policy.
-    - "directives": A set of actionable but not procedural obligations that
-      operationalize the policy's intent. What must be enforced by rule
-      definitions.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all policies of the same system.
-    - A policy MUST have at least one principle.
-  end note
-
-  Constraint <|-- Policy : is
-
-  ' ============================================================
-  ' FUNCTIONAL POLICY
-  ' ============================================================
-
-  class FunctionalPolicy {
-    +getTargetFunctions(): Function[]
-    +getTargetProcesses(): Process[]
-  }
-
-  note top of FunctionalPolicy
-    A functional policy constrains the system's functional properties: what the
-    system MUST do to fulfill its purpose.
-
-    **Systemic Semantics**:
-    - Direct object of the constraint is purpose, value delivery, or functional
-      behavior.
-    - Input to structural synthesis:
-      Structure = Arch(Functional, Viability).
-
-    **Attribute Semantics**:
-    - "targetFunctions": Functions whose behavior or existence is constrained.
-    - "targetProcesses": Processes whose sequence or presence is constrained.
-  end note
-
-  Policy <|-- FunctionalPolicy : is
-
-  ' ============================================================
-  ' VIABILITY POLICY
-  ' ============================================================
-
-  class ViabilityPolicy {
-    +getViabilityMetric(): String
-    +getThreshold(): String
-    +getRiskCategory(): String
-  }
-
-  note top of ViabilityPolicy
-    A viability policy constrains the system's viability properties: what the
-    system MUST withstand to remain viable in its environment.
-
-    **Systemic Semantics**:
-    - Direct object of the constraint is the viability envelope.
-    - Input to structural synthesis:
-      Structure = Arch(Functional, Viability).
-
-    **Attribute Semantics**:
-    - "viabilityMetric": Name of the metric (latency, errorRate, availability,
-      cost, etc.).
-    - "threshold": Declarative expression of the acceptable envelope
-      (e.g. "p95 < 200ms", "errorRate < 0.1%").
-    - "riskCategory": Qualitative classification (safety, security, compliance,
-      performance, cost, resilience, etc.).
-  end note
-
-  Policy <|-- ViabilityPolicy : is
-
-  ' ============================================================
-  ' STRUCTURAL POLICY
-  ' ============================================================
-
-  class StructuralPolicy {
-    +getTargetStructures(): SystemicPrimitive[]
-    +getInvariantExpression(): String
-  }
-
-  note top of StructuralPolicy
-    A structural policy constrains the system's structural properties: what the
-    system MUST be in terms of architecture, invariants, mechanisms, and
-    topology.
-
-    **Systemic Semantics**:
-    - Direct object of the constraint is form and invariants.
-    - Typically synthesized from functional and viability policies via the
-      architecture function:
-      Structure = Arch(Functional, Viability).
-
-    **Attribute Semantics**:
-    - "targetStructures": Structural systemic primitives (systems, interfaces,
-      mechanisms, channels, etc.) constrained by this policy.
-    - "invariantExpression": Declarative expression of the structural invariant
-      (e.g. "Service MUST be stateless", "All writes MUST go through X").
-  end note
-
-  Policy <|-- StructuralPolicy : is
-
-  ' ============================================================
-  ' PRINCIPLE
-  ' ============================================================
-
-  class Principle {
-    +getName(): String
-    +getStatement(): String
-  }
-  SystemicPrimitive <|-- Principle : is
+  SystemicPrimitive <|-- Modality : is
+  Modality "1" o--> "1" Capacity : constitutes
 
   ' ============================================================
   ' RELATIONSHIPS
@@ -1122,15 +1142,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   System "1" *--> "1" Boundary : has
   System "1" *--> "0..*" Component : has
   System "1" *--> "0..*" Capacity : has
-  System "1" *--> "0..*" Condition : has
   System "1" *--> "0..*" StateObjectArchetype : has
 
   System "0..*" o--> "0..*" System : hasSuper
   System "0..*" *--> "0..*" System : hasSub
   System "1" *--> "0..*" Interface : has
 
-  System "1" *--> "0..*" Function : has
-  System "1" *--> "0..*" Process : has
+  System "1" *--> "0..*" Modality : has
 
   System "1" *--> "0..*" Mechanism : implements
   System "1" *--> "0..*" Interaction : participatesIn
@@ -1150,27 +1168,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Channel "1..*" *--> "0..*" Interaction : binds
   Channel "0..*" o--> "1" Interface : boundToExternalSystem
 
-  Process "0..*" o--> "1..*" Function : sequences
   Function "1" *--> "1..*" Mechanism : implements
 
-  Mechanism "0..*" o--> "1" Governor : has
-  Mechanism "1" *--> "1" Regulator : has
   Interaction "0..*" o--> "1" EventArchetype : involves
   Interaction "0..*" o--> "1" System : withExternal
   Interaction "0..*" o--> "1..*" Channel : boundTo
-
-  Constraint <|-- Principle : is
-  Constraint <|-- Policy : is
-  Constraint <|-- RuleDefinition : is
-
-  ConstraintsBinding <|-- PrinciplePolicyBinding : is
-  ConstraintsBinding <|-- PolicyRuleBinding : is
-  ConstraintsBinding <|-- RuleConditionBinding : is
-
-  PrinciplePolicyBinding "0..*" o--> "1" Principle : binds
-  PrinciplePolicyBinding "1..*" *--> "1" Policy : binds
-  PolicyRuleBinding "1..*" *--> "1" Policy : binds
-  PolicyRuleBinding "1..*" *--> "1" RuleDefinition : binds
 
   Policy "0..*" o--> "1..*" Principle : incorporates
   RuleDefinition "0..*" o--> "1..*" Policy : operationalizes
@@ -1179,7 +1181,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' SYSTEMIC PROCESSES: EMERGENCE, SYNTHESIS, ENFORCEMENT, FEEDBACK
   ' ============================================================
 
-  class EmergenceProcess {
+  class Emergence {
     +getId(): UUID
     +getName(): String
     +getTriggerArtifacts(): SystemicPrimitive[]
@@ -1187,7 +1189,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getOwner(): ControllerMechanism
   }
 
-  note top of EmergenceProcess
+  note top of Emergence
     Represents the systemic process by which new constraints (policies or
     behavioral rules) emerge from sensed artifacts (use cases, risks, incidents,
     pain points, environmental changes).
@@ -1206,12 +1208,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Drives autopoiesis: the system produces its own constraints.
   end note
 
-  SystemicPrimitive <|-- EmergenceProcess : is
-  EmergenceProcess "0..*" o--> "0..*" SystemicPrimitive : triggerArtifacts
-  EmergenceProcess "0..*" o--> "0..*" Constraint : producedConstraints
-  EmergenceProcess "1" o--> "1" ControllerMechanism : owner
+  SystemicPrimitive <|-- Emergence : is
+  Emergence "0..*" o--> "0..*" SystemicPrimitive : triggerArtifacts
+  Emergence "0..*" o--> "0..*" Constraint : producedConstraints
+  Emergence "1" o--> "1" ControllerMechanism : owner
 
-  class SynthesisProcess {
+  class Synthesis {
     +getId(): UUID
     +getName(): String
     +getInputFunctionalPolicies(): FunctionalPolicy[]
@@ -1220,7 +1222,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getOwner(): GovernorControllerMechanism
   }
 
-  note top of SynthesisProcess
+  note top of Synthesis
     Represents the architecture function:
       Structure = Arch(Functional, Viability)
 
@@ -1237,13 +1239,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Produces structural policies as second-order structural constraints.
   end note
 
-  SystemicPrimitive <|-- SynthesisProcess : is
-  SynthesisProcess "0..*" o--> "0..*" FunctionalPolicy : inputFunctionalPolicies
-  SynthesisProcess "0..*" o--> "0..*" ViabilityPolicy : inputViabilityPolicies
-  SynthesisProcess "0..*" o--> "0..*" StructuralPolicy : producedStructuralPolicies
-  SynthesisProcess "1" o--> "1" GovernorControllerMechanism : owner
-
-  class EnforcementProcess {
+  SystemicPrimitive <|-- Synthesis : is
+  Synthesis "0..*" o--> "0..*" FunctionalPolicy : inputFunctionalPolicies
+  Synthesis "0..*" o--> "0..*" ViabilityPolicy : inputViabilityPolicies
+  Synthesis "0..*" o--> "0..*" StructuralPolicy : producedStructuralPolicies
+  Synthesis "1" o--> "1" GovernorControllerMechanism : owner
+  
+  class Enforcement {
     +getId(): UUID
     +getName(): String
     +getEnforcedConstraints(): Constraint[]
@@ -1251,7 +1253,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getTargetMechanisms(): Mechanism[]
   }
 
-  note top of EnforcementProcess
+  note top of Enforcement
     Represents the systemic process by which constraints are enforced through
     behavioral rules and mechanisms.
 
@@ -1268,10 +1270,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       (mechanisms, actuators).
   end note
 
-  SystemicPrimitive <|-- EnforcementProcess : is
-  EnforcementProcess "0..*" o--> "0..*" Constraint : enforcedConstraints
-  EnforcementProcess "1" o--> "1" SupervisorControllerMechanism : owner
-  EnforcementProcess "0..*" o--> "0..*" Mechanism : targetMechanisms
+  SystemicPrimitive <|-- Enforcement : is
+  Enforcement "0..*" o--> "0..*" Constraint : enforcedConstraints
+  Enforcement "1" o--> "1" SupervisorControllerMechanism : owner
+  Enforcement "0..*" o--> "0..*" Mechanism : targetMechanisms
 
   class FeedbackEvent {
     +getId(): UUID
