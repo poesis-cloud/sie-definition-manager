@@ -31,7 +31,7 @@ skinparam noteBorderColor #57606A
 '   - Emergence.
 '   - Feedback loop.
 ' - Refer to DSL constructs for model attributes integrating them.
-' - Define heterarchy relationships between systems (super/sub system).
+' - Define heterarchy relationships between systems (super/sub system). [DONE: SubsystemIntegrationGovernance]
 ' - Add status/lifecycle to entities.
 ' - Challenge meta model, technically.
 ' - Extract all notes into a separate puml.
@@ -469,6 +469,122 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getSubsystems(): System[]
   }
   SystemicPrimitive <|-- Boundary : is
+
+  ' ============================================================
+  ' SUBSYSTEM INTEGRATION GOVERNANCE
+  ' ============================================================
+
+  class SubsystemIntegrationGovernance {
+    +getName(): String
+    +getSupersystem(): System
+    +getSubsystem(): System
+    +getLifecycleGovernance(): Boolean
+    +getContractEnforcement(): Boolean
+    +getConfigurationAuthority(): Boolean
+    +getSubstitutionAuthority(): Boolean
+    +getViabilityAccountability(): Boolean
+    +getResourceAllocation(): Boolean
+    +getBoundaryInclusion(): Boolean
+    +getPurposeContribution(): Purpose[]
+  }
+
+  note top of SubsystemIntegrationGovernance
+    Captures the explicit governance relationship between a supersystem and a
+    subsystem. "Subsystem" is not an intrinsic property—it is a relational role
+    defined by governable integration, not by internal control.
+
+    A system S is a subsystem of supersystem P if P can govern the *integration
+    relationship* with S — not necessarily S's internals.
+
+    **Systemic Semantics**:
+    - A SubsystemIntegrationGovernance makes explicit *why* a system is
+      considered a subsystem of another, capturing which governance levers the
+      supersystem holds over the relationship.
+    - Heterarchy is natural: a system may be a subsystem of multiple
+      supersystems via distinct SubsystemIntegrationGovernance instances, each
+      governing different aspects.
+    - The subsystem retains its own identity, boundary, and potentially its own
+      governance — what makes it "sub" is the supersystem's authority over the
+      integration relationship, not over subsystem internals.
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier for the integration.
+    - "supersystem": The system that governs the integration relationship, the
+      owner of this primitive instance.
+    - "subsystem": The system whose integration is governed.
+    - "lifecycleGovernance": Supersystem controls provisioning, versioning,
+      upgrade cadence, or decommissioning of the subsystem.
+    - "contractEnforcement": Supersystem can enforce interaction contracts
+      (interfaces, SLAs, event schemas) on the subsystem.
+    - "configurationAuthority": Supersystem can restrict or mandate subsystem
+      configuration (modes, features, parameters).
+    - "substitutionAuthority": Supersystem can replace the subsystem with an
+      alternative implementation.
+    - "viabilityAccountability": Supersystem is accountable for subsystem
+      viability (incidents in sub are incidents of super).
+    - "resourceAllocation": Supersystem controls resource budgets (compute,
+      memory, rate limits) allocated to the subsystem.
+    - "boundaryInclusion": Subsystem boundary is operationally inside
+      supersystem boundary.
+    - "purposeContribution": Purposes of the supersystem that the subsystem
+      materially contributes to.
+
+    **Derivation Rules**:
+    - If ALL governance booleans are false AND purposeContribution is empty,
+      the relation SHOULD be reconsidered: S may be an external dependency
+      rather than a subsystem.
+
+    **Examples** (Software Application as supersystem):
+
+    1. *OS as subsystem*:
+       - substitutionAuthority: true (app decides which OS to support)
+       - contractEnforcement: true (app defines required OS API contract)
+       - configurationAuthority: true (app may mandate OS settings)
+       - viabilityAccountability: true (OS failure = app failure)
+       - purposeContribution: [Execution Platform]
+
+    2. *VM/Container Runtime as subsystem*:
+       - resourceAllocation: true (app defines resource requests/limits)
+       - boundaryInclusion: true (VM hosts the app boundary)
+       - substitutionAuthority: true (app can target different runtimes)
+       - viabilityAccountability: true (runtime failure = app failure)
+       - purposeContribution: [Execution Platform]
+
+    3. *IT RUN Team as subsystem*:
+       - lifecycleGovernance: true (app defines release/deploy cadence)
+       - contractEnforcement: true (app defines SLAs, runbooks)
+       - viabilityAccountability: true (ops incidents = app incidents)
+       - purposeContribution: [Operational Continuity]
+
+    4. *Library as subsystem*:
+       - lifecycleGovernance: true (app controls version upgrades)
+       - substitutionAuthority: true (app can swap implementations)
+       - contractEnforcement: true (app defines expected API)
+       - boundaryInclusion: true (library runs inside app boundary)
+       - purposeContribution: [specific functional purposes]
+
+    These examples illustrate that "subsystem" is defined by *who governs the
+    integration*, not by relative size or abstraction layer.
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "supersystem" MUST be defined.
+    - "subsystem" MUST be defined.
+    - "supersystem" MUST NOT be the same as "subsystem".
+    - At least one governance lever (lifecycleGovernance, contractEnforcement,
+      configurationAuthority, substitutionAuthority, viabilityAccountability,
+      resourceAllocation, boundaryInclusion) MUST be true, OR
+      purposeContribution MUST NOT be empty.
+    - A system MUST NOT have a SubsystemIntegrationGovernance where it is both
+      supersystem and subsystem (no direct self-loops).
+    - Cycles in SubsystemIntegrationGovernance chains are allowed (heterarchy),
+      but SHOULD be flagged for review if they form tight loops.
+  end note
+
+  SystemicPrimitive <|-- SubsystemIntegrationGovernance : is
+  SubsystemIntegrationGovernance "0..*" o--> "1" System : supersystem
+  SubsystemIntegrationGovernance "0..*" o--> "1" System : subsystem
+  SubsystemIntegrationGovernance "0..*" o--> "0..*" Purpose : contributesTo
 
   ' ============================================================
   ' PURPOSE
