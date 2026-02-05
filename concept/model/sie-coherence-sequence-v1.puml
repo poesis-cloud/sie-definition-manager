@@ -1,0 +1,270 @@
+@startuml sie-coherence-sequence-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #57606A
+  LifeLineBackgroundColor #F6F8FA
+  LifeLineBorderColor #57606A
+  ArrowColor #57606A
+  DividerBackgroundColor #F6F8FA
+}
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Coherence Check & Resolution Process Sequence - v1
+
+' ============================================================
+' PARTICIPANTS
+' ============================================================
+
+participant "User/Trigger\nSource" as User
+participant "Event Bus\n(Kafka)" as Kafka
+participant "Coherence\nProcess Engine" as CoherenceEngine
+participant "Graph Analysis\n(Neo4j)" as Neo4j
+participant "LLM\nOrchestrator" as LLM
+participant "Main DB\n(PostgreSQL)" as Postgres
+participant "Emergence\nProcess Engine" as EmergenceEngine
+participant "Approval\nService" as Approval
+
+' ============================================================
+' TRIGGER PHASE
+' ============================================================
+
+== Trigger Phase ==
+
+alt On-Demand
+  User -> Kafka : publish(CoherenceCheckRequestEvent)
+  note right
+    Request payload:
+    - scope: { systemIds: [...], depth: SYSTEM_CONSTRAINTS }
+    - types: [LOGICAL_CONTRADICTION, ORPHAN, ...]
+  end note
+else On-Change (Primitive CRUD)
+  Kafka -> Kafka : receive(PrimitiveCreatedEvent | PrimitiveDeprecatedEvent)
+else Scheduled
+  Kafka -> Kafka : scheduled trigger (daily/weekly)
+else Pre-Publish
+  Kafka -> Kafka : receive(ConstraintProposedEvent)
+else Integration Feedback
+  Kafka -> Kafka : receive(IntegrationFeedbackEvent)
+  note right
+    Feedback indicates failure
+    to integrate constraint.
+  end note
+end
+
+Kafka -> CoherenceEngine : consume(trigger)
+
+' ============================================================
+' INITIALIZATION PHASE
+' ============================================================
+
+== Initialization Phase ==
+
+CoherenceEngine -> CoherenceEngine : createCoherenceCheckProcess(INITIATED)
+CoherenceEngine -> Postgres : save(CoherenceCheckProcess)
+
+CoherenceEngine -> Postgres : getConfiguration(scope)
+Postgres --> CoherenceEngine : ProcessConfiguration
+
+CoherenceEngine -> CoherenceEngine : setStatus(ANALYZING)
+
+' ============================================================
+' DETECTION PHASE
+' ============================================================
+
+== Detection Phase: Graph-Based Checks ==
+
+CoherenceEngine -> Neo4j : detectCircularDependencies(scope)
+Neo4j --> CoherenceEngine : cycles[]
+
+CoherenceEngine -> Neo4j : detectOrphanedConstraints(scope)
+note right of Neo4j
+  Finds Policies without
+  operationalizing BehavioralRules.
+end note
+Neo4j --> CoherenceEngine : orphans[]
+
+CoherenceEngine -> Neo4j : detectStaleReferences(scope)
+Neo4j --> CoherenceEngine : staleRefs[]
+
+CoherenceEngine -> Neo4j : detectScopeOverlaps(scope)
+Neo4j --> CoherenceEngine : overlaps[]
+
+== Detection Phase: Formal Verification ==
+
+CoherenceEngine -> CoherenceEngine : compileConstraintsToCEL(scope)
+CoherenceEngine -> CoherenceEngine : checkLogicalContradictions(celExpressions)
+note right
+  CEL type-checking can detect
+  some contradictions statically.
+end note
+
+== Detection Phase: Semantic Analysis (LLM) ==
+
+CoherenceEngine -> LLM : analyzeSemanticCoherence(constraints)
+activate LLM
+note right of LLM
+  LLM analyzes:
+  - Intent alignment between constraints
+  - Semantic drift from original rationale
+  - Implicit conflicts not captured formally
+  - Missing constraints suggested by context
+end note
+LLM --> CoherenceEngine : semanticIssues[]
+deactivate LLM
+
+' ============================================================
+' INCOHERENCE AGGREGATION
+' ============================================================
+
+== Aggregation Phase ==
+
+CoherenceEngine -> CoherenceEngine : aggregateIncoherences()
+note right
+  Merge results from all detection methods.
+  Deduplicate overlapping issues.
+  Assign severity based on:
+  - Impact scope
+  - Constraint type (viability > functional)
+  - System criticality
+end note
+
+loop for each Incoherence
+  CoherenceEngine -> Postgres : save(Incoherence)
+end
+
+CoherenceEngine -> Kafka : publish(CoherenceAssessmentEvent)
+
+alt No Incoherences Found
+  CoherenceEngine -> CoherenceEngine : setStatus(COMPLETED)
+  CoherenceEngine -> Postgres : save(completedAt)
+  return "Coherence check complete: no issues"
+end
+
+' ============================================================
+' RESOLUTION PROPOSAL PHASE
+' ============================================================
+
+== Resolution Proposal Phase ==
+
+loop for each Incoherence with severity >= threshold
+  CoherenceEngine -> CoherenceEngine : createResolutionProcess(incoherence)
+  
+  CoherenceEngine -> LLM : proposeResolutions(incoherence, context)
+  activate LLM
+  note right of LLM
+    LLM generates multiple resolution options:
+    - Option A: Deprecate Policy X
+    - Option B: Adjust scope of Policy Y
+    - Option C: Create bridging Policy Z
+    Each with rationale and confidence.
+  end note
+  LLM --> CoherenceEngine : ProposedResolution[]
+  deactivate LLM
+  
+  loop for each ProposedResolution
+    CoherenceEngine -> Neo4j : assessResolutionImpact(resolution)
+    Neo4j --> CoherenceEngine : ImpactAssessment
+    CoherenceEngine -> Postgres : save(ProposedResolution)
+  end
+  
+  CoherenceEngine -> Kafka : publish(ResolutionProposedEvent)
+end
+
+' ============================================================
+' APPROVAL PHASE
+' ============================================================
+
+== Approval Phase ==
+
+loop for each ResolutionProcess
+  alt AutomationMode == FULLY_AUTONOMOUS and confidence > threshold
+    CoherenceEngine -> CoherenceEngine : autoSelectResolution(highestConfidence)
+    CoherenceEngine -> CoherenceEngine : autoApprove()
+  else Requires Human Selection/Approval
+    CoherenceEngine -> Approval : requestResolutionApproval(proposals, approvers)
+    Approval -> User : notifyResolutionRequired()
+    
+    User -> Approval : selectAndApprove(selectedResolution)
+    Approval -> CoherenceEngine : approved(selectedResolution)
+  else Accept Risk
+    User -> Approval : acceptRisk(incoherence, justification)
+    Approval -> CoherenceEngine : riskAccepted()
+    CoherenceEngine -> Postgres : setStatus(ACCEPTED_RISK)
+    note right
+      Incoherence acknowledged but
+      not resolved. Justification
+      recorded for audit.
+    end note
+  end
+end
+
+' ============================================================
+' EXECUTION PHASE
+' ============================================================
+
+== Resolution Execution Phase ==
+
+loop for each approved Resolution
+  CoherenceEngine -> CoherenceEngine : setStatus(RESOLUTION_EXECUTING)
+  
+  loop for each ResolutionAction in resolution
+    alt ActionType == TRIGGER_EMERGENCE
+      CoherenceEngine -> EmergenceEngine : triggerEmergence(request)
+      note right
+        Resolution requires new primitive.
+        Delegates to Emergence process.
+      end note
+      EmergenceEngine --> CoherenceEngine : emergenceProcessId
+      CoherenceEngine -> Postgres : linkEmergenceProcess()
+      
+    else ActionType == UPDATE_STATUS
+      CoherenceEngine -> Postgres : updatePrimitiveStatus(targetId, newStatus)
+      CoherenceEngine -> Kafka : publish(ConstraintStatusChangedEvent)
+      
+    else ActionType == DEPRECATE_PRIMITIVE
+      CoherenceEngine -> Postgres : deprecatePrimitive(targetId)
+      CoherenceEngine -> Kafka : publish(PrimitiveDeprecatedEvent)
+      
+    else ActionType == LINK_PRIMITIVES / UNLINK_PRIMITIVES
+      CoherenceEngine -> Postgres : updateRelationship(source, target, action)
+      CoherenceEngine -> Neo4j : updateGraph(relationship)
+    end
+  end
+  
+  CoherenceEngine -> Postgres : setResolutionStatus(RESOLVED)
+  CoherenceEngine -> Postgres : setIncoherenceStatus(RESOLVED)
+end
+
+' ============================================================
+' COMPLETION PHASE
+' ============================================================
+
+== Completion Phase ==
+
+CoherenceEngine -> CoherenceEngine : setStatus(COMPLETED)
+CoherenceEngine -> Postgres : save(completedAt)
+
+CoherenceEngine -> Kafka : publish(CoherenceCheckCompletedEvent)
+
+note right
+  Summary includes:
+  - Total incoherences detected
+  - Resolutions applied
+  - Risks accepted
+  - Pending emergence processes
+end note
+
+@enduml

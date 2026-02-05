@@ -1,0 +1,874 @@
+@startuml sie-processes-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+' SIE SYSTEMIC PROCESS MANAGEMENT
+'
+' Two complementary packages:
+' 1. Systemic Emergence Management - Creates/modifies SystemicPrimitives
+' 2. Systemic Constraint Management - Ensures coherence of constraints
+'
+' Relationship: Constraint Management may trigger Emergence when
+' resolution requires new primitives. Both are feedback-driven.
+' ============================================================
+
+frame "PD - SIE Systemic Process Management - v1" {
+
+  note as ProcessOverview
+    **Systemic Process Management Overview:**
+
+    These processes implement SIE's self-governance capabilities,
+    enabling automatic and human-assisted system definition evolution.
+
+    **Systemics Theory Alignment:**
+    - **Emergence** (Bertalanffy, Holland): EmergenceProcess creates new
+      primitives—NOVELTY generation.
+    - **Homeostasis** (Cannon, Ashby): CoherenceCheckProcess + ResolutionProcess
+      maintain definition stability—EQUILIBRIUM maintenance.
+    - **Requisite Variety** (Ashby): FeasibilityAssessment validates that
+      mechanism variety ≥ constraint variety.
+
+    **Emergence + Homeostasis = Adaptive System Definition**
+    - Emergence proposes (variety expansion)
+    - Homeostasis disposes (coherence validation, stabilization)
+    - Together: "Order at the edge of chaos" (Kauffman)
+
+    **SystemicPrimitive Integration:**
+    All process classes are **SystemicPrimitives** as defined in sie-csdm-v1.puml.
+    This enables cross-domain reasoning about processes themselves.
+
+    **Relationship between packages:**
+    - Emergence Management: Creates all primitives (NOVELTY)
+    - Constraint Management: Ensures coherence (HOMEOSTASIS)
+    - Constraint Management USES Emergence when resolution requires
+      creation of new primitives.
+
+    **Feedback topology (Homeostatic Loops):**
+    - Vertical: Operator → Supervisor → Governor (intra-system)
+    - Horizontal: Governor ↔ Governor (inter-system coherence)
+    - Recursive: Constraints about constraints (meta-governance)
+
+    **Human-in-the-loop modes (configurable per feature):**
+    - Advisory: Propose actions, human decides
+    - Semi-autonomous: Act within boundaries, escalate exceptions
+    - Fully autonomous: Self-healing within approved policies
+  end note
+
+  ' ============================================================
+  ' SYSTEMIC EMERGENCE MANAGEMENT PACKAGE
+  ' ============================================================
+
+  package "Systemic Emergence Management" as EmergencePackage {
+
+    note as EmergenceNote
+      **Purpose:**
+      Creates and modifies SystemicPrimitives based on:
+      - Observations (use cases, risks, incidents, operational signals)
+      - Coherence feedback (from Constraint Management)
+      - User requests (direct definition actions)
+      - LLM proposals (AI-suggested primitives)
+
+      **Scope:** ALL primitive types, not just constraints.
+      - Structural: Components, Interfaces, Channels
+      - Behavioral: Mechanisms, BehavioralRules, Effectors, Receptors
+      - Governance: Policies, Governors, Supervisors
+      - Constitutive: Purposes, Capacities, Functions, Modalities
+
+      **Four-Plane Context:**
+      - Observations come from Description Plane (sensed from State Plane)
+      - Primitives are created in Definition Plane (CSDM)
+      - Regulation Plane actuators enforce primitives on State Plane
+    end note
+
+    ' ============================================================
+    ' EMERGENCE PROCESS
+    ' ============================================================
+
+    class EmergenceProcess {
+      +getId(): UUID
+      +getStatus(): ProcessStatus
+      +getTrigger(): EmergenceTrigger
+      +getObservations(): Observation[]
+      +getProposedPrimitives(): ProposedPrimitive[]
+      +getConfidenceScore(): Decimal
+      +getApprovalStatus(): ApprovalStatus
+      +getApprovedBy(): User
+      +getCreatedAt(): DateTime
+      +getCompletedAt(): DateTime
+    }
+
+    note top of EmergenceProcess
+      EmergenceProcess is a SystemicPrimitive.
+      It is part of CSDM's extensible process model.
+      See sie-csdm-v1.puml SystemicPrimitive for base semantics.
+    end note
+
+    enum ProcessStatus {
+      INITIATED
+      ANALYZING
+      PROPOSING
+      AWAITING_APPROVAL
+      APPROVED
+      EXECUTING
+      COMPLETED
+      FAILED
+      CANCELLED
+    }
+
+    class EmergenceTrigger {
+      +getId(): UUID
+      +getType(): TriggerType
+      +getSource(): TriggerSource
+      +getPayload(): Object
+      +getTimestamp(): DateTime
+      +getPriority(): Priority
+    }
+
+    enum TriggerType {
+      OBSERVATION_RECEIVED
+      COHERENCE_FEEDBACK
+      USER_REQUEST
+      LLM_PROPOSAL
+      SCHEDULED_ANALYSIS
+      THRESHOLD_BREACH
+      EXTERNAL_CHANGE
+    }
+
+    enum TriggerSource {
+      USER
+      LLM
+      COHERENCE_PROCESS
+      FEEDBACK_LOOP
+      SCHEDULER
+      EXTERNAL_SYSTEM
+    }
+
+    enum Priority {
+      LOW
+      MEDIUM
+      HIGH
+      CRITICAL
+    }
+
+    ' ============================================================
+    ' OBSERVATION HANDLING (Description Layer)
+    ' ============================================================
+
+    class Observation {
+      +getId(): UUID
+      +getSourceUri(): String
+      +getSourceSystem(): String
+      +getObservationType(): ObservationType
+      +getCollectedAt(): DateTime
+      +getLlmSummary(): String
+      +getExtractedIntent(): Object
+      +getConfidence(): Decimal
+      +getRelatedPrimitives(): UUID[]
+    }
+
+    enum ObservationType {
+      USE_CASE
+      RISK_ANALYSIS
+      INCIDENT_REPORT
+      AUDIT_FINDING
+      PERFORMANCE_METRIC
+      DEPENDENCY_CHANGE
+      REGULATORY_UPDATE
+      ARCHITECTURE_DECISION
+      USER_FEEDBACK
+      OPERATIONAL_LOG
+    }
+
+    note top of Observation
+      **Description Plane Primitive**
+
+      Observations are sensed data from the State Plane,
+      stored as REFERENCES (URIs) with cached LLM interpretation.
+      Full content remains in source systems.
+
+      LLM interprets observations to extract:
+      - Intent: What the observation implies for system definition
+      - Affected primitives: Which existing primitives relate
+      - Confidence: How certain the interpretation is
+
+      **Four-Plane Model:**
+      - Definition Plane (CSDM): What SHOULD be
+      - Description Plane (Observations): What IS KNOWN
+      - Regulation Plane (Actuators): What ACTS to align
+      - State Plane (External): What IS
+    end note
+
+    ' ============================================================
+    ' PROPOSED PRIMITIVES
+    ' ============================================================
+
+    class ProposedPrimitive {
+      +getId(): UUID
+      +getPrimitiveType(): String
+      +getOperation(): PrimitiveOperation
+      +getProposedValues(): Object
+      +getRationale(): String
+      +getObservations(): Observation[]
+      +getConfidence(): Decimal
+      +getImpactAssessment(): ImpactAssessment
+      +getStatus(): ProposalStatus
+    }
+
+    enum PrimitiveOperation {
+      CREATE
+      DEPRECATE
+    }
+
+    enum ProposalStatus {
+      PROPOSED
+      UNDER_REVIEW
+      APPROVED
+      REJECTED
+      EXECUTED
+    }
+
+    class ImpactAssessment {
+      +getAffectedPrimitives(): UUID[]
+      +getCoherenceRisks(): String[]
+      +getBreakingChanges(): Boolean
+      +getEstimatedEffort(): String
+    }
+
+    note top of ProposedPrimitive
+      Primitives are IMMUTABLE once created.
+      "Modification" = DEPRECATE old + CREATE new.
+      This preserves full audit trail and enables rollback.
+    end note
+
+    ' ============================================================
+    ' EMERGENCE STRATEGIES
+    ' ============================================================
+
+    abstract class EmergenceStrategy {
+      +getName(): String
+      +getApplicableTriggerTypes(): TriggerType[]
+      +getTargetPrimitiveTypes(): String[]
+      +analyze(trigger, evidence): ProposedPrimitive[]
+    }
+
+    class ConstraintEmergenceStrategy {
+      +getPolicyTypes(): PolicyType[]
+    }
+    EmergenceStrategy <|-- ConstraintEmergenceStrategy
+
+    class StructuralEmergenceStrategy {
+      +getComponentTypes(): String[]
+    }
+    EmergenceStrategy <|-- StructuralEmergenceStrategy
+
+    class BehavioralEmergenceStrategy {
+      +getMechanismTypes(): String[]
+    }
+    EmergenceStrategy <|-- BehavioralEmergenceStrategy
+
+    note top of EmergenceStrategy
+      Strategies encapsulate domain-specific emergence logic.
+
+      Each strategy:
+      - Analyzes observations for its domain
+      - Proposes primitives with rationale
+      - Assesses impact on existing definitions
+
+      Strategies use LLM for:
+      - Observation interpretation
+      - Primitive synthesis
+      - Rationale generation
+    end note
+
+    ' ============================================================
+    ' EMERGENCE RELATIONSHIPS
+    ' ============================================================
+
+    EmergenceProcess "1" *--> "1" EmergenceTrigger : triggeredBy
+    EmergenceProcess "1" *--> "0..*" Observation : uses
+    EmergenceProcess "1" *--> "0..*" ProposedPrimitive : proposes
+    EmergenceProcess "1" o--> "0..1" EmergenceStrategy : usesStrategy
+    ProposedPrimitive "1" *--> "1" ImpactAssessment : has
+    ProposedPrimitive "1" o--> "0..*" Observation : justifiedBy
+  }
+
+  ' ============================================================
+  ' SYSTEMIC CONSTRAINT MANAGEMENT PACKAGE
+  ' ============================================================
+
+  package "Systemic Constraint Management" as ConstraintPackage {
+
+    note as ConstraintNote
+      **Purpose:**
+      Ensures coherence of Policies and BehavioralRules through:
+      - Incoherence detection (conflicts, orphans, cycles, drift)
+      - Resolution proposal (create, deprecate, adjust scope)
+      - Lifecycle management (proposal → publication → integration)
+      - Feedback processing (integration success/failure)
+
+      **Triggers Emergence when:**
+      - Resolution requires new constraint
+      - Resolution requires new structural primitive
+      - Detected gap requires policy/rule creation
+    end note
+
+    ' ============================================================
+    ' COHERENCE CHECK PROCESS
+    ' ============================================================
+
+    class CoherenceCheckProcess {
+      +getId(): UUID
+      +getStatus(): ProcessStatus
+      +getTrigger(): CoherenceTrigger
+      +getScope(): CoherenceScope
+      +getDetectedIncoherences(): Incoherence[]
+      +getStartedAt(): DateTime
+      +getCompletedAt(): DateTime
+    }
+
+    class CoherenceTrigger {
+      +getId(): UUID
+      +getType(): CoherenceTriggerType
+      +getAffectedPrimitives(): UUID[]
+      +getTimestamp(): DateTime
+    }
+
+    enum CoherenceTriggerType {
+      ON_DEMAND
+      ON_CHANGE
+      SCHEDULED
+      THRESHOLD
+      PRE_PUBLISH
+      INTEGRATION_FEEDBACK
+    }
+
+    class CoherenceScope {
+      +getSystems(): UUID[]
+      +getConstraintTypes(): ConstraintType[]
+      +getIncoherenceTypes(): IncoherenceType[]
+      +getDepth(): ScopeDepth
+    }
+
+    enum ConstraintType {
+      FUNCTIONAL_POLICY
+      VIABILITY_POLICY
+      STRUCTURAL_POLICY
+      BEHAVIORAL_RULE
+    }
+
+    enum ScopeDepth {
+      SINGLE_CONSTRAINT
+      SYSTEM_CONSTRAINTS
+      CROSS_SYSTEM
+      GLOBAL
+    }
+
+    ' ============================================================
+    ' INCOHERENCE DETECTION
+    ' ============================================================
+
+    class Incoherence {
+      +getId(): UUID
+      +getType(): IncoherenceType
+      +getSeverity(): Severity
+      +getInvolvedPrimitives(): UUID[]
+      +getDescription(): String
+      +getDetectionMethod(): DetectionMethod
+      +getDetectedAt(): DateTime
+      +getResolutionStatus(): ResolutionStatus
+    }
+
+    enum IncoherenceType {
+      LOGICAL_CONTRADICTION
+      SCOPE_CONFLICT
+      ORPHANED_CONSTRAINT
+      CIRCULAR_DEPENDENCY
+      STALE_REFERENCE
+      SEMANTIC_DRIFT
+      SCOPE_OVERLAP
+      MISSING_OPERATIONALIZATION
+      PRIORITY_CONFLICT
+      TEMPORAL_CONFLICT
+    }
+
+    enum Severity {
+      INFO
+      WARNING
+      ERROR
+      CRITICAL
+    }
+
+    enum DetectionMethod {
+      GRAPH_ANALYSIS
+      FORMAL_VERIFICATION
+      LLM_SEMANTIC_ANALYSIS
+      PATTERN_MATCHING
+      MANUAL_REVIEW
+    }
+
+    enum ResolutionStatus {
+      UNRESOLVED
+      RESOLUTION_PROPOSED
+      RESOLUTION_APPROVED
+      RESOLUTION_EXECUTING
+      RESOLVED
+      ACCEPTED_RISK
+    }
+
+    note top of IncoherenceType
+      **Incoherence Types:**
+
+      - LOGICAL_CONTRADICTION: Mutually exclusive conditions
+      - SCOPE_CONFLICT: Multiple constraints claim same scope
+      - ORPHANED_CONSTRAINT: Policy without operationalizing rule
+      - CIRCULAR_DEPENDENCY: A → B → C → A
+      - STALE_REFERENCE: References deleted primitive
+      - SEMANTIC_DRIFT: Intent no longer matches reality
+      - SCOPE_OVERLAP: Ambiguous authority boundaries
+      - MISSING_OPERATIONALIZATION: Policy not translated to rules
+      - PRIORITY_CONFLICT: Conflicting priorities
+      - TEMPORAL_CONFLICT: Timing/sequencing conflicts
+    end note
+
+    ' ============================================================
+    ' RESOLUTION PROCESS
+    ' ============================================================
+
+    class ResolutionProcess {
+      +getId(): UUID
+      +getStatus(): ProcessStatus
+      +getIncoherence(): Incoherence
+      +getProposedResolutions(): ProposedResolution[]
+      +getSelectedResolution(): ProposedResolution
+      +getApprovalStatus(): ApprovalStatus
+      +getApprovedBy(): User
+      +getEmergenceProcess(): EmergenceProcess
+    }
+
+    class ProposedResolution {
+      +getId(): UUID
+      +getStrategy(): ResolutionStrategy
+      +getActions(): ResolutionAction[]
+      +getRationale(): String
+      +getConfidence(): Decimal
+      +getImpactAssessment(): ImpactAssessment
+      +getProposedBy(): ProposalSource
+    }
+
+    enum ResolutionStrategy {
+      CREATE_CONSTRAINT
+      DEPRECATE_CONSTRAINT
+      ADJUST_SCOPE
+      ADJUST_PRIORITY
+      MERGE_CONSTRAINTS
+      SPLIT_CONSTRAINT
+      ADD_EXCEPTION
+      ACCEPT_RISK
+      ESCALATE
+    }
+
+    class ResolutionAction {
+      +getId(): UUID
+      +getType(): ActionType
+      +getTargetPrimitive(): UUID
+      +getChanges(): Object
+      +getOrder(): Integer
+    }
+
+    enum ActionType {
+      CREATE_PRIMITIVE
+      UPDATE_STATUS
+      DEPRECATE_PRIMITIVE
+      LINK_PRIMITIVES
+      UNLINK_PRIMITIVES
+      TRIGGER_EMERGENCE
+    }
+
+    enum ProposalSource {
+      LLM
+      USER
+      AUTOMATED_RULE
+      PATTERN_MATCH
+    }
+
+    enum ApprovalStatus {
+      PENDING
+      APPROVED
+      REJECTED
+      AUTO_APPROVED
+    }
+
+    ' ============================================================
+    ' INTEGRATION FEEDBACK
+    ' ============================================================
+
+    class IntegrationFeedback {
+      +getId(): UUID
+      +getConstraintId(): UUID
+      +getConstraintType(): ConstraintType
+      +getMechanismId(): UUID
+      +getMechanismType(): MechanismType
+      +getOutcome(): IntegrationOutcome
+      +getFailureReason(): String
+      +getIncoherenceDetails(): Incoherence
+      +getTimestamp(): DateTime
+    }
+
+    enum MechanismType {
+      GOVERNOR
+      SUPERVISOR
+      OPERATOR
+    }
+
+    enum IntegrationOutcome {
+      SUCCESS
+      FAILURE
+      PARTIAL
+    }
+
+    note top of IntegrationFeedback
+      Captures feedback when mechanisms attempt to integrate
+      constraints (Policies, BehavioralRules).
+
+      **Flow:**
+      1. Governor publishes Policy
+      2. Supervisor OPERATIONALIZES Policy → feedback
+      3. Operator REALIZES BehavioralRule → feedback
+      4. Feedback triggers coherence check if failure
+
+      **Terminology:**
+      - Governor OWNS Policy
+      - Supervisor OPERATIONALIZES Policy → BehavioralRule
+      - Supervisor OWNS BehavioralRule
+      - Operator REALIZES BehavioralRule (is defined by it)
+
+      This closes the feedback loop from execution back to
+      definition, enabling self-correction.
+    end note
+
+    ' ============================================================
+    ' FEASIBILITY ASSESSMENT (Pre-Integration)
+    ' ============================================================
+
+    class FeasibilityAssessment {
+      +getId(): UUID
+      +getConstraintId(): UUID
+      +getConstraintType(): ConstraintType
+      +getAssessorMechanism(): UUID
+      +getAssessorType(): AssessorType
+      +getOutcome(): FeasibilityOutcome
+      +getRationale(): String
+      +getBlockingIssues(): BlockingIssue[]
+      +getProposedAdjustments(): ProposedAdjustment[]
+      +getAssessedAt(): DateTime
+    }
+
+    enum AssessorType {
+      SUPERVISOR
+      OPERATOR
+    }
+
+    enum FeasibilityOutcome {
+      FEASIBLE
+      NOT_FEASIBLE
+      FEASIBLE_WITH_ADJUSTMENTS
+    }
+
+    class BlockingIssue {
+      +getId(): UUID
+      +getDescription(): String
+      +getIssueType(): BlockingIssueType
+      +getAffectedCapabilities(): String[]
+      +getSuggestedMitigation(): String
+    }
+
+    enum BlockingIssueType {
+      MISSING_CAPABILITY
+      RESOURCE_CONSTRAINT
+      DEPENDENCY_UNAVAILABLE
+      CONFLICTING_CONFIGURATION
+      SCOPE_TOO_BROAD
+      THRESHOLD_UNACHIEVABLE
+      TEMPORAL_IMPOSSIBILITY
+    }
+
+    class ProposedAdjustment {
+      +getId(): UUID
+      +getAdjustmentType(): AdjustmentType
+      +getTargetAttribute(): String
+      +getCurrentValue(): Object
+      +getProposedValue(): Object
+      +getJustification(): String
+    }
+
+    enum AdjustmentType {
+      NARROW_SCOPE
+      RELAX_THRESHOLD
+      ADD_EXCEPTION
+      ADD_DEPENDENCY
+      EXTEND_TIMELINE
+      REDUCE_COVERAGE
+    }
+
+    note top of FeasibilityAssessment
+      **Pre-Integration Viability Check**
+
+      Occurs BEFORE publication (between APPROVED and PUBLISHED).
+
+      **Purpose:**
+      Answers "CAN this constraint be applied/realized?"
+      Not "will it succeed?" but "is it technically feasible?"
+
+      **Role mapping & Governance Hierarchy:**
+
+      Governor OWNS Policy
+         │
+         ▼ Supervisor OPERATIONALIZES Policy
+      Supervisor OWNS BehavioralRule
+         │
+         ▼ Operator REALIZES BehavioralRule
+      Operator IS DEFINED BY BehavioralRule
+
+      **Feasibility semantics:**
+      - **Policy → Supervisor** assesses:
+        "Can I OPERATIONALIZE this Policy into BehavioralRules?"
+      - **BehavioralRule → Operator** assesses:
+        "Can I EXIST to realize this BehavioralRule?"
+
+      **Existential note for Operator:**
+      An Operator doesn't just "implement" a BehavioralRule—
+      it IS DEFINED BY it. Without the rule, the Operator has
+      no essence, no behavior, no existence. This is existential
+      feasibility, not merely functional feasibility.
+
+      **Requisite Variety Validation (Ashby):**
+      Feasibility Assessment is a VARIETY VALIDATOR:
+      "Does the mechanism have enough variety to realize this constraint?"
+
+      | Outcome | Variety Interpretation |
+      |---------|------------------------|
+      | FEASIBLE | Mechanism variety ≥ constraint variety |
+      | NOT_FEASIBLE + MISSING_CAPABILITY | Variety deficit detected |
+      | WITH_ADJUSTMENTS + ADD_DEPENDENCY | Proposes variety expansion |
+      | WITH_ADJUSTMENTS + NARROW_SCOPE | Reduces constraint to match variety |
+
+      **Workflow:**
+      1. Constraint reaches APPROVED state
+      2. System identifies relevant assessor(s)
+      3. Each assessor provides FeasibilityAssessment
+      4. If ALL feasible → proceed to PUBLISHED
+      5. If ANY not feasible → go to NOT_FEASIBLE or
+         FEASIBLE_WITH_ADJUSTMENTS states
+      6. Author may accept adjustments or revise
+
+      **Systemic semantics:**
+      This implements ANTICIPATORY feedback (predict before act)
+      vs. post-hoc IntegrationFeedback (observe after act).
+    end note
+
+    FeasibilityAssessment "1" *--> "0..*" BlockingIssue : reports
+    FeasibilityAssessment "1" *--> "0..*" ProposedAdjustment : suggests
+
+    ' ============================================================
+    ' CONSTRAINT MANAGEMENT RELATIONSHIPS
+    ' ============================================================
+
+    CoherenceCheckProcess "1" *--> "1" CoherenceTrigger : triggeredBy
+    CoherenceCheckProcess "1" *--> "1" CoherenceScope : scopes
+    CoherenceCheckProcess "1" *--> "0..*" Incoherence : detects
+
+    ResolutionProcess "1" o--> "1" Incoherence : resolves
+    ResolutionProcess "1" *--> "1..*" ProposedResolution : proposes
+    ResolutionProcess "1" o--> "0..1" ProposedResolution : selected
+    ResolutionProcess "1" o--> "0..1" EmergenceProcess : triggers
+
+    ProposedResolution "1" *--> "1..*" ResolutionAction : contains
+    ProposedResolution "1" *--> "1" ImpactAssessment : has
+
+    IntegrationFeedback "1" o--> "0..1" Incoherence : reveals
+  }
+
+  ' ============================================================
+  ' CROSS-PACKAGE RELATIONSHIPS
+  ' ============================================================
+
+  ' Constraint Management triggers Emergence for new primitives
+  ResolutionProcess "0..*" o--> "0..1" EmergenceProcess : triggersEmergence
+
+  ' Emergence may receive feedback about constraint coherence
+  EmergenceProcess "0..*" o--> "0..*" Incoherence : informedBy
+
+  ' ============================================================
+  ' CONFIGURATION MODEL
+  ' ============================================================
+
+  package "Process Configuration" as ConfigPackage {
+
+    class ProcessConfiguration {
+      +getId(): UUID
+      +getName(): String
+      +getApplicableProcesses(): String[]
+      +getAutomationMode(): AutomationMode
+      +getApprovalConfig(): ApprovalConfiguration
+      +getTriggerConfig(): TriggerConfiguration
+    }
+
+    enum AutomationMode {
+      ADVISORY
+      SEMI_AUTONOMOUS
+      FULLY_AUTONOMOUS
+    }
+
+    class ApprovalConfiguration {
+      +getRequiredApprovers(): User[]
+      +getMinApprovals(): Integer
+      +getAutoApproveConditions(): String
+      +getEscalationTimeout(): Duration
+      +getEscalationTarget(): User
+    }
+
+    class TriggerConfiguration {
+      +getEnabledTriggers(): TriggerType[]
+      +getSchedule(): String
+      +getThresholds(): Map<String, Number>
+      +getCooldownPeriod(): Duration
+    }
+
+    class ConfigurationScope {
+      +getScopeType(): ConfigScopeType
+      +getScopeId(): UUID
+    }
+
+    enum ConfigScopeType {
+      GLOBAL
+      PER_SYSTEM
+      PER_PRIMITIVE_TYPE
+      PER_CONSTRAINT_TYPE
+      PER_SEVERITY
+    }
+
+    note top of ProcessConfiguration
+      Configuration is hierarchical and overridable:
+
+      GLOBAL (default)
+        └─ PER_SYSTEM
+            └─ PER_PRIMITIVE_TYPE
+                └─ PER_CONSTRAINT_TYPE
+                    └─ PER_SEVERITY
+
+      More specific scopes override less specific ones.
+
+      Example configurations:
+      - "Production systems: all proposals need manual approval"
+      - "FunctionalPolicy: semi-autonomous creation"
+      - "CRITICAL severity: always escalate to architect"
+      - "ViabilityPolicy: require security team approval"
+    end note
+
+    ProcessConfiguration "1" *--> "1" ConfigurationScope : appliesTo
+    ProcessConfiguration "1" *--> "1" ApprovalConfiguration : approvalRules
+    ProcessConfiguration "1" *--> "1" TriggerConfiguration : triggerRules
+  }
+
+  ' ============================================================
+  ' INTEGRATION ARCHITECTURE
+  ' ============================================================
+
+  note as IntegrationNote
+    **Integration Architecture (Three-Layer Model):**
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │               DEFINITION LAYER (CSDM - PostgreSQL)          │
+    │  What SHOULD be: Systems, Policies, Rules, Structure        │
+    │  Source of truth for all SystemicPrimitives                 │
+    └─────────────────────────────────────────────────────────────┘
+                              ↑↓
+    ┌─────────────────────────────────────────────────────────────┐
+    │               DESCRIPTION LAYER (Observations)              │
+    │  What IS KNOWN: Sensed data with LLM interpretation         │
+    │  Storage: Document DB (URI-referenced, decoupled)           │
+    └─────────────────────────────────────────────────────────────┘
+                              ↑↓
+    ┌─────────────────────────────────────────────────────────────┐
+    │               STATE LAYER (External Systems)                │
+    │  What IS: Actual runtime state                              │
+    │  Sources: Logs, metrics, configs, CMDB, observability       │
+    └─────────────────────────────────────────────────────────────┘
+
+    **Processing Stack:**
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │                    LLM Orchestration Layer                  │
+    │  • Observation interpretation (unstructured → intent)       │
+    │  • Primitive proposal synthesis                             │
+    │  • Semantic conflict detection                              │
+    │  • Resolution suggestion with rationale                     │
+    │  ────────────────────────────────────────────────────────── │
+    │  Technology: LangChain / Semantic Kernel / custom           │
+    │  Models: GPT-4, Claude, or fine-tuned domain model          │
+    └─────────────────────────┬───────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │              SIE Process Engine (Core)                      │
+    │  • Process orchestration (Emergence, Coherence)             │
+    │  • State management (PostgreSQL)                            │
+    │  • CSDSL validation & compilation                           │
+    │  ────────────────────────────────────────────────────────── │
+    │  Technology: Custom (Kotlin/Java/Go)                        │
+    └─────────────────────────┬───────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │              Graph Analysis Layer (Neo4j)                   │
+    │  • Dependency traversal                                     │
+    │  • Cycle detection                                          │
+    │  • Impact analysis                                          │
+    │  • Causal chain exploration                                 │
+    │  ────────────────────────────────────────────────────────── │
+    │  Sync: CDC from PostgreSQL                                  │
+    └─────────────────────────┬───────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │              Event Bus (Kafka)                              │
+    │  • Process triggers                                         │
+    │  • Integration feedback                                     │
+    │  • Cross-process communication                              │
+    │  ────────────────────────────────────────────────────────── │
+    │  Topics: emergence.*, coherence.*, feedback.*               │
+    └─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │         Optional: CEL/OPA Runtime Evaluation                │
+    │  • Fast constraint evaluation against actual state          │
+    │  • Compiled from CSDSL expressions                          │
+    │  • Used for runtime conformance checking                    │
+    └─────────────────────────────────────────────────────────────┘
+  end note
+}
+
+@enduml

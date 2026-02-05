@@ -1,0 +1,380 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdsl/v1/Expression.json",
+  "title": "CSDSL Expression",
+  "description": "Root schema for all CSDSL AST nodes. Use discriminator 'type' to determine concrete expression class. Updated 2026-02-05.",
+  
+  "definitions": {
+    
+    "Expression": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "id": { "type": "string", "format": "uuid" },
+        "sourceText": { "type": "string" }
+      },
+      "discriminator": { "propertyName": "type" }
+    },
+
+    "LogicalExpression": {
+      "description": "Expressions that evaluate to boolean. Includes boolean-returning functions.",
+      "oneOf": [
+        { "$ref": "#/definitions/AndExpression" },
+        { "$ref": "#/definitions/OrExpression" },
+        { "$ref": "#/definitions/NotExpression" },
+        { "$ref": "#/definitions/ComparisonExpression" },
+        { "$ref": "#/definitions/FunctionCallExpression" }
+      ]
+    },
+
+    "ValueExpression": {
+      "description": "Expressions that evaluate to any JSON value.",
+      "oneOf": [
+        { "$ref": "#/definitions/ReferenceExpression" },
+        { "$ref": "#/definitions/LiteralExpression" },
+        { "$ref": "#/definitions/ArithmeticExpression" },
+        { "$ref": "#/definitions/FunctionCallExpression" }
+      ]
+    },
+
+    "ConstraintExpression": {
+      "oneOf": [
+        { "$ref": "#/definitions/ThresholdConstraint" },
+        { "$ref": "#/definitions/InvariantConstraint" },
+        { "$ref": "#/definitions/DependencyConstraint" },
+        { "$ref": "#/definitions/CardinalityConstraint" }
+      ]
+    },
+
+    "EvaluationExpression": {
+      "oneOf": [
+        { "$ref": "#/definitions/MetricEvaluation" },
+        { "$ref": "#/definitions/AssertionEvaluation" },
+        { "$ref": "#/definitions/ComplianceEvaluation" }
+      ]
+    },
+
+    "SourceMappingExpression": {
+      "description": "Expressions for constructing target objects from source events/states.",
+      "oneOf": [
+        { "$ref": "#/definitions/PropertyMapping" },
+        { "$ref": "#/definitions/ObjectMapping" }
+      ]
+    },
+
+    "AndExpression": {
+      "type": "object",
+      "description": "Logical AND: all operands must be true",
+      "required": ["type", "operands"],
+      "properties": {
+        "type": { "const": "AndExpression" },
+        "operands": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/LogicalExpression" }
+        }
+      }
+    },
+
+    "OrExpression": {
+      "type": "object",
+      "description": "Logical OR: at least one operand must be true",
+      "required": ["type", "operands"],
+      "properties": {
+        "type": { "const": "OrExpression" },
+        "operands": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/LogicalExpression" }
+        }
+      }
+    },
+
+    "NotExpression": {
+      "type": "object",
+      "description": "Logical NOT: inverts operand",
+      "required": ["type", "operand"],
+      "properties": {
+        "type": { "const": "NotExpression" },
+        "operand": { "$ref": "#/definitions/LogicalExpression" }
+      }
+    },
+
+    "ComparisonExpression": {
+      "type": "object",
+      "description": "Compares two values using an operator",
+      "required": ["type", "operator", "left", "right"],
+      "properties": {
+        "type": { "const": "ComparisonExpression" },
+        "operator": { "$ref": "#/definitions/ComparisonOperator" },
+        "left": { "$ref": "#/definitions/ValueExpression" },
+        "right": { "$ref": "#/definitions/ValueExpression" }
+      }
+    },
+
+    "ComparisonOperator": {
+      "type": "string",
+      "enum": [
+        "EQUALS",
+        "NOT_EQUALS",
+        "GREATER_THAN",
+        "LESS_THAN",
+        "GREATER_OR_EQUAL",
+        "LESS_OR_EQUAL",
+        "IN",
+        "NOT_IN",
+        "MATCHES",
+        "CONTAINS",
+        "STARTS_WITH",
+        "ENDS_WITH"
+      ]
+    },
+
+    "ReferenceExpression": {
+      "type": "object",
+      "description": "References a property in an archetype or context variable",
+      "required": ["type", "archetypeName", "propertyPath"],
+      "properties": {
+        "type": { "const": "ReferenceExpression" },
+        "archetypeName": { 
+          "type": "string",
+          "description": "Archetype name or predefined variable (trigger, event.<Name>)"
+        },
+        "propertyPath": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Path to property. Empty array for scalar archetypes."
+        }
+      }
+    },
+
+    "LiteralExpression": {
+      "type": "object",
+      "description": "A literal JSON value",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "const": "LiteralExpression" },
+        "value": {
+          "description": "Any valid JSON value (string, number, boolean, null, array, object)"
+        }
+      }
+    },
+
+    "ArithmeticExpression": {
+      "type": "object",
+      "description": "Arithmetic operation on two numeric values",
+      "required": ["type", "operator", "left", "right"],
+      "properties": {
+        "type": { "const": "ArithmeticExpression" },
+        "operator": { "$ref": "#/definitions/ArithmeticOperator" },
+        "left": { "$ref": "#/definitions/ValueExpression" },
+        "right": { "$ref": "#/definitions/ValueExpression" }
+      }
+    },
+
+    "ArithmeticOperator": {
+      "type": "string",
+      "enum": ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MODULO"]
+    },
+
+    "FunctionCallExpression": {
+      "type": "object",
+      "description": "Invokes a built-in function. Boolean-returning functions can be used in LogicalExpression contexts.",
+      "required": ["type", "functionName", "arguments"],
+      "properties": {
+        "type": { "const": "FunctionCallExpression" },
+        "functionName": {
+          "type": "string",
+          "description": "CEL-compatible function names plus CSDSL extensions",
+          "enum": [
+            "size", "has",
+            "contains", "startsWith", "endsWith", "matches",
+            "int", "uint", "double", "string", "bool",
+            "timestamp", "duration",
+            "min", "max", "sum", "avg",
+            "now", "exists", "coalesce",
+            "lowercase", "uppercase", "trim", "split",
+            "extract", "replace"
+          ]
+        },
+        "arguments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ValueExpression" }
+        }
+      }
+    },
+
+    "ThresholdConstraint": {
+      "type": "object",
+      "description": "Quantitative constraint on a measurable metric",
+      "required": ["type", "metric", "operator", "threshold"],
+      "properties": {
+        "type": { "const": "ThresholdConstraint" },
+        "metric": { "$ref": "#/definitions/ReferenceExpression" },
+        "operator": { "$ref": "#/definitions/ComparisonOperator" },
+        "threshold": { "$ref": "#/definitions/ValueExpression" },
+        "unit": { "type": "string", "description": "Display unit (ms, %, req/s)" },
+        "aggregation": { "$ref": "#/definitions/AggregationType" },
+        "timeWindow": { 
+          "type": "string", 
+          "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
+          "description": "ISO8601 duration (e.g., PT5M = 5 minutes)"
+        }
+      }
+    },
+
+    "AggregationType": {
+      "type": "string",
+      "enum": ["INSTANT", "AVG", "MIN", "MAX", "SUM", "COUNT", "P50", "P90", "P95", "P99"]
+    },
+
+    "InvariantConstraint": {
+      "type": "object",
+      "description": "Logical condition that must always hold",
+      "required": ["type", "condition"],
+      "properties": {
+        "type": { "const": "InvariantConstraint" },
+        "condition": { "$ref": "#/definitions/LogicalExpression" }
+      }
+    },
+
+    "DependencyConstraint": {
+      "type": "object",
+      "description": "Structural dependency between system primitives",
+      "required": ["type", "dependent", "dependency", "dependencyType"],
+      "properties": {
+        "type": { "const": "DependencyConstraint" },
+        "dependent": { 
+          "$ref": "#/definitions/SelectorExpression",
+          "description": "Selector for primitive(s) that have the dependency"
+        },
+        "dependency": { 
+          "$ref": "#/definitions/SelectorExpression",
+          "description": "Selector for primitive(s) being depended upon"
+        },
+        "dependencyType": { "$ref": "#/definitions/DependencyType" }
+      }
+    },
+
+    "DependencyType": {
+      "type": "string",
+      "enum": ["REQUIRES", "PROVIDES", "EXCLUDES", "PRECEDES", "FOLLOWS"],
+      "description": "REQUIRES=must exist, PROVIDES=offers capability, EXCLUDES=cannot coexist, PRECEDES/FOLLOWS=ordering"
+    },
+
+    "CardinalityConstraint": {
+      "type": "object",
+      "description": "Cardinality bounds on a collection or relationship",
+      "required": ["type", "target"],
+      "properties": {
+        "type": { "const": "CardinalityConstraint" },
+        "target": { 
+          "$ref": "#/definitions/SelectorExpression",
+          "description": "Selector identifying what to count"
+        },
+        "minimum": { "type": "integer", "minimum": 0 },
+        "maximum": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "StateObjectSelectorExpression": {
+      "type": "object",
+      "description": "Selects StateObjectArchetype instances matching criteria. Every SystemicPrimitive has a default StateObjectArchetype.",
+      "required": ["type", "stateObjectArchetype", "filter"],
+      "properties": {
+        "type": { "const": "StateObjectSelectorExpression" },
+        "stateObjectArchetype": {
+          "type": "string",
+          "description": "Name of the StateObjectArchetype to select from (e.g., Component, Interface, Order)"
+        },
+        "filter": {
+          "$ref": "#/definitions/LogicalExpression",
+          "description": "Required condition to match instances"
+        }
+      }
+    },
+
+    "MetricEvaluation": {
+      "type": "object",
+      "description": "Metric-based evaluation specification",
+      "required": ["type", "metric"],
+      "properties": {
+        "type": { "const": "MetricEvaluation" },
+        "metric": { "$ref": "#/definitions/ReferenceExpression" },
+        "aggregation": { "$ref": "#/definitions/AggregationType" },
+        "timeWindow": { 
+          "type": "string",
+          "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$"
+        }
+      }
+    },
+
+    "AssertionEvaluation": {
+      "type": "object",
+      "description": "Assertion-based evaluation",
+      "required": ["type", "assertion"],
+      "properties": {
+        "type": { "const": "AssertionEvaluation" },
+        "assertion": { "$ref": "#/definitions/LogicalExpression" }
+      }
+    },
+
+    "ComplianceEvaluation": {
+      "type": "object",
+      "description": "Links evaluation to external compliance standard. Governor defines WHAT, Sensor defines HOW.",
+      "required": ["type", "standard", "requirementRef"],
+      "properties": {
+        "type": { "const": "ComplianceEvaluation" },
+        "standard": { 
+          "type": "string",
+          "description": "Compliance standard name",
+          "examples": ["GDPR", "SOC2", "ISO27001", "HIPAA", "PCI-DSS"]
+        },
+        "requirementRef": { 
+          "type": "string",
+          "description": "Specific requirement/control reference (e.g., CC6.1, Art.32, A.12.1.1)"
+        }
+      }
+    },
+
+    "PropertyMapping": {
+      "type": "object",
+      "description": "Maps a single property in target object",
+      "required": ["type", "targetPath", "source"],
+      "properties": {
+        "type": { "const": "PropertyMapping" },
+        "targetPath": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "source": { "$ref": "#/definitions/ValueExpression" }
+      }
+    },
+
+    "ObjectMapping": {
+      "type": "object",
+      "description": "Complete explicit mapping for target object",
+      "required": ["type", "targetArchetype", "mappings"],
+      "properties": {
+        "type": { "const": "ObjectMapping" },
+        "targetArchetype": { "type": "string" },
+        "mappings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/PropertyMapping" },
+          "minItems": 1
+        }
+      }
+    }
+  },
+
+  "oneOf": [
+    { "$ref": "#/definitions/LogicalExpression" },
+    { "$ref": "#/definitions/ValueExpression" },
+    { "$ref": "#/definitions/ConstraintExpression" },
+    { "$ref": "#/definitions/EvaluationExpression" },
+    { "$ref": "#/definitions/SourceMappingExpression" },
+    { "$ref": "#/definitions/StateObjectSelectorExpression" }
+  ]
+}

@@ -1,0 +1,300 @@
+@startuml sie-feedback-loop-sequence-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #57606A
+  LifeLineBackgroundColor #F6F8FA
+  LifeLineBorderColor #57606A
+  ArrowColor #57606A
+  DividerBackgroundColor #F6F8FA
+}
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Constraint Integration Feedback Loop - v1
+
+' ============================================================
+' PARTICIPANTS
+' ============================================================
+
+box "Governance Layer" #F6F8FA
+  participant "Governor\nController" as Governor
+end box
+
+box "Supervision Layer" #F6F8FA
+  participant "Supervisor\nController" as Supervisor
+end box
+
+box "Operation Layer" #F6F8FA
+  participant "Operator\nController" as Operator
+end box
+
+participant "Event Bus\n(Kafka)" as Kafka
+participant "Coherence\nEngine" as Coherence
+participant "Main DB\n(PostgreSQL)" as Postgres
+
+' ============================================================
+' POLICY PUBLICATION FLOW
+' ============================================================
+
+== Policy Publication (Governor → Supervisor) ==
+
+Governor -> Postgres : createPolicy(DRAFT)
+Governor -> Governor : ... policy authoring workflow ...
+Governor -> Postgres : setStatus(PUBLISHED)
+
+Governor -> Kafka : publish(PolicyPublishedEvent)
+note right
+  PolicyPublishedEvent:
+  - policyId: UUID
+  - policyType: FUNCTIONAL | VIABILITY | STRUCTURAL
+  - constraint: CSDSL expression
+  - scope: affected primitives
+end note
+
+Kafka -> Supervisor : consume(PolicyPublishedEvent)
+
+' ============================================================
+' SUPERVISOR OPERATIONALIZATION
+' ============================================================
+
+== Supervisor Operationalization ==
+
+Supervisor -> Supervisor : analyzePolicy(policy)
+note right
+  Supervisor determines how to
+  translate policy constraint
+  into actionable BehavioralRules.
+end note
+
+alt Operationalization Successful
+  Supervisor -> Postgres : createBehavioralRule(DRAFT)
+  Supervisor -> Supervisor : ... rule definition ...
+  Supervisor -> Postgres : setStatus(PUBLISHED)
+  
+  Supervisor -> Kafka : publish(PolicyIntegrationFeedbackEvent)
+  note right
+    Feedback: SUCCESS
+    - policyId
+    - createdRuleIds: [...]
+    - mechanismType: SUPERVISOR
+  end note
+  
+  Kafka -> Governor : consume(feedback)
+  Governor -> Postgres : setPolicyStatus(INTEGRATED)
+  
+else Operationalization Failed
+  Supervisor -> Kafka : publish(PolicyIntegrationFeedbackEvent)
+  note right
+    Feedback: FAILURE
+    - policyId
+    - failureReason: "Cannot operationalize..."
+    - incoherenceDetails: {...}
+    - mechanismType: SUPERVISOR
+  end note
+  
+  Kafka -> Governor : consume(feedback)
+  Governor -> Postgres : setPolicyStatus(SUSPENDED)
+  
+  Kafka -> Coherence : consume(feedback)
+  note right
+    Coherence engine receives
+    failure feedback and
+    initiates resolution.
+  end note
+  Coherence -> Coherence : createResolutionProcess()
+end
+
+' ============================================================
+' RULE PUBLICATION FLOW
+' ============================================================
+
+== BehavioralRule Publication (Supervisor → Operator) ==
+
+Supervisor -> Kafka : publish(RulePublishedEvent)
+note right
+  RulePublishedEvent:
+  - ruleId: UUID
+  - applyingPolicies: [...]
+  - applicabilityConditions: CSDSL
+  - controlSequence: [...]
+end note
+
+Kafka -> Operator : consume(RulePublishedEvent)
+
+' ============================================================
+' OPERATOR INTEGRATION
+' ============================================================
+
+== Operator Integration ==
+
+Operator -> Operator : analyzeRule(rule)
+note right
+  Operator determines if rule
+  can be integrated into its
+  mechanism implementation.
+end note
+
+alt Integration Successful
+  Operator -> Operator : integrateRule(rule)
+  
+  Operator -> Kafka : publish(RuleIntegrationFeedbackEvent)
+  note right
+    Feedback: SUCCESS
+    - ruleId
+    - mechanismId
+    - mechanismType: OPERATOR
+  end note
+  
+  Kafka -> Supervisor : consume(feedback)
+  Supervisor -> Postgres : setRuleStatus(INTEGRATED)
+  
+else Integration Failed
+  Operator -> Kafka : publish(RuleIntegrationFeedbackEvent)
+  note right
+    Feedback: FAILURE
+    - ruleId
+    - mechanismId
+    - failureReason: "Conflicting with..."
+    - incoherenceDetails: {...}
+  end note
+  
+  Kafka -> Supervisor : consume(feedback)
+  Supervisor -> Postgres : setRuleStatus(SUSPENDED)
+  
+  ' Supervisor may escalate to Governor
+  alt Supervisor Cannot Resolve
+    Supervisor -> Kafka : publish(PolicyIntegrationFeedbackEvent)
+    note right
+      Escalation to Governor:
+      Rule failure implies
+      policy may need revision.
+    end note
+    Kafka -> Governor : consume(escalation)
+    Governor -> Postgres : setPolicyStatus(SUSPENDED)
+  end
+  
+  Kafka -> Coherence : consume(feedback)
+  Coherence -> Coherence : createResolutionProcess()
+end
+
+' ============================================================
+' COHERENCE-DRIVEN FEEDBACK
+' ============================================================
+
+== Coherence Resolution Feedback ==
+
+Coherence -> Coherence : analyzeFailure(feedback)
+Coherence -> Coherence : proposeResolution()
+
+alt Resolution: Adjust Rule
+  Coherence -> Kafka : publish(ResolutionProposedEvent)
+  note right
+    Propose: Adjust BehavioralRule
+    - Modify applicability conditions
+    - Adjust scope
+  end note
+  ' Human approval workflow...
+  Coherence -> Supervisor : notifyResolution()
+  
+else Resolution: Adjust Policy
+  Coherence -> Kafka : publish(ResolutionProposedEvent)
+  note right
+    Propose: Adjust Policy
+    - Modify constraint
+    - Narrow scope
+  end note
+  ' Human approval workflow...
+  Coherence -> Governor : notifyResolution()
+  
+else Resolution: Create New Primitive
+  Coherence -> Kafka : publish(EmergenceRequestEvent)
+  note right
+    Resolution requires new
+    Component, Interface, or
+    bridging Policy.
+  end note
+end
+
+' ============================================================
+' HORIZONTAL FEEDBACK (GOVERNOR ↔ GOVERNOR)
+' ============================================================
+
+== Horizontal Feedback: Cross-Domain Coherence ==
+
+note over Governor, Coherence
+  When policies from different domains conflict
+  (e.g., Functional vs Viability), horizontal
+  feedback coordinates resolution.
+end note
+
+Governor -> Kafka : publish(PolicyPublishedEvent)
+note right : FunctionalPolicy: "latency < 100ms"
+
+Coherence -> Coherence : detectCrossDomainConflict()
+note right
+  Detects conflict with existing
+  ViabilityPolicy: "encrypt all traffic"
+  (encryption adds latency overhead)
+end note
+
+Coherence -> Kafka : publish(CoherenceAssessmentEvent)
+note right
+  assessmentType: SCOPE_CONFLICT
+  involvedPrimitives: [funcPolicyId, viabPolicyId]
+  severity: WARNING
+end note
+
+Kafka -> Governor : consume(CoherenceAssessmentEvent)
+note right
+  Both Functional and Viability
+  Governors receive notification.
+  Coordination required.
+end note
+
+' ============================================================
+' RECURSIVE FEEDBACK (META-GOVERNANCE)
+' ============================================================
+
+== Recursive Feedback: Meta-Governance ==
+
+note over Governor, Coherence
+  Meta-policies govern how policies
+  are created and managed.
+  Example: "All ViabilityPolicies
+  require security team approval"
+end note
+
+Governor -> Postgres : createPolicy()
+Governor -> Postgres : setStatus(PROPOSED)
+
+Coherence -> Coherence : checkMetaPolicyCompliance()
+note right
+  Validates that proposed
+  policy follows meta-policies.
+end note
+
+alt Meta-Policy Violated
+  Coherence -> Kafka : publish(CoherenceAssessmentEvent)
+  note right
+    assessmentType: PRIORITY_CONFLICT
+    description: "Missing required approval"
+  end note
+  
+  Kafka -> Governor : consume(violation)
+  Governor -> Postgres : setStatus(REJECTED)
+  Governor -> Governor : escalateToMetaGovernor()
+end
+
+@enduml

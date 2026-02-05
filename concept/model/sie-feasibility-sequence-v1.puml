@@ -1,0 +1,292 @@
+@startuml sie-feasibility-sequence-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #57606A
+  LifeLineBackgroundColor #F6F8FA
+  LifeLineBorderColor #57606A
+  ArrowColor #57606A
+  DividerBackgroundColor #F6F8FA
+}
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Feasibility Assessment Sequence (Pre-Integration) - v1
+
+' ============================================================
+' PARTICIPANTS
+' ============================================================
+
+participant "Author\n(User/LLM)" as Author
+participant "Constraint\nLifecycle Manager" as Lifecycle
+participant "Feasibility\nAssessment Engine" as FeasibilityEngine
+participant "Supervisor\nMechanism" as Supervisor
+participant "Operator\nMechanism" as Operator
+participant "LLM\nOrchestrator" as LLM
+participant "Main DB\n(PostgreSQL)" as Postgres
+participant "Event Bus\n(Kafka)" as Kafka
+
+' ============================================================
+' CONTEXT NOTE
+' ============================================================
+
+note over Author, Kafka
+  **Pre-Integration Feasibility Assessment**
+
+  This sequence occurs AFTER approval but BEFORE publication.
+  It answers: "CAN this constraint be applied/realized?"
+
+  **Governance Hierarchy:**
+  - Governor OWNS Policy
+  - Supervisor OPERATIONALIZES Policy → BehavioralRule
+  - Supervisor OWNS BehavioralRule
+  - Operator REALIZES BehavioralRule (is defined by it)
+
+  **Role Mapping:**
+  - Policy → assessed by Supervisor(s)
+  - BehavioralRule → assessed by Operator(s)
+
+  **Existential Note:**
+  For Operators, feasibility is existential: "Can I EXIST to realize this?"
+  Without the BehavioralRule, the Operator has no essence.
+end note
+
+' ============================================================
+' TRIGGER: CONSTRAINT APPROVED
+' ============================================================
+
+== Trigger: Constraint Approved ==
+
+Lifecycle -> Postgres : getConstraint(id)
+Postgres --> Lifecycle : Constraint(status=APPROVED)
+
+Lifecycle -> Lifecycle : transitionTo(FEASIBILITY_ASSESSMENT)
+Lifecycle -> Postgres : updateStatus(FEASIBILITY_ASSESSMENT)
+
+Lifecycle -> Kafka : publish(FeasibilityAssessmentRequestedEvent)
+note right
+  Event payload:
+  - constraintId
+  - constraintType: POLICY | BEHAVIORAL_RULE
+  - scope: affected systems/components
+end note
+
+' ============================================================
+' ASSESSOR IDENTIFICATION
+' ============================================================
+
+== Assessor Identification ==
+
+FeasibilityEngine -> Kafka : consume(FeasibilityAssessmentRequestedEvent)
+
+FeasibilityEngine -> Postgres : getConstraint(constraintId)
+Postgres --> FeasibilityEngine : Constraint
+
+alt Constraint is Policy
+  FeasibilityEngine -> Postgres : findRelevantSupervisors(policyScope)
+  Postgres --> FeasibilityEngine : supervisorMechanisms[]
+  note right
+    Supervisors that would need to
+    APPLY this Policy into
+    BehavioralRules.
+  end note
+else Constraint is BehavioralRule
+  FeasibilityEngine -> Postgres : findRelevantOperators(ruleScope)
+  Postgres --> FeasibilityEngine : operatorMechanisms[]
+  note right
+    Operators that would be
+    DEFINED BY this BehavioralRule
+    (existential relationship).
+  end note
+end
+
+' ============================================================
+' FEASIBILITY ASSESSMENT (PARALLEL FOR EACH ASSESSOR)
+' ============================================================
+
+== Feasibility Assessment (per assessor) ==
+
+loop for each assessorMechanism
+  FeasibilityEngine -> LLM : assessFeasibility(constraint, assessorMechanism)
+  activate LLM
+  
+  note right of LLM
+    LLM analyzes:
+    1. Constraint requirements vs mechanism capabilities
+    2. Resource/dependency availability
+    3. Scope compatibility
+    4. Threshold achievability
+    5. Temporal feasibility
+  end note
+  
+  alt Assessing Policy (Supervisor)
+    LLM -> LLM : canApply(policy)
+    note right
+      Questions answered:
+      - Can I derive rules from this?
+      - Do I have authority over the scope?
+      - Are dependencies resolvable?
+      - Is the timeline achievable?
+    end note
+  else Assessing BehavioralRule (Operator)
+    LLM -> LLM : canRealize(rule)
+    note right
+      **Existential questions:**
+      - Can I EXIST to realize this?
+      - Are receptors/effectors available?
+      - Can thresholds be measured?
+      - Is iteration logic feasible?
+      
+      Without this rule, I have no
+      essence, behavior, or existence.
+    end note
+  end
+  
+  LLM --> FeasibilityEngine : FeasibilityAssessmentResult
+  deactivate LLM
+  
+  alt Assessment: FEASIBLE
+    FeasibilityEngine -> Postgres : saveFeasibilityAssessment(\n  outcome=FEASIBLE,\n  rationale)
+  else Assessment: NOT_FEASIBLE
+    FeasibilityEngine -> Postgres : saveFeasibilityAssessment(\n  outcome=NOT_FEASIBLE,\n  blockingIssues[])
+  else Assessment: FEASIBLE_WITH_ADJUSTMENTS
+    FeasibilityEngine -> Postgres : saveFeasibilityAssessment(\n  outcome=FEASIBLE_WITH_ADJUSTMENTS,\n  proposedAdjustments[])
+  end
+end
+
+' ============================================================
+' AGGREGATE RESULTS
+' ============================================================
+
+== Aggregate Assessment Results ==
+
+FeasibilityEngine -> Postgres : getAllAssessments(constraintId)
+Postgres --> FeasibilityEngine : assessments[]
+
+FeasibilityEngine -> FeasibilityEngine : aggregateOutcome(assessments)
+
+alt ALL assessments == FEASIBLE
+  FeasibilityEngine -> Kafka : publish(FeasibilityConfirmedEvent)
+  FeasibilityEngine -> Lifecycle : transitionTo(FEASIBLE)
+  Lifecycle -> Postgres : updateStatus(FEASIBLE)
+  
+  note right
+    Constraint may now proceed
+    to PUBLISHED state.
+  end note
+  
+else ANY assessment == NOT_FEASIBLE
+  FeasibilityEngine -> Kafka : publish(FeasibilityDeniedEvent)
+  FeasibilityEngine -> Lifecycle : transitionTo(NOT_FEASIBLE)
+  Lifecycle -> Postgres : updateStatus(NOT_FEASIBLE)
+  
+  note right
+    Constraint blocked.
+    Author must revise or abandon.
+    BlockingIssues explain why.
+  end note
+  
+else ANY assessment == FEASIBLE_WITH_ADJUSTMENTS
+  FeasibilityEngine -> Kafka : publish(FeasibilityConditionalEvent)
+  FeasibilityEngine -> Lifecycle : transitionTo(FEASIBLE_WITH_ADJUSTMENTS)
+  Lifecycle -> Postgres : updateStatus(FEASIBLE_WITH_ADJUSTMENTS)
+  
+  note right
+    Constraint can proceed IF
+    author accepts adjustments.
+  end note
+end
+
+' ============================================================
+' AUTHOR RESPONSE (Conditional Case)
+' ============================================================
+
+== Author Response (FEASIBLE_WITH_ADJUSTMENTS) ==
+
+alt Status == FEASIBLE_WITH_ADJUSTMENTS
+  Lifecycle -> Author : notifyAdjustmentsProposed(proposedAdjustments)
+  
+  alt Author accepts adjustments
+    Author -> Lifecycle : acceptAdjustments(constraintId)
+    
+    Lifecycle -> Postgres : applyAdjustments(constraintId, adjustments)
+    note right
+      Since constraints are immutable,
+      this creates a NEW version with
+      adjustments applied, deprecating
+      the original.
+    end note
+    
+    Lifecycle -> Lifecycle : transitionTo(PUBLISHED)
+    Lifecycle -> Postgres : updateStatus(PUBLISHED)
+    Lifecycle -> Kafka : publish(ConstraintPublishedEvent)
+    
+  else Author rejects adjustments
+    Author -> Lifecycle : revise(constraintId)
+    
+    Lifecycle -> Lifecycle : transitionTo(DRAFT)
+    note right
+      Creates new DRAFT copy.
+      Original stays in
+      FEASIBLE_WITH_ADJUSTMENTS
+      (eventually abandoned/deprecated).
+    end note
+    
+    Lifecycle -> Postgres : createDraftCopy(constraintId)
+    Lifecycle -> Kafka : publish(ConstraintRevisedEvent)
+  end
+end
+
+' ============================================================
+' PUBLICATION (Feasible Case)
+' ============================================================
+
+== Publication (FEASIBLE) ==
+
+alt Status == FEASIBLE
+  Author -> Lifecycle : publish(constraintId)
+  
+  Lifecycle -> Lifecycle : transitionTo(PUBLISHED)
+  Lifecycle -> Postgres : updateStatus(PUBLISHED)
+  Lifecycle -> Kafka : publish(ConstraintPublishedEvent)
+  
+  note right
+    ConstraintPublishedEvent triggers:
+    - Supervisor to operationalize (Policy)
+    - Operator to implement (BehavioralRule)
+  end note
+end
+
+' ============================================================
+' SUMMARY NOTE
+' ============================================================
+
+note over Author, Kafka
+  **Feasibility Assessment Summary:**
+
+  1. **APPROVED** → **FEASIBILITY_ASSESSMENT** (auto-triggered)
+  2. Identify relevant assessors (Supervisors or Operators)
+  3. Each assessor provides assessment (FEASIBLE | NOT_FEASIBLE | WITH_ADJUSTMENTS)
+  4. Aggregate results determine next state:
+     - ALL FEASIBLE → **FEASIBLE** → can publish
+     - ANY NOT_FEASIBLE → **NOT_FEASIBLE** → must revise
+     - ANY WITH_ADJUSTMENTS → **FEASIBLE_WITH_ADJUSTMENTS** → author decides
+  5. Author action completes the transition to PUBLISHED or DRAFT
+
+  **Key Principle:**
+  Anticipatory feedback (assess BEFORE publish) prevents
+  wasted effort on constraints that cannot be operationalized.
+end note
+
+@enduml

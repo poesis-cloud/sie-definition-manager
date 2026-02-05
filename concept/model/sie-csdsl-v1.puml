@@ -1,5 +1,4 @@
-' Standalone diagram
-@startuml sie-dslm-v1
+@startuml sie-csdsl-v1
 
 ' ============================================================
 ' VISUAL THEME
@@ -8,340 +7,1436 @@ skinparam shadowing false
 skinparam linetype ortho
 skinparam roundcorner 12
 skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
 skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
 
 ' ============================================================
-' TODO:
-' - Define what types of operands are possible depending their operator types
-'   (>=, AND, etc.)
-' - Maybe explicitly type operands for operators to avoid invalid combinations?
-' - QueryNode
-' - LogicalOperatorNode, ComparisonOperatorNode, AssignmentOperatorNode
-' - Consider having ExpressionNode and StatementNode implement separate interfaces
-'   or get removed.
+' CSDSL v1 - Canonical Systemic Domain Specific Language
+'
+' CSDSL is a SEMANTIC LAYER ON TOP OF CEL (Google Common Expression
+' Language). It is NOT a replacement for CEL, but an extension that:
+'
+' 1. PRESERVES CEL syntax and semantics for core expressions
+' 2. EXTENDS CEL with Liskov-substitution-compliant additions:
+'    - Domain-specific constructs (ThresholdConstraint, StateObjectSelectorExpression)
+'    - Schema-bound references (validated against ArchetypeSchemas)
+'    - Systemic semantics (constraint types, evaluation criteria)
+'
+' This layered approach ensures:
+' - Core expressions transcompile 1:1 to CEL for runtime evaluation
+' - Extended constructs are validated by SIE, then decomposed to CEL
+' - Any valid CEL expression is valid CSDSL (but not vice versa)
+'
+' CSDSL is a pure EXPRESSION language. It contains no imperative
+' constructs (loops, conditionals, triggers). Flow control is
+' handled by CSDM primitives (BehavioralRule, Policy).
+'
+' CSDSL is NOT executable code - it's a structured AST that
+' SIE interprets for:
+' - Validation (type checking, schema conformance)
+' - Coherence analysis (detecting conflicts between expressions)
+' - LLM interpretation (extracting semantic intent)
+' - Transcompilation to CEL for runtime evaluation
+'
+' ============================================================
+' CONSTRUCT SOURCES
+' ============================================================
+' Core expressions:
+'   - LogicalExpression (And, Or, Not): CEL, standard logic
+'   - ComparisonExpression: CEL operators (==, !=, <, >, in, etc.)
+'   - ArithmeticExpression: CEL arithmetic (+, -, *, /, %)
+'   - ReferenceExpression: CEL dot notation, JSON Pointer
+'   - LiteralExpression: JSON values (RFC 8259)
+'   - FunctionCallExpression: CEL built-in functions
+'
+' Constraints:
+'   - ThresholdConstraint: Google SLO definitions, Prometheus alerting
+'   - InvariantConstraint: OCL invariants, design-by-contract
+'   - DependencyConstraint: Terraform resource graphs, K8s dependencies
+'   - CardinalityConstraint: UML multiplicity, database constraints
+'
+' Selectors:
+'   - StateObjectSelectorExpression: Selects StateObjectArchetype instances
+'       (used for both structural constraints AND actuation operations)
+'       Every SystemicPrimitive has a default StateObjectArchetype
+'
+' Evaluation:
+'   - MetricEvaluation: Prometheus, Datadog metrics
+'   - AssertionEvaluation: Unit testing assertions
+'   - ComplianceEvaluation: SOC2, GDPR control frameworks
+'
+' Mapping:
+'   - PropertyMapping: JSON transformation (jq, JSONata)
+'   - ObjectMapping: Event sourcing patterns
+'   (both under SourceMappingExpression)
+'
+' Removed constructs:
+'   - ConditionalExpression: Use Policy.applicabilityConditions
+'   - CompositeConstraint: Use Policy.alternatives at CSDM level
+'   - SpreadMapping: Source/target rarely same type (v1.1)
+'   - ComplianceEvaluation.automatedCheck: Governor defines WHAT,
+'     Sensor defines HOW (v1.1)
 ' ============================================================
 
-frame "CD - SIE (Systemic Intelligence Engine) - CSDSL (Canonical Systemic Domain Specific Language) - v1" {
+frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
+
+  note as CsdslOverview
+    **CSDSL v1 — A Semantic Layer on Top of CEL**
+
+    CSDSL is NOT a replacement for Google Common Expression Language (CEL).
+    It is a **Liskov-substitution-compliant extension layer** that:
+
+    - **PRESERVES** CEL syntax and semantics for core expressions
+    - **EXTENDS** CEL with domain-specific constructs validated by SIE
+    - **TRANSCOMPILES** to CEL for sub-millisecond runtime evaluation
+
+    **Layering Principle:**
+    ```
+    ┌─────────────────────────────────────────────────────────┐
+    │  CSDSL Extensions (Constraints, Selectors, Mappings)    │
+    │  Validated by SIE, decomposed to CEL                    │
+    ├─────────────────────────────────────────────────────────┤
+    │  CEL Core (Logical, Comparison, Arithmetic, Functions)  │
+    │  1:1 transcompilation, runtime evaluation               │
+    └─────────────────────────────────────────────────────────┘
+    ```
+
+    Any valid CEL expression is valid CSDSL. The reverse is not true:
+    CSDSL extensions (ThresholdConstraint, StateObjectSelectorExpression,
+    SourceMappingExpression, etc.) are SIE-specific constructs that CEL
+    does not understand directly.
+
+    **Design Principles:**
+
+    1. **Expression-centric**: No imperative statements (loop, if/else, on).
+       Flow control is captured in CSDM primitives (BehavioralRule).
+
+    2. **Pure expressions**: No side effects, no variable declarations.
+       Same inputs always produce same outputs.
+
+    3. **JSON-native types**: Values are JSON primitives (string, number,
+       boolean, null, array, object). Special formats (datetime, duration)
+       are strings with format specifiers.
+
+    4. **Schema-bound references**: References to EventArchetype and
+       StateObjectArchetype properties are validated against schemas.
+
+    5. **CEL-transcompilable**: Core expressions compile 1:1 to Google CEL
+       for runtime evaluation with sub-millisecond performance.
+
+    **JSON ↔ CEL Type Mapping:**
+
+    CSDSL uses JSON as its **wire format** (serialization/storage), while
+    CEL has its own type system for **runtime evaluation**. These are
+    distinct layers, not competing type systems.
+
+    At transcompilation time, SIE resolves CEL types from JSON values:
+
+    | JSON Type     | CEL Type(s)              | Resolution Strategy            |
+    |---------------|--------------------------|--------------------------------|
+    | string        | string, timestamp,       | Format detection: ISO8601      |
+    |               | duration                 | datetime → timestamp,          |
+    |               |                          | ISO8601 duration → duration    |
+    | number        | int, uint, double        | Context-aware: schema type     |
+    |               |                          | hint or comparison operand     |
+    | boolean       | bool                     | Direct mapping                 |
+    | null          | null_type                | Direct mapping                 |
+    | array         | list<T>                  | Element type inferred from     |
+    |               |                          | contents or schema             |
+    | object        | map<string,V> or         | Schema determines: map for     |
+    |               | message (protobuf)       | dynamic, message for typed     |
+
+    **Type Resolution Rules:**
+
+    1. **Schema-first**: If the reference target has a schema-defined type,
+       use that type (e.g., `Order.amount` schema says `number/double`).
+
+    2. **Context inference**: If comparing `Literal(100)` to a typed field,
+       coerce the literal to match (100 → int or double as needed).
+
+    3. **Format detection**: Strings matching ISO8601 patterns are parsed:
+       - `"2026-02-05T10:30:00Z"` → `timestamp`
+       - `"PT5M"` → `duration` (5 minutes)
+       - Other strings remain `string`
+
+    4. **Explicit casting**: When ambiguous, use FunctionCallExpression:
+       `{ "type": "FunctionCallExpression", "functionName": "double",
+         "arguments": [{ "type": "LiteralExpression", "value": 100 }] }`
+
+    This two-layer design ensures:
+    - JSON remains human-readable and schema-validatable
+    - CEL runtime gets properly typed values for evaluation
+    - No type annotations clutter the CSDSL AST
+
+    **Where CSDSL expressions appear in CSDM:**
+    - Policy.applicabilityConditions → LogicalExpression
+    - Policy.constraint → ConstraintExpression
+    - Policy.evaluationCriteria → EvaluationExpression
+    - BehavioralRule.applicabilityConditions → LogicalExpression
+    - BehavioralRule.iterationConditions → LogicalExpression
+    - BehavioralRuleControl.applicabilityConditions → LogicalExpression
+    - BehavioralRuleControl.iterationConditions → LogicalExpression
+    - BehavioralRuleControl.effectorEventSourceMapping → SourceMappingExpression
+    - CreationActuationBehavioralRuleControl.stateObjectSourceMapping → SourceMappingExpression
+    - ModificationActuationBehavioralRuleControl.stateObjectSourceMapping → SourceMappingExpression
+    - ModificationActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
+    - DeletionActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
+    - AcquisitionActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
+
+    **Parser Architecture:**
+    The CSDManager backend owns the CSDSL parser. UI delegates parsing
+    via API: POST /api/csdsl/parse → returns AST or syntax errors.
+    This ensures single source of truth for grammar and validation.
+  end note
 
   ' ============================================================
-  ' AST NODES
+  ' AST ROOT
   ' ============================================================
 
-  abstract class AstNode
+  abstract class Expression {
+    +getId(): UUID
+    +getSourceText(): String
+  }
 
-  abstract class StatementNode
-  AstNode <|-- StatementNode : is
+  note top of Expression
+    Root of all CSDSL AST nodes.
 
-  abstract class ExpressionNode
-  AstNode <|-- ExpressionNode : is
+    **Attributes:**
+    - id: Unique identifier for this AST node (for traceability)
+    - sourceText: Original text that was parsed to create this node
+      (optional, for debugging/display)
+
+    All expressions are serialized as JSON objects with a "type"
+    discriminator field indicating the concrete expression class.
+  end note
 
   ' ============================================================
-  ' EXPRESSION NODES
+  ' LOGICAL EXPRESSIONS
+  ' (evaluate to boolean, used in conditions)
   ' ============================================================
 
-  abstract class OperandExpressionNode
-  ExpressionNode <|-- OperandExpressionNode : is
+  abstract class LogicalExpression
+  Expression <|-- LogicalExpression : is
 
-  abstract class LogicalOperatorNode
-  ExpressionNode <|-- LogicalOperatorNode : is
+  note top of LogicalExpression
+    Expressions that evaluate to a boolean value.
+
+    Used in:
+    - Policy.applicabilityConditions
+    - BehavioralRule.applicabilityConditions
+    - BehavioralRule.iterationConditions
+    - InvariantConstraint.condition
+    - AssertionEvaluation.assertion
+
+    LogicalExpressions are kept separate from ValueExpressions
+    for type safety and clearer LLM reasoning about conditions
+    vs computed values.
+  end note
 
   class AndExpression {
-    +getOperands(): LogicalOperatorNode[]
+    +getOperands(): LogicalExpression[]
   }
-  LogicalOperatorNode <|-- AndExpression : is
+  LogicalExpression <|-- AndExpression : is
+  AndExpression "1" *--> "2..*" LogicalExpression : operands
+
+  note top of AndExpression
+    Logical conjunction: all operands must be true.
+
+    **JSON:**
+    ```json
+    {
+      "type": "AndExpression",
+      "operands": [
+        { "type": "ComparisonExpression", ... },
+        { "type": "ComparisonExpression", ... }
+      ]
+    }
+    ```
+
+    **CEL equivalent:** `expr1 && expr2 && expr3`
+
+    Short-circuit evaluation: stops at first false operand.
+  end note
 
   class OrExpression {
-    +getOperands(): LogicalOperatorNode[]
+    +getOperands(): LogicalExpression[]
   }
-  LogicalOperatorNode <|-- OrExpression : is
+  LogicalExpression <|-- OrExpression : is
+  OrExpression "1" *--> "2..*" LogicalExpression : operands
+
+  note top of OrExpression
+    Logical disjunction: at least one operand must be true.
+
+    **JSON:**
+    ```json
+    {
+      "type": "OrExpression",
+      "operands": [
+        { "type": "ComparisonExpression", ... },
+        { "type": "ComparisonExpression", ... }
+      ]
+    }
+    ```
+
+    **CEL equivalent:** `expr1 || expr2 || expr3`
+
+    Short-circuit evaluation: stops at first true operand.
+  end note
 
   class NotExpression {
-    +getOperand(): LogicalOperatorNode
+    +getOperand(): LogicalExpression
   }
-  LogicalOperatorNode <|-- NotExpression : is
+  LogicalExpression <|-- NotExpression : is
+  NotExpression "1" *--> "1" LogicalExpression : operand
 
-  abstract class ComparisonOperatorExpression {
-    +getLeftOperand(): OperandExpressionNode
-    +getRightOperand(): OperandExpressionNode
-  }
-  LogicalOperatorNode <|-- ComparisonOperatorExpression : is
+  note top of NotExpression
+    Logical negation: inverts the operand's boolean value.
 
-  class EqualsExpression
-  ComparisonOperatorExpression <|-- EqualsExpression : is
-
-  class NotEqualsExpression
-  ComparisonOperatorExpression <|-- NotEqualsExpression : is
-
-  class GreaterThanExpression
-  ComparisonOperatorExpression <|-- GreaterThanExpression : is
-
-  class LessThanExpression
-  ComparisonOperatorExpression <|-- LessThanExpression : is
-
-  class GreaterOrEqualExpression
-  ComparisonOperatorExpression <|-- GreaterOrEqualExpression : is
-
-  class LessOrEqualExpression
-  ComparisonOperatorExpression <|-- LessOrEqualExpression : is
-
-  class InExpression
-  ComparisonOperatorExpression <|-- InExpression : is
-
-  class MatchesExpression
-  ComparisonOperatorExpression <|-- MatchesExpression : is
-
-  class VariableExpression {
-    +getName(): String
-  }
-  OperandExpressionNode <|-- VariableExpression : is
-
-  abstract class LiteralExpression {
-    +getValue(): String
-  }
-  OperandExpressionNode <|-- LiteralExpression : is
-
-  class StringLiteralExpression
-  LiteralExpression <|-- StringLiteralExpression : is
-
-  class NumberLiteralExpression
-  LiteralExpression <|-- NumberLiteralExpression : is
-
-  class BooleanLiteralExpression
-  LiteralExpression <|-- BooleanLiteralExpression : is
-
-  class NullLiteralExpression
-  LiteralExpression <|-- NullLiteralExpression : is
-
-  class ArrayLiteralExpression
-  LiteralExpression <|-- ArrayLiteralExpression : is
-
-  class ObjectLiteralExpression
-  LiteralExpression <|-- ObjectLiteralExpression : is
-
-  ' ============================================================
-  ' STATEMENT NODES
-  ' ============================================================
-
-  class BlockStatement {
-    +getStatements(): StatementNode[]
-  }
-  StatementNode <|-- BlockStatement : is
-
-  class IfStatement {
-    +getCondition(): LogicalOperatorNode
-    +getThen(): BlockStatement
-    +getElse(): BlockStatement
-  }
-  StatementNode <|-- IfStatement : is
-
-  class WhileStatement {
-    +getCondition(): LogicalOperatorNode
-    +getBody(): BlockStatement
-  }
-  StatementNode <|-- WhileStatement : is
-
-  class ForeachStatement {
-    +getOperand(): OperandExpressionNode
-    +getBody(): BlockStatement
-  }
-  StatementNode <|-- ForeachStatement : is
-
-  class BreakStatement {
-    +getParentNodeIncrement(): Int
-  }
-  StatementNode <|-- BreakStatement : is
-
-  class ReturnStatement
-  StatementNode <|-- ReturnStatement : is
-
-  abstract class AssignmentOperatorStatement {
-    +getSourceOperand(): OperandExpressionNode
-    +getTargetOperand(): VariableExpression
-  }
-  StatementNode <|-- AssignmentOperatorStatement : is
-
-  class SetAssignmentStatement
-  AssignmentOperatorStatement <|-- SetAssignmentStatement : is
-
-  class DeclareAssignmentStatement
-  AssignmentOperatorStatement <|-- DeclareAssignmentStatement : is
-
-  class AddAssignmentStatement
-  AssignmentOperatorStatement <|-- AddAssignmentStatement : is
-
-  class SubAssignmentStatement
-  AssignmentOperatorStatement <|-- SubAssignmentStatement : is
-
-  class MulAssignmentStatement
-  AssignmentOperatorStatement <|-- MulAssignmentStatement : is
-
-  class DivAssignmentStatement
-  AssignmentOperatorStatement <|-- DivAssignmentStatement : is
-
-  class AppendAssignmentStatement
-  AssignmentOperatorStatement <|-- AppendAssignmentStatement : is
-
-  class MergeAssignmentStatement
-  AssignmentOperatorStatement <|-- MergeAssignmentStatement : is
-
-  ' Checkpoint
-  class InstanceSelectionExpression {
-    +getArchetypeName(): StringLiteralExpression
-    +getCriteria(): LogicalOperatorNode
-  }
-  StatementNode <|-- InstanceSelectionExpression : is
-
-  class ReceptorExpression {
-    +getReceptor(): Receptor
-    +getBody(): BlockStatement
-  }
-  StatementNode <|-- ReceptorExpression : is
-
-  abstract class EffectorExpression
-  StatementNode <|-- EffectorExpression : is
-
-  abstract class ActuateEffectorExpression
-  EffectorExpression <|-- ActuateEffectorExpression : is
-
-  class GetEffectorExpression {
-    +getInstanceSelector(): InstanceSelectionExpression
-    +getEventName(): StringLiteralExpression
-  }
-  ActuateEffectorExpression <|-- SelectEffectorExpression : is
-
-  class CreateEffectorExpression {
-    +getDefinitionArchetypeName(): StringLiteralExpression
-    +getExecutionInstanceName(): StringLiteralExpression
-    +getPropertyNameValueMap(): ObjectLiteralExpression
-    +getEventName(): StringLiteralExpression
-  }
-  ActuateEffectorExpression <|-- CreateEffectorExpression : is
-
-  class UpdateEffectorExpression {
-    +getInstanceSelector(): InstanceSelectionExpression
-    +getPropertyNameValueMap(): ObjectLiteralExpression
-    +getEventName(): StringLiteralExpression
-  }
-  ActuateEffectorExpression <|-- UpdateEffectorExpression : is
-
-  class DeleteEffectorExpression {
-    +getInstanceSelector(): InstanceSelectionExpression
-    +getEventName(): StringLiteralExpression
-  }
-  ActuateEffectorExpression <|-- DeleteEffectorExpression : is
-
-  class ControlEffectorExpression {
-  }
-  EffectorExpression <|-- ControlEffectorExpression : is
-
-  class FeedbackEffectorExpression {
-  }
-  EffectorExpression <|-- FeedbackEffectorExpression : is
-
-  ' ============================================================
-  ' RELATIONSHIPS
-  ' ============================================================
-
-  ' Expression dependency tracking (optional, for impact analysis)
-  ReferenceExpression "0..*" o--> "0..1" SystemicPrimitiveTypePropertyPathReference : resolvedReference
-
-  BlockStatement "1" *--> "0..*" StatementNode : has
-
-  ReferenceExpression "1" *--> "1" Reference : refersTo
-
-  AndExpression "1" *--> "1..*" BooleanExpressionNode : has
-  OrExpression "1" *--> "1..*" BooleanExpressionNode : has
-  NotExpression "1" *--> "1" BooleanExpressionNode : has
-  ComparisonOperatorExpression "1" *--> "1" OperandExpressionNode : hasLeft
-  ComparisonOperatorExpression "1" *--> "1" OperandExpressionNode : hasRight
-
-  CrudStatement "1" *--> "1" LiteralExpression : hasArchetypeName
-
-  CreateInstanceStatement "1" *--> "1" LiteralExpression : hasValue
-  CreateInstanceStatement "1" o--> "1" VariableExpression : storesResultIn
-
-  GetInstanceStatement "1" *--> "1" LiteralExpression : hasInstanceId
-  GetInstanceStatement "1" o--> "1" VariableExpression : storesResultIn
-
-  UpdateInstanceStatement "1" *--> "1" LiteralExpression : hasValue
-  UpdateInstanceStatement "1" o--> "1" VariableExpression : storesResultIn
-
-  DeleteInstanceStatement "1" *--> "1" LiteralExpression : hasInstanceId
-
-  IfStatement "1" *--> "1" BooleanExpressionNode : hasCondition
-  IfStatement "1" *--> "1" BlockStatement : hasThen
-  IfStatement "1" *--> "0..1" BlockStatement : hasElse
-  LoopStatement "1" *--> "1" BooleanExpressionNode : hasCondition
-  LoopStatement "1" *--> "1" BlockStatement : hasBody
-
-  AssignmentOperatorStatement "1" *--> "1" AssignableReference : hasLeft
-  AssignmentOperatorStatement "1" *--> "1" OperandExpressionNode : hasRight
-
-  ReceptorExpression "1" o--> "1" Receptor : has
-  ReceptorExpression "1" *--> "1" BlockStatement : hasBody
-  EffectorExpression "1" o--> "1" Effector : has
-
-  SystemicPrimitiveInternalStateChangeEffectorExpression "1" o--> "1" Effector : has
-  SystemicPrimitiveInternalStateChangeEffectorExpression "1" *--> "1" AssignmentOperatorStatement : hasAssignment
-
-  Effector "1" *--> "1" EffectorOperation : performs
-
-  note as SieDslDoc
-    **SIE DSL (descriptive, not executable):**
-
-    - This diagram models the DSL *structures* (AST + operations), not runtime behavior.
-    - All operand values are JSON-typed; their literal syntax is JSON.
-    - JSON literals are carried as strings in LiteralExpression.getValueJson() via `json(<json>)`.
-    - Parsing/typing/validation is intentionally out of scope here.
-
-    **Example Syntax (illustrative, declarative, not executed):**
-
-    Grammar sketch:
-    - Receptor trigger: `on <EventType> { <stmt>* }`
-    - Conditional: `if (<bool-expr>) { <stmt>* } else { <stmt>* }`
-    - Loop: `loop (<bool-expr>) { <stmt>* }`  (expr is loop condition)
-    - Effector action: `emit <EventType> { <assignment> (';' <assignment>)* }`
-    - Assignment (reusable): `<left> <op> <right>`
-      - left: `<Type>.<path>` or `<localVar>`
-      - op: determined by the AssignmentOperatorStatement subtype (e.g., "=", ":=", "append")
-      - right: reference or `json(<json>)`
-    - Reference ops (CRUD):
-      - `create(<prototypeName>, <json>) -> <var>`
-      - `get(<prototypeName>, <instanceId>) -> <var>`
-      - `update(<prototypeName>, <json>) -> <var>`
-      - `delete(<prototypeName>, <instanceId>)`
-    - Expression leaves:
-      - JSON literal: `json(<json>)`
-      - Reference: `<Type>` / `<Type>.<path>` / `<name>`
-      - (Atomic operands are LiteralExpression and ReferenceExpression)
-
-    Complete example:
+    **JSON:**
+    ```json
+    {
+      "type": "NotExpression",
+      "operand": { "type": "ComparisonExpression", ... }
+    }
     ```
-    on ExternalEvent {
-      payload := json({"source":"gateway","severity":"high"});
 
-      if (System.status == json("active")) {
-        emit InternalEvent {
-          InternalEvent.payload = payload;
-          InternalEvent.payload.userId = ExternalEvent.userId;
-          InternalEvent.payload.tags append json(["sie","derived"]);
-        };
-      } else {
-        emit InternalEvent {
-          InternalEvent.payload = json({"source":"gateway","severity":"low"});
-        };
+    **CEL equivalent:** `!expr`
+  end note
+
+  class ComparisonExpression {
+    +getOperator(): ComparisonOperator
+    +getLeftOperand(): ValueExpression
+    +getRightOperand(): ValueExpression
+  }
+  LogicalExpression <|-- ComparisonExpression : is
+  ComparisonExpression "1" *--> "1" ValueExpression : left
+  ComparisonExpression "1" *--> "1" ValueExpression : right
+
+  note top of ComparisonExpression
+    Compares two values, returns boolean.
+
+    **JSON:**
+    ```json
+    {
+      "type": "ComparisonExpression",
+      "operator": "LESS_THAN",
+      "left": { "type": "ReferenceExpression", "archetypeName": "Service", "propertyPath": ["latency"] },
+      "right": { "type": "LiteralExpression", "value": 100 }
+    }
+    ```
+
+    **CEL equivalent:** `Service.latency < 100`
+
+    **Type compatibility:**
+    - EQUALS, NOT_EQUALS: any types (uses JSON equality)
+    - GREATER_*, LESS_*: numbers or strings (lexicographic)
+    - IN, NOT_IN: right operand must be array
+    - MATCHES: left=string, right=regex pattern string
+    - CONTAINS, STARTS_WITH, ENDS_WITH: both strings
+  end note
+
+  enum ComparisonOperator {
+    EQUALS
+    NOT_EQUALS
+    GREATER_THAN
+    LESS_THAN
+    GREATER_OR_EQUAL
+    LESS_OR_EQUAL
+    IN
+    NOT_IN
+    MATCHES
+    CONTAINS
+    STARTS_WITH
+    ENDS_WITH
+  }
+
+  note top of ComparisonOperator
+    **Operator semantics (sourced from CEL):**
+
+    | Operator | CEL | Description |
+    |----------|-----|-------------|
+    | EQUALS | == | Deep equality |
+    | NOT_EQUALS | != | Not equal |
+    | GREATER_THAN | > | Numeric/lexicographic |
+    | LESS_THAN | < | Numeric/lexicographic |
+    | GREATER_OR_EQUAL | >= | Numeric/lexicographic |
+    | LESS_OR_EQUAL | <= | Numeric/lexicographic |
+    | IN | in | Value in collection |
+    | NOT_IN | !(x in y) | Value not in collection |
+    | MATCHES | matches() | Regex match |
+    | CONTAINS | contains() | Substring check |
+    | STARTS_WITH | startsWith() | Prefix check |
+    | ENDS_WITH | endsWith() | Suffix check |
+  end note
+
+  ' ============================================================
+  ' VALUE EXPRESSIONS
+  ' (evaluate to any JSON value, used as operands)
+  ' ============================================================
+
+  abstract class ValueExpression
+  Expression <|-- ValueExpression : is
+
+  note top of ValueExpression
+    Expressions that evaluate to a JSON value (string, number,
+    boolean, null, array, or object).
+
+    Used as operands in comparisons and as sources in mappings.
+
+    ValueExpressions are distinct from LogicalExpressions for
+    type safety, even though boolean is a JSON value type.
+  end note
+
+  class ReferenceExpression {
+    +getArchetypeName(): String
+    +getPropertyPath(): String[]
+  }
+  ValueExpression <|-- ReferenceExpression : is
+
+  note top of ReferenceExpression
+    References a property in an EventArchetype, StateObjectArchetype,
+    or a predefined context variable.
+
+    **Attributes:**
+    - archetypeName: The archetype or context to reference
+    - propertyPath: Path to the property (empty for scalar archetypes)
+
+    **JSON examples:**
+    ```json
+    // Reference event property
+    { "type": "ReferenceExpression",
+      "archetypeName": "OrderCreated",
+      "propertyPath": ["payload", "orderId"] }
+
+    // Reference scalar archetype (empty path)
+    { "type": "ReferenceExpression",
+      "archetypeName": "CounterValue",
+      "propertyPath": [] }
+
+    // Reference triggering event
+    { "type": "ReferenceExpression",
+      "archetypeName": "trigger",
+      "propertyPath": ["severity"] }
+    ```
+
+    **CSDSL syntax:**
+    - `OrderCreated.payload.orderId`
+    - `CounterValue`
+    - `trigger.severity`
+
+    **CEL equivalent:** Same dot notation.
+
+    **Validation:**
+    - archetypeName must match a defined archetype or predefined variable
+    - propertyPath must exist in the archetype's schema
+    - For scalar archetypes, propertyPath must be empty
+  end note
+
+  class LiteralExpression {
+    +getValue(): JSONValue
+  }
+  ValueExpression <|-- LiteralExpression : is
+
+  note top of LiteralExpression
+    A literal JSON value embedded in the expression.
+
+    **Attributes:**
+    - value: Any valid JSON value (string, number, boolean, null,
+      array, or object)
+
+    **JSON examples:**
+    ```json
+    // Number
+    { "type": "LiteralExpression", "value": 42 }
+
+    // String
+    { "type": "LiteralExpression", "value": "active" }
+
+    // Boolean
+    { "type": "LiteralExpression", "value": true }
+
+    // Null
+    { "type": "LiteralExpression", "value": null }
+
+    // Array
+    { "type": "LiteralExpression", "value": ["a", "b", "c"] }
+
+    // Object
+    { "type": "LiteralExpression", "value": {"key": "value"} }
+    ```
+
+    **JSON ↔ CEL Type Mapping:**
+
+    JSON is the **wire format** (storage/serialization). CEL types are
+    resolved at **transcompilation time** for runtime evaluation:
+
+    | JSON Value        | CEL Type        | Notes                         |
+    |-------------------|-----------------|-------------------------------|
+    | 42                | int             | Integers map to CEL int       |
+    | 3.14              | double          | Decimals map to CEL double    |
+    | "active"          | string          | Plain strings                 |
+    | "2026-02-05T..."  | timestamp       | ISO8601 datetime detected     |
+    | "PT5M"            | duration        | ISO8601 duration detected     |
+    | true / false      | bool            | Direct mapping                |
+    | null              | null_type       | Direct mapping                |
+    | [...]             | list<T>         | Element type inferred         |
+    | {...}             | map<string,V>   | Or protobuf message if typed  |
+
+    **Type Resolution:**
+    1. If compared to a schema-typed field, coerce to match
+    2. If format matches ISO8601, parse as timestamp/duration
+    3. Otherwise, use intrinsic JSON type mapping
+
+    **Explicit Casting (when needed):**
+    Use FunctionCallExpression for ambiguous cases:
+    ```json
+    { "type": "FunctionCallExpression",
+      "functionName": "double",
+      "arguments": [{ "type": "LiteralExpression", "value": 100 }] }
+    ```
+
+    No separate `dataType` field is needed—the two-layer design keeps
+    JSON human-readable while CEL gets proper runtime types.
+  end note
+
+  class ArithmeticExpression {
+    +getOperator(): ArithmeticOperator
+    +getLeftOperand(): ValueExpression
+    +getRightOperand(): ValueExpression
+  }
+  ValueExpression <|-- ArithmeticExpression : is
+  ArithmeticExpression "1" *--> "1" ValueExpression : left
+  ArithmeticExpression "1" *--> "1" ValueExpression : right
+
+  note top of ArithmeticExpression
+    Arithmetic operation on two numeric values.
+
+    **JSON:**
+    ```json
+    {
+      "type": "ArithmeticExpression",
+      "operator": "MULTIPLY",
+      "left": { "type": "ReferenceExpression", "archetypeName": "Service", "propertyPath": ["maxCapacity"] },
+      "right": { "type": "LiteralExpression", "value": 0.8 }
+    }
+    ```
+
+    **CSDSL syntax:** `Service.maxCapacity * 0.8`
+
+    **CEL equivalent:** Same syntax.
+
+    **Use cases:**
+    - Dynamic thresholds: `Service.load < Service.maxCapacity * 0.8`
+    - Computed values in mappings: `event.quantity * event.unitPrice`
+
+    Both operands must evaluate to numbers. Returns number.
+  end note
+
+  enum ArithmeticOperator {
+    ADD
+    SUBTRACT
+    MULTIPLY
+    DIVIDE
+    MODULO
+  }
+
+  note top of ArithmeticOperator
+    **Operator semantics (standard arithmetic):**
+
+    | Operator | Symbol | CEL |
+    |----------|--------|-----|
+    | ADD | + | + |
+    | SUBTRACT | - | - |
+    | MULTIPLY | * | * |
+    | DIVIDE | / | / |
+    | MODULO | % | % |
+
+    Division by zero returns error (not infinity).
+  end note
+
+  class FunctionCallExpression {
+    +getFunctionName(): String
+    +getArguments(): ValueExpression[]
+  }
+  ValueExpression <|-- FunctionCallExpression : is
+  FunctionCallExpression "1" *--> "0..*" ValueExpression : arguments
+
+  note top of FunctionCallExpression
+    Invokes a built-in function with arguments.
+
+    **JSON:**
+    ```json
+    {
+      "type": "FunctionCallExpression",
+      "functionName": "size",
+      "arguments": [
+        { "type": "ReferenceExpression", "archetypeName": "Order", "propertyPath": ["items"] }
+      ]
+    }
+    ```
+
+    **CSDSL syntax:** `size(Order.items)`
+
+    **Built-in functions (CEL-compatible names):**
+
+    *Collection functions (CEL):*
+    - `size(list|map|string)` → int
+    - `has(map, key)` → bool (key exists in map)
+
+    *String functions (CEL):*
+    - `size(string)` → int (length)
+    - `contains(string, substring)` → bool
+    - `startsWith(string, prefix)` → bool
+    - `endsWith(string, suffix)` → bool
+    - `matches(string, regex)` → bool (RE2 regex)
+
+    *Type conversion (CEL):*
+    - `int(value)` → int
+    - `uint(value)` → uint
+    - `double(value)` → double
+    - `string(value)` → string
+    - `bool(value)` → bool
+
+    *Temporal (CEL):*
+    - `timestamp(string)` → timestamp
+    - `duration(string)` → duration
+
+    *Aggregation (CSDSL extension):*
+    - `min(list)` or `min(a, b, ...)` → number
+    - `max(list)` or `max(a, b, ...)` → number
+    - `sum(list)` → number
+    - `avg(list)` → number
+
+    *CSDSL extensions (not in CEL):*
+    - `now()` → timestamp (current time)
+    - `exists(reference)` → bool (property exists and not null)
+    - `coalesce(a, b, ...)` → first non-null value
+    - `lowercase(string)` → string
+    - `uppercase(string)` → string
+    - `trim(string)` → string
+    - `split(string, separator)` → list
+    - `extract(string, regex)` → string (first capture group)
+    - `replace(string, regex, replacement)` → string
+
+    **Boolean-returning functions:**
+    Functions like `exists()`, `has()`, `contains()`, `matches()` return
+    boolean and can be used directly in LogicalExpression contexts:
+    ```json
+    { "type": "FunctionCallExpression", "functionName": "exists",
+      "arguments": [{ "archetypeName": "Service", "propertyPath": ["healthCheck"] }] }
+    ```
+    This is valid as a condition — no need to wrap in `== true`.
+
+    All functions are pure (no side effects).
+  end note
+
+  ' ============================================================
+  ' CONSTRAINT EXPRESSIONS
+  ' (for Policy.constraint)
+  ' ============================================================
+
+  abstract class ConstraintExpression
+  Expression <|-- ConstraintExpression : is
+
+  note top of ConstraintExpression
+    Structured constraint formats for Policy.constraint.
+
+    These provide semantic structure beyond raw logical expressions,
+    enabling:
+    - Domain-specific validation
+    - LLM understanding of constraint intent
+    - Coherence analysis (detecting conflicting constraints)
+
+    Sourced from: SLO definitions, Prometheus alerting rules,
+    Terraform dependencies, UML constraints.
+
+    **Note:** Composite constraints (AND/OR of constraints) are
+    handled at CSDM level via Policy.alternatives, not in CSDSL.
+  end note
+
+  class ThresholdConstraint {
+    +getMetric(): ReferenceExpression
+    +getOperator(): ComparisonOperator
+    +getThreshold(): ValueExpression
+    +getUnit(): String
+    +getAggregation(): AggregationType
+    +getTimeWindow(): String
+  }
+  ConstraintExpression <|-- ThresholdConstraint : is
+  ThresholdConstraint "1" *--> "1" ReferenceExpression : metric
+  ThresholdConstraint "1" *--> "1" ValueExpression : threshold
+
+  note top of ThresholdConstraint
+    Quantitative constraint on a measurable metric.
+
+    **Attributes:**
+    - metric: What to measure (reference to system property)
+    - operator: Comparison operator (usually LESS_THAN, GREATER_THAN)
+    - threshold: The limit value
+    - unit: Measurement unit for display (e.g., "ms", "%", "req/s")
+    - aggregation: How to aggregate over time window
+    - timeWindow: ISO8601 duration (e.g., "PT5M" = 5 minutes)
+
+    **JSON:**
+    ```json
+    {
+      "type": "ThresholdConstraint",
+      "metric": { "archetypeName": "Service", "propertyPath": ["latency", "p99"] },
+      "operator": "LESS_THAN",
+      "threshold": { "type": "LiteralExpression", "value": 100 },
+      "unit": "ms",
+      "aggregation": "P99",
+      "timeWindow": "PT5M"
+    }
+    ```
+
+    **Interpretation:** "Service.latency P99 must be < 100ms over 5-minute windows"
+
+    **Sourced from:** Google SLO definitions, Prometheus alerting rules.
+  end note
+
+  enum AggregationType {
+    INSTANT
+    AVG
+    MIN
+    MAX
+    SUM
+    COUNT
+    P50
+    P90
+    P95
+    P99
+  }
+
+  note top of AggregationType
+    Aggregation method for metrics over time windows.
+
+    | Type | Description |
+    |------|-------------|
+    | INSTANT | Point-in-time value (no aggregation) |
+    | AVG | Arithmetic mean |
+    | MIN | Minimum value |
+    | MAX | Maximum value |
+    | SUM | Sum of values |
+    | COUNT | Number of observations |
+    | P50 | 50th percentile (median) |
+    | P90 | 90th percentile |
+    | P95 | 95th percentile |
+    | P99 | 99th percentile |
+
+    Sourced from: Prometheus, Datadog, standard statistics.
+  end note
+
+  class InvariantConstraint {
+    +getCondition(): LogicalExpression
+  }
+  ConstraintExpression <|-- InvariantConstraint : is
+  InvariantConstraint "1" *--> "1" LogicalExpression : condition
+
+  note top of InvariantConstraint
+    Logical condition that must always hold.
+
+    **Attributes:**
+    - condition: The invariant expression (must evaluate to true)
+
+    **JSON:**
+    ```json
+    {
+      "type": "InvariantConstraint",
+      "condition": {
+        "type": "ComparisonExpression",
+        "operator": "GREATER_OR_EQUAL",
+        "left": { "archetypeName": "Component", "propertyPath": ["replicas"] },
+        "right": { "type": "LiteralExpression", "value": 2 }
       }
     }
     ```
 
-    Mapping hints:
-    - `on <EventType>` -> ReceptorExpression (selected by event type)
-    - `emit <EventType> { ... }` -> EffectorExpression + EffectorOperation(EmitEventEffectorOperation)
-    - `<localVar> <op> ...` and `<Type>.<path> <op> ...` -> AssignmentOperatorStatement (op = subtype)
-    - `<Type>.<path>` tokens -> SystemicPrimitiveTypePropertyPathReference
-    - `create/get/update/delete` -> CrudStatement (create/get/update store result in VariableExpression)
+    **Interpretation:** "Component.replicas must be >= 2"
+
+    **Note on "implies" / "when" patterns:**
+    Use Policy.applicabilityConditions instead:
+    - applicabilityConditions: `Component.criticality == "high"`
+    - constraint: `Component.replicas >= 2`
+
+    This achieves "when criticality is high, replicas >= 2" without
+    needing implication operators in the constraint itself.
+  end note
+
+  class DependencyConstraint {
+    +getDependent(): StateObjectSelectorExpression
+    +getDependency(): StateObjectSelectorExpression
+    +getDependencyType(): DependencyType
+  }
+  ConstraintExpression <|-- DependencyConstraint : is
+  DependencyConstraint "1" *--> "1" StateObjectSelectorExpression : dependent
+  DependencyConstraint "1" *--> "1" StateObjectSelectorExpression : dependency
+
+  note top of DependencyConstraint
+    Structural dependency between state objects representing systemic primitives.
+
+    **Attributes:**
+    - dependent: Selector for state object(s) that have the dependency
+    - dependency: Selector for state object(s) being depended upon
+    - dependencyType: Nature of the dependency
+
+    **JSON:**
+    ```json
+    {
+      "type": "DependencyConstraint",
+      "dependent": {
+        "type": "StateObjectSelectorExpression",
+        "stateObjectArchetype": "Component",
+        "filter": {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": { "archetypeName": "Component", "propertyPath": ["name"] },
+          "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
+        }
+      },
+      "dependency": {
+        "type": "StateObjectSelectorExpression",
+        "stateObjectArchetype": "Component",
+        "filter": {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": { "archetypeName": "Component", "propertyPath": ["name"] },
+          "right": { "type": "LiteralExpression", "value": "Database" }
+        }
+      },
+      "dependencyType": "REQUIRES"
+    }
+    ```
+
+    **Interpretation:** "PaymentProcessor component requires Database component"
+
+    **Note:** Selectors target StateObjectArchetype instances. Every SystemicPrimitive
+    has a default StateObjectArchetype with the same name (e.g., "Component",
+    "Interface"), so structural constraints select state objects representing
+    those primitives.
+
+    **Validation rules:**
+    - Both dependent and dependency must select state objects owned by:
+      - The same system as the policy defining this constraint, OR
+      - Eligible subsystems per SubsystemIntegrationGovernance
+    - stateObjectArchetype must be a valid StateObjectArchetype name
+    - Runtime validates that selected state objects actually exist
+
+    **Sourced from:** Kubernetes dependencies, Terraform resource graphs.
+  end note
+
+  enum DependencyType {
+    REQUIRES
+    PROVIDES
+    EXCLUDES
+    PRECEDES
+    FOLLOWS
+  }
+
+  note top of DependencyType
+    Nature of dependency relationship.
+
+    | Type | Meaning | Existence implication |
+    |------|---------|----------------------|
+    | REQUIRES | Dependent needs dependency to function | Dependency must exist |
+    | PROVIDES | Dependent offers capability to dependency | No existence constraint |
+    | EXCLUDES | Dependent and dependency cannot coexist | Dependency must NOT exist |
+    | PRECEDES | Dependent must be ready before dependency starts | Ordering constraint |
+    | FOLLOWS | Dependent must start after dependency is ready | Ordering constraint |
+
+    **Examples:**
+    - `WebApp REQUIRES Database` — Database must exist for WebApp
+    - `AuthService PROVIDES IdentityCapability` — AuthService offers identity
+    - `LegacyAuth EXCLUDES ModernAuth` — Cannot have both
+    - `Migration PRECEDES AppStart` — Migration runs first
+    - `Monitoring FOLLOWS AppStart` — Monitoring starts after app
+  end note
+
+  class CardinalityConstraint {
+    +getTarget(): StateObjectSelectorExpression
+    +getMinimum(): Integer
+    +getMaximum(): Integer
+  }
+  ConstraintExpression <|-- CardinalityConstraint : is
+  CardinalityConstraint "1" *--> "1" StateObjectSelectorExpression : target
+
+  note top of CardinalityConstraint
+    Cardinality bounds on state objects representing systemic primitives.
+
+    **Attributes:**
+    - target: Selector identifying which state objects to count
+    - minimum: Minimum count (null = no minimum)
+    - maximum: Maximum count (null = no maximum)
+
+    **JSON:**
+    ```json
+    {
+      "type": "CardinalityConstraint",
+      "target": {
+        "type": "StateObjectSelectorExpression",
+        "stateObjectArchetype": "Interface",
+        "filter": {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": { "archetypeName": "Interface", "propertyPath": ["ownerType"] },
+          "right": { "type": "LiteralExpression", "value": "Microservice" }
+        }
+      },
+      "minimum": 1,
+      "maximum": 5
+    }
+    ```
+
+    **Interpretation:** "Microservice systems must have 1-5 interfaces"
+
+    **Note:** Selectors target StateObjectArchetype instances. Every SystemicPrimitive
+    has a default StateObjectArchetype, so cardinality constraints count state
+    objects representing those primitives.
+
+    **Sourced from:** UML multiplicity, database constraints.
+  end note
+
+  ' ============================================================
+  ' STATE OBJECT SELECTOR EXPRESSION
+  ' (for constraints and actuation operations)
+  ' ============================================================
+
+  class StateObjectSelectorExpression {
+    +getStateObjectArchetype(): String
+    +getFilter(): LogicalExpression
+  }
+  Expression <|-- StateObjectSelectorExpression : is
+  StateObjectSelectorExpression "1" *--> "1" LogicalExpression : filter
+
+  note top of StateObjectSelectorExpression
+    Selects StateObjectArchetype instances matching criteria.
+
+    **Design Principle:** Users never select SystemicPrimitives directly.
+    Instead, they select state objects that represent those primitives.
+    Every SystemicPrimitive has a default StateObjectArchetype with the
+    same name (e.g., "Component", "Interface", "Mechanism").
+
+    **Used in CSDM:**
+    - DependencyConstraint.dependent/dependency: Structural dependencies
+    - CardinalityConstraint.target: Cardinality bounds
+    - ModificationActuationBehavioralRuleControl.stateObjectSelector
+    - DeletionActuationBehavioralRuleControl.stateObjectSelector
+    - AcquisitionActuationBehavioralRuleControl.stateObjectSelector
+
+    **Attributes:**
+    - stateObjectArchetype: Name of the StateObjectArchetype to select from
+    - filter: Logical condition to match instances (required)
+
+    **JSON examples:**
+    ```json
+    // Select component by name (for structural constraints)
+    {
+      "type": "StateObjectSelectorExpression",
+      "stateObjectArchetype": "Component",
+      "filter": {
+        "type": "ComparisonExpression",
+        "operator": "EQUALS",
+        "left": { "archetypeName": "Component", "propertyPath": ["name"] },
+        "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
+      }
+    }
+
+    // Select order by ID (for actuation)
+    {
+      "type": "StateObjectSelectorExpression",
+      "stateObjectArchetype": "Order",
+      "filter": {
+        "type": "ComparisonExpression",
+        "operator": "EQUALS",
+        "left": { "archetypeName": "Order", "propertyPath": ["id"] },
+        "right": { "archetypeName": "trigger", "propertyPath": ["orderId"] }
+      }
+    }
+
+    // Select all pending orders for a customer (complex filter)
+    {
+      "type": "StateObjectSelectorExpression",
+      "stateObjectArchetype": "Order",
+      "filter": {
+        "type": "AndExpression",
+        "operands": [
+          {
+            "type": "ComparisonExpression",
+            "operator": "EQUALS",
+            "left": { "archetypeName": "Order", "propertyPath": ["customerId"] },
+            "right": { "archetypeName": "trigger", "propertyPath": ["customerId"] }
+          },
+          {
+            "type": "ComparisonExpression",
+            "operator": "EQUALS",
+            "left": { "archetypeName": "Order", "propertyPath": ["status"] },
+            "right": { "type": "LiteralExpression", "value": "pending" }
+          }
+        ]
+      }
+    }
+    ```
+
+    **Validation:**
+    - stateObjectArchetype must be a valid StateObjectArchetype name
+    - filter must be a LogicalExpression (required, not optional)
+    - Properties referenced in filter must exist in the archetype's schema
+
+    **Why filter is required:**
+    Operations must target specific instances. An empty filter would affect
+    all instances, which is dangerous. For bulk operations, use explicit
+    "all" patterns like: filter: { type: "LiteralExpression", value: true }
+  end note
+
+  ' ============================================================
+  ' EVALUATION EXPRESSIONS
+  ' (for Policy.evaluationCriteria)
+  ' ============================================================
+
+  abstract class EvaluationExpression
+  Expression <|-- EvaluationExpression : is
+
+  note top of EvaluationExpression
+    Specifies HOW a policy constraint should be evaluated.
+
+    Evaluation expressions define the measurement approach,
+    not the threshold (which is in the constraint).
+
+    Governor defines WHAT to evaluate and HOW to aggregate.
+    Sensor configuration (at Description Plane) defines
+    WHERE to get the data (data source, query).
+  end note
+
+  class MetricEvaluation {
+    +getMetric(): ReferenceExpression
+    +getAggregation(): AggregationType
+    +getTimeWindow(): String
+  }
+  EvaluationExpression <|-- MetricEvaluation : is
+  MetricEvaluation "1" *--> "1" ReferenceExpression : metric
+
+  note top of MetricEvaluation
+    Specifies metric-based evaluation.
+
+    **Attributes:**
+    - metric: What to measure (system property reference)
+    - aggregation: How to aggregate values
+    - timeWindow: ISO8601 duration for aggregation window
+
+    **JSON:**
+    ```json
+    {
+      "type": "MetricEvaluation",
+      "metric": { "archetypeName": "Service", "propertyPath": ["latency"] },
+      "aggregation": "P99",
+      "timeWindow": "PT5M"
+    }
+    ```
+
+    **Interpretation:** "Measure Service.latency as P99 over 5-minute windows"
+
+    **Note:** Data source binding (Prometheus, Datadog, etc.) is NOT
+    specified here. That's an operational concern configured at
+    Sensor level in the Description Plane.
+  end note
+
+  class AssertionEvaluation {
+    +getAssertion(): LogicalExpression
+  }
+  EvaluationExpression <|-- AssertionEvaluation : is
+  AssertionEvaluation "1" *--> "1" LogicalExpression : assertion
+
+  note top of AssertionEvaluation
+    Specifies assertion-based evaluation.
+
+    **Attributes:**
+    - assertion: Logical condition that must be verified
+
+    **JSON:**
+    ```json
+    {
+      "type": "AssertionEvaluation",
+      "assertion": {
+        "type": "FunctionCallExpression",
+        "functionName": "exists",
+        "arguments": [
+          { "archetypeName": "Service", "propertyPath": ["healthCheck"] }
+        ]
+      }
+    }
+    ```
+
+    **Interpretation:** "Verify that Service.healthCheck exists"
+
+    If SIE cannot auto-evaluate the assertion (e.g., requires
+    external audit), it triggers a feedback loop requesting
+    manual attestation. This is determined at runtime, not
+    declared in the evaluation expression.
+  end note
+
+  class ComplianceEvaluation {
+    +getStandard(): String
+    +getRequirementRef(): String
+  }
+  EvaluationExpression <|-- ComplianceEvaluation : is
+
+  note top of ComplianceEvaluation
+    Links evaluation to external compliance standard/framework.
+
+    **Attributes:**
+    - standard: Compliance standard name (GDPR, SOC2, ISO27001, HIPAA, PCI-DSS)
+    - requirementRef: Specific requirement/control reference within the standard
+
+    **JSON:**
+    ```json
+    {
+      "type": "ComplianceEvaluation",
+      "standard": "SOC2",
+      "requirementRef": "CC6.1"
+    }
+    ```
+
+    **Interpretation:**
+    Links policy to SOC2 control CC6.1 for compliance reporting.
+
+    **Example references by standard:**
+    - SOC2: "CC6.1", "CC7.2" (Common Criteria)
+    - ISO27001: "A.12.1.1", "A.18.1.3" (Annex A controls)
+    - GDPR: "Art.32", "Art.25.1" (Articles)
+    - HIPAA: "164.312(a)(1)" (CFR sections)
+    - PCI-DSS: "Req.3.4", "Req.8.2.1" (Requirements)
+
+    **Note:** Automated check logic is NOT specified here. The Governor
+    defines WHAT compliance control applies. The Sensor (at Description
+    Plane) determines HOW to verify it, or triggers manual attestation
+    if automation is not possible.
+
+    **Use case:** Compliance reporting — "which policies satisfy which controls?"
+  end note
+
+  ' ============================================================
+  ' SOURCE MAPPING EXPRESSIONS
+  ' (for SourceMapping.valueMapping, *ActuationBehavioralRuleControl.stateObjectSourceMapping)
+  ' ============================================================
+
+  abstract class SourceMappingExpression
+  Expression <|-- SourceMappingExpression : is
+
+  note top of SourceMappingExpression
+    Defines how to construct target event/state objects from
+    source events and existing state objects.
+
+    **Used in CSDM:**
+    - SourceMapping.valueMapping: Transform trigger events into effector events
+    - CreationActuationBehavioralRuleControl.stateObjectSourceMapping: Initial state
+    - ModificationActuationBehavioralRuleControl.stateObjectSourceMapping: New state
+
+    **Target types:** EventArchetype OR StateObjectArchetype
+    **Source types:** EventArchetype (via trigger/event.*) OR StateObjectArchetype
+  end note
+
+  class PropertyMapping {
+    +getTargetPath(): String[]
+    +getSourceExpression(): ValueExpression
+  }
+  SourceMappingExpression <|-- PropertyMapping : is
+  PropertyMapping "1" *--> "1" ValueExpression : source
+
+  note top of PropertyMapping
+    Maps a single property in the target object.
+
+    **Attributes:**
+    - targetPath: Path to the property in target archetype
+    - sourceExpression: Value to assign (can be reference, literal, or computed)
+
+    **JSON:**
+    ```json
+    {
+      "type": "PropertyMapping",
+      "targetPath": ["payload", "processedAt"],
+      "source": {
+        "type": "FunctionCallExpression",
+        "functionName": "now",
+        "arguments": []
+      }
+    }
+    ```
+
+    **Interpretation:** Set target.payload.processedAt = now()
+  end note
+
+  class ObjectMapping {
+    +getTargetArchetype(): String
+    +getMappings(): PropertyMapping[]
+  }
+  SourceMappingExpression <|-- ObjectMapping : is
+  ObjectMapping "1" *--> "1..*" PropertyMapping : mappings
+
+  note top of ObjectMapping
+    Complete explicit mapping for a target object.
+
+    **Attributes:**
+    - targetArchetype: Name of the target EventArchetype or StateObjectArchetype
+    - mappings: List of property mappings
+
+    **JSON:**
+    ```json
+    {
+      "type": "ObjectMapping",
+      "targetArchetype": "AlertEvent",
+      "mappings": [
+        {
+          "targetPath": ["severity"],
+          "source": { "archetypeName": "trigger", "propertyPath": ["level"] }
+        },
+        {
+          "targetPath": ["message"],
+          "source": { "archetypeName": "trigger", "propertyPath": ["text"] }
+        },
+        {
+          "targetPath": ["timestamp"],
+          "source": { "type": "FunctionCallExpression", "functionName": "now", "arguments": [] }
+        }
+      ]
+    }
+    ```
+
+    **Interpretation:** Create AlertEvent with explicit field mappings from trigger event.
+  end note
+
+  ' SpreadMapping REMOVED in v1.1
+  ' Rationale: Source and target archetypes rarely have same structure.
+  ' Use explicit ObjectMapping instead for clarity and type safety.
+
+  ' ============================================================
+  ' UI JSON FORMS
+  ' ============================================================
+
+  note as UiJsonFormsNote
+    **UI JSON Form Generation:**
+
+    For users preferring structured input over CSDSL text syntax,
+    the UI generates JSON forms from JSON Schema definitions.
+
+    **Architecture:**
+    1. UI requests schema: GET /api/csdsl/schema/{ExpressionType}
+    2. Backend returns JSON Schema with:
+       - Field definitions (type, enum, required)
+       - Nested $ref for complex types
+       - Descriptions for tooltips
+    3. UI renders form using schema-driven form library
+       (e.g., react-jsonschema-form, ajv-forms)
+    4. User fills form fields
+    5. UI submits JSON object: POST /api/csdsl/validate
+    6. Backend validates against schema + semantic rules
+
+    **Example: ThresholdConstraint form**
+    ```
+    +------------------------+
+    | Metric: [Component.load] (autocomplete from archetypes)
+    | Operator: [v LESS_THAN] (dropdown from enum)
+    | Threshold: [80] (number input)
+    | Unit: [%] (text input)
+    | Aggregation: [v AVG] (dropdown from enum)
+    | Time Window: [PT5M] (duration picker)
+    +------------------------+
+    ```
+
+    **Benefits:**
+    - No syntax learning curve
+    - Autocomplete from archetype schemas
+    - Immediate validation feedback
+    - Same validation as text parsing
+
+    **JSON Schema location:**
+    `/api/csdsl/schema/{type}` or static at
+    `sie://schemas/csdsl/v1/{type}.json`
+  end note
+
+  ' ============================================================
+  ' PREDEFINED CONTEXT VARIABLES
+  ' ============================================================
+
+  note as PredefinedVariables
+    **Predefined Context Variables:**
+
+    In BehavioralRule expressions, the following are available:
+
+    1. **`trigger`** — The event instance from the triggering receptor
+       (the receptor specified in BehavioralRule.triggeringReceptor)
+
+       Example: `trigger.payload.orderId`
+
+    2. **`event.<ArchetypeName>`** — Events from other receptors,
+       accessed by their EventArchetype name.
+
+       Example: If mechanism has receptor for "ConfigUpdated" events:
+       `event.ConfigUpdated.newThreshold`
+
+    **Examples:**
+    ```
+    // Condition using trigger event
+    trigger.severity == "high"
+
+    // Condition using another receptor's event
+    trigger.amount > event.ConfigUpdated.maxAmount
+
+    // Using function
+    size(trigger.items) > 0
+
+    // Mapping with now()
+    { "processedAt": now(), "source": trigger.source }
+    ```
+
+    **Not available:** `system`, `mechanism`, `rule` — these are not
+    needed for expression evaluation. The context is implicit.
+
+    **In Policy expressions:**
+    References are to system properties via archetypeName (no special
+    predefined variables). Example: `Service.latency`, `Component.replicas`
+  end note
+
+  ' ============================================================
+  ' JSON SCHEMA REFERENCES
+  ' ============================================================
+
+  note as JsonSchemaNote
+    **JSON Schema Definitions:**
+
+    Each CSDSL AST node type has a corresponding JSON Schema
+    for validation and LLM assistance.
+
+    Schemas are published at:
+    `sie://schemas/csdsl/v1/<ExpressionType>.json`
+
+    Example schema for ComparisonExpression:
+    ```json
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "sie://schemas/csdsl/v1/ComparisonExpression.json",
+      "type": "object",
+      "required": ["type", "operator", "left", "right"],
+      "properties": {
+        "type": { "const": "ComparisonExpression" },
+        "operator": {
+          "enum": ["EQUALS", "NOT_EQUALS", "GREATER_THAN",
+                   "LESS_THAN", "GREATER_OR_EQUAL", "LESS_OR_EQUAL",
+                   "IN", "NOT_IN", "MATCHES", "CONTAINS",
+                   "STARTS_WITH", "ENDS_WITH"]
+        },
+        "left": { "$ref": "ValueExpression.json" },
+        "right": { "$ref": "ValueExpression.json" }
+      }
+    }
+    ```
+
+    Full schemas enable:
+    - Structural validation of AST
+    - IDE auto-completion
+    - LLM-assisted generation with schema awareness
+  end note
+
+  ' ============================================================
+  ' CEL TRANSCOMPILATION
+  ' ============================================================
+
+  note as CelNote
+    **CEL Transcompilation:**
+
+    CSDSL expressions compile to Google Common Expression Language
+    (CEL) for runtime evaluation.
+
+    **CSDSL → CEL mapping:**
+
+    | CSDSL | CEL |
+    |-------|-----|
+    | AndExpression | && |
+    | OrExpression | \|\| |
+    | NotExpression | ! |
+    | ComparisonExpression | ==, !=, <, >, <=, >= |
+    | ArithmeticExpression | +, -, *, /, % |
+    | ReferenceExpression | dot notation |
+    | LiteralExpression | JSON literals |
+    | FunctionCallExpression | CEL functions |
+
+    **Example:**
+    ```
+    CSDSL AST:
+    {
+      "type": "AndExpression",
+      "operands": [
+        { "type": "ComparisonExpression", "operator": "GREATER_THAN",
+          "left": { "archetypeName": "Service", "propertyPath": ["load"] },
+          "right": { "value": 80 } },
+        { "type": "ComparisonExpression", "operator": "EQUALS",
+          "left": { "archetypeName": "Service", "propertyPath": ["status"] },
+          "right": { "value": "active" } }
+      ]
+    }
+
+    CEL:
+    Service.load > 80 && Service.status == "active"
+    ```
+
+    CEL is used by Kubernetes, Firebase, Envoy, and provides
+    sub-millisecond evaluation with type safety.
+  end note
+
+  ' ============================================================
+  ' DATETIME AND DURATION FORMATS
+  ' ============================================================
+
+  note as FormatsNote
+    **DateTime and Duration Formats:**
+
+    CSDSL uses ISO8601 string formats for temporal values.
+    These are JSON strings with specific format patterns.
+
+    **DateTime (ISO8601 / RFC3339):**
+    - Format: `YYYY-MM-DDTHH:mm:ssZ` or with timezone offset
+    - Examples:
+      - `"2026-02-04T10:30:00Z"` (UTC)
+      - `"2026-02-04T10:30:00+01:00"` (with offset)
+
+    **Duration (ISO8601):**
+    - Format: `P[n]Y[n]M[n]DT[n]H[n]M[n]S`
+    - Examples:
+      - `"PT5M"` = 5 minutes
+      - `"PT1H30M"` = 1 hour 30 minutes
+      - `"P1D"` = 1 day
+      - `"PT0.5S"` = 500 milliseconds
+
+    **Usage in CSDSL:**
+    ```json
+    // Literal datetime
+    { "type": "LiteralExpression", "value": "2026-02-04T10:30:00Z" }
+
+    // now() returns datetime string
+    { "type": "FunctionCallExpression", "functionName": "now", "arguments": [] }
+
+    // TimeWindow in ThresholdConstraint
+    { "timeWindow": "PT5M" }
+    ```
+
+    **In ArchetypeSchema, use JSON Schema format specifier:**
+    ```json
+    {
+      "type": "string",
+      "format": "date-time"
+    }
+    ```
   end note
 }
 
 @enduml
-
