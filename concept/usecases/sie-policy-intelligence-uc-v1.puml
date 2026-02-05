@@ -1,0 +1,211 @@
+@startuml sie-policy-intelligence-uc-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam actorBackgroundColor #FFFFFF
+skinparam actorBorderColor #57606A
+
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam usecaseBorderColor #57606A
+
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam rectangleBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+title UC - SIE Policy Intelligence - v1
+
+' ============================================================
+' ACTORS
+' ============================================================
+
+actor "Policy Author" as PolicyAuthor
+actor "Governance Officer" as GovOfficer
+actor "Compliance Officer" as CompOfficer
+actor "Platform Engineer" as PlatformEng
+actor "Release Manager" as ReleaseMgr
+
+actor "CSDSL Engine" as CsdslEngine <<system>>
+actor "LLM Service" as LLM <<system>>
+actor "Policy Repository" as PolicyRepo <<system>>
+actor "Simulation Engine" as SimEngine <<system>>
+
+' ============================================================
+' USE CASES
+' ============================================================
+
+rectangle "Policy Intelligence" {
+
+  ' --- Policy Translation ---
+  package "Policy Translation" {
+    usecase "Convert High-Level Policy\nto CSDSL Rules" as UC_PolicyToCsdsl
+    usecase "Map Regulatory Requirements\nto Constraints" as UC_RegToConstraints
+    usecase "Translate Between\nCompliance Frameworks" as UC_TranslateFrameworks
+    usecase "Bridge Business and\nTechnical Policy" as UC_BridgeBusinessTech
+  }
+
+  ' --- Rule Operationalization ---
+  package "Rule Operationalization" {
+    usecase "Bind Rule Definitions\nto Contexts" as UC_BindToContexts
+    usecase "Generate Behavioral\nRules from Definitions" as UC_GenerateBehavioral
+    usecase "Configure Rule\nExecution Parameters" as UC_ConfigureParams
+    usecase "Validate Rule\nOperationalizability" as UC_ValidateOperable
+  }
+
+  ' --- Policy Versioning ---
+  package "Policy Versioning" {
+    usecase "Track Policy Versions\nwith Full History" as UC_TrackVersions
+    usecase "Support Policy Branching\nfor Testing" as UC_PolicyBranching
+    usecase "Manage Policy\nDeprecation Workflows" as UC_DeprecationWorkflows
+    usecase "Ensure Backward\nCompatibility" as UC_BackwardCompat
+  }
+
+  ' --- Policy Simulation ---
+  package "Policy Simulation" {
+    usecase "Dry-Run Policies Against\nHistorical Data" as UC_DryRun
+    usecase "Predict Violation Rates\nfor New Policies" as UC_PredictViolations
+    usecase "Compare Policy\nVariants" as UC_CompareVariants
+    usecase "Identify Policy\nInteraction Effects" as UC_InteractionEffects
+  }
+}
+
+' ============================================================
+' RELATIONSHIPS - Actors to Use Cases
+' ============================================================
+
+' Policy Author interactions
+PolicyAuthor --> UC_PolicyToCsdsl
+PolicyAuthor --> UC_GenerateBehavioral
+PolicyAuthor --> UC_PolicyBranching
+PolicyAuthor --> UC_DryRun
+PolicyAuthor --> UC_CompareVariants
+
+' Governance Officer interactions
+GovOfficer --> UC_BridgeBusinessTech
+GovOfficer --> UC_TrackVersions
+GovOfficer --> UC_DeprecationWorkflows
+GovOfficer --> UC_InteractionEffects
+
+' Compliance Officer interactions
+CompOfficer --> UC_RegToConstraints
+CompOfficer --> UC_TranslateFrameworks
+CompOfficer --> UC_BackwardCompat
+CompOfficer --> UC_PredictViolations
+
+' Platform Engineer interactions
+PlatformEng --> UC_BindToContexts
+PlatformEng --> UC_ConfigureParams
+PlatformEng --> UC_ValidateOperable
+PlatformEng --> UC_DryRun
+
+' Release Manager interactions
+ReleaseMgr --> UC_PolicyBranching
+ReleaseMgr --> UC_DeprecationWorkflows
+ReleaseMgr --> UC_BackwardCompat
+ReleaseMgr --> UC_CompareVariants
+
+' ============================================================
+' RELATIONSHIPS - System Actors
+' ============================================================
+
+UC_PolicyToCsdsl --> LLM
+UC_PolicyToCsdsl --> CsdslEngine
+UC_RegToConstraints --> LLM
+UC_TranslateFrameworks --> LLM
+UC_BridgeBusinessTech --> LLM
+
+UC_BindToContexts --> CsdslEngine
+UC_GenerateBehavioral --> CsdslEngine
+UC_ConfigureParams --> PolicyRepo
+UC_ValidateOperable --> CsdslEngine
+
+UC_TrackVersions --> PolicyRepo
+UC_PolicyBranching --> PolicyRepo
+UC_DeprecationWorkflows --> PolicyRepo
+UC_BackwardCompat --> CsdslEngine
+
+UC_DryRun --> SimEngine
+UC_PredictViolations --> SimEngine
+UC_CompareVariants --> SimEngine
+UC_InteractionEffects --> SimEngine
+
+' ============================================================
+' RELATIONSHIPS - Include/Extend
+' ============================================================
+
+UC_PolicyToCsdsl ..> UC_ValidateOperable : <<include>>
+UC_GenerateBehavioral ..> UC_BindToContexts : <<include>>
+UC_PolicyBranching ..> UC_DryRun : <<extend>>
+UC_CompareVariants ..> UC_PredictViolations : <<include>>
+UC_DeprecationWorkflows ..> UC_BackwardCompat : <<include>>
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of UC_PolicyToCsdsl
+  **Policy Translation Example:**
+  
+  Business Policy:
+  "All customer data must be encrypted
+  at rest and in transit"
+  
+  Generated CSDSL:
+  invariant(data.classification == "customer"
+    implies (storage.encrypted && 
+             network.tls_enabled))
+end note
+
+note right of UC_GenerateBehavioral
+  **Rule Operationalization:**
+  
+  Rule Definition:
+  "Enforce rate limiting on APIs"
+  
+  Generated Behavioral Rule:
+  WHEN api.requests_per_second > 1000
+  THEN throttle(api, delay=100ms)
+  
+  Context: Production environment
+end note
+
+note right of UC_PolicyBranching
+  **Policy Branching:**
+  
+  Main: policy-security-v2.3
+  Branch: policy-security-v2.3-pci-pilot
+  
+  Changes:
+  - Added PCI compliance rules
+  - Stricter encryption requirements
+  
+  Status: Testing with 10% traffic
+end note
+
+note right of UC_PredictViolations
+  **Violation Prediction:**
+  
+  New Policy: Require mTLS everywhere
+  
+  Historical simulation (30 days):
+  - Services affected: 147
+  - Current violations: 0
+  - Predicted violations: 89
+  - Auto-remediable: 72
+  
+  Recommendation: Phased rollout
+end note
+
+@enduml

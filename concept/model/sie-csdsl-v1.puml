@@ -21,74 +21,6 @@ skinparam classFontColor #24292F
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-' ============================================================
-' CSDSL v1 - Canonical Systemic Domain Specific Language
-'
-' CSDSL is a SEMANTIC LAYER ON TOP OF CEL (Google Common Expression
-' Language). It is NOT a replacement for CEL, but an extension that:
-'
-' 1. PRESERVES CEL syntax and semantics for core expressions
-' 2. EXTENDS CEL with Liskov-substitution-compliant additions:
-'    - Domain-specific constructs (ThresholdConstraint, StateObjectSelectorExpression)
-'    - Schema-bound references (validated against ArchetypeSchemas)
-'    - Systemic semantics (constraint types, evaluation criteria)
-'
-' This layered approach ensures:
-' - Core expressions transcompile 1:1 to CEL for runtime evaluation
-' - Extended constructs are validated by SIE, then decomposed to CEL
-' - Any valid CEL expression is valid CSDSL (but not vice versa)
-'
-' CSDSL is a pure EXPRESSION language. It contains no imperative
-' constructs (loops, conditionals, triggers). Flow control is
-' handled by CSDM primitives (BehavioralRule, Policy).
-'
-' CSDSL is NOT executable code - it's a structured AST that
-' SIE interprets for:
-' - Validation (type checking, schema conformance)
-' - Coherence analysis (detecting conflicts between expressions)
-' - LLM interpretation (extracting semantic intent)
-' - Transcompilation to CEL for runtime evaluation
-'
-' ============================================================
-' CONSTRUCT SOURCES
-' ============================================================
-' Core expressions:
-'   - LogicalExpression (And, Or, Not): CEL, standard logic
-'   - ComparisonExpression: CEL operators (==, !=, <, >, in, etc.)
-'   - ArithmeticExpression: CEL arithmetic (+, -, *, /, %)
-'   - ReferenceExpression: CEL dot notation, JSON Pointer
-'   - LiteralExpression: JSON values (RFC 8259)
-'   - FunctionCallExpression: CEL built-in functions
-'
-' Constraints:
-'   - ThresholdConstraint: Google SLO definitions, Prometheus alerting
-'   - InvariantConstraint: OCL invariants, design-by-contract
-'   - DependencyConstraint: Terraform resource graphs, K8s dependencies
-'   - CardinalityConstraint: UML multiplicity, database constraints
-'
-' Selectors:
-'   - StateObjectSelectorExpression: Selects StateObjectArchetype instances
-'       (used for both structural constraints AND actuation operations)
-'       Every SystemicPrimitive has a default StateObjectArchetype
-'
-' Evaluation:
-'   - MetricEvaluation: Prometheus, Datadog metrics
-'   - AssertionEvaluation: Unit testing assertions
-'   - ComplianceEvaluation: SOC2, GDPR control frameworks
-'
-' Mapping:
-'   - PropertyMapping: JSON transformation (jq, JSONata)
-'   - ObjectMapping: Event sourcing patterns
-'   (both under SourceMappingExpression)
-'
-' Removed constructs:
-'   - ConditionalExpression: Use Policy.applicabilityConditions
-'   - CompositeConstraint: Use Policy.alternatives at CSDM level
-'   - SpreadMapping: Source/target rarely same type (v1.1)
-'   - ComplianceEvaluation.automatedCheck: Governor defines WHAT,
-'     Sensor defines HOW (v1.1)
-' ============================================================
-
 frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
   note as CsdslOverview
@@ -195,9 +127,46 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - AcquisitionActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
 
     **Parser Architecture:**
-    The CSDManager backend owns the CSDSL parser. UI delegates parsing
+    The SDManager backend owns the CSDSL parser. UI delegates parsing
     via API: POST /api/csdsl/parse → returns AST or syntax errors.
     This ensures single source of truth for grammar and validation.
+
+    **SIE Interpretation:**
+    CSDSL is NOT executable code — it's a structured AST that SIE interprets for:
+    - Validation (type checking, schema conformance)
+    - Coherence analysis (detecting conflicts between expressions)
+    - LLM interpretation (extracting semantic intent)
+    - Transcompilation to CEL for runtime evaluation
+
+    **Construct Sources:**
+
+    //Core expressions (from CEL)://
+    - LogicalExpression (And, Or, Not): CEL standard logic
+    - ComparisonExpression: CEL operators (==, !=, <, >, in, etc.)
+    - ArithmeticExpression: CEL arithmetic (+, -, *, /, %)
+    - ReferenceExpression: CEL dot notation, JSON Pointer
+    - LiteralExpression: JSON values (RFC 8259)
+    - FunctionCallExpression: CEL built-in functions
+
+    //Constraints (SIE extensions)://
+    - ThresholdConstraint: Google SLO definitions, Prometheus alerting
+    - InvariantConstraint: OCL invariants, design-by-contract
+    - DependencyConstraint: Terraform resource graphs, K8s dependencies
+    - CardinalityConstraint: UML multiplicity, database constraints
+
+    //Selectors (SIE extensions)://
+    - StateObjectSelectorExpression: Selects StateObjectArchetype instances
+      (used for structural constraints AND actuation operations)
+
+    //Evaluation (SIE extensions)://
+    - MetricEvaluation: Prometheus, Datadog metrics
+    - AssertionEvaluation: Unit testing assertions
+    - ComplianceEvaluation: SOC2, GDPR control frameworks
+
+    //Mapping (SIE extensions)://
+    - PropertyMapping: JSON transformation (jq, JSONata patterns)
+    - ObjectMapping: Event sourcing patterns
+    (both under SourceMappingExpression)
   end note
 
   ' ============================================================
@@ -253,6 +222,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   note top of AndExpression
     Logical conjunction: all operands must be true.
 
+    **CSDSL text syntax:** (CEL-compatible)
+    `expr1 && expr2 && expr3`
+
     **JSON:**
     ```json
     {
@@ -264,9 +236,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     }
     ```
 
-    **CEL equivalent:** `expr1 && expr2 && expr3`
-
     Short-circuit evaluation: stops at first false operand.
+
+    **Validation Rules:**
+    - operands array must have at least 2 elements
+    - Each operand must be a valid LogicalExpression
+    - (Runtime) Each operand must evaluate to boolean
   end note
 
   class OrExpression {
@@ -277,6 +252,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
   note top of OrExpression
     Logical disjunction: at least one operand must be true.
+
+    **CSDSL text syntax:** (CEL-compatible)
+    `expr1 || expr2 || expr3`
 
     **JSON:**
     ```json
@@ -289,9 +267,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     }
     ```
 
-    **CEL equivalent:** `expr1 || expr2 || expr3`
-
     Short-circuit evaluation: stops at first true operand.
+
+    **Validation Rules:**
+    - operands array must have at least 2 elements
+    - Each operand must be a valid LogicalExpression
+    - (Runtime) Each operand must evaluate to boolean
   end note
 
   class NotExpression {
@@ -303,6 +284,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   note top of NotExpression
     Logical negation: inverts the operand's boolean value.
 
+    **CSDSL text syntax:** (CEL-compatible)
+    `!expr`
+
     **JSON:**
     ```json
     {
@@ -311,7 +295,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     }
     ```
 
-    **CEL equivalent:** `!expr`
+    **Validation Rules:**
+    - operand must be a valid LogicalExpression
+    - (Runtime) Operand must evaluate to boolean
   end note
 
   class ComparisonExpression {
@@ -326,24 +312,29 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   note top of ComparisonExpression
     Compares two values, returns boolean.
 
+    **CSDSL text syntax:** (CEL-compatible)
+    `Service.latency < 100`
+
     **JSON:**
     ```json
     {
       "type": "ComparisonExpression",
       "operator": "LESS_THAN",
-      "left": { "type": "ReferenceExpression", "archetypeName": "Service", "propertyPath": ["latency"] },
+      "left": { "type": "ReferenceExpression", "name": "Service", "propertyPath": ["latency"] },
       "right": { "type": "LiteralExpression", "value": 100 }
     }
     ```
 
-    **CEL equivalent:** `Service.latency < 100`
-
-    **Type compatibility:**
-    - EQUALS, NOT_EQUALS: any types (uses JSON equality)
-    - GREATER_*, LESS_*: numbers or strings (lexicographic)
-    - IN, NOT_IN: right operand must be array
-    - MATCHES: left=string, right=regex pattern string
-    - CONTAINS, STARTS_WITH, ENDS_WITH: both strings
+    **Validation Rules:**
+    - left and right must be valid ValueExpressions
+    - operator must be a valid ComparisonOperator enum value
+    - (Runtime) Type compatibility per operator:
+      - EQUALS, NOT_EQUALS: any types (uses JSON equality)
+      - GREATER_THAN, LESS_THAN, GREATER_OR_EQUAL, LESS_OR_EQUAL:
+        both operands must be numbers OR both must be strings
+      - IN, NOT_IN: right operand must evaluate to array
+      - MATCHES: left must be string, right must be regex pattern string
+      - CONTAINS, STARTS_WITH, ENDS_WITH: both must be strings
   end note
 
   enum ComparisonOperator {
@@ -362,10 +353,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   }
 
   note top of ComparisonOperator
-    **Operator semantics (sourced from CEL):**
+    **Operator semantics:** (CEL-compatible)
 
-    | Operator | CEL | Description |
-    |----------|-----|-------------|
+    | Operator | CSDSL Syntax | Description |
+    |----------|--------------|-------------|
     | EQUALS | == | Deep equality |
     | NOT_EQUALS | != | Not equal |
     | GREATER_THAN | > | Numeric/lexicographic |
@@ -399,48 +390,51 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   end note
 
   class ReferenceExpression {
-    +getArchetypeName(): String
+    +getName(): String
     +getPropertyPath(): String[]
   }
   ValueExpression <|-- ReferenceExpression : is
 
   note top of ReferenceExpression
-    References a property in an EventArchetype, StateObjectArchetype,
-    or a predefined context variable.
+    References an EventArchetype, StateObjectArchetype, or a predefined
+    context variable and its property.
 
     **Attributes:**
-    - archetypeName: The archetype or context to reference
+    - name: The root identifier to reference. Can be:
+      - An EventArchetype name (e.g., "OrderCreated")
+      - A StateObjectArchetype name (e.g., "Component", "Order")
+      - A predefined variable: `trigger` or `event.<ArchetypeName>`
     - propertyPath: Path to the property (empty for scalar archetypes)
+
+    **CSDSL text syntax:** (CEL-compatible)
+    - `OrderCreated.payload.orderId` (EventArchetype)
+    - `Component.replicas` (StateObjectArchetype)
+    - `trigger.severity` (predefined variable)
 
     **JSON examples:**
     ```json
-    // Reference event property
+    // Reference event archetype property
     { "type": "ReferenceExpression",
-      "archetypeName": "OrderCreated",
+      "name": "OrderCreated",
       "propertyPath": ["payload", "orderId"] }
 
-    // Reference scalar archetype (empty path)
+    // Reference state object archetype property
     { "type": "ReferenceExpression",
-      "archetypeName": "CounterValue",
-      "propertyPath": [] }
+      "name": "Component",
+      "propertyPath": ["replicas"] }
 
-    // Reference triggering event
+    // Reference predefined variable (trigger event)
     { "type": "ReferenceExpression",
-      "archetypeName": "trigger",
+      "name": "trigger",
       "propertyPath": ["severity"] }
     ```
 
-    **CSDSL syntax:**
-    - `OrderCreated.payload.orderId`
-    - `CounterValue`
-    - `trigger.severity`
-
-    **CEL equivalent:** Same dot notation.
-
-    **Validation:**
-    - archetypeName must match a defined archetype or predefined variable
-    - propertyPath must exist in the archetype's schema
+    **Validation Rules:**
+    - name must be non-empty string
+    - name must match a defined archetype OR predefined variable (`trigger`, `event.*`)
+    - propertyPath must exist in the archetype's schema (or trigger event schema)
     - For scalar archetypes, propertyPath must be empty
+    - (Runtime) Referenced property must exist and be accessible
   end note
 
   class LiteralExpression {
@@ -508,6 +502,11 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
     No separate `dataType` field is needed—the two-layer design keeps
     JSON human-readable while CEL gets proper runtime types.
+
+    **Validation Rules:**
+    - value must be a valid JSON value (string, number, boolean, null, array, object)
+    - Arrays must contain valid JSON values
+    - Objects must have string keys and valid JSON values
   end note
 
   class ArithmeticExpression {
@@ -522,25 +521,29 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   note top of ArithmeticExpression
     Arithmetic operation on two numeric values.
 
+    **CSDSL text syntax:** (CEL-compatible)
+    `Service.maxCapacity * 0.8`
+
     **JSON:**
     ```json
     {
       "type": "ArithmeticExpression",
       "operator": "MULTIPLY",
-      "left": { "type": "ReferenceExpression", "archetypeName": "Service", "propertyPath": ["maxCapacity"] },
+      "left": { "type": "ReferenceExpression", "name": "Service", "propertyPath": ["maxCapacity"] },
       "right": { "type": "LiteralExpression", "value": 0.8 }
     }
     ```
-
-    **CSDSL syntax:** `Service.maxCapacity * 0.8`
-
-    **CEL equivalent:** Same syntax.
 
     **Use cases:**
     - Dynamic thresholds: `Service.load < Service.maxCapacity * 0.8`
     - Computed values in mappings: `event.quantity * event.unitPrice`
 
-    Both operands must evaluate to numbers. Returns number.
+    **Validation Rules:**
+    - operator must be a valid ArithmeticOperator enum value
+    - left and right must be valid ValueExpressions
+    - (Runtime) Both operands must evaluate to numeric types (int, uint, double)
+    - (Runtime) DIVIDE: right operand must not be zero
+    - (Runtime) MODULO: both operands should be integers
   end note
 
   enum ArithmeticOperator {
@@ -552,15 +555,15 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   }
 
   note top of ArithmeticOperator
-    **Operator semantics (standard arithmetic):**
+    **Operator semantics:** (CEL-compatible)
 
-    | Operator | Symbol | CEL |
-    |----------|--------|-----|
-    | ADD | + | + |
-    | SUBTRACT | - | - |
-    | MULTIPLY | * | * |
-    | DIVIDE | / | / |
-    | MODULO | % | % |
+    | Operator | CSDSL Syntax |
+    |----------|--------------|
+    | ADD | + |
+    | SUBTRACT | - |
+    | MULTIPLY | * |
+    | DIVIDE | / |
+    | MODULO | % |
 
     Division by zero returns error (not infinity).
   end note
@@ -575,20 +578,21 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   note top of FunctionCallExpression
     Invokes a built-in function with arguments.
 
+    **CSDSL text syntax:** (CEL-compatible for standard functions)
+    `size(Order.items)`
+
     **JSON:**
     ```json
     {
       "type": "FunctionCallExpression",
       "functionName": "size",
       "arguments": [
-        { "type": "ReferenceExpression", "archetypeName": "Order", "propertyPath": ["items"] }
+        { "type": "ReferenceExpression", "name": "Order", "propertyPath": ["items"] }
       ]
     }
     ```
 
-    **CSDSL syntax:** `size(Order.items)`
-
-    **Built-in functions (CEL-compatible names):**
+    **Built-in functions:**
 
     *Collection functions (CEL):*
     - `size(list|map|string)` → int
@@ -634,11 +638,23 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     boolean and can be used directly in LogicalExpression contexts:
     ```json
     { "type": "FunctionCallExpression", "functionName": "exists",
-      "arguments": [{ "archetypeName": "Service", "propertyPath": ["healthCheck"] }] }
+      "arguments": [{ "name": "Service", "propertyPath": ["healthCheck"] }] }
     ```
     This is valid as a condition — no need to wrap in `== true`.
 
     All functions are pure (no side effects).
+
+    **Validation Rules:**
+    - functionName must be a recognized built-in function
+    - arguments must be valid ValueExpressions
+    - Argument count must match function signature
+    - (Runtime) Argument types must match function expectations:
+      - `size()`: argument must be list, map, or string
+      - `contains()`, `startsWith()`, `endsWith()`: both args must be strings
+      - `matches()`: first arg string, second arg valid RE2 regex
+      - `int()`, `uint()`, `double()`: argument must be convertible
+      - `sum()`, `avg()`: argument must be list of numbers
+      - `min()`, `max()`: arguments must be numbers or list of numbers
   end note
 
   ' ============================================================
@@ -688,11 +704,14 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - aggregation: How to aggregate over time window
     - timeWindow: ISO8601 duration (e.g., "PT5M" = 5 minutes)
 
+    **CSDSL text syntax:**
+    `THRESHOLD Service.latency.p99 < 100ms OVER 5m AGGREGATING P99`
+
     **JSON:**
     ```json
     {
       "type": "ThresholdConstraint",
-      "metric": { "archetypeName": "Service", "propertyPath": ["latency", "p99"] },
+      "metric": { "name": "Service", "propertyPath": ["latency", "p99"] },
       "operator": "LESS_THAN",
       "threshold": { "type": "LiteralExpression", "value": 100 },
       "unit": "ms",
@@ -702,6 +721,16 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     ```
 
     **Interpretation:** "Service.latency P99 must be < 100ms over 5-minute windows"
+
+    **Validation Rules:**
+    - metric must be a valid ReferenceExpression to a numeric property
+    - operator must be a valid ComparisonOperator (typically LESS_THAN, GREATER_THAN, etc.)
+    - threshold must be a valid ValueExpression
+    - unit must be non-empty string (display only, not validated semantically)
+    - aggregation must be a valid AggregationType enum value
+    - timeWindow must be a valid ISO8601 duration string (e.g., "PT5M")
+    - (Runtime) threshold must evaluate to numeric type
+    - (Runtime) metric must resolve to a measurable numeric property
 
     **Sourced from:** Google SLO definitions, Prometheus alerting rules.
   end note
@@ -750,6 +779,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Attributes:**
     - condition: The invariant expression (must evaluate to true)
 
+    **CSDSL text syntax:**
+    `INVARIANT Component.replicas >= 2`
+
     **JSON:**
     ```json
     {
@@ -757,13 +789,17 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "condition": {
         "type": "ComparisonExpression",
         "operator": "GREATER_OR_EQUAL",
-        "left": { "archetypeName": "Component", "propertyPath": ["replicas"] },
+        "left": { "name": "Component", "propertyPath": ["replicas"] },
         "right": { "type": "LiteralExpression", "value": 2 }
       }
     }
     ```
 
     **Interpretation:** "Component.replicas must be >= 2"
+
+    **Validation Rules:**
+    - condition must be a valid LogicalExpression
+    - (Runtime) condition must evaluate to boolean
 
     **Note on "implies" / "when" patterns:**
     Use Policy.applicabilityConditions instead:
@@ -791,6 +827,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - dependency: Selector for state object(s) being depended upon
     - dependencyType: Nature of the dependency
 
+    **CSDSL text syntax:**
+    `DEPENDENCY Component[name == "PaymentProcessor"] REQUIRES Component[name == "Database"]`
+
     **JSON:**
     ```json
     {
@@ -801,7 +840,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
         "filter": {
           "type": "ComparisonExpression",
           "operator": "EQUALS",
-          "left": { "archetypeName": "Component", "propertyPath": ["name"] },
+          "left": { "name": "Component", "propertyPath": ["name"] },
           "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
         }
       },
@@ -811,7 +850,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
         "filter": {
           "type": "ComparisonExpression",
           "operator": "EQUALS",
-          "left": { "archetypeName": "Component", "propertyPath": ["name"] },
+          "left": { "name": "Component", "propertyPath": ["name"] },
           "right": { "type": "LiteralExpression", "value": "Database" }
         }
       },
@@ -826,12 +865,15 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     "Interface"), so structural constraints select state objects representing
     those primitives.
 
-    **Validation rules:**
+    **Validation Rules:**
+    - dependent must be a valid StateObjectSelectorExpression
+    - dependency must be a valid StateObjectSelectorExpression
+    - dependencyType must be a valid DependencyType enum value
     - Both dependent and dependency must select state objects owned by:
       - The same system as the policy defining this constraint, OR
       - Eligible subsystems per SubsystemIntegrationGovernance
     - stateObjectArchetype must be a valid StateObjectArchetype name
-    - Runtime validates that selected state objects actually exist
+    - (Runtime) Selected state objects must actually exist
 
     **Sourced from:** Kubernetes dependencies, Terraform resource graphs.
   end note
@@ -879,6 +921,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - minimum: Minimum count (null = no minimum)
     - maximum: Maximum count (null = no maximum)
 
+    **CSDSL text syntax:**
+    `CARDINALITY Interface[ownerType == "Microservice"] BETWEEN 1 AND 5`
+
     **JSON:**
     ```json
     {
@@ -889,7 +934,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
         "filter": {
           "type": "ComparisonExpression",
           "operator": "EQUALS",
-          "left": { "archetypeName": "Interface", "propertyPath": ["ownerType"] },
+          "left": { "name": "Interface", "propertyPath": ["ownerType"] },
           "right": { "type": "LiteralExpression", "value": "Microservice" }
         }
       },
@@ -903,6 +948,14 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Note:** Selectors target StateObjectArchetype instances. Every SystemicPrimitive
     has a default StateObjectArchetype, so cardinality constraints count state
     objects representing those primitives.
+
+    **Validation Rules:**
+    - target must be a valid StateObjectSelectorExpression
+    - minimum, if provided, must be non-negative integer
+    - maximum, if provided, must be non-negative integer
+    - If both minimum and maximum are provided, minimum <= maximum
+    - At least one of minimum or maximum must be provided
+    - (Runtime) Count of matching state objects must satisfy bounds
 
     **Sourced from:** UML multiplicity, database constraints.
   end note
@@ -938,6 +991,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - stateObjectArchetype: Name of the StateObjectArchetype to select from
     - filter: Logical condition to match instances (required)
 
+    **CSDSL text syntax:**
+    `SELECT Component WHERE name == "PaymentProcessor"`
+    `SELECT Order WHERE customerId == trigger.customerId && status == "pending"`
+
     **JSON examples:**
     ```json
     // Select component by name (for structural constraints)
@@ -947,7 +1004,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "filter": {
         "type": "ComparisonExpression",
         "operator": "EQUALS",
-        "left": { "archetypeName": "Component", "propertyPath": ["name"] },
+        "left": { "name": "Component", "propertyPath": ["name"] },
         "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
       }
     }
@@ -959,8 +1016,8 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "filter": {
         "type": "ComparisonExpression",
         "operator": "EQUALS",
-        "left": { "archetypeName": "Order", "propertyPath": ["id"] },
-        "right": { "archetypeName": "trigger", "propertyPath": ["orderId"] }
+        "left": { "name": "Order", "propertyPath": ["id"] },
+        "right": { "name": "trigger", "propertyPath": ["orderId"] }
       }
     }
 
@@ -974,13 +1031,13 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
           {
             "type": "ComparisonExpression",
             "operator": "EQUALS",
-            "left": { "archetypeName": "Order", "propertyPath": ["customerId"] },
-            "right": { "archetypeName": "trigger", "propertyPath": ["customerId"] }
+            "left": { "name": "Order", "propertyPath": ["customerId"] },
+            "right": { "name": "trigger", "propertyPath": ["customerId"] }
           },
           {
             "type": "ComparisonExpression",
             "operator": "EQUALS",
-            "left": { "archetypeName": "Order", "propertyPath": ["status"] },
+            "left": { "name": "Order", "propertyPath": ["status"] },
             "right": { "type": "LiteralExpression", "value": "pending" }
           }
         ]
@@ -988,10 +1045,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     }
     ```
 
-    **Validation:**
+    **Validation Rules:**
+    - stateObjectArchetype must be a non-empty string
     - stateObjectArchetype must be a valid StateObjectArchetype name
-    - filter must be a LogicalExpression (required, not optional)
+    - filter must be a valid LogicalExpression (required, not optional)
     - Properties referenced in filter must exist in the archetype's schema
+    - (Runtime) filter must evaluate to boolean
 
     **Why filter is required:**
     Operations must target specific instances. An empty filter would affect
@@ -1034,11 +1093,14 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - aggregation: How to aggregate values
     - timeWindow: ISO8601 duration for aggregation window
 
+    **CSDSL text syntax:**
+    `EVALUATE Service.latency AS P99 OVER 5m`
+
     **JSON:**
     ```json
     {
       "type": "MetricEvaluation",
-      "metric": { "archetypeName": "Service", "propertyPath": ["latency"] },
+      "metric": { "name": "Service", "propertyPath": ["latency"] },
       "aggregation": "P99",
       "timeWindow": "PT5M"
     }
@@ -1049,6 +1111,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Note:** Data source binding (Prometheus, Datadog, etc.) is NOT
     specified here. That's an operational concern configured at
     Sensor level in the Description Plane.
+
+    **Validation Rules:**
+    - metric must be a valid ReferenceExpression
+    - aggregation must be a valid AggregationType enum value
+    - timeWindow must be a valid ISO8601 duration string (e.g., "PT5M")
+    - (Runtime) metric must resolve to a measurable numeric property
   end note
 
   class AssertionEvaluation {
@@ -1063,6 +1131,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Attributes:**
     - assertion: Logical condition that must be verified
 
+    **CSDSL text syntax:**
+    `ASSERT exists(Service.healthCheck)`
+
     **JSON:**
     ```json
     {
@@ -1071,7 +1142,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
         "type": "FunctionCallExpression",
         "functionName": "exists",
         "arguments": [
-          { "archetypeName": "Service", "propertyPath": ["healthCheck"] }
+          { "name": "Service", "propertyPath": ["healthCheck"] }
         ]
       }
     }
@@ -1083,6 +1154,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     external audit), it triggers a feedback loop requesting
     manual attestation. This is determined at runtime, not
     declared in the evaluation expression.
+
+    **Validation Rules:**
+    - assertion must be a valid LogicalExpression
+    - (Runtime) assertion must evaluate to boolean
   end note
 
   class ComplianceEvaluation {
@@ -1097,6 +1172,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Attributes:**
     - standard: Compliance standard name (GDPR, SOC2, ISO27001, HIPAA, PCI-DSS)
     - requirementRef: Specific requirement/control reference within the standard
+
+    **CSDSL text syntax:**
+    `COMPLIANCE SOC2.CC6.1`
+    `COMPLIANCE ISO27001.A.12.1.1`
 
     **JSON:**
     ```json
@@ -1123,6 +1202,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     if automation is not possible.
 
     **Use case:** Compliance reporting — "which policies satisfy which controls?"
+
+    **Validation Rules:**
+    - standard must be a non-empty string
+    - standard should be a recognized compliance framework (GDPR, SOC2, ISO27001, HIPAA, PCI-DSS)
+    - requirementRef must be a non-empty string
+    - requirementRef format should match the standard's conventions
   end note
 
   ' ============================================================
@@ -1142,6 +1227,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - CreationActuationBehavioralRuleControl.stateObjectSourceMapping: Initial state
     - ModificationActuationBehavioralRuleControl.stateObjectSourceMapping: New state
 
+    **CSDSL text syntax (ObjectMapping):**
+    `MAP TO AlertEvent { severity = trigger.level, message = trigger.text }`
+
+    **CSDSL text syntax (PropertyMapping):**
+    `MAP target.processedAt = now()`
+
     **Target types:** EventArchetype OR StateObjectArchetype
     **Source types:** EventArchetype (via trigger/event.*) OR StateObjectArchetype
   end note
@@ -1160,6 +1251,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - targetPath: Path to the property in target archetype
     - sourceExpression: Value to assign (can be reference, literal, or computed)
 
+    **CSDSL text syntax:**
+    `MAP target.payload.processedAt = now()`
+    `MAP target.amount = trigger.quantity * trigger.unitPrice`
+
     **JSON:**
     ```json
     {
@@ -1174,6 +1269,12 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     ```
 
     **Interpretation:** Set target.payload.processedAt = now()
+
+    **Validation Rules:**
+    - targetPath must be a non-empty array of strings
+    - targetPath must refer to a valid property in the target archetype's schema
+    - source must be a valid ValueExpression
+    - (Runtime) source must evaluate to a type compatible with target property
   end note
 
   class ObjectMapping {
@@ -1190,6 +1291,15 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - targetArchetype: Name of the target EventArchetype or StateObjectArchetype
     - mappings: List of property mappings
 
+    **CSDSL text syntax:**
+    ```
+    MAP TO AlertEvent {
+      severity = trigger.level,
+      message = trigger.text,
+      timestamp = now()
+    }
+    ```
+
     **JSON:**
     ```json
     {
@@ -1198,11 +1308,11 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "mappings": [
         {
           "targetPath": ["severity"],
-          "source": { "archetypeName": "trigger", "propertyPath": ["level"] }
+          "source": { "name": "trigger", "propertyPath": ["level"] }
         },
         {
           "targetPath": ["message"],
-          "source": { "archetypeName": "trigger", "propertyPath": ["text"] }
+          "source": { "name": "trigger", "propertyPath": ["text"] }
         },
         {
           "targetPath": ["timestamp"],
@@ -1213,6 +1323,14 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     ```
 
     **Interpretation:** Create AlertEvent with explicit field mappings from trigger event.
+
+    **Validation Rules:**
+    - targetArchetype must be a non-empty string
+    - targetArchetype must be a valid EventArchetype or StateObjectArchetype name
+    - mappings must be a non-empty array
+    - Each mapping must be a valid PropertyMapping
+    - All required properties of target archetype should have mappings
+    - (Runtime) Each mapping source must evaluate to compatible type
   end note
 
   ' SpreadMapping REMOVED in v1.1
@@ -1303,7 +1421,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     needed for expression evaluation. The context is implicit.
 
     **In Policy expressions:**
-    References are to system properties via archetypeName (no special
+    References are to system properties via name (no special
     predefined variables). Example: `Service.latency`, `Component.replicas`
   end note
 
@@ -1377,10 +1495,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "type": "AndExpression",
       "operands": [
         { "type": "ComparisonExpression", "operator": "GREATER_THAN",
-          "left": { "archetypeName": "Service", "propertyPath": ["load"] },
+          "left": { "name": "Service", "propertyPath": ["load"] },
           "right": { "value": 80 } },
         { "type": "ComparisonExpression", "operator": "EQUALS",
-          "left": { "archetypeName": "Service", "propertyPath": ["status"] },
+          "left": { "name": "Service", "propertyPath": ["status"] },
           "right": { "value": "active" } }
       ]
     }

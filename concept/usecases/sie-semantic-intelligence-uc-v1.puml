@@ -1,0 +1,180 @@
+@startuml sie-semantic-intelligence-uc-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam actorBackgroundColor #FFFFFF
+skinparam actorBorderColor #57606A
+
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam usecaseBorderColor #57606A
+
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam rectangleBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+title UC - SIE Semantic Intelligence - v1
+
+' ============================================================
+' ACTORS
+' ============================================================
+
+actor "Policy Author" as PolicyAuthor
+actor "System Architect" as Architect
+actor "Developer" as Developer
+actor "Governance Officer" as GovOfficer
+actor "Business Analyst" as BA
+
+actor "CSDSL Engine" as CsdslEngine <<system>>
+actor "LLM Service" as LLM <<system>>
+actor "Knowledge Base" as KB <<system>>
+
+' ============================================================
+' USE CASES
+' ============================================================
+
+rectangle "Semantic Intelligence" {
+
+  ' --- Intent Recognition ---
+  package "Intent Recognition" {
+    usecase "Parse Natural Language\nPolicy Request" as UC_ParseNL
+    usecase "Identify Implicit\nGoals" as UC_ImplicitGoals
+    usecase "Map Business Objective\nto Constraint Pattern" as UC_MapObjective
+    usecase "Disambiguate Overlapping\nRequirements" as UC_Disambiguate
+  }
+
+  ' --- Contextual Interpretation ---
+  package "Contextual Interpretation" {
+    usecase "Resolve Ambiguous\nReferences" as UC_ResolveAmbiguous
+    usecase "Infer Missing\nParameters" as UC_InferParams
+    usecase "Adapt Semantics\nto Environment" as UC_AdaptSemantics
+    usecase "Translate Domain\nVocabulary" as UC_TranslateDomain
+  }
+
+  ' --- Similarity Analysis ---
+  package "Similarity Analysis" {
+    usecase "Find Semantically\nSimilar Constraints" as UC_FindSimilar
+    usecase "Identify Reusable\nPatterns" as UC_ReusablePatterns
+    usecase "Cluster Constraints\nby Intent" as UC_ClusterIntent
+    usecase "Suggest Templates\nfrom History" as UC_SuggestTemplates
+  }
+
+  ' --- Natural Language Generation ---
+  package "Natural Language Generation" {
+    usecase "Generate Plain Language\nExplanation" as UC_GenerateExplanation
+    usecase "Produce Stakeholder\nSummary" as UC_StakeholderSummary
+    usecase "Create Policy\nDocumentation" as UC_CreateDocs
+    usecase "Generate Onboarding\nMaterials" as UC_OnboardingMaterials
+  }
+}
+
+' ============================================================
+' RELATIONSHIPS - Actors to Use Cases
+' ============================================================
+
+' Policy Author interactions
+PolicyAuthor --> UC_ParseNL
+PolicyAuthor --> UC_MapObjective
+PolicyAuthor --> UC_SuggestTemplates
+PolicyAuthor --> UC_CreateDocs
+
+' Architect interactions
+Architect --> UC_ImplicitGoals
+Architect --> UC_FindSimilar
+Architect --> UC_ClusterIntent
+Architect --> UC_StakeholderSummary
+
+' Developer interactions
+Developer --> UC_ResolveAmbiguous
+Developer --> UC_TranslateDomain
+Developer --> UC_GenerateExplanation
+
+' Governance Officer interactions
+GovOfficer --> UC_Disambiguate
+GovOfficer --> UC_AdaptSemantics
+GovOfficer --> UC_ReusablePatterns
+GovOfficer --> UC_CreateDocs
+
+' Business Analyst interactions
+BA --> UC_ParseNL
+BA --> UC_MapObjective
+BA --> UC_StakeholderSummary
+
+' ============================================================
+' RELATIONSHIPS - System Actors
+' ============================================================
+
+UC_ParseNL --> LLM
+UC_ImplicitGoals --> LLM
+UC_MapObjective --> LLM
+UC_Disambiguate --> LLM
+UC_ResolveAmbiguous --> LLM
+UC_InferParams --> KB
+UC_AdaptSemantics --> LLM
+UC_TranslateDomain --> LLM
+UC_FindSimilar --> LLM
+UC_ReusablePatterns --> KB
+UC_ClusterIntent --> LLM
+UC_SuggestTemplates --> KB
+UC_GenerateExplanation --> LLM
+UC_StakeholderSummary --> LLM
+UC_CreateDocs --> LLM
+UC_OnboardingMaterials --> LLM
+
+UC_MapObjective --> CsdslEngine
+UC_ResolveAmbiguous --> CsdslEngine
+UC_FindSimilar --> CsdslEngine
+
+' ============================================================
+' RELATIONSHIPS - Include/Extend
+' ============================================================
+
+UC_ParseNL ..> UC_ImplicitGoals : <<include>>
+UC_MapObjective ..> UC_FindSimilar : <<extend>>
+UC_Disambiguate ..> UC_ResolveAmbiguous : <<include>>
+UC_CreateDocs ..> UC_GenerateExplanation : <<include>>
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of UC_ParseNL
+  **Example:** "Services handling PII
+  must not be accessible from
+  the internet"
+  
+  Parsed intent:
+  - Subject: Services with PII tag
+  - Constraint: Network exposure
+  - Requirement: Block public access
+end note
+
+note right of UC_FindSimilar
+  Uses embedding vectors to find
+  constraints with similar semantic
+  meaning, not just syntactic match.
+  
+  Enables "find me policies like this one"
+end note
+
+note right of UC_GenerateExplanation
+  Translates CSDSL:
+  `threshold(latency.p99, "<", 200ms)`
+  
+  To: "99th percentile response time
+  must stay under 200 milliseconds"
+end note
+
+@enduml

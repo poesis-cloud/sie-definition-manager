@@ -1,0 +1,202 @@
+@startuml sie-actuation-remediation-uc-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam actorBackgroundColor #FFFFFF
+skinparam actorBorderColor #57606A
+
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam usecaseBorderColor #57606A
+
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam rectangleBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+title UC - SIE Actuation & Remediation - v1
+
+' ============================================================
+' ACTORS
+' ============================================================
+
+actor "SRE Engineer" as SRE
+actor "Operations Manager" as OpsMgr
+actor "Security Officer" as SecOfficer
+actor "Platform Engineer" as PlatformEng
+actor "Incident Commander" as IncidentCmd
+
+actor "Behavioral Rule Engine" as RuleEngine <<system>>
+actor "Orchestrator" as Orchestrator <<system>>
+actor "Ticketing System" as Ticketing <<system>>
+actor "Configuration Store" as ConfigStore <<system>>
+
+' ============================================================
+' USE CASES
+' ============================================================
+
+rectangle "Actuation & Remediation" {
+
+  ' --- Closed Loop Control ---
+  package "Closed Loop Control" {
+    usecase "Monitor Constraint\nSatisfaction" as UC_MonitorSatisfaction
+    usecase "Trigger Behavioral\nRules on Deviation" as UC_TriggerRules
+    usecase "Adjust System State\nToward Compliance" as UC_AdjustState
+    usecase "Maintain Equilibrium\nvia Feedback" as UC_MaintainEquilibrium
+  }
+
+  ' --- Remediation Recommendation ---
+  package "Remediation Recommendation" {
+    usecase "Propose Concrete\nRemediation Steps" as UC_ProposeSteps
+    usecase "Rank Options by\nImpact and Cost" as UC_RankOptions
+    usecase "Consider Side Effects\nand Dependencies" as UC_ConsiderSideEffects
+    usecase "Provide Implementation\nGuidance" as UC_ProvideGuidance
+  }
+
+  ' --- Auto Healing ---
+  package "Auto Healing" {
+    usecase "Apply Pre-Approved\nFixes" as UC_PreApprovedFixes
+    usecase "Self-Correct\nConfiguration Drift" as UC_SelfCorrect
+    usecase "Restore Compliant\nState from Snapshot" as UC_RestoreSnapshot
+    usecase "Escalate When\nAuto-Healing Fails" as UC_EscalateFailure
+  }
+
+  ' --- Escalation Management ---
+  package "Escalation Management" {
+    usecase "Route Violations to\nResponders" as UC_RouteViolations
+    usecase "Escalate Based on\nSeverity/Duration" as UC_EscalateOnSeverity
+    usecase "Track Resolution\nSLAs" as UC_TrackSLAs
+    usecase "Manage Exception\nApproval Workflows" as UC_ExceptionWorkflows
+  }
+}
+
+' ============================================================
+' RELATIONSHIPS - Actors to Use Cases
+' ============================================================
+
+' SRE interactions
+SRE --> UC_MonitorSatisfaction
+SRE --> UC_TriggerRules
+SRE --> UC_ProposeSteps
+SRE --> UC_SelfCorrect
+SRE --> UC_RestoreSnapshot
+
+' Operations Manager interactions
+OpsMgr --> UC_RankOptions
+OpsMgr --> UC_TrackSLAs
+OpsMgr --> UC_ExceptionWorkflows
+OpsMgr --> UC_EscalateOnSeverity
+
+' Security Officer interactions
+SecOfficer --> UC_PreApprovedFixes
+SecOfficer --> UC_ConsiderSideEffects
+SecOfficer --> UC_RouteViolations
+SecOfficer --> UC_ExceptionWorkflows
+
+' Platform Engineer interactions
+PlatformEng --> UC_AdjustState
+PlatformEng --> UC_MaintainEquilibrium
+PlatformEng --> UC_ProvideGuidance
+PlatformEng --> UC_SelfCorrect
+
+' Incident Commander interactions
+IncidentCmd --> UC_EscalateFailure
+IncidentCmd --> UC_EscalateOnSeverity
+IncidentCmd --> UC_RouteViolations
+IncidentCmd --> UC_TrackSLAs
+
+' ============================================================
+' RELATIONSHIPS - System Actors
+' ============================================================
+
+UC_MonitorSatisfaction --> RuleEngine
+UC_TriggerRules --> RuleEngine
+UC_AdjustState --> Orchestrator
+UC_MaintainEquilibrium --> RuleEngine
+
+UC_ProposeSteps --> RuleEngine
+UC_RankOptions --> RuleEngine
+UC_ConsiderSideEffects --> RuleEngine
+UC_ProvideGuidance --> RuleEngine
+
+UC_PreApprovedFixes --> Orchestrator
+UC_SelfCorrect --> ConfigStore
+UC_RestoreSnapshot --> ConfigStore
+UC_EscalateFailure --> Ticketing
+
+UC_RouteViolations --> Ticketing
+UC_EscalateOnSeverity --> Ticketing
+UC_TrackSLAs --> Ticketing
+UC_ExceptionWorkflows --> Ticketing
+
+' ============================================================
+' RELATIONSHIPS - Include/Extend
+' ============================================================
+
+UC_TriggerRules ..> UC_MonitorSatisfaction : <<include>>
+UC_AdjustState ..> UC_TriggerRules : <<include>>
+UC_ProposeSteps ..> UC_ConsiderSideEffects : <<include>>
+UC_PreApprovedFixes ..> UC_EscalateFailure : <<extend>>
+UC_EscalateOnSeverity ..> UC_RouteViolations : <<include>>
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of UC_TriggerRules
+  **Behavioral Rule Example:**
+  
+  WHEN cpu_usage > 80% for 5m
+  AND auto_scale_enabled = true
+  THEN scale_up(replicas + 2)
+  
+  Triggered automatically by
+  constraint deviation detection
+end note
+
+note right of UC_ProposeSteps
+  **Remediation Recommendation:**
+  
+  Violation: TLS version < 1.2
+  
+  Option 1: Update nginx.conf (Low risk)
+  Option 2: Upgrade nginx (Med risk)
+  Option 3: Add TLS proxy (High effort)
+  
+  Recommended: Option 1
+end note
+
+note right of UC_SelfCorrect
+  **Auto-Healing Scenario:**
+  
+  Detected: Config drift on 3 nodes
+  Expected: max_connections=1000
+  Actual: max_connections=500
+  
+  Action: Restore from ConfigStore
+  Status: Corrected in 12s
+end note
+
+note right of UC_TrackSLAs
+  **SLA Tracking:**
+  
+  P1 Violations: 4h resolution
+  P2 Violations: 24h resolution
+  P3 Violations: 1 week resolution
+  
+  Current: 2 P2 nearing SLA breach
+  Alert: Escalation triggered
+end note
+
+@enduml

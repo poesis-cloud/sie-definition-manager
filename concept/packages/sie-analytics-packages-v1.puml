@@ -1,0 +1,780 @@
+@startuml sie-analytics-packages-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+frame "PD - SIE (Systemic Intelligence Engine) - Analytics Feature Packages - v1" {
+
+  note as OverviewNote
+    **SIE Analytics Feature Packages**
+
+    This diagram defines the analytical capabilities that differentiate SIE
+    from pure policy engines (like OPA/Rego) or pure expression evaluators
+    (like CEL).
+
+    SIE provides a **systemic intelligence platform** built on three pillars:
+    1. **CEL (CSDSL)**: Fast, type-safe constraint evaluation.
+    2. **LLM Integration**: Semantic understanding, generation, explanation.
+    3. **Analytical Engine**: Reasoning, impact analysis, coherence checking.
+
+    These packages work together to deliver:
+    - Understanding of *why* constraints exist (semantic layer)
+    - Analysis of *what happens if* constraints change (impact layer)
+    - Explanation of *how* decisions were made (trace layer)
+    - Recommendation of *what should change* (synthesis layer)
+  end note
+
+  ' ============================================================
+  ' SEMANTIC INTELLIGENCE (LLM-Powered)
+  ' ============================================================
+
+  package "Semantic Intelligence" as SemanticIntelligence {
+
+    note as SemanticNote
+      **LLM-powered semantic understanding layer.**
+
+      Provides capabilities that require understanding of
+      meaning, intent, and business context beyond what
+      pure symbolic reasoning can achieve.
+    end note
+
+    package "Intent Recognition" as IntentRecognition {
+      note as IntentNote
+        Understands *what* a user or system wants to achieve.
+
+        - Parses natural language requests into structured intents
+        - Identifies implicit goals from partial specifications
+        - Maps business objectives to constraint patterns
+        - Disambiguates overlapping or conflicting requirements
+      end note
+    }
+
+    package "Contextual Interpretation" as ContextualInterpretation {
+      note as ContextNote
+        Interprets constraints and policies in context.
+
+        - Resolves ambiguous references using domain knowledge
+        - Infers missing parameters from organizational context
+        - Adapts constraint semantics to specific environments
+        - Translates between domain-specific vocabularies
+      end note
+    }
+
+    package "Similarity Analysis" as SimilarityAnalysis {
+      note as SimilarityNote
+        Finds analogies and patterns across constraints.
+
+        - Detects semantically similar constraints (not just syntactic)
+        - Identifies reusable constraint patterns from history
+        - Clusters constraints by business intent
+        - Suggests constraint templates based on similar use cases
+      end note
+    }
+
+    package "Natural Language Generation" as NaturalLanguageGeneration {
+      note as NLGNote
+        Generates human-readable explanations and documentation.
+
+        - Translates CSDSL constraints to plain language
+        - Generates documentation from constraint definitions
+        - Produces stakeholder-specific summaries
+        - Creates onboarding materials for new policies
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' SYSTEMIC REASONING
+  ' ============================================================
+
+  package "Systemic Reasoning" as SystemicReasoning {
+
+    note as SystemicNote
+      **Cross-domain causal reasoning engine.**
+
+      Performs systemic analysis that spans multiple domains,
+      components, and abstraction levels to understand
+      emergent behaviors and cascading effects.
+    end note
+
+    package "Cross-Domain Impact Analysis" as CrossDomainImpact {
+      note as CrossDomainNote
+        Traces impacts across domain boundaries.
+
+        - Maps effects from code changes to business outcomes
+        - Correlates infrastructure events with service degradation
+        - Identifies hidden dependencies between systems
+        - Quantifies risk propagation across organizational units
+      end note
+    }
+
+    package "Blast Radius Calculation" as BlastRadius {
+      note as BlastNote
+        Computes the scope of potential disruption.
+
+        - Identifies all affected components from a change
+        - Estimates severity and likelihood of cascading failures
+        - Ranks components by blast radius criticality
+        - Provides isolation recommendations
+      end note
+    }
+
+    package "Dependency Chain Traversal" as DependencyTraversal {
+      note as DependencyNote
+        Navigates complex dependency graphs.
+
+        - Resolves transitive dependencies to arbitrary depth
+        - Detects circular dependency risks
+        - Identifies single points of failure
+        - Maps capability dependencies to deployment artifacts
+      end note
+    }
+
+    package "Risk Propagation Modeling" as RiskPropagation {
+      note as RiskNote
+        Models how risks flow through systems.
+
+        - Calculates compound risk from multiple sources
+        - Simulates risk scenarios and their outcomes
+        - Identifies risk amplification points
+        - Recommends risk mitigation strategies
+      end note
+    }
+
+    package "Emergence Detection" as EmergenceDetection {
+      note as EmergenceNote
+        Detects emergent behaviors from component interactions.
+
+        - Identifies behaviors not predictable from individual rules
+        - Detects feedback loops and their stability
+        - Flags potential emergent failures
+        - Monitors for unintended constraint interactions
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' TEMPORAL ANALYTICS
+  ' ============================================================
+
+  package "Temporal Analytics" as TemporalAnalytics {
+
+    note as TemporalNote
+      **Time-aware analysis and prediction layer.**
+
+      Most policy engines evaluate point-in-time state.
+      SIE understands history, trends, and future projections.
+    end note
+
+    package "Trend Detection" as TrendDetection {
+      note as TrendNote
+        Identifies patterns and trajectories over time.
+
+        - Detects improving or degrading quality trends
+        - Identifies seasonal patterns in constraint violations
+        - Flags accelerating deviation from targets
+        - Correlates trends across related metrics
+      end note
+    }
+
+    package "Historical Correlation" as HistoricalCorrelation {
+      note as HistoricalNote
+        Correlates current issues with historical events.
+
+        - Links current violations to past root causes
+        - Identifies recurring failure patterns
+        - Suggests fixes based on historical resolutions
+        - Builds institutional memory of constraint evolution
+      end note
+    }
+
+    package "Forecasting" as Forecasting {
+      note as ForecastNote
+        Predicts future state and potential violations.
+
+        - Projects when thresholds will be breached
+        - Estimates time-to-violation for degrading metrics
+        - Forecasts resource exhaustion
+        - Predicts compliance drift
+      end note
+    }
+
+    package "Drift Detection" as DriftDetection {
+      note as DriftNote
+        Detects deviation from expected patterns.
+
+        - Identifies configuration drift from desired state
+        - Detects behavioral drift from established baselines
+        - Flags semantic drift in constraint interpretation
+        - Monitors for policy erosion over time
+      end note
+    }
+
+    package "Anomaly Detection" as AnomalyDetection {
+      note as AnomalyNote
+        Identifies unusual patterns requiring attention.
+
+        - Detects outliers in constraint evaluation results
+        - Flags unexpected constraint interaction patterns
+        - Identifies sudden changes in system behavior
+        - Distinguishes normal variation from true anomalies
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' CONSTRAINT INTELLIGENCE
+  ' ============================================================
+
+  package "Constraint Intelligence" as ConstraintIntelligence {
+
+    note as ConstraintNote
+      **Constraint analysis and synthesis layer.**
+
+      Beyond evaluating constraints, SIE can analyze,
+      generate, and optimize constraint definitions.
+    end note
+
+    package "Constraint Synthesis" as ConstraintSynthesis {
+      note as SynthesisNote
+        Generates new constraints from requirements.
+
+        - Translates natural language policies to CSDSL
+        - Infers constraints from observed good behavior
+        - Generates constraint variants for different contexts
+        - Proposes constraints to close identified gaps
+      end note
+    }
+
+    package "Gap Analysis" as GapAnalysis {
+      note as GapNote
+        Identifies missing or incomplete constraints.
+
+        - Detects unconstrained critical paths
+        - Identifies missing quality attribute coverage
+        - Flags orphan components without governance
+        - Recommends additional constraints for completeness
+      end note
+    }
+
+    package "Conflict Detection" as ConflictDetection {
+      note as ConflictNote
+        Identifies contradictory or competing constraints.
+
+        - Detects logically contradictory constraint pairs
+        - Identifies resource competition between constraints
+        - Flags priority conflicts requiring resolution
+        - Suggests conflict resolution strategies
+      end note
+    }
+
+    package "Coherence Validation" as CoherenceValidation {
+      note as CoherenceNote
+        Validates that constraints form a consistent whole.
+
+        - Checks for semantic consistency across constraints
+        - Validates alignment with organizational policies
+        - Ensures constraints support stated objectives
+        - Detects misaligned constraint evolution
+      end note
+    }
+
+    package "Coverage Analysis" as CoverageAnalysis {
+      note as CoverageNote
+        Measures constraint coverage of the system.
+
+        - Calculates what percentage of components are governed
+        - Measures coverage by quality attribute category
+        - Identifies coverage gaps by criticality tier
+        - Tracks coverage improvement over time
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' EXPLANATION ENGINE
+  ' ============================================================
+
+  package "Explanation Engine" as ExplanationEngine {
+
+    note as ExplanationNote
+      **Decision explanation and trace layer.**
+
+      A key differentiator: SIE doesn't just say "denied"—
+      it explains *why*, traces *how*, and suggests *what if*.
+    end note
+
+    package "Decision Explanation" as DecisionExplanation {
+      note as DecisionNote
+        Explains why a decision was made.
+
+        - Provides human-readable decision justifications
+        - Links decisions to governing policies
+        - Identifies the specific constraint(s) that triggered
+        - Generates stakeholder-appropriate explanations
+      end note
+    }
+
+    package "Evaluation Trace" as EvaluationTrace {
+      note as TraceNote
+        Traces the full evaluation path.
+
+        - Captures step-by-step constraint evaluation
+        - Records intermediate values and decisions
+        - Provides debuggable evaluation logs
+        - Supports replay and comparison
+      end note
+    }
+
+    package "Causal Attribution" as CausalAttribution {
+      note as CausalNote
+        Attributes outcomes to specific causes.
+
+        - Identifies root cause constraints
+        - Distinguishes necessary vs. sufficient conditions
+        - Ranks contributing factors by impact
+        - Builds causal chains from inputs to decisions
+      end note
+    }
+
+    package "Counterfactual Reasoning" as CounterfactualReasoning {
+      note as CounterfactualNote
+        Answers "what if" questions about decisions.
+
+        - Explains what would change the decision
+        - Identifies minimal changes for different outcomes
+        - Simulates alternative scenarios
+        - Supports policy impact previews
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' MULTI-STAKEHOLDER VIEWS
+  ' ============================================================
+
+  package "Multi-Stakeholder Views" as MultiStakeholderViews {
+
+    note as StakeholderNote
+      **Role-specific perspectives on systemic state.**
+
+      Different stakeholders need different views of the
+      same underlying constraints and compliance data.
+    end note
+
+    package "Developer View" as DeveloperView {
+      note as DevNote
+        Technical, actionable information for developers.
+
+        - Specific constraint violations with code locations
+        - Quick-fix suggestions with code snippets
+        - Integration patterns and examples
+        - Local testing and validation tools
+      end note
+    }
+
+    package "Architect View" as ArchitectView {
+      note as ArchNote
+        Strategic view of architectural compliance.
+
+        - Cross-system constraint alignment
+        - Architectural debt and drift indicators
+        - Pattern compliance dashboards
+        - Evolution roadmap impacts
+      end note
+    }
+
+    package "Executive View" as ExecutiveView {
+      note as ExecNote
+        Business-level risk and compliance summary.
+
+        - Aggregated compliance scores
+        - Business risk indicators
+        - Trend summaries and forecasts
+        - Investment prioritization guidance
+      end note
+    }
+
+    package "Auditor View" as AuditorView {
+      note as AuditNote
+        Evidence and compliance documentation.
+
+        - Audit trails and decision logs
+        - Compliance evidence packages
+        - Policy attestation records
+        - Regulatory mapping reports
+      end note
+    }
+
+    package "Governance View" as GovernanceView {
+      note as GovNote
+        Policy management and oversight perspective.
+
+        - Policy effectiveness metrics
+        - Exception tracking and management
+        - Constraint evolution history
+        - Governance process compliance
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' ACTUATION & REMEDIATION
+  ' ============================================================
+
+  package "Actuation & Remediation" as ActuationRemediation {
+
+    note as ActuationNote
+      **Closed-loop control and automated response.**
+
+      SIE doesn't just detect violations—it can trigger
+      remediation actions through BehavioralRules.
+    end note
+
+    package "Closed Loop Control" as ClosedLoopControl {
+      note as ClosedNote
+        Continuous monitoring and adjustment.
+
+        - Monitors constraint satisfaction continuously
+        - Triggers behavioral rules on deviation
+        - Adjusts system state toward compliance
+        - Maintains equilibrium through feedback
+      end note
+    }
+
+    package "Remediation Recommendation" as RemediationRecommendation {
+      note as RemedNote
+        Suggests specific actions to resolve violations.
+
+        - Proposes concrete remediation steps
+        - Ranks remediation options by impact and cost
+        - Considers side effects and dependencies
+        - Provides implementation guidance
+      end note
+    }
+
+    package "Auto Healing" as AutoHealing {
+      note as HealNote
+        Automated response to known violation patterns.
+
+        - Applies pre-approved fixes automatically
+        - Self-corrects configuration drift
+        - Restores compliant state from snapshots
+        - Escalates when auto-healing fails
+      end note
+    }
+
+    package "Escalation Management" as EscalationManagement {
+      note as EscalationNote
+        Manages issues requiring human intervention.
+
+        - Routes violations to appropriate responders
+        - Escalates based on severity and duration
+        - Tracks resolution SLAs
+        - Manages exception approval workflows
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' DECISION INTELLIGENCE
+  ' ============================================================
+
+  package "Decision Intelligence" as DecisionIntelligence {
+
+    note as DecisionIntNote
+      **Decision capture, audit, and compliance layer.**
+
+      Every decision made by SIE is captured, traceable,
+      and available for audit and analysis.
+    end note
+
+    package "Decision Logging" as DecisionLogging {
+      note as LoggingNote
+        Captures all constraint evaluation decisions.
+
+        - Records decision context, inputs, and outputs
+        - Preserves constraint versions used
+        - Links decisions to triggering events
+        - Supports decision replay and comparison
+      end note
+    }
+
+    package "Audit Trail" as AuditTrail {
+      note as AuditTrailNote
+        Maintains immutable history for compliance.
+
+        - Provides tamper-evident decision records
+        - Supports time-based audit queries
+        - Preserves chain of custody for decisions
+        - Enables forensic analysis of past states
+      end note
+    }
+
+    package "Compliance Reporting" as ComplianceReporting {
+      note as ComplianceNote
+        Generates compliance reports for stakeholders.
+
+        - Produces regulatory compliance attestations
+        - Generates periodic compliance summaries
+        - Creates evidence packages for audits
+        - Maps decisions to compliance frameworks
+      end note
+    }
+
+    package "Evidence Preservation" as EvidencePreservation {
+      note as EvidenceNote
+        Preserves evidence for legal and regulatory needs.
+
+        - Archives decision artifacts with metadata
+        - Maintains legally defensible records
+        - Supports e-discovery requirements
+        - Manages retention policies
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' GRAPH ANALYTICS
+  ' ============================================================
+
+  package "Graph Analytics" as GraphAnalytics {
+
+    note as GraphNote
+      **Dependency and relationship analysis layer.**
+
+      Systems are graphs. Understanding the graph structure
+      is essential for systemic reasoning.
+    end note
+
+    package "Impact Visualization" as ImpactVisualization {
+      note as ImpactVizNote
+        Visualizes change impacts across the graph.
+
+        - Renders dependency graphs with impact highlighting
+        - Shows propagation paths for changes
+        - Supports interactive exploration
+        - Generates impact summary diagrams
+      end note
+    }
+
+    package "What If Analysis" as WhatIfAnalysis {
+      note as WhatIfNote
+        Simulates the effects of proposed changes.
+
+        - Evaluates constraints against hypothetical states
+        - Compares current vs. proposed outcomes
+        - Identifies unintended consequences
+        - Supports change approval workflows
+      end note
+    }
+
+    package "Bottleneck Detection" as BottleneckDetection {
+      note as BottleneckNote
+        Identifies constraint and flow bottlenecks.
+
+        - Detects governance bottlenecks (over-constrained)
+        - Identifies performance bottlenecks
+        - Flags approval process bottlenecks
+        - Recommends bottleneck relief strategies
+      end note
+    }
+
+    package "Coupling Metrics" as CouplingMetrics {
+      note as CouplingNote
+        Measures and manages system coupling.
+
+        - Calculates afferent and efferent coupling
+        - Identifies highly coupled components
+        - Tracks coupling trends over time
+        - Recommends decoupling strategies
+      end note
+    }
+
+    package "Critical Path Analysis" as CriticalPathAnalysis {
+      note as CriticalNote
+        Identifies critical paths through the system.
+
+        - Determines constraint evaluation critical paths
+        - Identifies single points of governance failure
+        - Maps critical business capability paths
+        - Prioritizes resilience investments
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' POLICY INTELLIGENCE
+  ' ============================================================
+
+  package "Policy Intelligence" as PolicyIntelligence {
+
+    note as PolicyIntNote
+      **Policy lifecycle and management layer.**
+
+      Manages the full policy lifecycle from creation
+      through translation, deployment, and retirement.
+    end note
+
+    package "Policy Translation" as PolicyTranslation {
+      note as TranslationNote
+        Translates between policy representations.
+
+        - Converts high-level policies to CSDSL rules
+        - Maps regulatory requirements to constraints
+        - Translates between compliance frameworks
+        - Bridges business and technical policy languages
+      end note
+    }
+
+    package "Rule Operationalization" as RuleOperationalization {
+      note as OperationNote
+        Makes abstract rules executable.
+
+        - Binds rule definitions to specific contexts
+        - Generates behavioral rules from definitions
+        - Configures rule execution parameters
+        - Validates rule operationalizability
+      end note
+    }
+
+    package "Policy Versioning" as PolicyVersioning {
+      note as VersionNote
+        Manages policy evolution over time.
+
+        - Tracks policy versions with full history
+        - Supports policy branching for testing
+        - Manages policy deprecation workflows
+        - Ensures backward compatibility
+      end note
+    }
+
+    package "Policy Simulation" as PolicySimulation {
+      note as SimulationNote
+        Simulates policy effects before deployment.
+
+        - Dry-runs policies against historical data
+        - Predicts violation rates for new policies
+        - Compares policy variants
+        - Identifies policy interaction effects
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' KNOWLEDGE MANAGEMENT
+  ' ============================================================
+
+  package "Knowledge Management" as KnowledgeManagement {
+
+    note as KnowledgeNote
+      **Organizational knowledge capture and reuse.**
+
+      SIE learns from decisions and builds a growing
+      knowledge base of patterns, rationale, and expertise.
+    end note
+
+    package "Constraint Pattern Library" as ConstraintPatternLibrary {
+      note as PatternNote
+        Curated library of reusable constraint patterns.
+
+        - Catalogs proven constraint templates
+        - Provides domain-specific pattern packs
+        - Supports custom organizational patterns
+        - Enables pattern-based constraint authoring
+      end note
+    }
+
+    package "Rationale Capture" as RationaleCapture {
+      note as RationaleNote
+        Captures the "why" behind constraints.
+
+        - Records constraint design rationale
+        - Links constraints to business justifications
+        - Preserves decision-making context
+        - Supports rationale-based search
+      end note
+    }
+
+    package "Expertise Encoding" as ExpertiseEncoding {
+      note as ExpertiseNote
+        Encodes domain expertise into the system.
+
+        - Captures expert heuristics as constraints
+        - Documents tribal knowledge formally
+        - Supports knowledge transfer workflows
+        - Enables expertise-based recommendations
+      end note
+    }
+
+    package "Learning From Decisions" as LearningFromDecisions {
+      note as LearningNote
+        Improves recommendations based on outcomes.
+
+        - Tracks decision effectiveness over time
+        - Identifies successful constraint patterns
+        - Learns from remediation outcomes
+        - Refines recommendations based on feedback
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' DEPENDENCIES
+  ' ============================================================
+
+  ' Semantic Intelligence feeds into many other packages
+  SemanticIntelligence ..> ConstraintIntelligence : enables\ngeneration
+  SemanticIntelligence ..> ExplanationEngine : enables\nexplanation
+  SemanticIntelligence ..> MultiStakeholderViews : enables\nadaptation
+
+  ' Systemic Reasoning uses Graph Analytics
+  SystemicReasoning ..> GraphAnalytics : uses
+
+  ' Temporal Analytics feeds predictions
+  TemporalAnalytics ..> SystemicReasoning : informs\nrisk models
+  TemporalAnalytics ..> ActuationRemediation : triggers\npreventive action
+
+  ' Constraint Intelligence uses Semantic Intelligence
+  ConstraintIntelligence ..> SemanticIntelligence : uses for\ngeneration
+  ConstraintIntelligence ..> GraphAnalytics : uses for\ncoverage
+
+  ' Explanation Engine integrates multiple sources
+  ExplanationEngine ..> DecisionIntelligence : sources\ndecisions
+  ExplanationEngine ..> SemanticIntelligence : uses for\ngeneration
+
+  ' Policy Intelligence uses multiple capabilities
+  PolicyIntelligence ..> ConstraintIntelligence : uses for\nvalidation
+  PolicyIntelligence ..> SemanticIntelligence : uses for\ntranslation
+  PolicyIntelligence ..> TemporalAnalytics : uses for\nsimulation
+
+  ' Actuation uses analysis results
+  ActuationRemediation ..> SystemicReasoning : uses\nimpact analysis
+  ActuationRemediation ..> ConstraintIntelligence : uses\nrecommendations
+
+  ' Knowledge Management connects to learning
+  KnowledgeManagement ..> SemanticIntelligence : enables\nsimilarity
+  KnowledgeManagement ..> DecisionIntelligence : learns from\ndecisions
+
+  ' Decision Intelligence supports audit chain
+  DecisionIntelligence ..> MultiStakeholderViews : supports\nauditor view
+}
+
+@enduml

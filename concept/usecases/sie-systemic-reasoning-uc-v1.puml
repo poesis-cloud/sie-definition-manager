@@ -1,0 +1,197 @@
+@startuml sie-systemic-reasoning-uc-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam actorBackgroundColor #FFFFFF
+skinparam actorBorderColor #57606A
+
+skinparam usecaseBackgroundColor #F6F8FA
+skinparam usecaseBorderColor #57606A
+
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam rectangleBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+title UC - SIE Systemic Reasoning - v1
+
+' ============================================================
+' ACTORS
+' ============================================================
+
+actor "System Architect" as Architect
+actor "SRE Engineer" as SRE
+actor "Risk Manager" as RiskMgr
+actor "Change Manager" as ChangeMgr
+actor "Security Officer" as SecOfficer
+
+actor "Graph Database" as GraphDB <<system>>
+actor "CSDM Repository" as CsdmRepo <<system>>
+actor "Event Stream" as Events <<system>>
+
+' ============================================================
+' USE CASES
+' ============================================================
+
+rectangle "Systemic Reasoning" {
+
+  ' --- Cross-Domain Impact Analysis ---
+  package "Cross-Domain Impact Analysis" {
+    usecase "Map Code Change\nto Business Outcome" as UC_CodeToBusiness
+    usecase "Correlate Infra Events\nto Service Degradation" as UC_InfraToService
+    usecase "Identify Hidden\nDependencies" as UC_HiddenDeps
+    usecase "Quantify Risk\nPropagation" as UC_RiskQuantify
+  }
+
+  ' --- Blast Radius Calculation ---
+  package "Blast Radius Calculation" {
+    usecase "Identify All\nAffected Components" as UC_AffectedComponents
+    usecase "Estimate Cascade\nSeverity" as UC_CascadeSeverity
+    usecase "Rank Components by\nBlast Criticality" as UC_RankCriticality
+    usecase "Recommend Component\nIsolation" as UC_RecommendIsolation
+  }
+
+  ' --- Dependency Chain Traversal ---
+  package "Dependency Chain Traversal" {
+    usecase "Resolve Transitive\nDependencies" as UC_TransitiveDeps
+    usecase "Detect Circular\nDependency Risks" as UC_CircularDeps
+    usecase "Identify Single\nPoints of Failure" as UC_SPOF
+    usecase "Map Capability to\nDeployment" as UC_CapToDeployment
+  }
+
+  ' --- Risk Propagation Modeling ---
+  package "Risk Propagation Modeling" {
+    usecase "Calculate Compound\nRisk" as UC_CompoundRisk
+    usecase "Simulate Risk\nScenarios" as UC_SimulateRisk
+    usecase "Identify Risk\nAmplification Points" as UC_RiskAmplify
+    usecase "Recommend Risk\nMitigation" as UC_RiskMitigation
+  }
+
+  ' --- Emergence Detection ---
+  package "Emergence Detection" {
+    usecase "Detect Unpredictable\nBehaviors" as UC_UnpredictableBehavior
+    usecase "Identify Feedback\nLoop Stability" as UC_FeedbackStability
+    usecase "Flag Emergent\nFailures" as UC_EmergentFailures
+    usecase "Monitor Constraint\nInteractions" as UC_ConstraintInteractions
+  }
+}
+
+' ============================================================
+' RELATIONSHIPS - Actors to Use Cases
+' ============================================================
+
+' Architect interactions
+Architect --> UC_CodeToBusiness
+Architect --> UC_HiddenDeps
+Architect --> UC_TransitiveDeps
+Architect --> UC_SPOF
+Architect --> UC_CapToDeployment
+
+' SRE interactions
+SRE --> UC_InfraToService
+SRE --> UC_AffectedComponents
+SRE --> UC_CascadeSeverity
+SRE --> UC_FeedbackStability
+SRE --> UC_EmergentFailures
+
+' Risk Manager interactions
+RiskMgr --> UC_RiskQuantify
+RiskMgr --> UC_CompoundRisk
+RiskMgr --> UC_SimulateRisk
+RiskMgr --> UC_RiskAmplify
+RiskMgr --> UC_RiskMitigation
+
+' Change Manager interactions
+ChangeMgr --> UC_AffectedComponents
+ChangeMgr --> UC_RankCriticality
+ChangeMgr --> UC_RecommendIsolation
+ChangeMgr --> UC_CircularDeps
+
+' Security Officer interactions
+SecOfficer --> UC_HiddenDeps
+SecOfficer --> UC_SPOF
+SecOfficer --> UC_RiskAmplify
+SecOfficer --> UC_ConstraintInteractions
+
+' ============================================================
+' RELATIONSHIPS - System Actors
+' ============================================================
+
+UC_CodeToBusiness --> GraphDB
+UC_InfraToService --> Events
+UC_HiddenDeps --> GraphDB
+UC_RiskQuantify --> CsdmRepo
+
+UC_AffectedComponents --> GraphDB
+UC_CascadeSeverity --> CsdmRepo
+UC_RankCriticality --> CsdmRepo
+
+UC_TransitiveDeps --> GraphDB
+UC_CircularDeps --> GraphDB
+UC_SPOF --> GraphDB
+UC_CapToDeployment --> CsdmRepo
+
+UC_CompoundRisk --> CsdmRepo
+UC_SimulateRisk --> CsdmRepo
+
+UC_UnpredictableBehavior --> Events
+UC_FeedbackStability --> Events
+UC_EmergentFailures --> Events
+UC_ConstraintInteractions --> CsdmRepo
+
+' ============================================================
+' RELATIONSHIPS - Include/Extend
+' ============================================================
+
+UC_AffectedComponents ..> UC_TransitiveDeps : <<include>>
+UC_CascadeSeverity ..> UC_RiskQuantify : <<include>>
+UC_SimulateRisk ..> UC_AffectedComponents : <<include>>
+UC_EmergentFailures ..> UC_ConstraintInteractions : <<include>>
+UC_RecommendIsolation ..> UC_RankCriticality : <<include>>
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of UC_AffectedComponents
+  **Blast Radius Example:**
+  Change to AuthService affects:
+  - 12 direct dependents
+  - 47 transitive dependents
+  - 3 external integrations
+  
+  Severity: HIGH
+  Recommended: Staged rollout
+end note
+
+note right of UC_SPOF
+  Single Point of Failure detection:
+  - No redundancy
+  - High fan-in (many dependents)
+  - Critical path component
+  
+  Triggers architectural review
+end note
+
+note right of UC_FeedbackStability
+  Monitors for:
+  - Positive feedback (amplification)
+  - Negative feedback (dampening)
+  - Oscillation patterns
+  
+  Critical for auto-scaling stability
+end note
+
+@enduml
