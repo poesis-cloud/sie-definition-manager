@@ -1,0 +1,164 @@
+@startuml sie-constraint-flow-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam participantBackgroundColor #F6F8FA
+skinparam participantBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+skinparam sequenceLifeLineBorderColor #57606A
+skinparam sequenceMessageAlign center
+
+title SIE - Constraint Authoring & Evaluation Flow - v1
+
+' ============================================================
+' PARTICIPANTS
+' ============================================================
+
+actor "Policy Author" as Author
+participant "Intent Parser\n(LLM)" as IntentParser
+participant "CSDSL Parser" as Parser
+participant "CSDSL Validator" as Validator
+participant "Conflict Detector\n(SMT)" as ConflictDetector
+participant "CEL Transpiler" as Transpiler
+participant "SDM\n(Definition Manager)" as SDM #B8E8B8
+database "CSDM Repository" as Repo
+participant "CEL Runtime" as CEL
+participant "Decision Logger" as Logger
+participant "Explanation\nGenerator (LLM)" as Explainer
+
+' ============================================================
+' CONSTRAINT AUTHORING FLOW
+' ============================================================
+
+== Constraint Authoring ==
+
+Author -> IntentParser : "APIs must respond\nwithin 200ms p99"
+
+activate IntentParser
+IntentParser -> IntentParser : Extract intent:\n- Subject: APIs\n- Metric: latency.p99\n- Threshold: 200ms
+IntentParser --> Author : Proposed CSDSL:\n`threshold(latency.p99, "<", 200ms)`
+deactivate IntentParser
+
+Author -> Parser : Submit CSDSL constraint
+
+activate Parser
+Parser -> Parser : Parse AST
+Parser --> Validator : AST
+deactivate Parser
+
+activate Validator
+Validator -> Validator : Validate:\n- Syntax correctness\n- Type checking\n- Reference resolution
+Validator --> ConflictDetector : Valid constraint + context
+deactivate Validator
+
+activate ConflictDetector
+ConflictDetector -> ConflictDetector : Check against\nexisting constraints
+note right of ConflictDetector
+  Uses SMT solver (Z3) to detect:
+  - Logical contradictions
+  - Resource conflicts
+  - Unreachable conditions
+end note
+
+alt Conflict Detected
+  ConflictDetector --> Author : Conflict: "Contradicts\nPolicy P-2341"
+else No Conflict
+  ConflictDetector --> Transpiler : Approved constraint
+end
+deactivate ConflictDetector
+
+activate Transpiler
+Transpiler -> Transpiler : Transpile CSDSL → CEL
+note right of Transpiler
+  CSDSL extensions decomposed
+  to CEL primitives
+end note
+Transpiler --> SDM : Submit:\n- CSDSL source\n- CEL compiled\n- Metadata
+deactivate Transpiler
+
+activate SDM
+SDM -> SDM : Validate version\n& assign ID
+SDM -> Repo : Persist
+SDM -> SDM : Notify subscribers
+SDM --> Author : Constraint P-4521 active
+deactivate SDM
+
+' ============================================================
+' CONSTRAINT EVALUATION FLOW
+' ============================================================
+
+== Runtime Evaluation ==
+
+participant "Event Source" as Events
+participant "State Store" as State
+participant "Policy Evaluator" as Evaluator
+
+Events -> State : State change event:\nservice.latency.p99 = 250ms
+
+State -> Evaluator : Evaluate constraints\nfor service context
+
+activate Evaluator
+Evaluator -> SDM : Load applicable\nconstraints for context
+activate SDM
+SDM -> Repo : Query matching definitions
+Repo --> SDM : [definitions]
+SDM --> Evaluator : [P-4521, P-4522, ...]
+deactivate SDM
+
+Evaluator -> CEL : Evaluate CEL expression
+activate CEL
+CEL -> CEL : threshold(250, "<", 200)\n→ false
+CEL --> Evaluator : VIOLATION
+deactivate CEL
+
+Evaluator -> Logger : Log decision
+activate Logger
+Logger -> Logger : Record:\n- Context\n- Constraint version\n- Input values\n- Result
+
+Logger -> Explainer : Generate explanation
+activate Explainer
+Explainer -> Explainer : "Service 'order-api'\nviolated latency policy:\np99 (250ms) > 200ms limit"
+Explainer --> Logger : Human-readable\nexplanation
+deactivate Explainer
+
+Logger --> Evaluator : Decision logged
+deactivate Logger
+
+Evaluator --> Events : Violation event:\nP-4521, order-api
+
+deactivate Evaluator
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note over Author, IntentParser
+  **Natural Language → CSDSL**
+  LLM understands business intent
+  and proposes well-formed constraints
+end note
+
+note over CEL
+  **Sub-millisecond Evaluation**
+  CEL is optimized for high-throughput
+  policy evaluation at runtime
+end note
+
+note over Explainer
+  **Why, not just What**
+  Every decision includes a
+  human-readable explanation
+end note
+
+@enduml

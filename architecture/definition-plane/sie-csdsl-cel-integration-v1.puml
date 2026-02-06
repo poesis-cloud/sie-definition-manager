@@ -1,0 +1,180 @@
+@startuml sie-csdsl-cel-integration-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam component {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+  FontStyle bold
+}
+
+skinparam interface {
+  BackgroundColor #D4EDDA
+  BorderColor #57606A
+}
+
+skinparam note {
+  BackgroundColor #FFF8C5
+  BorderColor #57606A
+}
+
+' Use UML2 component style with icon
+skinparam componentStyle uml2
+
+title CD - CSDSL/CEL Integration - v1
+
+' ============================================================
+' PROVIDED INTERFACES
+' ============================================================
+
+() "CSDSL Expressions" as ICSDSL
+() "Compiled CEL" as ICompiledCEL
+
+' ============================================================
+' CSDSL LAYER (SIE Domain Extensions)
+' ============================================================
+
+component "CSDSL Layer" as CSDSLLayer <<SIE Domain>> {
+  
+  component "Constraint Expressions" as Constraints {
+    component "ThresholdConstraint" as Threshold
+    component "InvariantConstraint" as Invariant
+    component "DependencyConstraint" as Dependency
+    component "CardinalityConstraint" as Cardinality
+  }
+  
+  component "Selector Expressions" as Selectors {
+    component "StateObjectSelector" as Selector
+    component "PropertyPath" as PropPath
+    component "FilterExpression" as Filter
+  }
+  
+  component "Mapping Expressions" as Mappings {
+    component "SourceMapping" as SourceMap
+    component "PropertyMapping" as PropMap
+    component "ObjectMapping" as ObjMap
+  }
+}
+
+' ============================================================
+' TRANSPILATION ENGINE
+' ============================================================
+
+component "Transpilation Engine" as Transpiler {
+  component "CSDSL Parser" as Parser
+  component "AST Transformer" as ASTTransform
+  component "CEL Code Generator" as CodeGen
+  component "Compilation Cache" as Cache
+}
+
+' ============================================================
+' CEL LAYER (Google Standard)
+' ============================================================
+
+component "CEL Layer" as CELLayer <<Google Standard>> {
+  
+  component "Logical Operators" as LogicalOps {
+    component "And / Or / Not" as LogicOps
+  }
+  
+  component "Comparison Operators" as CompareOps {
+    component "==, !=, <, >, <=, >=" as Comparisons
+    component "in, matches" as Matchers
+  }
+  
+  component "Primitives" as Primitives {
+    component "Literals" as Literals
+    component "References" as Refs
+    component "FunctionCalls" as FuncCalls
+  }
+}
+
+' ============================================================
+' CEL RUNTIME
+' ============================================================
+
+component "CEL Runtime" as CELRuntime <<go-cel>> {
+  component "Environment" as Env
+  component "Type Registry" as TypeReg
+  component "Function Registry" as FuncReg
+  component "Expression Evaluator" as Evaluator
+}
+
+' ============================================================
+' ASSEMBLY CONNECTORS
+' ============================================================
+
+' CSDSL Layer provides expressions
+CSDSLLayer - ICSDSL
+Transpiler ..> ICSDSL
+
+' Cache provides compiled CEL
+Cache - ICompiledCEL
+CELRuntime ..> ICompiledCEL
+
+' Required interface for CEL primitives
+() "CEL Primitives" as ICELPrimitives
+CELLayer - ICELPrimitives
+CodeGen ..> ICELPrimitives
+
+' Required interface for evaluation
+() "CEL Evaluation" as ICELEval
+CELRuntime - ICELEval
+
+' Interface for cache write
+() "Cache Write" as ICacheWrite
+Cache - ICacheWrite
+Transpiler ..> ICacheWrite
+
+hide stereotype
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of CSDSLLayer
+  **CSDSL = Liskov-compliant CEL Extension**
+  
+  Any valid CEL is valid CSDSL.
+  CSDSL adds domain constructs
+  that decompose to CEL at runtime.
+end note
+
+note right of CELLayer
+  **CEL = Sub-millisecond Evaluation**
+  
+  Hermetic, deterministic expressions.
+  No side effects, no I/O.
+  Same inputs → same outputs.
+end note
+
+note bottom of Transpiler
+  **Example Transformation**
+  
+  CSDSL:
+  `threshold(metrics.latency.p99, "<", 200ms)`
+  
+  CEL:
+  `metrics.latency.p99 < duration("200ms")`
+end note
+
+' ============================================================
+' LEGEND
+' ============================================================
+
+legend right
+  |= Color |= Layer |
+  |<#E8F4E8> | CSDSL (SIE extensions) |
+  |<#F4E8E8> | CEL (Google standard) |
+  |<#E8E8F4> | Transpilation |
+  |<#F6F8FA> | Runtime |
+endlegend
+
+@enduml

@@ -61,8 +61,9 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
        boolean, null, array, object). Special formats (datetime, duration)
        are strings with format specifiers.
 
-    4. **Schema-bound references**: References to EventArchetype and
-       StateObjectArchetype properties are validated against schemas.
+    4. **Schema-bound references**: References to EventArchetype,
+       StateObjectArchetype, and SystemicPrimitive properties are validated
+       against schemas.
 
     5. **CEL-transcompilable**: Core expressions compile 1:1 to Google CEL
        for runtime evaluation with sub-millisecond performance.
@@ -114,7 +115,6 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Where CSDSL expressions appear in CSDM:**
     - Policy.applicabilityConditions → LogicalExpression
     - Policy.constraint → ConstraintExpression
-    - Policy.evaluationCriteria → EvaluationExpression
     - BehavioralRule.applicabilityConditions → LogicalExpression
     - BehavioralRule.iterationConditions → LogicalExpression
     - BehavioralRuleControl.applicabilityConditions → LogicalExpression
@@ -125,6 +125,22 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - ModificationActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
     - DeletionActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
     - AcquisitionActuationBehavioralRuleControl.stateObjectSelector → StateObjectSelectorExpression
+
+    **Policy guard × constraint compatibility (CSDM):**
+    When CSDSL is used for `Policy.applicabilityConditions` and
+    `Policy.constraint`, these two expressions MUST be compatible:
+    for any evaluation context where the guard evaluates to `true`, the
+    constraint MUST be defined and type-sound in that same context.
+    (See the `Policy` note in the CSDM model for the normative rule set.)
+
+    **Implicit derivation rationale (ThresholdConstraint):**
+    Some CSDSL constraint formats (notably **ThresholdConstraint**) embed
+    enough measurement semantics (metric + aggregation + timeWindow) to be
+    evaluated directly.
+
+    In CSDM, evaluation is derived deterministically from the constraint
+    format; policies do not carry a separate author-defined evaluation criteria
+    expression.
 
     **Parser Architecture:**
     The SDManager backend owns the CSDSL parser. UI delegates parsing
@@ -144,7 +160,11 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - LogicalExpression (And, Or, Not): CEL standard logic
     - ComparisonExpression: CEL operators (==, !=, <, >, in, etc.)
     - ArithmeticExpression: CEL arithmetic (+, -, *, /, %)
-    - ReferenceExpression: CEL dot notation, JSON Pointer
+    - ReferenceExpression (abstract): CEL dot notation, JSON Pointer
+      - EventArchetypeReferenceExpression: References EventArchetype properties
+      - StateObjectArchetypeReferenceExpression: References StateObjectArchetype properties
+      - SystemicPrimitiveReferenceExpression: References SystemicPrimitive properties
+      - ContextVariableReferenceExpression: References receptor event properties
     - LiteralExpression: JSON values (RFC 8259)
     - FunctionCallExpression: CEL built-in functions
 
@@ -155,18 +175,18 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - CardinalityConstraint: UML multiplicity, database constraints
 
     //Selectors (SIE extensions)://
-    - StateObjectSelectorExpression: Selects StateObjectArchetype instances
+    - SelectorExpression (abstract): Selects instances by archetype + filter
+      - SystemicPrimitiveSelectorExpression: Selects SystemicPrimitive instances
+      - StateObjectSelectorExpression: Selects StateObjectArchetype instances
       (used for structural constraints AND actuation operations)
-
-    //Evaluation (SIE extensions)://
-    - MetricEvaluation: Prometheus, Datadog metrics
-    - AssertionEvaluation: Unit testing assertions
-    - ComplianceEvaluation: SOC2, GDPR control frameworks
 
     //Mapping (SIE extensions)://
     - PropertyMapping: JSON transformation (jq, JSONata patterns)
-    - ObjectMapping: Event sourcing patterns
-    (both under SourceMappingExpression)
+    - EventStructureSourceMapping: Construct an EventArchetype instance from sources
+    - StateObjectStructureSourceMapping: Construct a StateObjectArchetype instance from sources
+    - EventScalarSourceMapping: Construct a scalar EventArchetype value from sources
+    - StateObjectScalarSourceMapping: Construct a scalar StateObjectArchetype value from sources
+    (all under SourceMappingExpression)
   end note
 
   ' ============================================================
@@ -206,7 +226,6 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - BehavioralRule.applicabilityConditions
     - BehavioralRule.iterationConditions
     - InvariantConstraint.condition
-    - AssertionEvaluation.assertion
 
     LogicalExpressions are kept separate from ValueExpressions
     for type safety and clearer LLM reasoning about conditions
@@ -320,7 +339,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     {
       "type": "ComparisonExpression",
       "operator": "LESS_THAN",
-      "left": { "type": "ReferenceExpression", "name": "Service", "propertyPath": ["latency"] },
+      "left": { "type": "SystemicPrimitiveReferenceExpression", "name": "Service", "propertyPath": ["latency"] },
       "right": { "type": "LiteralExpression", "value": 100 }
     }
     ```
@@ -389,52 +408,118 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     type safety, even though boolean is a JSON value type.
   end note
 
-  class ReferenceExpression {
+  abstract class ReferenceExpression {
     +getName(): String
     +getPropertyPath(): String[]
   }
   ValueExpression <|-- ReferenceExpression : is
 
   note top of ReferenceExpression
-    References an EventArchetype, StateObjectArchetype, or a predefined
-    context variable and its property.
+    Abstract supertype for expressions that reference an archetype or context
+    variable and access its properties.
+
+    Specializations disambiguate the target domain to avoid name collisions
+    between EventArchetype, StateObjectArchetype, SystemicPrimitive, and
+    predefined context variables.
 
     **Attributes:**
-    - name: The root identifier to reference. Can be:
-      - An EventArchetype name (e.g., "OrderCreated")
-      - A StateObjectArchetype name (e.g., "Component", "Order")
-      - A predefined variable: `trigger` or `event.<ArchetypeName>`
+    - name: The root identifier to reference
     - propertyPath: Path to the property (empty for scalar archetypes)
 
-    **CSDSL text syntax:** (CEL-compatible)
-    - `OrderCreated.payload.orderId` (EventArchetype)
-    - `Component.replicas` (StateObjectArchetype)
-    - `trigger.severity` (predefined variable)
+    **Validation Rules:**
+    - name must be non-empty string
+    - name must match an entity of the correct specialization's domain
+    - propertyPath must exist in the target's schema
+    - For scalar archetypes, propertyPath must be empty
+    - (Runtime) Referenced property must exist and be accessible
+  end note
 
-    **JSON examples:**
+  class EventArchetypeReferenceExpression
+  ReferenceExpression <|-- EventArchetypeReferenceExpression : is
+
+  note top of EventArchetypeReferenceExpression
+    References an EventArchetype and its properties.
+
+    **CSDSL text syntax:** `OrderCreated.payload.orderId`
+
+    **JSON:**
     ```json
-    // Reference event archetype property
-    { "type": "ReferenceExpression",
+    { "type": "EventArchetypeReferenceExpression",
       "name": "OrderCreated",
       "propertyPath": ["payload", "orderId"] }
+    ```
 
-    // Reference state object archetype property
-    { "type": "ReferenceExpression",
+    **Validation Rules:**
+    - name must match a defined EventArchetype
+  end note
+
+  class StateObjectArchetypeReferenceExpression
+  ReferenceExpression <|-- StateObjectArchetypeReferenceExpression : is
+
+  note top of StateObjectArchetypeReferenceExpression
+    References a StateObjectArchetype and its properties.
+
+    **CSDSL text syntax:** `Order.status`
+
+    **JSON:**
+    ```json
+    { "type": "StateObjectArchetypeReferenceExpression",
+      "name": "Order",
+      "propertyPath": ["status"] }
+    ```
+
+    **Validation Rules:**
+    - name must match a defined StateObjectArchetype
+  end note
+
+  class SystemicPrimitiveReferenceExpression
+  ReferenceExpression <|-- SystemicPrimitiveReferenceExpression : is
+
+  note top of SystemicPrimitiveReferenceExpression
+    References a SystemicPrimitive and its properties.
+
+    **CSDSL text syntax:** `Component.replicas`
+
+    **JSON:**
+    ```json
+    { "type": "SystemicPrimitiveReferenceExpression",
       "name": "Component",
       "propertyPath": ["replicas"] }
+    ```
 
-    // Reference predefined variable (trigger event)
-    { "type": "ReferenceExpression",
-      "name": "trigger",
+    **Validation Rules:**
+    - name must match a defined SystemicPrimitive
+  end note
+
+  class ContextVariableReferenceExpression
+  ReferenceExpression <|-- ContextVariableReferenceExpression : is
+
+  note top of ContextVariableReferenceExpression
+    References the event received by a named receptor.
+
+    In BehavioralRule expressions, events are accessed through the
+    receptor that received them: `receptor["name"].event.prop`
+
+    **Attributes (inherited from ReferenceExpression):**
+    - name: The receptor name (as defined in Mechanism.receptors)
+    - propertyPath: Path into the event received by that receptor
+
+    **CSDSL text syntax:**
+    `receptor["alertReceptor"].event.severity`
+    `receptor["configReceptor"].event.newThreshold`
+
+    **JSON:**
+    ```json
+    { "type": "ContextVariableReferenceExpression",
+      "name": "alertReceptor",
       "propertyPath": ["severity"] }
     ```
 
     **Validation Rules:**
-    - name must be non-empty string
-    - name must match a defined archetype OR predefined variable (`trigger`, `event.*`)
-    - propertyPath must exist in the archetype's schema (or trigger event schema)
-    - For scalar archetypes, propertyPath must be empty
-    - (Runtime) Referenced property must exist and be accessible
+    - name must match a receptor name defined in the owning Mechanism
+    - propertyPath must exist in the EventArchetype schema of the
+      event type received by that receptor
+    - (Runtime) The receptor must have received an event
   end note
 
   class LiteralExpression {
@@ -529,7 +614,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     {
       "type": "ArithmeticExpression",
       "operator": "MULTIPLY",
-      "left": { "type": "ReferenceExpression", "name": "Service", "propertyPath": ["maxCapacity"] },
+      "left": { "type": "SystemicPrimitiveReferenceExpression", "name": "Service", "propertyPath": ["maxCapacity"] },
       "right": { "type": "LiteralExpression", "value": 0.8 }
     }
     ```
@@ -587,7 +672,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "type": "FunctionCallExpression",
       "functionName": "size",
       "arguments": [
-        { "type": "ReferenceExpression", "name": "Order", "propertyPath": ["items"] }
+        { "type": "StateObjectArchetypeReferenceExpression", "name": "Order", "propertyPath": ["items"] }
       ]
     }
     ```
@@ -638,7 +723,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     boolean and can be used directly in LogicalExpression contexts:
     ```json
     { "type": "FunctionCallExpression", "functionName": "exists",
-      "arguments": [{ "name": "Service", "propertyPath": ["healthCheck"] }] }
+      "arguments": [{ "type": "SystemicPrimitiveReferenceExpression", "name": "Service", "propertyPath": ["healthCheck"] }] }
     ```
     This is valid as a condition — no need to wrap in `== true`.
 
@@ -711,7 +796,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     ```json
     {
       "type": "ThresholdConstraint",
-      "metric": { "name": "Service", "propertyPath": ["latency", "p99"] },
+      "metric": { "type": "SystemicPrimitiveReferenceExpression", "name": "Service", "propertyPath": ["latency", "p99"] },
       "operator": "LESS_THAN",
       "threshold": { "type": "LiteralExpression", "value": 100 },
       "unit": "ms",
@@ -723,7 +808,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **Interpretation:** "Service.latency P99 must be < 100ms over 5-minute windows"
 
     **Validation Rules:**
-    - metric must be a valid ReferenceExpression to a numeric property
+    - metric must be a valid ReferenceExpression subclass referencing a numeric property
     - operator must be a valid ComparisonOperator (typically LESS_THAN, GREATER_THAN, etc.)
     - threshold must be a valid ValueExpression
     - unit must be non-empty string (display only, not validated semantically)
@@ -789,7 +874,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "condition": {
         "type": "ComparisonExpression",
         "operator": "GREATER_OR_EQUAL",
-        "left": { "name": "Component", "propertyPath": ["replicas"] },
+        "left": { "type": "SystemicPrimitiveReferenceExpression", "name": "Component", "propertyPath": ["replicas"] },
         "right": { "type": "LiteralExpression", "value": 2 }
       }
     }
@@ -802,7 +887,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - (Runtime) condition must evaluate to boolean
 
     **Note on "implies" / "when" patterns:**
-    Use Policy.applicabilityConditions instead:
+    Use Policy.applicabilityConditions:
     - applicabilityConditions: `Component.criticality == "high"`
     - constraint: `Component.replicas >= 2`
 
@@ -811,20 +896,21 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   end note
 
   class DependencyConstraint {
-    +getDependent(): StateObjectSelectorExpression
-    +getDependency(): StateObjectSelectorExpression
+    +getDependent(): SelectorExpression
+    +getDependency(): SelectorExpression
     +getDependencyType(): DependencyType
   }
   ConstraintExpression <|-- DependencyConstraint : is
-  DependencyConstraint "1" *--> "1" StateObjectSelectorExpression : dependent
-  DependencyConstraint "1" *--> "1" StateObjectSelectorExpression : dependency
+  DependencyConstraint "1" *--> "1" SelectorExpression : dependent
+  DependencyConstraint "1" *--> "1" SelectorExpression : dependency
 
   note top of DependencyConstraint
-    Structural dependency between state objects representing systemic primitives.
+    Structural dependency between archetype instances identified by selectors.
+    Selectors may target SystemicPrimitive or StateObjectArchetype instances.
 
     **Attributes:**
-    - dependent: Selector for state object(s) that have the dependency
-    - dependency: Selector for state object(s) being depended upon
+    - dependent: Selector for instance(s) that have the dependency
+    - dependency: Selector for instance(s) being depended upon
     - dependencyType: Nature of the dependency
 
     **CSDSL text syntax:**
@@ -835,22 +921,24 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     {
       "type": "DependencyConstraint",
       "dependent": {
-        "type": "StateObjectSelectorExpression",
-        "stateObjectArchetype": "Component",
+        "type": "SystemicPrimitiveSelectorExpression",
+        "archetype": "Component",
         "filter": {
           "type": "ComparisonExpression",
           "operator": "EQUALS",
-          "left": { "name": "Component", "propertyPath": ["name"] },
+          "left": { "type": "SystemicPrimitiveReferenceExpression",
+                    "name": "Component", "propertyPath": ["name"] },
           "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
         }
       },
       "dependency": {
-        "type": "StateObjectSelectorExpression",
-        "stateObjectArchetype": "Component",
+        "type": "SystemicPrimitiveSelectorExpression",
+        "archetype": "Component",
         "filter": {
           "type": "ComparisonExpression",
           "operator": "EQUALS",
-          "left": { "name": "Component", "propertyPath": ["name"] },
+          "left": { "type": "SystemicPrimitiveReferenceExpression",
+                    "name": "Component", "propertyPath": ["name"] },
           "right": { "type": "LiteralExpression", "value": "Database" }
         }
       },
@@ -860,20 +948,16 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
     **Interpretation:** "PaymentProcessor component requires Database component"
 
-    **Note:** Selectors target StateObjectArchetype instances. Every SystemicPrimitive
-    has a default StateObjectArchetype with the same name (e.g., "Component",
-    "Interface"), so structural constraints select state objects representing
-    those primitives.
-
     **Validation Rules:**
-    - dependent must be a valid StateObjectSelectorExpression
-    - dependency must be a valid StateObjectSelectorExpression
+    - dependent must be a valid SelectorExpression
+      (SystemicPrimitiveSelectorExpression or StateObjectSelectorExpression)
+    - dependency must be a valid SelectorExpression
     - dependencyType must be a valid DependencyType enum value
-    - Both dependent and dependency must select state objects owned by:
+    - Both dependent and dependency must select instances owned by:
       - The same system as the policy defining this constraint, OR
       - Eligible subsystems per SubsystemIntegrationGovernance
-    - stateObjectArchetype must be a valid StateObjectArchetype name
-    - (Runtime) Selected state objects must actually exist
+    - archetype must be a valid name for the selector's target domain
+    - (Runtime) Selected instances must actually exist
 
     **Sourced from:** Kubernetes dependencies, Terraform resource graphs.
   end note
@@ -906,18 +990,19 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
   end note
 
   class CardinalityConstraint {
-    +getTarget(): StateObjectSelectorExpression
+    +getTarget(): SelectorExpression
     +getMinimum(): Integer
     +getMaximum(): Integer
   }
   ConstraintExpression <|-- CardinalityConstraint : is
-  CardinalityConstraint "1" *--> "1" StateObjectSelectorExpression : target
+  CardinalityConstraint "1" *--> "1" SelectorExpression : target
 
   note top of CardinalityConstraint
-    Cardinality bounds on state objects representing systemic primitives.
+    Cardinality bounds on archetype instances identified by a selector.
+    Selectors may target SystemicPrimitive or StateObjectArchetype instances.
 
     **Attributes:**
-    - target: Selector identifying which state objects to count
+    - target: Selector identifying which instances to count
     - minimum: Minimum count (null = no minimum)
     - maximum: Maximum count (null = no maximum)
 
@@ -929,12 +1014,13 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     {
       "type": "CardinalityConstraint",
       "target": {
-        "type": "StateObjectSelectorExpression",
-        "stateObjectArchetype": "Interface",
+        "type": "SystemicPrimitiveSelectorExpression",
+        "archetype": "Interface",
         "filter": {
           "type": "ComparisonExpression",
           "operator": "EQUALS",
-          "left": { "name": "Interface", "propertyPath": ["ownerType"] },
+          "left": { "type": "SystemicPrimitiveReferenceExpression",
+                    "name": "Interface", "propertyPath": ["ownerType"] },
           "right": { "type": "LiteralExpression", "value": "Microservice" }
         }
       },
@@ -945,40 +1031,82 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
     **Interpretation:** "Microservice systems must have 1-5 interfaces"
 
-    **Note:** Selectors target StateObjectArchetype instances. Every SystemicPrimitive
-    has a default StateObjectArchetype, so cardinality constraints count state
-    objects representing those primitives.
-
     **Validation Rules:**
-    - target must be a valid StateObjectSelectorExpression
+    - target must be a valid SelectorExpression
+      (SystemicPrimitiveSelectorExpression or StateObjectSelectorExpression)
     - minimum, if provided, must be non-negative integer
     - maximum, if provided, must be non-negative integer
     - If both minimum and maximum are provided, minimum <= maximum
     - At least one of minimum or maximum must be provided
-    - (Runtime) Count of matching state objects must satisfy bounds
+    - (Runtime) Count of matching instances must satisfy bounds
 
     **Sourced from:** UML multiplicity, database constraints.
   end note
 
   ' ============================================================
-  ' STATE OBJECT SELECTOR EXPRESSION
+  ' SELECTOR EXPRESSIONS
   ' (for constraints and actuation operations)
   ' ============================================================
 
-  class StateObjectSelectorExpression {
-    +getStateObjectArchetype(): String
+  abstract class SelectorExpression {
+    +getArchetype(): String
     +getFilter(): LogicalExpression
   }
-  Expression <|-- StateObjectSelectorExpression : is
-  StateObjectSelectorExpression "1" *--> "1" LogicalExpression : filter
+  Expression <|-- SelectorExpression : is
+  SelectorExpression "1" *--> "1" LogicalExpression : filter
+
+  note top of SelectorExpression
+    Abstract supertype for expressions that select instances of a given
+    archetype matching a filter condition.
+
+    Specializations disambiguate whether the target is a SystemicPrimitive
+    or a StateObjectArchetype. EventArchetypes are NOT selectable (they are
+    transient; use ReferenceExpression to access event properties).
+
+    **Attributes:**
+    - archetype: Name of the archetype to select from
+    - filter: Logical condition to match instances (required)
+
+    **Why filter is required:**
+    Operations must target specific instances. An empty filter would affect
+    all instances, which is dangerous. For bulk operations, use explicit
+    "all" patterns like: filter: { type: "LiteralExpression", value: true }
+  end note
+
+  class SystemicPrimitiveSelectorExpression
+  SelectorExpression <|-- SystemicPrimitiveSelectorExpression : is
+
+  note top of SystemicPrimitiveSelectorExpression
+    Selects SystemicPrimitive instances matching criteria.
+
+    **CSDSL text syntax:**
+    `SELECT PRIMITIVE Component WHERE name == "PaymentProcessor"`
+
+    **JSON:**
+    ```json
+    { "type": "SystemicPrimitiveSelectorExpression",
+      "archetype": "Component",
+      "filter": {
+        "type": "ComparisonExpression",
+        "operator": "EQUALS",
+        "left": { "type": "SystemicPrimitiveReferenceExpression",
+                  "name": "Component", "propertyPath": ["name"] },
+        "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
+      }
+    }
+    ```
+
+    **Validation Rules:**
+    - archetype must be a valid SystemicPrimitive name
+    - filter must be a valid LogicalExpression
+    - Properties referenced in filter must exist in the primitive's archetype schema
+  end note
+
+  class StateObjectSelectorExpression
+  SelectorExpression <|-- StateObjectSelectorExpression : is
 
   note top of StateObjectSelectorExpression
     Selects StateObjectArchetype instances matching criteria.
-
-    **Design Principle:** Users never select SystemicPrimitives directly.
-    Instead, they select state objects that represent those primitives.
-    Every SystemicPrimitive has a default StateObjectArchetype with the
-    same name (e.g., "Component", "Interface", "Mechanism").
 
     **Used in CSDM:**
     - DependencyConstraint.dependent/dependency: Structural dependencies
@@ -987,262 +1115,198 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - DeletionActuationBehavioralRuleControl.stateObjectSelector
     - AcquisitionActuationBehavioralRuleControl.stateObjectSelector
 
-    **Attributes:**
-    - stateObjectArchetype: Name of the StateObjectArchetype to select from
-    - filter: Logical condition to match instances (required)
-
     **CSDSL text syntax:**
-    `SELECT Component WHERE name == "PaymentProcessor"`
-    `SELECT Order WHERE customerId == trigger.customerId && status == "pending"`
+    `SELECT Order WHERE id == receptor["orderReceptor"].event.orderId`
 
-    **JSON examples:**
+    **JSON:**
     ```json
-    // Select component by name (for structural constraints)
-    {
-      "type": "StateObjectSelectorExpression",
-      "stateObjectArchetype": "Component",
+    { "type": "StateObjectSelectorExpression",
+      "archetype": "Order",
       "filter": {
         "type": "ComparisonExpression",
         "operator": "EQUALS",
-        "left": { "name": "Component", "propertyPath": ["name"] },
-        "right": { "type": "LiteralExpression", "value": "PaymentProcessor" }
-      }
-    }
-
-    // Select order by ID (for actuation)
-    {
-      "type": "StateObjectSelectorExpression",
-      "stateObjectArchetype": "Order",
-      "filter": {
-        "type": "ComparisonExpression",
-        "operator": "EQUALS",
-        "left": { "name": "Order", "propertyPath": ["id"] },
-        "right": { "name": "trigger", "propertyPath": ["orderId"] }
-      }
-    }
-
-    // Select all pending orders for a customer (complex filter)
-    {
-      "type": "StateObjectSelectorExpression",
-      "stateObjectArchetype": "Order",
-      "filter": {
-        "type": "AndExpression",
-        "operands": [
-          {
-            "type": "ComparisonExpression",
-            "operator": "EQUALS",
-            "left": { "name": "Order", "propertyPath": ["customerId"] },
-            "right": { "name": "trigger", "propertyPath": ["customerId"] }
-          },
-          {
-            "type": "ComparisonExpression",
-            "operator": "EQUALS",
-            "left": { "name": "Order", "propertyPath": ["status"] },
-            "right": { "type": "LiteralExpression", "value": "pending" }
-          }
-        ]
+        "left": { "type": "StateObjectArchetypeReferenceExpression",
+                  "name": "Order", "propertyPath": ["id"] },
+        "right": { "type": "ContextVariableReferenceExpression",
+                  "name": "orderReceptor", "propertyPath": ["orderId"] }
       }
     }
     ```
 
     **Validation Rules:**
-    - stateObjectArchetype must be a non-empty string
-    - stateObjectArchetype must be a valid StateObjectArchetype name
-    - filter must be a valid LogicalExpression (required, not optional)
+    - archetype must be a valid StateObjectArchetype name
+    - filter must be a valid LogicalExpression
     - Properties referenced in filter must exist in the archetype's schema
-    - (Runtime) filter must evaluate to boolean
-
-    **Why filter is required:**
-    Operations must target specific instances. An empty filter would affect
-    all instances, which is dangerous. For bulk operations, use explicit
-    "all" patterns like: filter: { type: "LiteralExpression", value: true }
-  end note
-
-  ' ============================================================
-  ' EVALUATION EXPRESSIONS
-  ' (for Policy.evaluationCriteria)
-  ' ============================================================
-
-  abstract class EvaluationExpression
-  Expression <|-- EvaluationExpression : is
-
-  note top of EvaluationExpression
-    Specifies HOW a policy constraint should be evaluated.
-
-    Evaluation expressions define the measurement approach,
-    not the threshold (which is in the constraint).
-
-    Governor defines WHAT to evaluate and HOW to aggregate.
-    Sensor configuration (at Description Plane) defines
-    WHERE to get the data (data source, query).
-  end note
-
-  class MetricEvaluation {
-    +getMetric(): ReferenceExpression
-    +getAggregation(): AggregationType
-    +getTimeWindow(): String
-  }
-  EvaluationExpression <|-- MetricEvaluation : is
-  MetricEvaluation "1" *--> "1" ReferenceExpression : metric
-
-  note top of MetricEvaluation
-    Specifies metric-based evaluation.
-
-    **Attributes:**
-    - metric: What to measure (system property reference)
-    - aggregation: How to aggregate values
-    - timeWindow: ISO8601 duration for aggregation window
-
-    **CSDSL text syntax:**
-    `EVALUATE Service.latency AS P99 OVER 5m`
-
-    **JSON:**
-    ```json
-    {
-      "type": "MetricEvaluation",
-      "metric": { "name": "Service", "propertyPath": ["latency"] },
-      "aggregation": "P99",
-      "timeWindow": "PT5M"
-    }
-    ```
-
-    **Interpretation:** "Measure Service.latency as P99 over 5-minute windows"
-
-    **Note:** Data source binding (Prometheus, Datadog, etc.) is NOT
-    specified here. That's an operational concern configured at
-    Sensor level in the Description Plane.
-
-    **Validation Rules:**
-    - metric must be a valid ReferenceExpression
-    - aggregation must be a valid AggregationType enum value
-    - timeWindow must be a valid ISO8601 duration string (e.g., "PT5M")
-    - (Runtime) metric must resolve to a measurable numeric property
-  end note
-
-  class AssertionEvaluation {
-    +getAssertion(): LogicalExpression
-  }
-  EvaluationExpression <|-- AssertionEvaluation : is
-  AssertionEvaluation "1" *--> "1" LogicalExpression : assertion
-
-  note top of AssertionEvaluation
-    Specifies assertion-based evaluation.
-
-    **Attributes:**
-    - assertion: Logical condition that must be verified
-
-    **CSDSL text syntax:**
-    `ASSERT exists(Service.healthCheck)`
-
-    **JSON:**
-    ```json
-    {
-      "type": "AssertionEvaluation",
-      "assertion": {
-        "type": "FunctionCallExpression",
-        "functionName": "exists",
-        "arguments": [
-          { "name": "Service", "propertyPath": ["healthCheck"] }
-        ]
-      }
-    }
-    ```
-
-    **Interpretation:** "Verify that Service.healthCheck exists"
-
-    If SIE cannot auto-evaluate the assertion (e.g., requires
-    external audit), it triggers a feedback loop requesting
-    manual attestation. This is determined at runtime, not
-    declared in the evaluation expression.
-
-    **Validation Rules:**
-    - assertion must be a valid LogicalExpression
-    - (Runtime) assertion must evaluate to boolean
-  end note
-
-  class ComplianceEvaluation {
-    +getStandard(): String
-    +getRequirementRef(): String
-  }
-  EvaluationExpression <|-- ComplianceEvaluation : is
-
-  note top of ComplianceEvaluation
-    Links evaluation to external compliance standard/framework.
-
-    **Attributes:**
-    - standard: Compliance standard name (GDPR, SOC2, ISO27001, HIPAA, PCI-DSS)
-    - requirementRef: Specific requirement/control reference within the standard
-
-    **CSDSL text syntax:**
-    `COMPLIANCE SOC2.CC6.1`
-    `COMPLIANCE ISO27001.A.12.1.1`
-
-    **JSON:**
-    ```json
-    {
-      "type": "ComplianceEvaluation",
-      "standard": "SOC2",
-      "requirementRef": "CC6.1"
-    }
-    ```
-
-    **Interpretation:**
-    Links policy to SOC2 control CC6.1 for compliance reporting.
-
-    **Example references by standard:**
-    - SOC2: "CC6.1", "CC7.2" (Common Criteria)
-    - ISO27001: "A.12.1.1", "A.18.1.3" (Annex A controls)
-    - GDPR: "Art.32", "Art.25.1" (Articles)
-    - HIPAA: "164.312(a)(1)" (CFR sections)
-    - PCI-DSS: "Req.3.4", "Req.8.2.1" (Requirements)
-
-    **Note:** Automated check logic is NOT specified here. The Governor
-    defines WHAT compliance control applies. The Sensor (at Description
-    Plane) determines HOW to verify it, or triggers manual attestation
-    if automation is not possible.
-
-    **Use case:** Compliance reporting — "which policies satisfy which controls?"
-
-    **Validation Rules:**
-    - standard must be a non-empty string
-    - standard should be a recognized compliance framework (GDPR, SOC2, ISO27001, HIPAA, PCI-DSS)
-    - requirementRef must be a non-empty string
-    - requirementRef format should match the standard's conventions
   end note
 
   ' ============================================================
   ' SOURCE MAPPING EXPRESSIONS
-  ' (for SourceMapping.valueMapping, *ActuationBehavioralRuleControl.stateObjectSourceMapping)
+  ' (for BehavioralRuleControl.effectorEventSourceMapping, *ActuationBehavioralRuleControl.stateObjectSourceMapping)
   ' ============================================================
 
   abstract class SourceMappingExpression
   Expression <|-- SourceMappingExpression : is
 
   note top of SourceMappingExpression
-    Defines how to construct target event/state objects from
+    Defines how to construct target events/state objects from
     source events and existing state objects.
 
     **Used in CSDM:**
-    - SourceMapping.valueMapping: Transform trigger events into effector events
+    - BehavioralRuleControl.effectorEventSourceMapping: Transform receptor events into effector events
     - CreationActuationBehavioralRuleControl.stateObjectSourceMapping: Initial state
     - ModificationActuationBehavioralRuleControl.stateObjectSourceMapping: New state
 
-    **CSDSL text syntax (ObjectMapping):**
-    `MAP TO AlertEvent { severity = trigger.level, message = trigger.text }`
+    **CSDSL text syntax (EventStructureSourceMapping):**
+    `MAP TO AlertEvent { severity = receptor["alertReceptor"].event.level, message = receptor["alertReceptor"].event.text }`
+
+    **CSDSL text syntax (StateObjectStructureSourceMapping):**
+    `MAP TO Component { replicas = receptor["scaleReceptor"].event.desiredReplicas }`
 
     **CSDSL text syntax (PropertyMapping):**
     `MAP target.processedAt = now()`
 
-    **Target types:** EventArchetype OR StateObjectArchetype
-    **Source types:** EventArchetype (via trigger/event.*) OR StateObjectArchetype
+    **CSDSL text syntax (StateObjectScalarSourceMapping):**
+    `MAP TO DesiredReplicaCount = receptor["scaleReceptor"].event.desiredReplicas`
+
+    **CSDSL text syntax (EventScalarSourceMapping):**
+    `MAP TO RawAlertMessage = receptor["alertReceptor"].event.text`
+
+    **Target types:** EventArchetype, StateObjectArchetype, OR SystemicPrimitive
+    **Source types:** EventArchetype (via receptor["name"].event.*),
+    StateObjectArchetype, OR SystemicPrimitive
   end note
+
+  abstract class ArchetypeSourceMapping {
+    +getTargetArchetype(): String
+  }
+  SourceMappingExpression <|-- ArchetypeSourceMapping : is
+
+  abstract class StructureSourceMapping {
+    +getMappings(): PropertyMapping[]
+  }
+  
+  note top of StructureSourceMapping
+    Abstract supertype for explicit mappings that construct a target structure
+    (i.e., an object-shaped schema).
+
+    Specializations disambiguate whether the target is an EventArchetype,
+    StateObjectArchetype, or SystemicPrimitive, avoiding name collisions and
+    cross-domain confusion.
+
+    **Attributes:**
+    - targetArchetype: Name of the target EventArchetype, StateObjectArchetype,
+      or SystemicPrimitive
+    - mappings: List of property mappings
+
+    **CSDSL text syntax:**
+    ```
+    MAP TO AlertEvent {
+      severity = receptor["alertReceptor"].event.level,
+      message = receptor["alertReceptor"].event.text,
+      timestamp = now()
+    }
+    ```
+
+    **JSON:**
+    ```json
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "AlertEvent",
+      "mappings": [
+        {
+          "targetPath": ["severity"],
+          "source": { "type": "ContextVariableReferenceExpression", "name": "alertReceptor", "propertyPath": ["level"] }
+        },
+        {
+          "targetPath": ["message"],
+          "source": { "type": "ContextVariableReferenceExpression", "name": "alertReceptor", "propertyPath": ["text"] }
+        },
+        {
+          "targetPath": ["timestamp"],
+          "source": { "type": "FunctionCallExpression", "functionName": "now", "arguments": [] }
+        }
+      ]
+    }
+    ```
+
+    **Interpretation:** Create the target object with explicit field mappings.
+
+    **Validation Rules:**
+    - targetArchetype must be a non-empty string
+    - targetArchetype must be a valid archetype name of the correct specialization:
+      - EventStructureSourceMapping.targetArchetype must be an EventArchetype
+      - StateObjectStructureSourceMapping.targetArchetype must be a StateObjectArchetype
+    - mappings must be a non-empty array
+    - Each mapping must be a valid PropertyMapping
+    - All required properties of target archetype should have mappings
+    - (Runtime) Each mapping source must evaluate to compatible type
+  end note
+
+  ArchetypeSourceMapping <|-- StructureSourceMapping : is
+  StructureSourceMapping "1" *--> "1..*" PropertyMapping : mappings
+
+  class SystemicPrimitiveStructureSourceMapping
+  StructureSourceMapping <|-- SystemicPrimitiveStructureSourceMapping : is
+
+  class EventStructureSourceMapping
+  StructureSourceMapping <|-- EventStructureSourceMapping : is
+
+  class StateObjectStructureSourceMapping
+  StructureSourceMapping <|-- StateObjectStructureSourceMapping : is
+
+  abstract class ScalarSourceMapping {
+    +getSourceExpression(): ValueExpression
+  }
+
+  note top of ScalarSourceMapping
+    Abstract supertype for explicit mappings that construct a scalar target
+    value.
+
+    Specializations disambiguate whether the scalar target is an EventArchetype,
+    StateObjectArchetype, or SystemicPrimitive.
+
+    **Attributes:**
+    - targetArchetype: Name of the target scalar archetype or SystemicPrimitive
+    - sourceExpression: Value to assign to the target scalar
+
+    **CSDSL text syntax:**
+    `MAP TO DesiredReplicaCount = receptor["scaleReceptor"].event.desiredReplicas`
+
+    **JSON:**
+    ```json
+    {
+      "type": "StateObjectScalarSourceMapping",
+      "targetArchetype": "DesiredReplicaCount",
+      "source": { "type": "ContextVariableReferenceExpression", "name": "scaleReceptor", "propertyPath": ["desiredReplicas"] }
+    }
+    ```
+
+    **Validation Rules:**
+    - targetArchetype must be a non-empty string
+    - targetArchetype must be a valid archetype name of the correct specialization:
+      - EventScalarSourceMapping.targetArchetype must be an EventArchetype
+      - StateObjectScalarSourceMapping.targetArchetype must be a StateObjectArchetype
+    - target archetype schema must be scalar (root JSON type is not an object)
+    - source must be a valid ValueExpression
+    - (Runtime) source must evaluate to a type compatible with the scalar schema
+  end note
+
+  ArchetypeSourceMapping <|-- ScalarSourceMapping : is
+  ScalarSourceMapping "1" *--> "1" ValueExpression : source
+
+  class SystemicPrimitiveScalarSourceMapping
+  ScalarSourceMapping <|-- SystemicPrimitiveScalarSourceMapping : is
+
+  class EventScalarSourceMapping
+  ScalarSourceMapping <|-- EventScalarSourceMapping : is
+
+  class StateObjectScalarSourceMapping
+  ScalarSourceMapping <|-- StateObjectScalarSourceMapping : is
 
   class PropertyMapping {
     +getTargetPath(): String[]
     +getSourceExpression(): ValueExpression
   }
-  SourceMappingExpression <|-- PropertyMapping : is
-  PropertyMapping "1" *--> "1" ValueExpression : source
 
   note top of PropertyMapping
     Maps a single property in the target object.
@@ -1253,7 +1317,7 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
 
     **CSDSL text syntax:**
     `MAP target.payload.processedAt = now()`
-    `MAP target.amount = trigger.quantity * trigger.unitPrice`
+    `MAP target.amount = receptor["orderReceptor"].event.quantity * receptor["orderReceptor"].event.unitPrice`
 
     **JSON:**
     ```json
@@ -1277,65 +1341,43 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - (Runtime) source must evaluate to a type compatible with target property
   end note
 
-  class ObjectMapping {
-    +getTargetArchetype(): String
-    +getMappings(): PropertyMapping[]
-  }
-  SourceMappingExpression <|-- ObjectMapping : is
-  ObjectMapping "1" *--> "1..*" PropertyMapping : mappings
+  SourceMappingExpression <|-- PropertyMapping : is
+  PropertyMapping "1" *--> "1" ValueExpression : source
 
-  note top of ObjectMapping
-    Complete explicit mapping for a target object.
+  ' ============================================================
+  ' PREDEFINED CONTEXT VARIABLES
+  ' ============================================================
 
-    **Attributes:**
-    - targetArchetype: Name of the target EventArchetype or StateObjectArchetype
-    - mappings: List of property mappings
+  note as PredefinedVariables
+    **Expression Context Variables:**
 
-    **CSDSL text syntax:**
+    **In BehavioralRule expressions:**
+    Events are accessed through the receptor that received them.
+    All receptors in the owning Mechanism are available by name.
+
+    Syntax: `receptor["<receptorName>"].event.<propertyPath>`
+
+    **Examples:**
     ```
-    MAP TO AlertEvent {
-      severity = trigger.level,
-      message = trigger.text,
-      timestamp = now()
-    }
-    ```
+    // Condition on the triggering receptor's event
+    receptor["alertReceptor"].event.severity == "high"
 
-    **JSON:**
-    ```json
-    {
-      "type": "ObjectMapping",
-      "targetArchetype": "AlertEvent",
-      "mappings": [
-        {
-          "targetPath": ["severity"],
-          "source": { "name": "trigger", "propertyPath": ["level"] }
-        },
-        {
-          "targetPath": ["message"],
-          "source": { "name": "trigger", "propertyPath": ["text"] }
-        },
-        {
-          "targetPath": ["timestamp"],
-          "source": { "type": "FunctionCallExpression", "functionName": "now", "arguments": [] }
-        }
-      ]
-    }
+    // Cross-receptor comparison
+    receptor["orderReceptor"].event.amount > receptor["configReceptor"].event.maxAmount
+
+    // Function on receptor event property
+    size(receptor["orderReceptor"].event.items) > 0
+
+    // Mapping with now()
+    { "processedAt": now(), "source": receptor["alertReceptor"].event.source }
     ```
 
-    **Interpretation:** Create AlertEvent with explicit field mappings from trigger event.
-
-    **Validation Rules:**
-    - targetArchetype must be a non-empty string
-    - targetArchetype must be a valid EventArchetype or StateObjectArchetype name
-    - mappings must be a non-empty array
-    - Each mapping must be a valid PropertyMapping
-    - All required properties of target archetype should have mappings
-    - (Runtime) Each mapping source must evaluate to compatible type
+    **In Policy expressions:**
+    Policies are declarative state constraints — no receptor/event context.
+    References use typed archetype expressions directly:
+    `Service.latency`, `Component.replicas`
+    (SystemicPrimitiveReferenceExpression, StateObjectArchetypeReferenceExpression, etc.)
   end note
-
-  ' SpreadMapping REMOVED in v1.1
-  ' Rationale: Source and target archetypes rarely have same structure.
-  ' Use explicit ObjectMapping instead for clarity and type safety.
 
   ' ============================================================
   ' UI JSON FORMS
@@ -1380,49 +1422,6 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     **JSON Schema location:**
     `/api/csdsl/schema/{type}` or static at
     `sie://schemas/csdsl/v1/{type}.json`
-  end note
-
-  ' ============================================================
-  ' PREDEFINED CONTEXT VARIABLES
-  ' ============================================================
-
-  note as PredefinedVariables
-    **Predefined Context Variables:**
-
-    In BehavioralRule expressions, the following are available:
-
-    1. **`trigger`** — The event instance from the triggering receptor
-       (the receptor specified in BehavioralRule.triggeringReceptor)
-
-       Example: `trigger.payload.orderId`
-
-    2. **`event.<ArchetypeName>`** — Events from other receptors,
-       accessed by their EventArchetype name.
-
-       Example: If mechanism has receptor for "ConfigUpdated" events:
-       `event.ConfigUpdated.newThreshold`
-
-    **Examples:**
-    ```
-    // Condition using trigger event
-    trigger.severity == "high"
-
-    // Condition using another receptor's event
-    trigger.amount > event.ConfigUpdated.maxAmount
-
-    // Using function
-    size(trigger.items) > 0
-
-    // Mapping with now()
-    { "processedAt": now(), "source": trigger.source }
-    ```
-
-    **Not available:** `system`, `mechanism`, `rule` — these are not
-    needed for expression evaluation. The context is implicit.
-
-    **In Policy expressions:**
-    References are to system properties via name (no special
-    predefined variables). Example: `Service.latency`, `Component.replicas`
   end note
 
   ' ============================================================
@@ -1495,11 +1494,13 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
       "type": "AndExpression",
       "operands": [
         { "type": "ComparisonExpression", "operator": "GREATER_THAN",
-          "left": { "name": "Service", "propertyPath": ["load"] },
-          "right": { "value": 80 } },
+          "left": { "type": "SystemicPrimitiveReferenceExpression",
+                    "name": "Service", "propertyPath": ["load"] },
+          "right": { "type": "LiteralExpression", "value": 80 } },
         { "type": "ComparisonExpression", "operator": "EQUALS",
-          "left": { "name": "Service", "propertyPath": ["status"] },
-          "right": { "value": "active" } }
+          "left": { "type": "SystemicPrimitiveReferenceExpression",
+                    "name": "Service", "propertyPath": ["status"] },
+          "right": { "type": "LiteralExpression", "value": "active" } }
       ]
     }
 

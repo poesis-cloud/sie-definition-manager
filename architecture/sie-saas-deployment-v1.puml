@@ -1,0 +1,172 @@
+@startuml sie-saas-deployment-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam nodeBackgroundColor #F6F8FA
+skinparam nodeBorderColor #57606A
+
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #57606A
+
+skinparam cloudBackgroundColor #FFFFFF
+skinparam cloudBorderColor #57606A
+
+skinparam databaseBackgroundColor #F6F8FA
+skinparam databaseBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam rectangleBorderColor #57606A
+
+title SIE + ITIP - SaaS Deployment Model (Per Customer) - v1
+
+' ============================================================
+' STATE PLANE (Customer Systems)
+' ============================================================
+
+rectangle "Customer Environment" as CustEnv #F0F8FF {
+  
+  actor "IT Users" as Users
+  
+  cloud "Customer IdP" as CustIdP #FFE4E1 {
+    [Identity Provider\n(Okta, Azure AD,\nPing, etc.)] as IdP
+  }
+  
+  rectangle "State Plane" as StatePlane {
+    [Kubernetes] as K8s
+    [Cloud Resources] as Cloud
+    [CI/CD] as CICD
+    [Observability] as Obs
+    
+    note as StatePlaneNote
+      **State Plane**
+      Customer systems that:
+      - Source state → Description Plane
+      - Are operated ← Remediation Plane
+    end note
+  }
+}
+
+' ============================================================
+' ONE SAAS INSTANCE PER CUSTOMER
+' ============================================================
+
+rectangle "SaaS Instance (Customer Tenant)" as SaaSInstance #E8F4E8 {
+  
+  note as TenantNote
+    **1 SaaS Instance = 1 Customer**
+    
+    Each customer gets:
+    • Dedicated ITIP instance
+    • Dedicated SIE instance
+    • Isolated data stores
+    • Own IdP integration
+  end note
+  
+  ' --- ITIP Application ---
+  node "ITIP (IT Intelligence Platform)" as ITIP #D4EDDA {
+    
+    package "Authentication" as AuthPkg {
+      [OIDC/SAML Gateway] as OIDCGateway
+      [Session Manager] as SessionMgr
+      [RBAC Engine] as RBAC
+    }
+    
+    [ITIP UI\n(SPA)] as ITIPUI
+    
+    [ITIP Backend\n(stateless)] as ITIPBackend
+    
+    note as ITIPAuthNote
+      **Identity Federation**
+      ITIP delegates authn to
+      customer's IdP via OIDC/SAML.
+      
+      Roles/permissions mapped
+      from IdP claims to ITIP RBAC.
+    end note
+  }
+  
+  ' --- SIE Instance ---
+  node "SIE Instance" as SIEInstance #F6F8FA {
+    
+    package "Definition Plane" as DefPlane #E8F4E8 {
+      [SDM] as SDM
+      [CSDSL] as CSDSL
+      [CEL Transpiler] as CEL
+    }
+    
+    package "Description Plane" as DescPlane #E8F0FA {
+      [State Ingestion] as Ingestion
+      [CSDM Runtime] as CSDMRt
+      [Evaluation] as Eval
+    }
+    
+    package "Remediation Plane" as RemPlane #FFE0E0 {
+      [Behavioral Rules] as Rules
+      [Auto-Healing] as Heal
+      [Escalation] as Escalation
+    }
+    
+    database "Customer Data\n(isolated)" as CustData {
+      [Policies]
+      [State]
+      [Decisions]
+    }
+  }
+}
+
+' ============================================================
+' SHARED SERVICES (Multi-tenant)
+' ============================================================
+
+rectangle "Shared Platform Services" as SharedSvc #F5F5F5 {
+  [LLM Service\n(shared, stateless)] as LLM
+  [SMT Solver (Z3)\n(shared, stateless)] as Z3
+}
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' User authentication flow
+Users --> ITIPUI : access
+ITIPUI --> OIDCGateway : auth request
+OIDCGateway <--> IdP : OIDC/SAML\nfederation
+OIDCGateway --> SessionMgr : issue token
+SessionMgr --> RBAC : authorize
+RBAC --> ITIPBackend : authorized request
+
+' ITIP to SIE
+ITIPBackend --> SDM : policies
+ITIPBackend --> Ingestion : state events
+ITIPBackend --> Eval : compliance
+ITIPBackend --> Escalation : incidents
+
+' Customer systems to SIE
+K8s --> Ingestion : state
+Cloud --> Ingestion : state
+CICD --> Ingestion : events
+Obs --> Ingestion : metrics
+Heal --> K8s : remediation
+Heal --> CICD : gates
+
+' SIE to shared services
+CSDSL --> LLM : synthesis
+DefPlane --> Z3 : conflict check
+
+' SIE internal
+SDM --> CustData
+CSDMRt --> CustData
+Eval --> CustData
+
+@enduml

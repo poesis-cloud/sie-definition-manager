@@ -1,0 +1,177 @@
+@startuml sie-description-plane-components-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam component {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+  FontStyle bold
+}
+
+skinparam interface {
+  BackgroundColor #D4EDDA
+  BorderColor #57606A
+}
+
+skinparam database {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+}
+
+skinparam note {
+  BackgroundColor #FFF8C5
+  BorderColor #57606A
+}
+
+skinparam componentStyle uml2
+
+title CD - SIE Description Plane - Components - v1
+
+' ============================================================
+' EXTERNAL COMPONENTS
+' ============================================================
+
+component "State Plane" as StatePlane <<external>>
+component "Definition Plane" as DefPlane <<external>>
+component "Remediation Plane" as RemPlane <<external>>
+
+' ============================================================
+' DESCRIPTION PLANE COMPONENTS
+' ============================================================
+
+package "SIE General (portable)" as General {
+  component "CSDM Runtime" as CSDMRuntime
+}
+
+package "Tenant-specific (adapted)" as Tenant {
+  component "Sourcing Contract Builder" as ContractBuilder
+  component "Tenant Ingestion Adapters" as IngestAdapters
+  component "Domain/Environment Mapping" as Mapping
+}
+
+package "AIOps Transversal Layer" as AIOps #FFF8C5 {
+  component "Adapter Runtime" as AdapterRuntime
+  component "Tenant/Domain Connector SDK" as SDK
+}
+
+' Persistence
+component "State Persistence" as StatePersistence
+component "Graph Persistence" as GraphPersistence
+component "Metrics Persistence" as MetricsPersistence
+
+database "State Store" as StateStore
+
+database "Graph DB" as GraphDB
+
+database "Time Series DB" as TSDB
+
+' ============================================================
+' INTERFACES
+' ============================================================
+
+' Plane APIs (provided)
+() "State API" as IStateAPI
+() "Event API" as IEventAPI
+() "Graph API" as IGraphAPI
+
+' Required from external (tenant-specific sourcing)
+() "State Signals" as IStateSignals
+() "Structural Observations" as IStructuralObs
+() "Functional Observations" as IFunctionalObs
+() "Capacity / Telemetry" as ICapacity
+
+' Required from Definition Plane
+() "Schemas" as ISchemas
+() "Evaluation Criteria" as IEvalCriteria
+() "Expected Primitives" as IExpectedPrimitives
+
+' Internal service interfaces
+() "Sourcing Contract" as ISourcingContract
+() "Normalized State" as INormalizedState
+() "State Objects" as IStateObjects
+
+() "State Persistence" as IStatePersist
+() "Graph Persistence" as IGraphPersist
+() "Metrics Persistence" as IMetricsPersist
+
+' ============================================================
+' CONNECTORS
+' ============================================================
+
+' Provided APIs
+CSDMRuntime - IStateAPI
+IngestAdapters - IEventAPI
+CSDMRuntime - IGraphAPI
+
+' Definition plane informs what to source (contract)
+DefPlane - ISchemas
+DefPlane - IEvalCriteria
+DefPlane - IExpectedPrimitives
+
+ContractBuilder ..> IEvalCriteria
+ContractBuilder ..> IExpectedPrimitives
+ContractBuilder - ISourcingContract
+
+IngestAdapters ..> ISourcingContract
+
+' State plane provides tenant-specific signals; adapters wrap them
+StatePlane - IStateSignals
+SDK --> AdapterRuntime
+AdapterRuntime ..> IStateSignals
+AdapterRuntime - IStructuralObs
+AdapterRuntime - IFunctionalObs
+AdapterRuntime - ICapacity
+
+IngestAdapters ..> IStructuralObs
+IngestAdapters ..> IFunctionalObs
+IngestAdapters ..> ICapacity
+
+IngestAdapters - INormalizedState
+Mapping ..> INormalizedState
+CSDMRuntime ..> INormalizedState
+
+CSDMRuntime ..> ISchemas
+
+' Internal flow
+CSDMRuntime - IStateObjects
+
+' Persistence via interfaces
+StatePersistence - IStatePersist
+GraphPersistence - IGraphPersist
+MetricsPersistence - IMetricsPersist
+
+CSDMRuntime ..> IStatePersist
+CSDMRuntime ..> IGraphPersist
+IngestAdapters ..> IMetricsPersist
+
+StatePersistence ..> StateStore
+GraphPersistence ..> GraphDB
+MetricsPersistence ..> TSDB
+
+' Downstream consumption
+RemPlane ..> IStateObjects
+
+hide stereotype
+
+note right of ContractBuilder
+  **Tenant-specific sourcing**
+
+  The Description Plane must source:
+  - structure: components, interfaces, channels, interactions
+  - behavior/function: functions, capacities, purposes, modalities
+  - evidence/telemetry needed by policy evaluation criteria
+
+  The Definition Plane determines
+  what is necessary via:
+  - schemas + expected primitives
+  - policy evaluation criteria
+end note
+
+@enduml

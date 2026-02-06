@@ -1,0 +1,140 @@
+@startuml sie-description-plane-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam component {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+  FontStyle bold
+}
+
+skinparam interface {
+  BackgroundColor #D4EDDA
+  BorderColor #57606A
+}
+
+skinparam database {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+}
+
+skinparam note {
+  BackgroundColor #FFF8C5
+  BorderColor #57606A
+}
+
+' Use UML2 component style with icon
+skinparam componentStyle uml2
+
+title CD - SIE Description Plane - v1
+
+' ============================================================
+' PROVIDED INTERFACES (lollipops)
+' ============================================================
+
+() "State API" as IStateAPI
+() "Event API" as IEventAPI
+() "Graph API" as IGraphAPI
+
+' ============================================================
+' COMPONENTS
+' ============================================================
+
+component "State Ingestion" as Ingestion {
+  component "Event Receiver" as EventRcv
+  component "State Collector" as StateCollector
+  component "Normalizer" as Normalizer
+  component "Context Enricher" as Enricher
+}
+
+component "CSDM Runtime" as CSDMRuntime <<State Object Manager>> {
+  component "Entity Registry" as EntityReg
+  component "Relationship Manager" as RelMgr
+  component "Schema Enforcer" as SchemaEnf
+}
+
+' ============================================================
+' PERSISTENCE
+' ============================================================
+
+database "State Store" as StateStore
+database "Graph DB" as GraphDB
+database "Time Series DB" as TSDB
+
+' ============================================================
+' EXTERNAL COMPONENTS
+' ============================================================
+
+component "State Plane" as StatePlane <<external>>
+component "Definition Plane" as DefPlane <<external>>
+component "Remediation Plane" as RemPlane <<external>>
+
+' ============================================================
+' REQUIRED INTERFACES (what we need from external)
+' ============================================================
+
+() "State Events" as IStateEvents
+() "Schemas" as ISchemas
+
+' Internal plane service interfaces
+() "Normalized State" as INormalizedState
+() "State Objects" as IStateObjects
+() "State Persistence" as IStatePersistence
+() "Graph Persistence" as IGraphPersistence
+() "Metrics Persistence" as IMetricsPersistence
+
+' ============================================================
+' ASSEMBLY CONNECTORS
+' ============================================================
+
+' APIs provided by Description Plane
+Ingestion - IEventAPI
+CSDMRuntime - IStateAPI
+CSDMRuntime - IGraphAPI
+
+' State Plane provides events, Ingestion requires
+StatePlane - IStateEvents
+Ingestion ..> IStateEvents
+
+' Definition Plane provides schemas
+DefPlane - ISchemas
+SchemaEnf ..> ISchemas
+
+' Internal assembly connectors (all inter-component dependencies)
+Ingestion - INormalizedState
+CSDMRuntime ..> INormalizedState
+
+CSDMRuntime - IStateObjects
+
+' Persistence as interfaces
+StateStore - IStatePersistence
+GraphDB - IGraphPersistence
+TSDB - IMetricsPersistence
+
+CSDMRuntime ..> IStatePersistence
+CSDMRuntime ..> IGraphPersistence
+CSDMRuntime ..> IMetricsPersistence
+
+hide stereotype
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of CSDMRuntime
+  **Description Plane**
+  "How things are"
+  
+  Owns:
+  • State Objects
+  • Relationships (graph)
+end note
+
+@enduml

@@ -1,0 +1,177 @@
+@startuml sie-component-overview-v2
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam componentStyle rectangle
+skinparam componentBackgroundColor #F6F8FA
+skinparam componentBorderColor #57606A
+
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Tenant Architecture with AIOps Adapters - v2
+
+' ============================================================
+' CUSTOMER ENVIRONMENT (tenant-specific)
+' ============================================================
+
+rectangle "State Plane (Customer Environment)" as StatePlane #F4F4E8 {
+  component "Customer Systems" as CustSystems {
+    [K8s / Cloud / CI-CD] as K8s
+    [Observability] as Obs
+    [CMDB / Catalogs] as CMDB
+    [Config / IaC Repos] as IaC
+  }
+}
+
+' ============================================================
+' SAAS TENANT (1 per customer)
+' ============================================================
+
+rectangle "SaaS Tenant Instance" as SaaS #FFFACD {
+
+  note as TenantNote
+    **1 Tenant = 1 Customer**
+
+    Isolated: ITIP + SIE + Data
+    Shared: LLM, Z3 (stateless)
+  end note
+
+  ' --- ITIP ---
+  package "ITIP (Domain App)" as ITIP #D4EDDA {
+    [ITIP UI] as ITIPUI
+    [ITIP Backend\n(stateless)] as ITIPBackend
+  }
+
+  ' --- SIE Core ---
+  package "SIE Core" as SIECore {
+
+    package "Definition Plane" as DefPlane #E8F4E8 {
+      [SDM] as SDM
+      [Emergence] as Emergence
+      [Homeostasis] as Homeostasis
+      [Evaluation\n(state vs definitions)] as Eval
+    }
+
+    package "Description Plane" as DescPlane #E8F0FA {
+      package "SIE General" as DescGeneral #FFFFFF {
+        [CSDM Runtime] as CSDMRt
+      }
+      package "Tenant-specific" as DescTenant #FFFFFF {
+        [Sourcing Config] as SrcCfg
+        [Tenant Ingestion Adapters] as IngestAdapters
+        [Mapping / Normalization] as Mapping
+      }
+    }
+
+    package "Remediation Plane" as RemPlane #FFE0E0 {
+      package "SIE General" as RemGeneral #FFFFFF {
+        [Rule Execution] as RuleExec
+        [Decisioning] as Decisioning
+        [Planning] as Planning
+        [Feedback] as Feedback
+      }
+      package "Tenant-specific" as RemTenant #FFFFFF {
+        [Tenant Actuation Adapters] as ActAdapters
+        [Guardrails] as Guardrails
+      }
+    }
+
+    package "AIOps Transversal Layer" as AIOps #FFF8C5 {
+      [Adapter Runtime] as AdapterRuntime
+      [Tenant/Domain Connector SDK] as SDK
+    }
+
+    database "Tenant Data\n(isolated)" as TenantData
+  }
+}
+
+' ============================================================
+' SHARED SERVICES (stateless, multi-tenant safe)
+' ============================================================
+
+rectangle "Shared Platform Services" as Shared #F5F5F5 {
+  [LLM Service] as LLM
+  [SMT Solver (Z3)] as Z3
+
+  note as SharedNote
+    **Stateless, no customer data**
+  end note
+}
+
+' ============================================================
+' FLOWS
+' ============================================================
+
+' ITIP uses planes
+ITIPBackend --> SDM : manage definitions
+ITIPBackend --> Eval : query compliance
+ITIPBackend --> Planning : request remediation
+
+' Definition plane services
+Emergence --> SDM : proposed definitions
+Homeostasis --> SDM : incoherence results\n+ resolutions
+
+' Definition drives what to source and how to act
+SDM --> SrcCfg : evaluation criteria\n+ expected primitives
+SDM --> Decisioning : policies + behavioral rules
+
+' AIOps bridges tenant specifics
+SDK --> AdapterRuntime
+AdapterRuntime --> IngestAdapters
+AdapterRuntime --> ActAdapters
+
+' Sourcing (tenant-specific)
+K8s --> AdapterRuntime : events/state
+Obs --> AdapterRuntime : metrics/logs
+CMDB --> AdapterRuntime : inventory
+IaC --> AdapterRuntime : desired config\n+ changes
+
+IngestAdapters --> Mapping
+Mapping --> CSDMRt
+
+CSDMRt --> Eval
+Eval --> Decisioning : violations/drift
+
+' Remediation (tenant-specific)
+Decisioning --> Planning
+Planning --> Guardrails
+Guardrails --> ActAdapters
+ActAdapters --> AdapterRuntime
+AdapterRuntime --> CustSystems : apply actions
+
+' Shared services
+LLM --> Emergence : proposals
+LLM --> Decisioning : explanations
+LLM --> Planning : explanations
+Z3 --> Homeostasis : coherence checks
+
+' Persistence
+SDM --> TenantData
+CSDMRt --> TenantData
+Eval --> TenantData
+
+legend bottom
+  |= Color |= Layer |
+  |<#FFFACD> | SaaS Tenant (1 per customer) |
+  |<#D4EDDA> | Domain App (ITIP) |
+  |<#E8F4E8> | Definition Plane |
+  |<#E8F0FA> | Description Plane |
+  |<#FFE0E0> | Remediation Plane |
+  |<#FFF8C5> | AIOps transversal adapters |
+  |<#F4F4E8> | State Plane (external) |
+  |<#F5F5F5> | Shared Services (stateless) |
+endlegend
+
+@enduml

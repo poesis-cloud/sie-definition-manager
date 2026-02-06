@@ -1,0 +1,199 @@
+@startuml sie-plane-overview-v2
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam componentStyle rectangle
+skinparam componentBackgroundColor #F6F8FA
+skinparam componentBorderColor #57606A
+
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE (Systemic Intelligence Engine) - Planes, Roles & Tenancy - v2
+
+' ============================================================
+' DOMAIN APPLICATIONS
+' ============================================================
+
+package "Domain Applications" as DomainApps {
+
+  package "ITIP (IT Intelligence Platform)" as ITIP #D4EDDA {
+    [ITIP UI] as ITIPUI
+    [ITIP Backend\n(stateless)] as ITIPBackend
+
+    note as ITIPNote
+      IT Domain translation of CSDM:
+      - Services, APIs, Infrastructure
+      - IT Risks & Pain Points
+      - Quality Attributes
+    end note
+  }
+
+  package "Future Domain Apps" as FutureApps #F0F0F0 {
+    [Security Domain App] as SecApp
+    [FinOps Domain App] as FinOpsApp
+    [Compliance Domain App] as CompApp
+  }
+}
+
+actor "Users" as Users
+
+Users --> ITIPUI
+ITIPUI --> ITIPBackend
+
+' ============================================================
+' STATE PLANE (EXTERNAL) - tenant-specific reality
+' ============================================================
+
+package "State Plane (External)" as StatePlane #F4F4E8 {
+  [Customer Systems\n(runtime + configuration)] as CustSystems
+  [Signals\n(events, metrics, logs, CMDB, IaC)] as Signals
+}
+
+CustSystems --> Signals
+
+' ============================================================
+' SIE CORE - THREE PLANES
+' ============================================================
+
+package "SIE Core" as SIECore {
+
+  ' --- Definition Plane ---
+  package "Definition Plane" as DefPlane #E8F4E8 {
+    [SDM\n(Systemic Definition Mgr)] as SDM
+    [Emergence\n(proposals to definitions)] as Emergence
+    [Homeostasis\n(incoherence detection + resolution)] as Homeostasis
+    [Evaluation\n(state vs definitions)] as EvalEngine
+
+    note as DefPlaneNote
+      **Owns emergence + homeostasis**
+      applied to **definitions**.
+
+      Definition artifacts define systemic primitives:
+      - policies (incl. evaluation criteria)
+      - behavioral rules
+      - structures (components, interfaces, channels, interactions)
+      - functions, capacities, purposes, modalities
+    end note
+  }
+
+  ' --- Description Plane ---
+  package "Description Plane" as DescPlane #E8F0FA {
+
+    package "SIE General (portable)" as DescGeneral #FFFFFF {
+      [CSDM Runtime] as CSDMRuntime
+    }
+
+    package "Tenant-specific (adapted)" as DescTenant #FFFFFF {
+      [State Sourcing Config\n(what to source, why)] as SourcingCfg
+      [Tenant Ingestion Adapters] as IngestAdapters
+      [Domain/Environment Mapping] as DomainMap
+    }
+
+    note as DescPlaneNote
+      **Sources itself from the State Plane**
+      per tenant instance.
+
+      Uses Definition artifacts to determine:
+      - what to observe
+      - how to interpret/normalize
+      - what constitutes divergence (drift)
+    end note
+  }
+
+  ' --- Remediation Plane ---
+  package "Remediation Plane" as RemPlane #FFE0E0 {
+
+    package "SIE General (portable)" as RemGeneral #FFFFFF {
+      [Behavioral Rule Execution] as RuleExec
+      [Remediation Decisioning] as RemDecision
+      [Planning] as Planner
+      [Feedback] as Feedback
+    }
+
+    package "Tenant-specific (adapted)" as RemTenant #FFFFFF {
+      [Tenant Actuation Adapters] as ActAdapters
+      [Change Safety & Guardrails] as Guardrails
+    }
+
+    note as RemPlaneNote
+      **Aligns the State Plane**
+      with the Definition Plane.
+
+      Tenant-specific because
+      environments differ.
+    end note
+  }
+
+  ' --- Transversal layer (tenant adapters) ---
+  package "AIOps Transversal Layer" as AIOps #FFF8C5 {
+    [Tenant/Domain Adapters\n(connectors + wrappers)] as Adapters
+
+    note as AIOpsNote
+      Spans tenant-specific parts of
+      Description + Remediation.
+
+      Wraps environment-specific APIs,
+      data sources, and actuation targets.
+    end note
+  }
+}
+
+' ============================================================
+' HIGH-LEVEL FLOWS
+' ============================================================
+
+' Domain apps interact with SIE
+ITIPBackend --> SDM : manage definitions
+ITIPBackend --> EvalEngine : query compliance
+ITIPBackend --> Planner : request remediation
+
+SecApp --> SDM
+FinOpsApp --> SDM
+CompApp --> SDM
+
+' Definition informs Description + Remediation
+SDM --> SourcingCfg : observation requirements
+SDM --> RemDecision : policies + rules
+Homeostasis --> SDM : resolve incoherence
+Emergence --> SDM : propose new primitives
+
+' Description sources from State Plane through adapters
+Signals --> Adapters : tenant signals
+Adapters --> IngestAdapters : ingestion wrappers
+IngestAdapters --> CSDMRuntime : normalized state
+
+CSDMRuntime --> EvalEngine : state objects
+EvalEngine --> RemDecision : violations/drift
+
+EvalEngine --> Homeostasis : drift evidence
+
+' Remediation acts on State Plane through adapters
+RemDecision --> Planner : choose remediation
+Planner --> Guardrails : constrain actions
+Guardrails --> ActAdapters : tenant actuation
+ActAdapters --> Adapters : actuation wrappers
+Adapters --> CustSystems : apply changes
+
+legend bottom
+  |= Color |= Layer |
+  |<#E8F4E8> | Definition Plane |
+  |<#E8F0FA> | Description Plane |
+  |<#FFE0E0> | Remediation Plane |
+  |<#F4F4E8> | State Plane (External) |
+  |<#FFF8C5> | AIOps transversal adapters |
+  |<#D4EDDA> | Domain Application (e.g., ITIP) |
+endlegend
+
+@enduml

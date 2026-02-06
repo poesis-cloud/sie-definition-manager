@@ -715,13 +715,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     Defines the structure and semantics of a state object that can be used to
     represent the state of a system.
 
+    StateObjectArchetype is a SystemicPrimitive. It models observable/mutable state,
+    that models observable/mutable state, whereas SystemicPrimitives model
+    structural/definitional constructs.
+
     **Rules**
     - "name" MUST match the name of the schema.
     - "name" MUST be unique among all entities classified as "archetype".
-    - If its schema is deleted, the event archetype MUST be deleted.
-    - A default StateObjectArchetype MUST be created for each SystemicPrimitive.
-    - The default StateObjectArchetype schema MUST be the schema of the
-      SystemicPrimitive's archetype.
+    - If its schema is deleted, the state object archetype MUST be deleted.
   end note
 
   SystemicPrimitive <|-- StateObjectArchetype : is
@@ -736,7 +737,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getStatus(): PolicyStatus
     +getApplicabilityConditions(): String
     +getConstraint(): String
-    +getEvaluationCriteria(): String
   }
 
   enum PolicyStatus {
@@ -756,8 +756,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     what the system MUST do (functional), MUST withstand (viability), or MUST be
     (structural).
 
-    If a constraint cannot be expressed with evaluation criteria, it is not a
-    policy.
+    If a constraint is not measurable, it is not a policy.
 
     **Systemic Semantics**:
     - Policies are OWNED by Governor controller mechanisms.
@@ -765,8 +764,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       controller mechanisms.
 
     **Homeostatic Auto-Definition Rule (Sensor)**:
-    When a Policy has measurable "evaluationCriteria", the system SHOULD
-    auto-define:
+    When a Policy constraint is measurable, the system SHOULD auto-define:
     - A **SensorMechanism** that measures the criteria
     - An **EventArchetype** for the measurement (MeasurementEvent)
     - An **Interaction** from Sensor.Effector → Governor.Receptor
@@ -786,14 +784,59 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       true for the policy to be applicable to the system.
     - "constraint": A declarative expression of the constraint imposed by the
       policy.
-    - "evaluation criteria": A declarative expression defining how to evaluate
-      whether the policy is being met by the system.
+
+    **Evaluation Semantics (derived)**:
+    Policy evaluation is derived deterministically from the constraint format.
+    The policy definition does not carry an additional author-defined
+    evaluation field.
+
+    **Rationale (avoid duplicated semantics):**
+    Some constraint formats (notably **ThresholdConstraint**) already embed the
+    key measurement semantics required for evaluation (metric + aggregation +
+    timeWindow). Duplicating measurement semantics in a separate field invites
+    divergence and non-reproducible evaluation.
 
     **Validation Rules**:
     - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
       node.
     - *constraint* MUST be a valid constraint format CSDSL JSON AST node.
-    - *evaluation criteria* MUST be a valid evaluation criteria format CSDSL JSON AST node.
+
+    **Guard × Constraint Compatibility Rules**:
+    A Policy is only well-defined if its applicability guard and constraint can
+    be evaluated together.
+
+    - **Definedness:** For every evaluation context $C$ where
+      `applicabilityConditions(C) == true`, the `constraint(C)` evaluation MUST
+      be defined (no missing references, null-dereferences, invalid paths, etc.).
+    - **Type soundness:** Under the same contexts, the constraint MUST be
+      type-consistent (e.g., do not compare `duration` to `number`, do not apply
+      numeric aggregation to a `string`-typed attribute).
+    - **Domain alignment (selectors):** If the constraint quantifies over or
+      selects StateObjects (explicit selector in the constraint format), then
+      the applicability guard MUST NOT allow contexts where that selector’s
+      required archetype(s) cannot exist.
+      (Otherwise the constraint becomes vacuous/undefined depending on the
+      operator semantics.)
+    - **Optional (quality):** The system MAY warn when `applicabilityConditions`
+      is satisfiable but makes the constraint always trivially true/false.
+
+    **Constraint → Evaluation Derivation Rules (CSDSL v1):**
+    The following derivations are mandatory and deterministic:
+
+    1) ThresholdConstraint
+       - Measure the referenced metric using the declared aggregation and
+         timeWindow, then compare to the threshold.
+
+    2) InvariantConstraint
+       - Evaluate the invariant boolean condition against the relevant state
+         objects.
+
+    3) DependencyConstraint
+       - Evaluate the structural dependency relation over the state graph
+         implied by the selected state objects.
+
+    4) CardinalityConstraint
+       - Count matching state objects and evaluate the bounds.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.

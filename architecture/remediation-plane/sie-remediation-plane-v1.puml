@@ -1,0 +1,204 @@
+@startuml sie-remediation-plane-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam component {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+  FontStyle bold
+}
+
+skinparam interface {
+  BackgroundColor #D4EDDA
+  BorderColor #57606A
+}
+
+skinparam database {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+}
+
+skinparam note {
+  BackgroundColor #FFF8C5
+  BorderColor #57606A
+}
+
+' Use UML2 component style with icon
+skinparam componentStyle uml2
+
+title CD - SIE Remediation Plane - v1
+
+' ============================================================
+' PROVIDED INTERFACES (lollipops)
+' ============================================================
+
+() "Action API" as IActionAPI
+() "Approval API" as IApprovalAPI
+() "Playbook API" as IPlaybookAPI
+() "Feedback API" as IFeedbackAPI
+
+' ============================================================
+' COMPONENTS
+' ============================================================
+
+component "Behavioral Rule Engine" as RuleEngine {
+  component "Rule Executor" as RuleExec
+  component "Condition Evaluator" as CondEval
+  component "Action Selector" as ActionSelect
+  component "Pre-condition Checker" as PreCondCheck
+}
+
+component "Remediation Planner" as Planner {
+  component "Risk Assessor" as RiskAssessor
+  component "Rollback Planner" as RollbackPlanner
+  component "Playbook Matcher" as PlaybookMatch
+}
+
+component "Auto-Healing" as AutoHeal {
+  component "Healer" as Healer
+  component "Safe Mode Controller" as SafeMode
+  component "Dry Run Executor" as DryRun
+  component "Healing Validator" as Validator
+}
+
+component "Escalation Manager" as Escalation {
+  component "Approval Workflow" as ApprovalWF
+  component "Notification Router" as NotifRouter
+  component "SLA Monitor" as SLAMon
+}
+
+component "Feedback Service" as Feedback {
+  component "Outcome Tracker" as OutcomeTrack
+  component "Success Analyzer" as SuccessAnalyze
+  component "Pattern Learner" as PatternLearn
+}
+
+' ============================================================
+' PERSISTENCE
+' ============================================================
+
+database "Remediation Store" as RemStore
+database "Playbook Store" as PlaybookStore
+
+' ============================================================
+' EXTERNAL COMPONENTS
+' ============================================================
+
+component "Definition Plane" as DefPlane <<external>>
+component "Description Plane" as DescPlane <<external>>
+component "State Plane" as StatePlane <<external>>
+component "LLM Service" as LLM <<external>>
+
+component "Communication Channels" as CommChannels <<external>> {
+  component "Ticketing" as Ticketing
+  component "Chat" as Chat
+  component "Paging" as Paging
+}
+
+component "Operators" as Operators <<external>>
+
+' ============================================================
+' REQUIRED INTERFACES (what we need from external)
+' ============================================================
+
+() "Behavioral Rules" as IRules
+() "Violations" as IViolations
+() "State Operations" as IStateOps
+() "LLM Suggestions" as ILLMSuggest
+
+' Internal plane service interfaces
+() "Remediation Plans" as IPlans
+() "Execution Commands" as IExec
+() "Outcomes" as IOutcomes
+() "Remediation Persistence" as IRemPersistence
+() "Playbook Persistence" as IPlaybookPersistence
+() "Ticketing" as ITicketing
+() "Chat Notifications" as IChat
+() "Paging" as IPaging
+
+' ============================================================
+' ASSEMBLY CONNECTORS
+' ============================================================
+
+' APIs provided by Remediation Plane
+RuleEngine - IActionAPI
+Escalation - IApprovalAPI
+Planner - IPlaybookAPI
+Feedback - IFeedbackAPI
+
+' Definition Plane provides rules, Rule Engine requires
+DefPlane - IRules
+RuleExec ..> IRules
+
+' Description Plane provides violations
+DescPlane - IViolations
+RuleExec ..> IViolations
+
+' State Plane accepts operations from Auto-Heal
+StatePlane - IStateOps
+AutoHeal ..> IStateOps
+
+' LLM provides suggestions
+LLM - ILLMSuggest
+Planner ..> ILLMSuggest
+PatternLearn ..> ILLMSuggest
+
+' Internal assembly connectors (all inter-component dependencies)
+RuleEngine - IPlans
+Planner ..> IPlans
+
+Planner - IExec
+AutoHeal ..> IExec
+
+AutoHeal - IOutcomes
+Feedback ..> IOutcomes
+
+' Persistence as interfaces
+RemStore - IRemPersistence
+PlaybookStore - IPlaybookPersistence
+Feedback ..> IRemPersistence
+Planner ..> IPlaybookPersistence
+
+' Communication channels as interfaces
+Ticketing - ITicketing
+Chat - IChat
+Paging - IPaging
+NotifRouter ..> ITicketing
+NotifRouter ..> IChat
+NotifRouter ..> IPaging
+
+hide stereotype
+
+' Operator interactions (dependencies on plane APIs)
+Operators ..> IApprovalAPI : approve/reject
+Operators ..> IFeedbackAPI : feedback
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note right of RuleEngine
+  **Remediation Plane**
+  "What to do about it"
+  
+  Owns:
+  • Behavioral Rules
+  • Playbooks
+  • Escalation Workflows
+  • Outcome Feedback
+end note
+
+note bottom of StatePlane
+  Auto-Healing applies
+  changes to State Plane
+  (K8s, Cloud, CI/CD)
+end note
+
+@enduml

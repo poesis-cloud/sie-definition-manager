@@ -1,0 +1,251 @@
+@startuml sie-component-overview-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam componentStyle rectangle
+skinparam componentBackgroundColor #F6F8FA
+skinparam componentBorderColor #57606A
+
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Three Planes Architecture Overview - v1
+
+' ============================================================
+' CUSTOMER ENVIRONMENT
+' ============================================================
+
+rectangle "Customer Environment" as CustEnv #F0F8FF {
+  actor "IT Users" as Users
+  
+  cloud "Customer IdP\n(Okta/Azure AD)" as CustIdP #FFE4E1
+  
+  node "Customer IT Systems" as CustSystems {
+    [K8s / Cloud / CI-CD] as K8s
+    [Observability] as Obs
+  }
+}
+
+' ============================================================
+' SAAS TENANT (1 per customer)
+' ============================================================
+
+rectangle "SaaS Tenant Instance" as SaaSTenant #FFFACD {
+
+  note as TenantNote
+    **1 Tenant = 1 Customer**
+    
+    Isolated: ITIP + SIE + Data
+    Shared: LLM, Z3 (stateless)
+    
+    See: sie-saas-deployment-v1.puml
+    See: sie-saas-multi-tenant-v1.puml
+  end note
+
+  ' ============================================================
+  ' DOMAIN APPLICATION (ITIP)
+  ' ============================================================
+  
+  package "ITIP (IT Intelligence Platform)" as ITIP #D4EDDA {
+    
+    package "Auth" as AuthPkg {
+      [OIDC Gateway] as OIDC
+      [RBAC] as RBAC
+    }
+    
+    [ITIP UI] as ITIPUI
+    [ITIP Backend\n(stateless)] as ITIPBackend
+    
+    note as ITIPNote
+      **Domain SaaS Application**
+      
+      • UI + stateless backend
+      • Integrates customer IdP
+      • Translates CSDM for IT domain
+    end note
+  }
+
+' ============================================================
+' SIE CORE - THREE PLANES
+' ============================================================
+
+package "SIE Core" as SIECore {
+
+  note as SIENote
+    **Three Planes Architecture**
+    
+    • Definition: what we want
+    • Description: how things are
+    • Remediation: what to do about it
+    
+    See: architecture/{definition,description,remediation}/
+    See: concept/{definition,description,remediation}/
+  end note
+  
+  ' --- DEFINITION PLANE ---
+  package "Definition Plane" as DefPlane #E8F4E8 {
+    [SDM\n(Systemic Definition Mgr)] as SDM
+    [CSDSL Processing] as CSDSL
+    [CEL Transpilation] as CEL
+    [Conflict Detection] as Conflict
+    
+    note as DefNote
+      **"What we want"**
+      Policies, Constraints,
+      Rules, Schemas
+    end note
+  }
+  
+  ' --- DESCRIPTION PLANE ---
+  package "Description Plane" as DescPlane #E8F0FA {
+    [State Ingestion] as Ingestion
+    [CSDM Runtime] as CSDMRt
+    [Evaluation Engine] as Eval
+    [Analytics Engine] as Analytics
+    
+    note as DescNote
+      **"How things are"**
+      State Objects, Evaluations,
+      Relationships, History
+    end note
+  }
+  
+  ' --- REMEDIATION PLANE ---
+  package "Remediation Plane" as RemPlane #FFE0E0 {
+    [Behavioral Rules] as BehavRules
+    [Remediation Planning] as RemPlan
+    [Auto-Healing] as AutoHeal
+    [Escalation Mgmt] as Escalation
+    
+    note as RemNote
+      **"What to do about it"**
+      Actions, Playbooks,
+      Healing, Escalations
+    end note
+  }
+  
+  database "Tenant Data\n(isolated)" as TenantData
+}
+
+' ============================================================
+' SHARED SERVICES (Stateless, Multi-tenant safe)
+' ============================================================
+
+rectangle "Shared Platform Services" as SharedSvc #F5F5F5 {
+  [LLM Service] as LLM
+  [SMT Solver (Z3)] as Z3
+  
+  note as SharedNote
+    **Stateless, no customer data**
+  end note
+}
+
+package "Communication" as Comm {
+  [Ticketing / Chat] as Ticketing
+}
+
+' ============================================================
+' AUTHENTICATION FLOW
+' ============================================================
+
+Users --> ITIPUI : access
+ITIPUI --> OIDC : auth
+OIDC <--> CustIdP : OIDC/SAML\nfederation
+OIDC --> RBAC : authorize
+RBAC --> ITIPBackend
+
+' ============================================================
+' DOMAIN APP → SIE RELATIONSHIPS
+' ============================================================
+
+ITIPBackend --> SDM : manage IT policies
+ITIPBackend --> Ingestion : IT state events
+ITIPBackend --> Eval : IT compliance
+ITIPBackend --> Escalation : IT incidents
+
+' ============================================================
+' INTER-PLANE RELATIONSHIPS
+' ============================================================
+
+' Definition → Description
+SDM --> CSDMRt : schemas
+CEL --> Eval : compiled CEL
+
+' Description → Remediation
+Eval --> BehavRules : violations
+Analytics --> RemPlan : impact context
+
+' Definition → Remediation
+SDM --> BehavRules : behavioral rules
+
+' All planes → Tenant Data
+SDM --> TenantData
+CSDMRt --> TenantData
+Eval --> TenantData
+
+' ============================================================
+' EXTERNAL RELATIONSHIPS
+' ============================================================
+
+' Customer systems
+K8s --> Ingestion : state
+Obs --> Ingestion : metrics
+AutoHeal --> K8s : remediation
+
+' Shared services (stateless)
+CSDSL --> LLM : synthesis
+Conflict --> Z3 : SAT solving
+
+' Communication
+Escalation --> Ticketing
+
+' ============================================================
+' LEGEND
+' ============================================================
+
+legend bottom
+  |= Color |= Layer |
+  |<#FFFACD> | SaaS Tenant (1 per customer) |
+  |<#D4EDDA> | Domain Application (ITIP) |
+  |<#E8F4E8> | Definition Plane |
+  |<#E8F0FA> | Description Plane |
+  |<#FFE0E0> | Remediation Plane |
+  |<#F5F5F5> | Shared Services (stateless) |
+endlegend
+
+@enduml
+  |<#FFE0E0> | Remediation Plane (what to do) |
+  |<#D4EDDA> | Domain Application (ITIP, etc.) |
+endlegend
+
+@enduml
+IntelligencePlane --> DataPlane
+
+' ============================================================
+' LEGEND
+' ============================================================
+
+legend bottom
+  |= Color |= Plane |
+  |<#E8F4E8> | SDM (definition management) |
+  |<#E8F0FA> | Ingestion (data collection) |
+  |<#FFF3E0> | Constraint (parsing & compilation) |
+  |<#EDD4D4> | Evaluation (decision making) |
+  |<#D4D4ED> | Analytics (reasoning) |
+  |<#D4EDDA> | Intelligence (LLM-powered) |
+  |<#FFE0E0> | Actuation (remediation) |
+  |<#F0F0F0> | Data (persistence) |
+endlegend
+
+@enduml

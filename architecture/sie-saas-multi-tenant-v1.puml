@@ -1,0 +1,149 @@
+@startuml sie-saas-multi-tenant-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam nodeBackgroundColor #F6F8FA
+skinparam nodeBorderColor #57606A
+
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam rectangleBorderColor #57606A
+
+skinparam cloudBackgroundColor #FFFFFF
+skinparam cloudBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE + ITIP - Multi-Customer SaaS Architecture - v1
+
+' ============================================================
+' CUSTOMER A
+' ============================================================
+
+rectangle "Customer A" as CustA #FFF0F0 {
+  actor "Users A" as UsersA
+  cloud "IdP A\n(Okta)" as IdPA
+  node "IT Systems A" as SysA
+}
+
+rectangle "Tenant A" as TenantA #FFE4E1 {
+  node "[ITIP Instance A]" as ITIPA
+  node "[SIE Instance A]\n(Def + Desc + Rem)" as SIEA
+  database "Data A" as DataA
+}
+
+' ============================================================
+' CUSTOMER B
+' ============================================================
+
+rectangle "Customer B" as CustB #F0FFF0 {
+  actor "Users B" as UsersB
+  cloud "IdP B\n(Azure AD)" as IdPB
+  node "IT Systems B" as SysB
+}
+
+rectangle "Tenant B" as TenantB #E8F4E8 {
+  node "[ITIP Instance B]" as ITIPB
+  node "[SIE Instance B]\n(Def + Desc + Rem)" as SIEB
+  database "Data B" as DataB
+}
+
+' ============================================================
+' CUSTOMER C
+' ============================================================
+
+rectangle "Customer C" as CustC #F0F0FF {
+  actor "Users C" as UsersC
+  cloud "IdP C\n(Ping)" as IdPC
+  node "IT Systems C" as SysC
+}
+
+rectangle "Tenant C" as TenantC #E8F0FA {
+  node "[ITIP Instance C]" as ITIPC
+  node "[SIE Instance C]\n(Def + Desc + Rem)" as SIEC
+  database "Data C" as DataC
+}
+
+' ============================================================
+' SHARED PLATFORM
+' ============================================================
+
+rectangle "Shared Platform (Stateless)" as Shared #F5F5F5 {
+  [LLM Service] as LLM
+  [Z3 Solver] as Z3
+  [Metrics / Billing] as Metrics
+  
+  note as SharedNote
+    **Shared services are stateless**
+    No customer data persisted.
+    Safe for multi-tenant use.
+  end note
+}
+
+' ============================================================
+' KEY POINTS
+' ============================================================
+
+note as ArchNote
+  **SaaS Deployment Model**
+  
+  **Per Customer (Isolated):**
+  • 1 ITIP SaaS instance
+  • 1 SIE instance (3 planes)
+  • 1 Data store (fully isolated)
+  • 1 IdP integration
+  
+  **Shared (Stateless):**
+  • LLM inference service
+  • SMT solver service
+  • Platform monitoring
+  
+  **No cross-tenant data access**
+end note
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' Customer A
+UsersA --> ITIPA
+IdPA <--> ITIPA : OIDC
+SysA <--> SIEA
+ITIPA --> SIEA
+SIEA --> DataA
+
+' Customer B
+UsersB --> ITIPB
+IdPB <--> ITIPB : OIDC
+SysB <--> SIEB
+ITIPB --> SIEB
+SIEB --> DataB
+
+' Customer C
+UsersC --> ITIPC
+IdPC <--> ITIPC : OIDC
+SysC <--> SIEC
+ITIPC --> SIEC
+SIEC --> DataC
+
+' Shared services (no customer data)
+SIEA --> LLM
+SIEB --> LLM
+SIEC --> LLM
+SIEA --> Z3
+SIEB --> Z3
+SIEC --> Z3
+
+TenantA --> Metrics
+TenantB --> Metrics
+TenantC --> Metrics
+
+@enduml
