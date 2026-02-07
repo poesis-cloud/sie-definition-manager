@@ -1,0 +1,186 @@
+@startuml sie-emergence-components-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam componentBackgroundColor #F6F8FA
+skinparam componentBorderColor #57606A
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title CD - SIE Emergence & Homeostasis on Definition–Description Alignment - v1
+
+' ============================================================
+' COMPONENT VIEW
+'
+' Purpose: make explicit how homeostasis and emergence articulate across
+' Definition ↔ Description interactions.
+' ============================================================
+
+package "Definition Plane" as DefPlane #E8F4E8 {
+  package "Definition DB\n(primitive invariants + storage)" as SDM #E8F4E8 {
+    [Compilation\n(CSDSL → CEL)] as Compiler
+    [Governor\n(owns Policies)\n(Emergence + Decision)] as Governor
+    [Supervisor\n(owns BehavioralRules)\n(Adaptation)] as Supervisor
+    [Coherence\n(coherence + feasibility)\n(owned by Governor)] as Coherence
+    [Definition Population\n(Bootstrap + Sync)] as DefPop
+  }
+}
+
+actor "Decision Owner" as DecisionOwner
+
+package "Description Plane" as DescPlane #E8F0FA {
+  [Sourcing\n(Connectors)] as Sourcing
+  [Domain Signal Adapters\n(Jira/CMDB/Repos/IdP)] as Signals
+  [State Object Store] as StateStore
+  [Evaluation Runtime\n(realizes SensorMechanisms)\n(Comparator)] as Comparator
+  [Mismatch Builder\n(realizes Controller receptors)\n(Signal Builder)] as Mismatch
+}
+
+package "Remediation Plane" as RemPlane #F4E8E8 {
+  [Operator\n(realizes BehavioralRules)\n(Homeostasis / Rule Execution)] as RuleEngine
+  [Actuators\n(Executors)] as Actuators
+}
+
+package "State Plane" as StatePlane #F4F4E8 {
+  [External Systems] as Ext
+}
+
+[Event Bus] as Bus
+
+' ============================================================
+' INFORMATION FLOWS
+' ============================================================
+
+SDM --> Compiler : definitions
+Compiler --> Comparator : evaluable forms
+
+Ext --> Sourcing : events/state
+Ext --> Signals : domain facts
+Signals --> Sourcing : normalize to sources
+Sourcing --> StateStore : state objects
+StateStore --> Comparator : measured state
+
+Comparator --> Mismatch : evaluation outputs
+Mismatch --> Bus : MismatchDetectedEvent
+
+Bus --> Supervisor : mismatch signal
+Supervisor --> RuleEngine : remediation/adaptation intent
+RuleEngine --> Actuators : control actions
+Actuators --> Ext : change state
+
+Supervisor --> Governor : request coherence check
+Governor --> Coherence : operate coherence checking
+Coherence --> Governor : coherence + feasibility results
+Governor --> Supervisor : classification + resolution guidance
+
+Supervisor --> Governor : escalate(definition change needed)
+Governor --> DecisionOwner : requestDecision(proposal + evidence)
+DecisionOwner --> Governor : approve/reject
+Governor --> Coherence : verify proposal coherence
+Coherence --> Governor : verification report
+Governor --> SDM : create/deprecate primitives + publish policy changes
+Governor --> Bus : PrimitiveChangedEvent
+
+DefPop --> SDM : import/sync primitives
+note right of DefPop
+  **Definition Population (non-emergent)**
+
+  Bootstraps an SIE instance with known primitives,
+  and continuously synchronizes definitions from
+  authoritative sources (e.g. code repos, CMDB).
+
+  It can CREATE/DEPRECATE primitives with provenance,
+  but does NOT represent emergence by itself.
+
+  Emergence begins only when mismatch/coherence evidence
+  indicates that *sourcing/imported definitions are insufficient*
+  (variety deficit / missing concept / persistent drift).
+end note
+
+note right of DecisionOwner
+  **Decision Owner (concrete meaning):**
+  A set of *input providers* for governor decisions, e.g.:
+  - Human approvals (ITIP UI / change advisory)
+  - Meta-policies and guardrails (auto checks)
+  - Risk/impact summaries and audit requirements
+  - External governance systems (tickets/approvals)
+
+  This is an interface/component boundary, not a systemic primitive.
+end note
+
+' ============================================================
+' HOMEOSTASIS / EMERGENCE ARTICULATION (TEXT)
+' ============================================================
+
+note bottom of Supervisor
+  **Homeostasis (in SIE, across Definition–Description)**
+
+  Paraphrase of your proposal (please confirm exact wording):
+  - Homeostasis is the continuous process that keeps the Description Plane
+    aligned with the Definition Plane, by detecting mismatch and acting.
+
+  Slightly more systemics-faithful phrasing (SIE-specific):
+  - Homeostasis is a negative-feedback control regime that continuously reduces
+    Definition–Description mismatch by selecting actions (remediation) and/or
+    tuning constraints within the current definitional structure.
+
+  Canonical systemics statement:
+  - Homeostasis is the maintenance of essential variables within viable bounds
+    through negative feedback: deviations generate error signals which drive
+    compensatory actions that damp deviations and preserve system identity.
+
+  **Articulation rule:**
+  - If mismatch is reducible without changing Policies or structural primitives,
+    then homeostasis applies remediation and/or **Adaptation**
+    (rule changes within current policy bounds); emergence is not opened.
+  - If mismatch reflects a *variety deficit* (insufficient capability to meet
+    constraints) or requires changing Policies / primitives, homeostasis
+    escalates to emergence.
+
+  **Ownership (3-level hierarchy):**
+  - Operator REALIZES BehavioralRules (executes remediation)
+  - Supervisor OWNS BehavioralRules and orchestrates first-order control
+  - Governor OWNS Policies and governs second-order definition change
+
+  In other words:
+  - Homeostasis is not "owned" by a single level; it is implemented by the
+    vertical Governor→Supervisor→Operator feedback topology.
+  - This diagram's homeostasis view is an orchestration view of that topology
+    (often implemented primarily by Supervisor + Operator services).
+end note
+
+note right of Mismatch
+  **Mismatch detection (activable information)**
+
+  Detectable gaps between Definition expectations and Description reality:
+  - Coverage gap: required state object/event not sourced
+  - Schema drift: sourced object violates archetype schema
+  - Value deviation: constraint violation / drift
+  - Reference gap: definition points to missing primitive
+  - Variety deficit: feasibility NOT_FEASIBLE with current mechanisms
+
+  Translation to triggers:
+  - Homeostasis trigger: value deviation, schema drift (often fixable)
+  - Emergence trigger: variety deficit, persistent coverage/reference gaps
+
+  **Runtime realization:**
+  - The Mismatch Builder can live in the Description Plane for streaming
+    efficiency, but it conceptually produces events bound to controller
+    receptors (Supervisor/Governor).
+
+  **Ownership note (design choice):**
+  - If Mismatch lives in Description Plane: closer to data + cheaper streaming;
+    but must be definition-aware to label gaps.
+  - If Mismatch lives in Definition Plane: better semantic correctness
+    (definition-aware comparator); but higher coupling to sourcing/runtime.
+end note
+
+@enduml

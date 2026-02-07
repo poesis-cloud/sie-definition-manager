@@ -1,0 +1,132 @@
+@startuml sie-emergence-state-machine-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+skinparam state {
+  BackgroundColor #F6F8FA
+  BorderColor #57606A
+  FontColor #24292F
+}
+
+title SIE - Emergence Lifecycle State Machine - v1
+
+' ============================================================
+' EMERGENCE LIFECYCLE
+'
+' Goal: track the systemic process of **Emergence** (second-order definitional
+' change) in the Definition Plane, initiated by evidence coming from the
+' Description Plane.
+'
+' Non-goal: initial population of definitions.
+' - During SIE deployment/bootstrap, definitions are seeded/synchronized from
+'   authoritative sources (repos/CMDB/directories). This is handled by a
+'   Definition Population process and MUST NOT be treated as emergence.
+'
+' Homeostasis vs Emergence decision point:
+' - If mismatch is resolvable by regulation/action within current definitions,
+'   homeostasis handles it and emergence is NOT opened.
+' - If mismatch indicates a *variety deficit* / missing definition capability,
+'   emergence is opened to propose definition changes.
+'
+' Note on terminology:
+' - **Adaptation** is reserved for rule-level change within existing policy
+'   bounds (behavioral reconfiguration).
+' - **Emergence** is reserved for changes to Policies / structural primitives /
+'   constraint-structure (governed second-order change).
+' ============================================================
+
+[*] --> OPEN : create(Emergence)
+
+state OPEN {
+}
+
+OPEN --> DIAGNOSING : trigger received
+note on link
+  Trigger sources include:
+  - Observation (document/intent)
+  - Coherence escalation
+  - Definition–Description mismatch
+  - Explicit user request
+end note
+
+DIAGNOSING --> CANCELLED : homeostatic resolution applicable
+note on link
+  Condition: mismatch classified as solvable
+  by remediation/tuning under current policies/rules.
+end note
+
+DIAGNOSING --> PROPOSING : classified as "definition change needed"
+note on link
+  Condition examples:
+  - Variety deficit (NOT_FEASIBLE)
+  - Missing primitive / missing scope concept
+  - Persistent semantic drift requiring new policy/rule
+end note
+
+PROPOSING --> VERIFYING : proposal assembled
+
+VERIFYING --> PROPOSING : incoherent but refinable
+note on link
+  Condition: coherence/feasibility checks return issues
+  and auto-refinement is enabled.
+end note
+
+VERIFYING --> FAILED : incoherent / unsafe / cannot refine
+
+VERIFYING --> AWAITING_APPROVAL : coherence OK + impact assessed
+
+AWAITING_APPROVAL --> REJECTED : governance decision == reject
+AWAITING_APPROVAL --> APPROVED : governance decision == approve
+AWAITING_APPROVAL --> CANCELLED : timed out / withdrawn
+
+APPROVED --> ENACTING : execution plan created
+
+ENACTING --> STABILIZING : definition changes applied
+note on link
+  Condition: primitives created/deprecated + policies/rules published
+  + downstream compilation/indexing completed.
+end note
+
+STABILIZING --> STABILIZED : mismatch reduced and stable
+note on link
+  Condition: observed mismatch signal converges
+  (e.g., below threshold for N windows) AND
+  no new incoherence introduced.
+end note
+
+STABILIZING --> FAILED : rollback triggered or instability persists
+
+REJECTED --> [*]
+CANCELLED --> [*]
+FAILED --> [*]
+STABILIZED --> [*]
+
+note right of DIAGNOSING
+  **Definition–Description mismatch (evidence)**
+  A mismatch is *activable information* (error signal) describing
+  a gap between:
+  - Definition plane expectations (schemas, constraints, references)
+  - Description plane availability/observability (state objects, events)
+
+  Typical types:
+  - VALUE_DEVIATION (violations/drift)
+  - COVERAGE_GAP (missing sourced state object/event)
+  - SCHEMA_DRIFT (source no longer matches archetype)
+  - REFERENCE_GAP (definition refers to non-existent primitive)
+  - VARIETY_DEFICIT (constraint not feasible with existing mechanisms)
+
+  Only some types require emergence (policy/primitives/constraint-structure change).
+end note
+
+@enduml

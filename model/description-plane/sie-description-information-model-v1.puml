@@ -1,0 +1,422 @@
+@startuml sie-description-information-model-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam groupInheritance 2
+
+skinparam classFontSize 11
+skinparam classAttributeFontSize 10
+skinparam classFontStyle bold
+skinparam classAttributeFontStyle plain
+
+skinparam ArrowColor #57606A
+skinparam ArrowThickness 1
+skinparam ArrowFontSize 9
+
+skinparam ClassBackgroundColor #F6F8FA
+skinparam ClassBorderColor #57606A
+skinparam ClassBorderThickness 1
+
+skinparam NoteBackgroundColor #FFF8C5
+skinparam NoteBorderColor #57606A
+skinparam NoteFontSize 10
+
+skinparam PackageBorderColor #57606A
+skinparam PackageBackgroundColor #FFFFFF
+skinparam PackageFontStyle bold
+
+frame "CD - SIE Description Plane Information Model - v1" as DescInfo {
+
+  package "Pure State Description" as StateDescPkg {
+
+    class StateObject <<entity>> {
+      + id : UUID
+      + archetype : String
+      + externalRef : String
+      + capturedAt : DateTime
+      + payload : Object
+      + schemaVersion : String?
+    }
+
+    class EventInstance <<entity>> {
+      + id : UUID
+      + archetype : String
+      + occurredAt : DateTime
+      + payload : Object
+      + source : String
+    }
+
+    note right of StateObject
+      **Pure state description**
+
+      Ground-truth, sensor-facing description of "how things are":
+      state objects + state-sourced events ingested from the State plane.
+
+      All other Description artifacts (signals, mismatches, assessments, solver snapshots)
+      are derived from these (and other observations) and belong to the rest of the
+      Description plane.
+
+      **Retention governance**
+      Retention tiering/bounding (RAW vs DERIVED vs SNAPSHOT) is governed in the
+      Definition plane by meta-policy `EvidenceRetentionPolicy`.
+    end note
+  }
+
+  package "Signals + Derived Evidence" as DescPkg {
+
+    class DomainSignal <<entity>> {
+      + id : UUID
+      + domain : String
+      + type : DomainSignalType
+      + source : String
+      + externalRef : String
+      + capturedAt : DateTime
+      + payload : Object
+    }
+
+    enum DomainSignalType {
+      USE_CASE
+      REQUIREMENT
+      PAIN_POINT
+      RISK
+      INCIDENT
+      CHANGE_REQUEST
+      ARCHITECTURE_DECISION
+      CMDB_CHANGE
+      ORG_CHANGE
+    }
+
+    class Observation <<entity>> {
+      + id : UUID
+      + sourceUri : String
+      + sourceType : ObservationSourceType
+      + observationType : ObservationType
+      + collectedAt : DateTime
+      + llmSummary : String?
+      + extractedIntent : Object?
+      + confidence : Decimal?
+      + tags : String[]
+    }
+
+    note right of Observation
+      **Closed-loop boundary note**
+
+      `ObservationSourceType.USER_INPUT` represents *observations of human-provided artifacts*
+      (requests, statements, documents) that become Description-plane evidence.
+
+      It is NOT the same as Definition-plane `Decision Owner` decisions/approvals.
+      Decisions are consumed/produced in Definition processes (governance), and may
+      reference Description evidence.
+    end note
+
+    enum ObservationSourceType {
+      CODE_REPOSITORY
+      CMDB
+      TICKET_SYSTEM
+      ORG_DIRECTORY
+      RUNTIME_TELEMETRY
+      USER_INPUT
+      EXTERNAL_DOC
+    }
+
+    enum ObservationType {
+      USE_CASE
+      REQUIREMENT
+      PAIN_POINT
+      RISK
+      INCIDENT
+      CHANGE_REQUEST
+      ARCHITECTURE_DECISION
+      DEPENDENCY_CHANGE
+      PERFORMANCE_METRIC
+      SECURITY_FINDING
+      ORG_CHANGE
+    }
+
+    class DefinitionDescriptionMismatch <<entity>> {
+      + id : UUID
+      + mismatchType : MismatchType
+      + severity : Severity
+      + definitionRefs : UUID[]
+      + descriptionRefs : String[]
+      + evidence : Object
+      + detectedAt : DateTime
+      + persistence : Object
+    }
+
+    class OperationalFeedbackEvidence <<entity>> {
+      + id : UUID
+      + scope : Object
+      + derivedAt : DateTime
+      + convergenceMetrics : Object?
+      + failureModes : Object?
+      + varietyHints : Object?
+      + evidence : Object?
+    }
+
+    class MismatchAssessment <<entity>> {
+      + id : UUID
+      + mismatchRefs : UUID[]
+      + operationalFeedbackEvidenceRefs : UUID[]
+      + assessedAt : DateTime
+      + severity : Severity
+      + assessment : Object
+      + persistence : Object?
+    }
+
+    enum MismatchType {
+      VALUE_DEVIATION
+      COVERAGE_GAP
+      SCHEMA_DRIFT
+      REFERENCE_GAP
+      VARIETY_DEFICIT
+      SEMANTIC_DRIFT
+    }
+
+    enum Severity {
+      INFO
+      WARNING
+      ERROR
+      CRITICAL
+    }
+
+    class SignalNormalization <<service>> {
+      + normalize(rawSignal) : DomainSignal
+      + toObservation(signal) : Observation
+      + enrich(observation) : Observation
+    }
+
+    class MismatchDetector <<service>> {
+      + detect(definitions, state, observations) : DefinitionDescriptionMismatch[]
+    }
+
+    class OperationalFeedbackDerivation <<service>> {
+      + derive(stateObjects, eventInstances, scope) : OperationalFeedbackEvidence[]
+    }
+
+    class MismatchAssessmentBuilder <<service>> {
+      + assess(mismatches, operationalEvidence) : MismatchAssessment[]
+    }
+
+    DomainSignal "0..*" o--> "0..*" Observation : supports
+    Observation "0..*" o--> "0..*" StateObject : references
+    Observation "0..*" o--> "0..*" EventInstance : references
+    DefinitionDescriptionMismatch "0..*" o--> "0..*" Observation : evidence
+    DefinitionDescriptionMismatch "0..*" o--> "0..*" StateObject : evidence
+
+    OperationalFeedbackEvidence "0..*" o--> "0..*" StateObject : evidence
+    OperationalFeedbackEvidence "0..*" o--> "0..*" EventInstance : evidence
+    OperationalFeedbackEvidence "0..*" o--> "0..*" Observation : evidence
+
+    MismatchAssessment "0..*" o--> "0..*" DefinitionDescriptionMismatch : assesses
+    MismatchAssessment "0..*" o--> "0..*" OperationalFeedbackEvidence : includes
+
+    SignalNormalization ..> DomainSignal : produces
+    SignalNormalization ..> Observation : produces
+    MismatchDetector ..> DefinitionDescriptionMismatch : produces
+
+    OperationalFeedbackDerivation ..> OperationalFeedbackEvidence : produces
+    MismatchAssessmentBuilder ..> MismatchAssessment : produces
+  }
+
+  ' ============================================================
+  ' SOLVER PROJECTION (SAT/SMT ENABLEMENT)
+  '
+  ' Goal: make Description information usable for formal checks by projecting
+  ' opaque payloads (Object) into a typed, bounded model snapshot that can be
+  ' compiled into SAT/SMT (or other analyzers).
+  '
+  ' This does not replace the raw Description primitives (provenance, replay);
+  ' it adds a solver-oriented view with explicit typing and bounds.
+  ' ============================================================
+
+  package "Solver Projection (SAT/SMT)" as SolverPkg {
+
+    class SchemaBinding <<value>> {
+      + archetypeUri : String
+      + schemaUri : String
+      + schemaVersion : String?
+    }
+
+    note right of SchemaBinding
+      Binds Description objects to Definition-plane schemas.
+
+      SAT/SMT requires well-typed variables. This binding makes property paths
+      resolvable and type-checkable when projecting payloads.
+    end note
+
+    class BoundedUniverse <<value>> {
+      + scope : Object
+      + maxObjectsPerArchetype : Integer
+      + timeWindow : String?
+      + closedWorld : Boolean
+    }
+
+    note right of BoundedUniverse
+      SAT/SMT requires bounded universes (finite domains).
+
+      Examples:
+      - max 200 Service objects in scope
+      - timeWindow = PT15M for metrics/event instances
+      - closedWorld=true means "only known objects"
+    end note
+
+    enum ValueType {
+      Boolean
+      Integer
+      Decimal
+      String
+      DateTime
+      Duration
+      Enum
+    }
+
+    class ValueDomain <<value>> {
+      + valueType : ValueType
+      + allowedValues : Object?
+      + min : Decimal?
+      + max : Decimal?
+      + unit : String?
+    }
+
+    class TypedVariable <<value>> {
+      + name : String
+      + origin : String
+      + path : String
+      + domain : ValueDomain
+    }
+
+    note right of TypedVariable
+      A solver variable is a typed projection of a property.
+
+      Examples:
+      - Service.latency.p99 (Decimal, unit=ms)
+      - Service.tier (Enum)
+      - Cluster.replicas (Integer)
+    end note
+
+    class ModelSnapshot <<entity>> {
+      + id : UUID
+      + capturedAt : DateTime
+      + universe : BoundedUniverse
+      + variables : TypedVariable[]
+      + assignments : Object?
+      + assumptions : Object?
+    }
+
+    note right of ModelSnapshot
+      Typed, bounded view of "the world" for formal analysis.
+
+      - variables: the vocabulary
+      - assignments: optional concrete values (when checking a particular observed state)
+      - assumptions: explicit abstractions (e.g., bounds, closed-world)
+    end note
+
+    enum CheckKind {
+      SATISFIABILITY
+      CONSISTENCY
+      EVALUATION
+    }
+
+    note right of CheckKind
+      **What is being checked**
+
+      `CheckKind` expresses the *analysis intent* (e.g., SAT/UNSAT vs
+      consistency checking vs evaluation on observed assignments).
+    end note
+
+    enum ConstraintFormatType {
+      ThresholdConstraint
+      InvariantConstraint
+      DependencyConstraint
+      CardinalityConstraint
+    }
+
+    note right of ConstraintFormatType
+      **CSDSL alignment rule**
+
+      These values intentionally match CSDSL `ConstraintExpression` subtypes
+      (`type` values in CSDSL JSON).
+
+      Constraint-related checks/assessments MUST be derived from CSDSL formats;
+      do not redefine measurement semantics elsewhere.
+    end note
+
+    class PolicyCheckSpec <<value>> {
+      + policyRefs : UUID[]
+      + checkKind : CheckKind
+      + constraintFormats : ConstraintFormatType[]?
+    }
+
+    class BehavioralRuleCheckSpec <<value>> {
+      + ruleRefs : UUID[]
+      + checkKind : CheckKind
+      + constraintFormats : ConstraintFormatType[]?
+    }
+
+    class ConstraintCompilation <<service>> {
+      + project(stateObjects, events, observations, bindings, universe) : ModelSnapshot
+      + compilePolicyConstraints(policies, snapshot) : Object
+      + compileRuleConstraints(rules, snapshot) : Object
+    }
+
+    note bottom of ConstraintCompilation
+      **Purpose**: bridge Description → formal analyzers.
+
+      Typical outputs are solver-specific encodings (SMT-LIB, CNF) or an
+      intermediate logic IR.
+    end note
+
+    class SolverAdapter <<service>> {
+      + solveSatisfiable(encoding) : Object
+      + explain(modelOrUnsatCore) : Object
+    }
+  }
+
+  StateObject "0..*" o--> "0..*" SchemaBinding : typedBy
+  EventInstance "0..*" o--> "0..*" SchemaBinding : typedBy
+
+  ModelSnapshot "0..*" o--> "0..*" Observation : provenance
+  ModelSnapshot "0..*" o--> "0..*" StateObject : derivedFrom
+  ModelSnapshot "0..*" o--> "0..*" EventInstance : derivedFrom
+
+  ConstraintCompilation ..> ModelSnapshot : produces
+  ConstraintCompilation ..> PolicyCheckSpec : consumes
+  ConstraintCompilation ..> BehavioralRuleCheckSpec : consumes
+  SolverAdapter ..> ConstraintCompilation : consumes
+
+  note right of DefinitionDescriptionMismatch
+    **Purpose:** activable information (error signal)
+
+    Mismatch is not "just" a violation.
+    It includes coverage/schema/reference/variety gaps
+    that can trigger:
+    - homeostatic remediation (within current definitions)
+    - coherence resolution
+    - emergence (definition change)
+  end note
+
+  note bottom of SignalNormalization
+    **Why model signals explicitly?**
+    In domains like IT, explicit domain signals (Jira, CMDB, repos, org dirs)
+    should be normalized into a small set of canonical Description primitives
+    so that the Definition Plane can reason consistently.
+  end note
+
+  note bottom of SolverPkg
+    **Operationalizing SAT/SMT**
+
+    SAT/SMT is most effective when:
+    - constraints refer to typed properties (schema-bound paths)
+    - quantification is bounded (finite objects/time windows)
+    - abstractions/assumptions are explicit (closed-world, bounds)
+
+    This package makes those requirements first-class in the Description plane.
+  end note
+}
+
+@enduml

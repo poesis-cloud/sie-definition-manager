@@ -25,14 +25,8 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Handle:
-'   - ConstraintConflict.
-'   - ConstraintConflictResolution.
-'   - Emergence.
-'   - Feedback loop.
+' - Add / update relationships between primitives.
 ' - Refer to DSL constructs for model attributes integrating them.
-' - Articulate systemic primitive archetypes and state object archetypes.
-'   A former is a later. A later is not necessarilly a former.
 ' - Review notes coherence and content (especially the rules they integrate).
 ' - Improve SystemIntegrationGovernance to make its attributes correlate with
 '   systemic primitives.
@@ -229,11 +223,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
       name: RuleEnactmentControlEvent
       properties:
-        - ruleDefinition: RuleDefinition
+        - behavioralRule: BehavioralRule
 
       name: RuleRevocationControlEvent
       properties:
-        - ruleDefinition: RuleDefinition
+        - behavioralRule: BehavioralRule
     
     - *Supervision Feedback Event*:
 
@@ -249,11 +243,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
       name: RuleEnactmentFeedbackEvent
       properties:
-        - ruleDefinition: RuleDefinition
+        - behavioralRule: BehavioralRule
 
       name: RuleRevocationFeedbackEvent
       properties:
-        - ruleDefinition: RuleDefinition
+        - behavioralRule: BehavioralRule
 
     - *Systemic Feedback Signal Events* (Cybernetics-aligned):
 
@@ -1772,333 +1766,785 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Modality "1" o--> "1" Capacity : constitutes
 
   ' ============================================================
-  ' RELATIONSHIPS (LEGACY / OUTDATED)
+  ' SYSTEMIC PROCESSES
   '
-  ' NOTE: This block is intentionally kept as a reference for future
-  ' refactoring/adaptation. It is not normative for the current version of the
-  ' conceptual meta-model.
+  ' CSDM defines exactly four systemic governance processes as primitives:
+  ' - Homeostasis: first-order regulation (operate to keep the system within constraints)
+  ' - Adaptation: second-order regulation within the current definition envelope
+  ' - Emergence: second-order definitional change (new constraints/definitions)
+  ' - Coherence: meta-governance that detects/resolves incoherences and dispatches
+  '   to Adaptation or Emergence.
   ' ============================================================
 
-  System "1" *--> "1" Boundary : has
-  System "1" *--> "0..*" Component : has
-  System "1" *--> "0..*" Capacity : has
-  System "1" *--> "0..*" StateObjectArchetype : has
+  class Homeostasis {
+    +getId(): UUID
+    +getName(): String
+    +getOperationalRules(): BehavioralRule[]
+    +getTriggerEventArchetypes(): EventArchetype[]
+    +getOwner(): OperatorControllerMechanism
+  }
 
-  System "0..*" o--> "0..*" System : hasSuper
-  System "0..*" *--> "0..*" System : hasSub
-  System "1" *--> "0..*" Interface : has
+  note top of Homeostasis
+    First-order regulation process: keeps the running system within declared
+    constraints through rule execution and actuation.
 
-  System "1" *--> "0..*" Modality : has
+    **Behavior (Conceptual)**:
+    - Observe deviations (via receptor-bound event archetypes).
+    - Select applicable BehavioralRules.
+    - Execute controls that actuate mechanisms (create/modify/delete/acquire).
+    - Emit feedback events for supervision and governance.
 
-  System "1" *--> "0..*" Mechanism : implements
-  System "1" *--> "0..*" Interaction : participatesIn
-  System "1" o--> "0..*" EventArchetype : handles
+    **Systemic Semantics**:
+    - Owned by Operator controller mechanisms.
+    - Does not change the constraint envelope (Policies);
+      it enforces it via BehavioralRules.
+  end note
 
-  Interface "1" *--> "0..*" Receptor : has
-  Interface "1" *--> "0..*" Effector : has
-  Interface "1" *--> "0..*" Channel : has
-  Receptor "0..*" o--> "1" EventArchetype : receives
-  Receptor "0..*" o--> "1" Interaction : boundTo
-  Receptor "0..*" o--> "1" Channel : boundTo
-  Receptor "1..*" o--> "1" Interface : partOf
-  Effector "0..*" o--> "1" EventArchetype : emits
-  Effector "0..*" o--> "1" Interaction : boundTo
-  Effector "0..*" o--> "1" Channel : boundTo
-  Effector "1..*" o--> "1" Interface : partOf
-  Channel "1..*" *--> "0..*" Interaction : binds
-  Channel "0..*" o--> "1" Interface : boundToExternalSystem
+  SystemicPrimitive <|-- Homeostasis : is
+  Homeostasis "0..*" o--> "0..*" BehavioralRule : operationalRules
+  Homeostasis "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
+  Homeostasis "1" o--> "1" OperatorControllerMechanism : owner
 
-  Function "1" *--> "1..*" Mechanism : implements
+  class Adaptation {
+    +getId(): UUID
+    +getName(): String
+    +getInputPolicies(): Policy[]
+    +getUpdatedBehavioralRules(): BehavioralRule[]
+    +getTriggerEventArchetypes(): EventArchetype[]
+    +getOwner(): SupervisorControllerMechanism
+  }
 
-  Interaction "0..*" o--> "1" EventArchetype : involves
-  Interaction "0..*" o--> "1" System : withExternal
-  Interaction "0..*" o--> "1..*" Channel : boundTo
+  note top of Adaptation
+    Second-order regulation within the current definition envelope.
 
-  Policy "0..*" o--> "1..*" Principle : incorporates
-  RuleDefinition "0..*" o--> "1..*" Policy : operationalizes
+    **Constraint envelope (definition boundary)**:
+    - Policies + their meanings (intent, scope, rationale) define the envelope.
+    - BehavioralRules are operationalizations inside it.
 
-  ' ============================================================
-  ' PROCESSES (LEGACY / OUTDATED)
-  '
-  ' NOTE: This block is superseded by sie-processes-v1.puml which contains
-  ' the normative process definitions for SIE:
-  ' - Systemic Emergence Management (EmergenceProcess, Observation, etc.)
-  ' - Systemic Constraint Management (CoherenceCheckProcess, FeasibilityAssessment, etc.)
-  '
-  ' The definitions below are intentionally kept as historical reference.
-  ' For normative process design, see:
-  '   !include sie-processes-v1.puml
-  '
-  ' Process primitives are SystemicPrimitives as per CSDM extension rules.
-  ' ============================================================
+    Adaptation changes operationalization (BehavioralRules)
+    WITHOUT changing the Policies that define the envelope.
 
-  ' ============================================================
-  ' SYSTEMIC PROCESSES: EMERGENCE, SYNTHESIS, ENFORCEMENT, FEEDBACK
-  ' (LEGACY - see sie-processes-v1.puml for current definitions)
-  ' ============================================================
+    **Typical triggers**:
+    - Control-performance issues (oscillation, overshoot, slow convergence).
+    - Implementation drift (rules out of sync with policies).
+    - Context change that can be handled by retuning/selecting rules.
+
+    **Systemic Semantics**:
+    - Owned by Supervisor controller mechanisms.
+    - Produces rule updates that improve control performance and viability.
+  end note
+
+  SystemicPrimitive <|-- Adaptation : is
+  Adaptation "0..*" o--> "0..*" Policy : inputPolicies
+  Adaptation "0..*" o--> "0..*" BehavioralRule : updatedBehavioralRules
+  Adaptation "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
+  Adaptation "1" o--> "1" SupervisorControllerMechanism : owner
 
   class Emergence {
     +getId(): UUID
     +getName(): String
-    +getTriggerArtifacts(): SystemicPrimitive[]
-    +getProducedConstraints(): Constraint[]
-    +getOwner(): ControllerMechanism
-  }
-
-  note top of Emergence
-    Represents the systemic process by which new constraints (policies or
-    behavioral rules) emerge from sensed artifacts (use cases, risks, incidents,
-    pain points, environmental changes).
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Collect trigger artifacts via receptors (use cases, risks, incidents,
-      metrics, feedback events).
-    - Apply governor-specific emergence logic (e.g. functional governor from
-      use cases, viability governor from risks/incidents).
-    - Synthesize one or more new constraints (policies or rules) with proper
-      scope, rationale, and provenance.
-    - Emit governance control events (e.g. PolicyEnactmentControlEvent).
-
-    **Systemic Semantics**:
-    - Owned by governor or supervisor controller mechanisms.
-    - Drives autopoiesis: the system produces its own constraints.
-  end note
-
-  SystemicPrimitive <|-- Emergence : is
-  Emergence "0..*" o--> "0..*" SystemicPrimitive : triggerArtifacts
-  Emergence "0..*" o--> "0..*" Constraint : producedConstraints
-  Emergence "1" o--> "1" ControllerMechanism : owner
-
-  class Synthesis {
-    +getId(): UUID
-    +getName(): String
-    +getInputFunctionalPolicies(): FunctionalPolicy[]
-    +getInputViabilityPolicies(): ViabilityPolicy[]
-    +getProducedStructuralPolicies(): StructuralPolicy[]
+    +getTriggerEventArchetypes(): EventArchetype[]
+    +getProducedPolicies(): Policy[]
     +getOwner(): GovernorControllerMechanism
   }
 
-  note top of Synthesis
-    Represents the architecture function:
-      Structure = Arch(Functional, Viability)
+  note top of Emergence
+    Second-order definitional change process: creates or revises constraints
+    at the definition level (Policies) and may require new or revised
+    BehavioralRules to operationalize the revised envelope.
 
-    **Behavior / Algorithm (Conceptual)**:
-    - Take a set of functional policies and viability policies as input.
-    - Analyze required capabilities, invariants, and mechanisms.
-    - Synthesize structural policies that define architecture, topology, and
-      structural invariants satisfying both functional and viability constraints.
-    - Optionally detect conflicts and trigger conflict detection/resolution
-      processes when synthesis is impossible without trade-offs.
+    Emergence is invoked when the current constraint envelope is insufficient:
+    adaptation cannot satisfy viability/functional/structural needs without
+    changing policy intent, adding/removing policies, or changing applicability.
 
-    **Systemic Semantics**:
-    - Typically owned by structural governors (architecture).
-    - Produces structural policies as second-order structural constraints.
-  end note
-
-  SystemicPrimitive <|-- Synthesis : is
-  Synthesis "0..*" o--> "0..*" FunctionalPolicy : inputFunctionalPolicies
-  Synthesis "0..*" o--> "0..*" ViabilityPolicy : inputViabilityPolicies
-  Synthesis "0..*" o--> "0..*" StructuralPolicy : producedStructuralPolicies
-  Synthesis "1" o--> "1" GovernorControllerMechanism : owner
-  
-  class Enforcement {
-    +getId(): UUID
-    +getName(): String
-    +getEnforcedConstraints(): Constraint[]
-    +getOwner(): SupervisorControllerMechanism
-    +getTargetMechanisms(): Mechanism[]
-  }
-
-  note top of Enforcement
-    Represents the systemic process by which constraints are enforced through
-    behavioral rules and mechanisms.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - For each constraint (policy or structural invariant), derive or select
-      behavioral rules that operationalize it.
-    - Bind rules to triggers (event archetypes) and scopes (systemic primitives).
-    - Ensure operator controllers and actuators implement the rules.
-    - Monitor execution via feedback events and adjust rules as needed.
+    **Typical triggers**:
+    - New requirements / purpose shifts.
+    - New risks / changed risk appetite.
+    - New classes of environment signals that demand new constraints.
+    - Persistent incoherences that cannot be resolved inside the envelope.
 
     **Systemic Semantics**:
-    - Owned by supervisor controller mechanisms.
-    - Bridges declarative constraints (policies) and concrete behavior
-      (mechanisms, actuators).
+    - Owned by Governor controller mechanisms (or meta-governors).
+    - Changes the definition plane; downstream supervision/operation follows.
   end note
 
-  SystemicPrimitive <|-- Enforcement : is
-  Enforcement "0..*" o--> "0..*" Constraint : enforcedConstraints
-  Enforcement "1" o--> "1" SupervisorControllerMechanism : owner
-  Enforcement "0..*" o--> "0..*" Mechanism : targetMechanisms
-
-  class FeedbackEvent {
-    +getId(): UUID
-    +getSourceMechanism(): Mechanism
-    +getRelatedConstraints(): Constraint[]
-    +getPayload(): String
-  }
-
-  note top of FeedbackEvent
-    Represents feedback from system operation or governance processes, used to
-    adapt constraints.
-
-    **Examples**:
-    - Incident reports.
-    - SLO breaches.
-    - Rule violations.
-    - Audit findings.
-    - Performance anomalies.
-
-    **Systemic Semantics**:
-    - Consumed by emergence, conflict detection, and coherence checking
-      processes.
-  end note
-
-  SystemicPrimitive <|-- FeedbackEvent : is
-  FeedbackEvent "1" o--> "1" Mechanism : sourceMechanism
-  FeedbackEvent "0..*" o--> "0..*" Constraint : relatedConstraints
+  SystemicPrimitive <|-- Emergence : is
+  Emergence "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
+  Emergence "0..*" o--> "0..*" Policy : producedPolicies
+  Emergence "1" o--> "1" GovernorControllerMechanism : owner
 
   ' ============================================================
-  ' CONFLICT DETECTION, RESOLUTION, COHERENCE, DEPRECATION
+  ' COHERENCE (CANONICAL) + SUPPORTING PRIMITIVES
   ' ============================================================
 
-  class ConflictDetectionProcess {
+  class Coherence {
     +getId(): UUID
     +getName(): String
     +getAnalyzedConstraints(): Constraint[]
-    +getDetectedConflicts(): ConstraintConflict[]
-    +getOwner(): ControllerMechanism
-  }
-
-  note top of ConflictDetectionProcess
-    Represents the systemic process that detects contradictions or
-    incompatibilities between constraints.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Periodically or reactively analyze sets of constraints (policies and
-      behavioral rules).
-    - Check for:
-      - Logical contradictions (e.g. mutually exclusive conditions).
-      - Incompatible thresholds (e.g. latency vs encryption).
-      - Structural incompatibilities (e.g. stateless vs required local state).
-      - Conflicting rule effects (e.g. scale up vs scale down).
-    - Produce ConstraintConflict instances describing each detected conflict.
-
-    **Systemic Semantics**:
-    - Owned by governors, supervisors, or meta-governors.
-    - Feeds resolution strategies and coherence checks.
-  end note
-
-  SystemicPrimitive <|-- ConflictDetectionProcess : is
-  ConflictDetectionProcess "0..*" o--> "0..*" Constraint : analyzedConstraints
-  ConflictDetectionProcess "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
-  ConflictDetectionProcess "1" o--> "1" ControllerMechanism : owner
-
-  class ConstraintConflict {
-    +getId(): UUID
-    +getConflictingConstraints(): Constraint[]
-    +getDescription(): String
-  }
-
-  note top of ConstraintConflict
-    Represents a detected contradiction or incompatibility between constraints
-    (policies and/or behavioral rules).
-  end note
-
-  SystemicPrimitive <|-- ConstraintConflict : is
-  ConstraintConflict "1..*" o--> "2..*" Constraint : conflictingConstraints
-
-  class ResolutionStrategy {
-    +getId(): UUID
-    +getName(): String
-    +getDescription(): String
-    +getAppliedConflict(): ConstraintConflict
-    +getUpdatedConstraints(): Constraint[]
-  }
-
-  note top of ResolutionStrategy
-    Represents a strategy used to resolve a constraint conflict.
-
-    **Behavior / Algorithm (Conceptual)**:
-    - Evaluate the conflicting constraints and their provenance (e.g. safety vs
-      performance vs business value).
-    - Apply a resolution pattern, such as:
-      - Priority-based (e.g. viability/safety > functional).
-      - Negotiation between governors (functional, viability, structural).
-      - Synthesis of a new structural policy satisfying both sides.
-      - Relaxation/refinement of existing policies.
-      - Behavioral rule rewriting to avoid runtime conflict.
-    - Produce updated constraints and mark the conflict as resolved.
-
-    **Systemic Semantics**:
-    - Can be instantiated and executed by meta-governors or specialized
-      governors.
-  end note
-
-  SystemicPrimitive <|-- ResolutionStrategy : is
-  ResolutionStrategy "1" o--> "1" ConstraintConflict : appliedConflict
-  ResolutionStrategy "0..*" o--> "0..*" Constraint : updatedConstraints
-
-  class CoherenceCheckingProcess {
-    +getId(): UUID
-    +getName(): String
-    +getScope(): SystemicPrimitive[]
     +getDetectedIncoherences(): ConstraintConflict[]
-    +getOwner(): ControllerMechanism
+    +getOwner(): GovernorControllerMechanism
   }
 
-  note top of CoherenceCheckingProcess
-    Represents a higher-order governance process that evaluates systemic
-    coherence across constraints and structures.
+  note top of Coherence
+    Meta-governance process: evaluates and maintains coherence of the system's
+    constraint stack (Policies → BehavioralRules) and their
+    structural implications.
 
-    **Behavior / Algorithm (Conceptual)**:
-    - Evaluate whether:
-      - Functional policies align with system purpose.
-      - Viability policies align with risk appetite.
-      - Structural policies align with architecture principles.
-      - Behavioral rules have policy provenance and no unresolved conflicts.
-      - No orphaned policies (never operationalized).
-      - No rules without referenced policies.
-    - When incoherences are found, create ConstraintConflict instances and
-      trigger ResolutionStrategy instances.
+    **Behavior (Conceptual)**:
+    - Detect incoherences (contradictions, gaps, orphaned constraints, drift).
+    - Trigger ResolutionStrategy instances.
+
+    **Dispatch rule (Conceptual)**:
+    - Route to Adaptation when coherence can be restored by changing
+      BehavioralRules while preserving policy intent.
+    - Route to Emergence when restoring coherence requires changing Policies
+      (new policy, revised policy, applicability change) or creating new
+      definition-level constraints.
 
     **Systemic Semantics**:
-    - Typically owned by meta-governors or structural/viability governors.
+    - Owned by Governor controller mechanisms (often structural/viability or
+      meta-governors).
   end note
 
-  SystemicPrimitive <|-- CoherenceCheckingProcess : is
-  CoherenceCheckingProcess "0..*" o--> "0..*" SystemicPrimitive : scope
-  CoherenceCheckingProcess "0..*" o--> "0..*" ConstraintConflict : detectedIncoherences
-  CoherenceCheckingProcess "1" o--> "1" ControllerMechanism : owner
+  SystemicPrimitive <|-- Coherence : is
+  Coherence "0..*" o--> "0..*" Constraint : analyzedConstraints
+  Coherence "0..*" o--> "0..*" ConstraintConflict : detectedIncoherences
+  Coherence "1" o--> "1" GovernorControllerMechanism : owner
 
-  class DeprecationProcess {
+  ' ============================================================
+  ' CHECKS / ASSESSMENTS (SYSTEMIC PRIMITIVES)
+  '
+  ' These are *process specifications* used by canonical processes.
+  ' AIOps assists by: evidence shaping, clustering/triage, bounding/projection,
+  ' explainability, and execution-effect feedback.
+  ' ============================================================
+
+  note as ChecksAlignmentNote
+    **CSDSL alignment rule (mandatory)**
+
+    For checks/assessments that evaluate or reason over constraints
+    (e.g., satisfiability, policy consistency, alignment), the semantic
+    structure MUST come from CSDSL `ConstraintExpression` formats.
+
+    In particular, measurement semantics such as metric reference,
+    aggregation, unit comparability, selector scope, and timeWindow MUST
+    be taken from the CSDSL format (not duplicated in separate fields).
+  end note
+
+  class PolicyConsistencyChecking {
+    +getId(): UUID
+    +getAnalyzedPolicies(): Policy[]
+    +getDetectedConflicts(): ConstraintConflict[]
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of PolicyConsistencyChecking
+    **Purpose**: policy-to-policy coherence (logical, semantic, scoping).
+
+    **Inputs**:
+    - Policies + metadata: intent/rationale, applicability, precedence, exceptions.
+    - Referenced archetypes/attributes/metrics (types, units, windows).
+    - Topology (for impact): dependencies, containment, ownership.
+
+    **Transforms / Operational Means**:
+    - SAT/SMT (when formalizable): encode constraints + applicability +
+      precedence; detect contradictions; produce counterexamples/unsat cores.
+    - Deterministic: schema/type validation; unit/window comparability;
+      scope overlap analysis; exception/precedence normalization.
+    - Graph algorithms: blast-radius/reachability; scope overlap via topology.
+    - AIOps: semantic normalization (aliases), clustering (root conflicts),
+      impact/risk ranking, natural-language explanation of conflicts.
+
+    **Outputs**:
+    - Conflict sets (ConstraintConflict) + impacted entities.
+    - Candidate resolution options (scope refinement, precedence, exceptions).
+    - Explanation artifacts: counterexamples, unsat cores, ranked summaries.
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism via Coherence (Definition plane).
+    - Uses: Description plane topology/snapshots for impact and grounding.
+  end note
+
+  SystemicPrimitive <|-- PolicyConsistencyChecking : is
+  PolicyConsistencyChecking "0..*" o--> "0..*" Policy : analyzedPolicies
+  PolicyConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
+  PolicyConsistencyChecking "1" o--> "1" GovernorControllerMechanism : owner
+
+  class BehavioralRuleConsistencyChecking {
+    +getId(): UUID
+    +getAnalyzedRules(): BehavioralRule[]
+    +getDetectedConflicts(): ConstraintConflict[]
+    +getOwner(): SupervisorControllerMechanism
+  }
+
+  note top of BehavioralRuleConsistencyChecking
+    **Purpose**: rule-to-rule coherence (interference, collisions, temporal loops).
+
+    **Inputs**:
+    - BehavioralRules: triggers, selectors, guards, actions, cooldowns.
+    - Policy provenance links (rule operationalizes policy).
+    - Action semantics abstractions + capability inventory.
+    - Execution traces/outcomes (for runtime interference detection).
+
+    **Transforms / Operational Means**:
+    - SAT/SMT (partial): encode guards + mutual exclusions + simplified temporal
+      models to detect impossible combinations and interference candidates.
+    - Deterministic: static linting (unreachable triggers, conflicting guards),
+      cooldown/hysteresis checks, action-collision matrices, precedence rules.
+    - Runtime monitoring: detect thrash/oscillation loops from outcomes;
+      detect repeated compensating actions and non-convergence.
+    - Simulation/what-if: validate candidate rule sets on representative scenarios.
+    - AIOps: learn interference patterns; cluster incidents to rule interactions;
+      propose refinements (guards, rate limits, precedence, scoping).
+
+    **Outputs**:
+    - Rule conflict graph (ConstraintConflict sets) + minimal interfering subsets.
+    - Mitigation proposals (guard/cooldown/precedence/scoping updates).
+    - Stability risk flags (likely oscillation) for Adaptation.
+
+    **Owner + Plane**:
+    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Uses: Remediation plane execution telemetry (outcomes) and Description state.
+  end note
+
+  SystemicPrimitive <|-- BehavioralRuleConsistencyChecking : is
+  BehavioralRuleConsistencyChecking "0..*" o--> "0..*" BehavioralRule : analyzedRules
+  BehavioralRuleConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
+  BehavioralRuleConsistencyChecking "1" o--> "1" SupervisorControllerMechanism : owner
+
+  class PolicyBehavioralRuleAlignmentChecking {
+    +getId(): UUID
+    +getAnalyzedPolicies(): Policy[]
+    +getAnalyzedRules(): BehavioralRule[]
+    +getDetectedMisalignments(): ConstraintConflict[]
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of PolicyBehavioralRuleAlignmentChecking
+    **Purpose**: ensure rules operationalize policies and stay within envelope.
+
+    **Inputs**:
+    - Policies (constraints + evaluation criteria) + applicability.
+    - BehavioralRules (triggers/guards/actions) + provenance links.
+    - Observed violations/drift and remediation outcomes.
+
+    **Transforms / Operational Means**:
+    - SAT/SMT: check non-violation on bounded slices; prove/negate implication
+      relationships between rule obligations and policy constraints.
+    - Deterministic: coverage checks (policies with no rules), orphan rule checks,
+      traceability requirements, guardrail policy checks.
+    - Runtime monitoring: detect repeated violations after rule execution; compare
+      expected vs observed effect.
+    - AIOps: propose trace links; summarize gaps; prioritize misalignments by
+      impact; generate human explanations.
+
+    **Outputs**:
+    - Misalignment conflicts: orphan rules, uncovered policies, violating rules.
+    - Candidate fixes: add/remove rules, refine guards, adjust scopes.
+    - Evidence bundle: violations, counterexamples, and execution outcomes.
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism via Coherence (Definition plane).
+    - Uses: Description plane evaluation evidence + Remediation outcomes.
+  end note
+
+  SystemicPrimitive <|-- PolicyBehavioralRuleAlignmentChecking : is
+  PolicyBehavioralRuleAlignmentChecking "0..*" o--> "0..*" Policy : analyzedPolicies
+  PolicyBehavioralRuleAlignmentChecking "0..*" o--> "0..*" BehavioralRule : analyzedRules
+  PolicyBehavioralRuleAlignmentChecking "0..*" o--> "0..*" ConstraintConflict : detectedMisalignments
+  PolicyBehavioralRuleAlignmentChecking "1" o--> "1" GovernorControllerMechanism : owner
+
+  class PolicyConstraintSatisfiabilityChecking {
+    +getId(): UUID
+    +getAnalyzedPolicies(): Policy[]
+    +getIsSatisfiable(): Boolean
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of PolicyConstraintSatisfiabilityChecking
+    **Purpose**: design-time existence check for a policy set.
+
+    **Inputs**:
+    - Policies + applicability + precedence/exception rules.
+    - Solver projection artifacts: types, bounded universes, schema bindings.
+
+    **Transforms / Operational Means**:
+    - SAT/SMT: compile policies to solver form and check SAT/UNSAT; produce model
+      (SAT) or unsat core/counterexample (UNSAT).
+    - Deterministic support: schema/type checks; unit/window consistency;
+      normalization/simplification; partition by scope.
+    - Graph support: restrict solving to impacted subgraphs for tractability.
+    - AIOps: choose bounds; select relevant subsets; explain results; rank
+      unsat-core constraints by operational importance.
+
+    **Outputs**:
+    - SAT/UNSAT/UNKNOWN + model/counterexample/unsat core.
+    - Suggested resolution directions (scope/precedence/refinement) if UNSAT.
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism (Definition plane).
+    - Uses: Description plane solver projection (snapshots/bounds).
+  end note
+
+  SystemicPrimitive <|-- PolicyConstraintSatisfiabilityChecking : is
+  PolicyConstraintSatisfiabilityChecking "0..*" o--> "0..*" Policy : analyzedPolicies
+  PolicyConstraintSatisfiabilityChecking "1" o--> "1" GovernorControllerMechanism : owner
+
+  class BehavioralRuleConstraintSatisfiabilityChecking {
+    +getId(): UUID
+    +getAnalyzedRules(): BehavioralRule[]
+    +getIsSatisfiable(): Boolean
+    +getOwner(): SupervisorControllerMechanism
+  }
+
+  note top of BehavioralRuleConstraintSatisfiabilityChecking
+    **Purpose**: design-time existence check for a behavioral rule set.
+
+    **Inputs**:
+    - BehavioralRules (triggers/guards/actions) + provenance to policies.
+    - Action semantics abstractions (capabilities, preconditions, effects).
+    - Optional solver projection artifacts for bounded checking.
+
+    **Transforms / Operational Means**:
+    - SAT/SMT (partial): encode guards, mutual exclusions, and simplified action
+      semantics to detect contradictions and dead rule sets.
+    - Deterministic: static rule linting (unreachable triggers, conflicting guards,
+      missing idempotency/precedence), collision matrices.
+    - Simulation/what-if: execute on representative scenarios to find deadlocks.
+    - AIOps: rank likely-unsat subsets; interpret counterexamples; propose fixes.
+
+    **Outputs**:
+    - Satisfiable flag + counterexample scenarios when not satisfiable.
+    - Fix suggestions: guard changes, scoping, mutual exclusions, ordering.
+
+    **Owner + Plane**:
+    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Uses: Description plane state abstractions; Remediation outcomes when available.
+  end note
+
+  SystemicPrimitive <|-- BehavioralRuleConstraintSatisfiabilityChecking : is
+  BehavioralRuleConstraintSatisfiabilityChecking "0..*" o--> "0..*" BehavioralRule : analyzedRules
+  BehavioralRuleConstraintSatisfiabilityChecking "1" o--> "1" SupervisorControllerMechanism : owner
+
+  class PolicyIntegrationFeasibilityAssessment {
+    +getId(): UUID
+    +getAnalyzedPolicies(): Policy[]
+    +getIsFeasible(): Boolean
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of PolicyIntegrationFeasibilityAssessment
+    **Purpose**: operational realizability for policy intent.
+
+    **Inputs**:
+    - Policies + required evidence signals (archetypes/metrics/windows).
+    - Observability coverage and data quality/freshness.
+    - Actuation capability inventory + guardrails/approval constraints.
+    - Topology + tenant context (environments, providers).
+
+    **Transforms / Operational Means**:
+    - Deterministic: coverage checks (signals exist, mapped, fresh, comparable);
+      basic actuation capability checks.
+    - Planning/optimization: existence of enforcement strategies under constraints
+      (CP/MILP/planning) and action sequencing feasibility.
+    - Simulation/what-if: canary enforcement, shadow evaluation, rollback analysis.
+    - SAT/SMT (optional): bounded feasibility with capability predicates.
+    - AIOps: forecast reliability/side effects; estimate blast radius and risk;
+      recommend rollout strategy (canary, progressive enforcement).
+
+    **Outputs**:
+    - Feasibility verdict + gating reasons (missing telemetry, insufficient actuation).
+    - Recommended enablement plan (instrumentation, adapter improvements, guardrails).
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism (Definition plane).
+    - Uses: Description plane coverage metrics + Remediation plane actuation history.
+  end note
+
+  SystemicPrimitive <|-- PolicyIntegrationFeasibilityAssessment : is
+  PolicyIntegrationFeasibilityAssessment "0..*" o--> "0..*" Policy : analyzedPolicies
+  PolicyIntegrationFeasibilityAssessment "1" o--> "1" GovernorControllerMechanism : owner
+
+  class BehavioralRuleIntegrationFeasibilityAssessment {
+    +getId(): UUID
+    +getAnalyzedRules(): BehavioralRule[]
+    +getIsFeasible(): Boolean
+    +getOwner(): SupervisorControllerMechanism
+  }
+
+  note top of BehavioralRuleIntegrationFeasibilityAssessment
+    **Purpose**: operational realizability for a concrete behavioral rule.
+
+    **Inputs**:
+    - BehavioralRule (triggers/selectors/guards/actions) + target scopes.
+    - Actuation capabilities + permissions + guardrails/approval policy.
+    - Execution outcomes of similar actions (history) when available.
+
+    **Transforms / Operational Means**:
+    - Deterministic: interface/permission checks; selector resolution; guardrail
+      and approval constraints; rate-limit/window checks.
+    - Runtime monitoring: validate action success rate and side effects.
+    - Simulation/what-if: dry-run/shadow evaluation; canary trials.
+    - SAT/SMT (optional): bounded consistency of preconditions/guards.
+    - AIOps: outcome prediction; safe canary selection; side-effect forecasting.
+
+    **Outputs**:
+    - Feasibility verdict + conditions (requires approval, requires guardrail).
+    - Recommended rollout/canary scope + monitoring requirements.
+
+    **Owner + Plane**:
+    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Uses: Remediation plane telemetry + tenant actuation constraints.
+  end note
+
+  SystemicPrimitive <|-- BehavioralRuleIntegrationFeasibilityAssessment : is
+  BehavioralRuleIntegrationFeasibilityAssessment "0..*" o--> "0..*" BehavioralRule : analyzedRules
+  BehavioralRuleIntegrationFeasibilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+
+  class SolverProjectionAdequacyAssessment {
+    +getId(): UUID
+    +getAnalyzedConstraints(): Constraint[]
+    +getIsAdequate(): Boolean
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of SolverProjectionAdequacyAssessment
+    **Purpose**: validate solver projection (typed + bounded + bound to evidence).
+
+    **Inputs**:
+    - Constraints to project (policies + rule constraints).
+    - Schema bindings (attributes ↔ variables) + type/value domains.
+    - Bounded universe definition + snapshot extraction rules.
+
+    **Transforms / Operational Means**:
+    - Deterministic: type checking, domain checks, binding completeness,
+      bounded universe integrity constraints.
+    - SAT/SMT: run reduced satisfiability checks; treat UNKNOWN/timeout patterns
+      as projection smell signals.
+    - Graph support: validate topology assumptions against observed graph slices.
+    - AIOps: bound selection; relevance pruning; mapping anomaly detection;
+      explain projection failures.
+
+    **Outputs**:
+    - Adequacy verdict + missing binding list + unsafe bounding warnings.
+    - Recommended bounds/scopes and projection fixes.
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism via Coherence (Definition plane).
+    - Implemented in: Description plane (projection/snapshot services).
+  end note
+
+  SystemicPrimitive <|-- SolverProjectionAdequacyAssessment : is
+  SolverProjectionAdequacyAssessment "0..*" o--> "0..*" Constraint : analyzedConstraints
+  SolverProjectionAdequacyAssessment "1" o--> "1" GovernorControllerMechanism : owner
+
+  class ObservabilityCoverageAssessment {
+    +getId(): UUID
+    +getAnalyzedPolicies(): Policy[]
+    +getRequiredStateObjectArchetypes(): StateObjectArchetype[]
+    +getRequiredEventArchetypes(): EventArchetype[]
+    +getIsSufficient(): Boolean
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of ObservabilityCoverageAssessment
+    **Purpose**: ensure required evidence exists to evaluate policies.
+
+    **Inputs**:
+    - Policies + evaluation criteria (required signals).
+    - StateObjectArchetypes / EventArchetypes that provide evidence.
+    - Mapping/normalization rules and telemetry pipeline status.
+
+    **Transforms / Operational Means**:
+    - Deterministic: mapping completeness checks, schema/type checks,
+      freshness SLO checks, missingness thresholds.
+    - Graph algorithms: coverage across topology (which subsystems lack sensors).
+    - Runtime monitoring: pipeline health/lag; data quality monitoring.
+    - AIOps: learn typical signal failure modes; detect silent degradations;
+      propose sourcing contract adjustments.
+
+    **Outputs**:
+    - Coverage score + missing signals + quality/freshness violations.
+    - Required remediation: instrumentation, adapter changes, mapping fixes.
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism (Definition plane).
+    - Implemented in: Description plane (sourcing + mapping + persistence).
+  end note
+
+  SystemicPrimitive <|-- ObservabilityCoverageAssessment : is
+  ObservabilityCoverageAssessment "0..*" o--> "0..*" Policy : analyzedPolicies
+  ObservabilityCoverageAssessment "0..*" o--> "0..*" StateObjectArchetype : requiredStateObjects
+  ObservabilityCoverageAssessment "0..*" o--> "0..*" EventArchetype : requiredEvents
+  ObservabilityCoverageAssessment "1" o--> "1" GovernorControllerMechanism : owner
+
+  class ActuationCapabilityAssessment {
+    +getId(): UUID
+    +getAnalyzedRules(): BehavioralRule[]
+    +getRequiredEffectors(): Effector[]
+    +getIsSufficient(): Boolean
+    +getOwner(): SupervisorControllerMechanism
+  }
+
+  note top of ActuationCapabilityAssessment
+    **Purpose**: ensure actuation variety is sufficient for intended rules.
+
+    **Inputs**:
+    - BehavioralRules (actions and target selectors).
+    - Effectors/capabilities + permissions + guardrails.
+    - Historical action outcomes and resource constraints.
+
+    **Transforms / Operational Means**:
+    - Deterministic: capability/permission checks; action preconditions;
+      rate-limit/window constraints; guardrail policy validation.
+    - Planning/optimization: plan existence under constraints (CP/MILP/planning).
+    - Simulation/what-if: dry-run/shadow; canary-scoped execution trials.
+    - AIOps: reliability prediction; side-effect forecasting; safe canary selection.
+
+    **Outputs**:
+    - Capability gaps + required guardrails/approvals.
+    - Suggested rollout strategy (scope, pacing, monitoring).
+
+    **Owner + Plane**:
+    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Uses: Remediation plane guardrails and actuation telemetry.
+  end note
+
+  SystemicPrimitive <|-- ActuationCapabilityAssessment : is
+  ActuationCapabilityAssessment "0..*" o--> "0..*" BehavioralRule : analyzedRules
+  ActuationCapabilityAssessment "0..*" o--> "0..*" Effector : requiredEffectors
+  ActuationCapabilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+
+  class TopologyIntegrityChecking {
+    +getId(): UUID
+    +getAnalyzedStateObjects(): StateObjectArchetype[]
+    +getDetectedIssues(): ConstraintConflict[]
+    +getOwner(): GovernorControllerMechanism
+  }
+
+  note top of TopologyIntegrityChecking
+    **Purpose**: ensure topology used for governance is coherent.
+
+    **Inputs**:
+    - Topology graph derived from StateObjects and relationships.
+    - Relationship schemas (allowed edge types and cardinalities).
+
+    **Transforms / Operational Means**:
+    - Graph algorithms: cycle/orphan detection, reachability, connectivity,
+      dependency invariants, blast-radius computations.
+    - Deterministic: relationship schema validation and cardinality constraints.
+    - SAT/SMT (optional): encode selected invariants for small bounded subgraphs.
+    - AIOps: infer missing edges; rank suspicious edges; highlight likely
+      mis-mappings.
+
+    **Outputs**:
+    - Integrity issues list + impacted governance computations (evaluation/impact).
+    - Repair suggestions (mapping fixes, evidence acquisition priorities).
+
+    **Owner + Plane**:
+    - Owner: GovernorControllerMechanism (Definition plane).
+    - Implemented in: Description plane (graph persistence and analytics).
+  end note
+
+  SystemicPrimitive <|-- TopologyIntegrityChecking : is
+  TopologyIntegrityChecking "0..*" o--> "0..*" StateObjectArchetype : analyzedStateObjects
+  TopologyIntegrityChecking "0..*" o--> "0..*" ConstraintConflict : detectedIssues
+  TopologyIntegrityChecking "1" o--> "1" GovernorControllerMechanism : owner
+
+  class DriftAssessment {
+    +getId(): UUID
+    +getEvaluatedPolicies(): Policy[]
+    +getDeviationEventArchetypes(): EventArchetype[]
+    +getOwner(): OperatorControllerMechanism
+  }
+
+  note top of DriftAssessment
+    **Purpose**: runtime detection + triage of deviations from policy intent.
+
+    **Inputs**:
+    - State snapshots + evidence events.
+    - Evaluated policies + evaluation criteria.
+    - Topology (impact propagation) + change context.
+
+    **Transforms / Operational Means**:
+    - Deterministic: evaluate criteria over snapshots; threshold and envelope checks.
+    - Statistical/anomaly: baselines, seasonality, changepoints.
+    - Graph algorithms: propagate impact and compute blast radius.
+    - SAT/SMT (optional): generate minimal violating sets on bounded slices
+      (explanations/counterexamples).
+    - AIOps: noise reduction; clustering; cause correlation; prioritization.
+
+    **Outputs**:
+    - Violation/drift events ranked by impact and novelty.
+    - Candidate causes + evidence bundle for Decisioning/Homeostasis.
+
+    **Owner + Plane**:
+    - Owner: OperatorControllerMechanism (runtime regulation; Remediation plane).
+    - Uses: Description plane state + Definition plane criteria.
+  end note
+
+  SystemicPrimitive <|-- DriftAssessment : is
+  DriftAssessment "0..*" o--> "0..*" Policy : evaluatedPolicies
+  DriftAssessment "0..*" o--> "0..*" EventArchetype : deviationEvents
+  DriftAssessment "1" o--> "1" OperatorControllerMechanism : owner
+
+  class ControlStabilityAssessment {
+    +getId(): UUID
+    +getEvaluatedRules(): BehavioralRule[]
+    +getIsStable(): Boolean
+    +getOwner(): SupervisorControllerMechanism
+  }
+
+  note top of ControlStabilityAssessment
+    **Purpose**: assess stability/performance of control loops and trigger adaptation.
+
+    **Inputs**:
+    - BehavioralRules + parameterization (cooldowns, hysteresis).
+    - Execution traces + outcomes + drift signals.
+
+    **Transforms / Operational Means**:
+    - Runtime monitoring: oscillation/overshoot detection; convergence-time metrics.
+    - Deterministic: heuristic invariants (max actuation frequency, cooldown rules,
+      guard conditions).
+    - Simulation/what-if: test candidate parameters and rule variants pre-rollout.
+    - AIOps: learn stability signatures; recommend parameter retuning and rule selection.
+
+    **Outputs**:
+    - Stability verdict + hotspots (which rules/scopes).
+    - Adaptation recommendations (retune, add hysteresis, change selection).
+
+    **Owner + Plane**:
+    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Uses: Remediation plane telemetry and Description plane state context.
+  end note
+
+  SystemicPrimitive <|-- ControlStabilityAssessment : is
+  ControlStabilityAssessment "0..*" o--> "0..*" BehavioralRule : evaluatedRules
+  ControlStabilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+
+  Coherence "0..*" o--> "0..*" PolicyConstraintSatisfiabilityChecking : uses
+  Coherence "0..*" o--> "0..*" BehavioralRuleConstraintSatisfiabilityChecking : uses
+  Coherence "0..*" o--> "0..*" PolicyIntegrationFeasibilityAssessment : uses
+  Coherence "0..*" o--> "0..*" BehavioralRuleIntegrationFeasibilityAssessment : uses
+
+  Coherence "0..*" o--> "0..*" PolicyConsistencyChecking : uses
+  Coherence "0..*" o--> "0..*" BehavioralRuleConsistencyChecking : uses
+  Coherence "0..*" o--> "0..*" PolicyBehavioralRuleAlignmentChecking : uses
+  Coherence "0..*" o--> "0..*" SolverProjectionAdequacyAssessment : uses
+  Coherence "0..*" o--> "0..*" ObservabilityCoverageAssessment : uses
+  Coherence "0..*" o--> "0..*" ActuationCapabilityAssessment : uses
+  Coherence "0..*" o--> "0..*" TopologyIntegrityChecking : uses
+
+  Homeostasis "0..*" o--> "0..*" DriftAssessment : uses
+  Adaptation "0..*" o--> "0..*" ControlStabilityAssessment : uses
+
+  ' ============================================================
+  ' HUMAN-ACTIVABLE DELIVERABLES (DEFINITION PLANE OUTPUTS)
+  '
+  ' The Definition Plane must produce outputs that can be acted upon by humans
+  ' even if the Remediation Plane is not automated (no AIOps actuation).
+  '
+  ' These deliverables are *systemic primitives* because they are structured
+  ' governance artifacts derived from policies, rules, coherence checks, and
+  ' feasibility assessments.
+  ' ============================================================
+
+  ' NOTE: DefinitionPlaneDeliverable removed.
+  ' The canonical Definition-plane output artifact is Definition itself.
+
+  enum DefinitionInputProducerType {
+    HUMAN
+    MACHINE
+  }
+
+  class DefinitionRequest {
+    +getId(): UUID
+    +getProducerType(): DefinitionInputProducerType
+    +getProducerRef(): String
+    +getRationale(): String
+    +getRequestedAddedPrimitives(): SystemicPrimitive[]
+    +getRequestedUpdatedPrimitives(): SystemicPrimitive[]
+    +getRequestedDeprecatedPrimitives(): SystemicPrimitive[]
+  }
+
+  note top of DefinitionRequest
+    A Definition-plane input instance served by either a human or a machine.
+
+    It carries the requester-provided rationale/intent and the requested
+    definitional change (as primitives), before coherence/adaptation/emergence
+    processing.
+  end note
+
+  SystemicPrimitive <|-- DefinitionRequest : is
+
+  class Definition {
     +getId(): UUID
     +getName(): String
-    +getTargetConstraints(): Constraint[]
-    +getOwner(): ControllerMechanism
+    +getTargetStandardOrFramework(): String
+
+    +getMachineActionSpec(): String
+    +getMachinePayload(): String
+
+    +getHumanRenderings(): String[]
+    +getHumanInstructions(): String
+
+    +getTargetSystem(): System
+    +getAddedPrimitives(): SystemicPrimitive[]
+    +getUpdatedPrimitives(): SystemicPrimitive[]
+    +getDeprecatedPrimitives(): SystemicPrimitive[]
+    +getChangeRationale(): String
+    +getUsageProfiles(): String[]
   }
 
-  note top of DeprecationProcess
-    Represents the systemic process by which obsolete constraints are
-    deprecated and eventually removed.
+  note top of Definition
+    A single, domain-generic **Definition** artifact that packages
+    **new/updated** systemics primitive definitions produced by
+    Emergence/Adaptation/Coherence.
 
-    **Behavior / Algorithm (Conceptual)**:
-    - Identify constraints that are:
-      - No longer justified by provenance (obsolete use cases, mitigated risks).
-      - Superseded by newer constraints.
-      - Harmful to viability or innovation (over-constraint).
-    - Mark constraints as deprecated and gradually remove their enforcement:
-      - Disable or adjust behavioral rules.
-      - Update structural policies and architecture.
-      - Archive rationale and provenance for traceability.
+    This is often more realistic than multiple deliverable subclasses because
+    Definition-plane outputs are fundamentally **definitions**.
 
-    **Systemic Semantics**:
-    - Prevents ossification and supports adaptive governance.
+    All other “deliverables” (risk analysis, compliance mapping, architecture
+    views, work items, runbooks, test plans) are **renderings/projections** of
+    the same primitive set, chosen by `usageProfiles`.
+
+    **Activation semantics (human + AI)**:
+    - A Definition can be activated in the remediation plane by either humans
+      (manual execution + oversight) or AI/automation (machine execution under
+      guardrails).
+
+    **Single-instance rule**:
+    One Definition instance MUST serve both audiences by carrying:
+    - a canonical, machine-actionable action specification + payload, and
+    - one or more human renderings/instructions of the same intent.
+
+    **Primitive-first content rule**:
+    As much as possible, a Definition MUST be composed of CSDM systemics
+    primitives so renderings can be generated deterministically.
+
+    **Rationale semantics**:
+    - `changeRationale` is a Definition-plane output field for auditability.
+    - It is derived from Definition-plane inputs (e.g., DefinitionRequest),
+      plus Description-plane evidence and assessment results.
+
+    **Typical usage profiles** (non-normative examples):
+    - Architecture views generation (structural primitives)
+    - Behavioral rule specification (rules + controls + actuations)
+    - Compliance/control mapping (policies + evidence primitives)
+    - Human ModOps (manual activation instructions)
   end note
 
-  SystemicPrimitive <|-- DeprecationProcess : is
-  DeprecationProcess "0..*" o--> "0..*" Constraint : targetConstraints
-  DeprecationProcess "1" o--> "1" ControllerMechanism : owner
+  Definition "1" o--> "1" System : targets
+  Definition "0..*" o--> "0..*" SystemicPrimitive : packages
+  Definition "0..*" o--> "0..*" DefinitionRequest : derivedFromInputs
+  Definition "0..*" o--> "0..*" Policy : derivedFromPolicies
+  Definition "0..*" o--> "0..*" BehavioralRule : derivedFromRules
+  Definition "0..*" o--> "0..*" ConstraintConflict : derivedFromConflicts
+  Definition "0..*" o--> "0..*" SystemicPrimitive : derivedFromAssessments
+
+  Coherence "0..*" o--> "0..*" Definition : produces
+  Emergence "0..*" o--> "0..*" Definition : produces
+  Adaptation "0..*" o--> "0..*" Definition : produces
 }
 
 @enduml

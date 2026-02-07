@@ -1,4 +1,4 @@
-@startuml sie-meta-governance-v1
+@startuml sie-governance-behavioral-rules-v1
 
 ' ============================================================
 ' VISUAL THEME
@@ -22,7 +22,7 @@ skinparam classFontColor #24292F
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-title SIE - Meta-Governance: SIE's Own Policies and BehavioralRules - v1
+title SIE - Meta-Governance: SIE's Own BehavioralRules - v1
 
 ' ============================================================
 ' META-GOVERNANCE OVERVIEW
@@ -30,117 +30,37 @@ title SIE - Meta-Governance: SIE's Own Policies and BehavioralRules - v1
 
 note as MetaGovNote
   **Meta-Governance: SIE Governing Itself**
-  
-  SIE is a system that uses the same governance patterns it defines.
-  These are SIE's own Policies and BehavioralRules that govern
-  how SIE operates on user-defined systems.
-  
-  **Recursion**: SIE's meta-governance rules ARE SystemicPrimitives
-  in SIE's own Definition Plane instance.
-  
-  **Hierarchy**:
-  - Meta-Governor: Owns meta-policies about SIE operation
-  - Meta-Supervisor: Operationalizes into meta-rules
-  - Meta-Operator: Realizes meta-rules (SIE's processes)
+
+  This diagram contains SIE's own BehavioralRules (meta-rules) that
+  operationalize SIE's meta-policies.
+
+  The meta-policies themselves are defined in:
+  - `sie-governance-policies-v1.puml`
 end note
 
-frame "SIE Meta-Governance Rules - v1" {
+frame "SIE Meta-Governance BehavioralRules - v1" {
 
   ' ============================================================
-  ' META-GOVERNOR: EMERGENCE GOVERNANCE
+  ' REFERENCED POLICIES (STUBS)
+  '
+  ' BehavioralRules reference Policies via `applies`. We keep the policy
+  ' *definitions* in a separate diagram; here we only declare identifiers.
   ' ============================================================
 
-  package "Emergence Governance (Meta-Governor)" as EmergenceGov {
-    
-    class "FP-META-001\nEmergence Trigger Policy" as FP001 <<FunctionalPolicy>> {
-      **name**: "EmergenceTriggerPolicy"
-      **constraint**: |
-        emergence.trigger MUST be one of:
-        [OBSERVATION_RECEIVED, COHERENCE_FEEDBACK,
-         USER_REQUEST, LLM_PROPOSAL, SCHEDULED_ANALYSIS]
-      **evaluationCriteria**: |
-        COUNT(emergence.trigger NOT IN allowed_types) == 0
-    }
-    
-    class "VP-META-001\nEmergence Confidence Policy" as VP001 <<ViabilityPolicy>> {
-      **name**: "EmergenceConfidencePolicy"
-      **constraint**: |
-        emergence.proposal.confidence >= 0.7
-        OR emergence.approvalMode == MANUAL
-      **evaluationCriteria**: |
-        AVG(auto_approved.confidence) >= 0.7
-    }
-    
-    class "SP-META-001\nPrimitive Immutability Policy" as SP001 <<StructuralPolicy>> {
-      **name**: "PrimitiveImmutabilityPolicy"
-      **constraint**: |
-        primitive.status != DRAFT IMPLIES
-        primitive.attributes ARE IMMUTABLE
-      **evaluationCriteria**: |
-        COUNT(mutations_after_draft) == 0
-    }
-  }
+  package "Referenced Policies (stubs)" as PolicyRefs {
+    class "FP-META-001\nEmergence Trigger Policy" as FP001 <<FunctionalPolicy>>
+    class "VP-META-001\nEmergence Confidence Policy" as VP001 <<ViabilityPolicy>>
+    class "SP-META-001\nPrimitive Immutability Policy" as SP001 <<StructuralPolicy>>
 
-  ' ============================================================
-  ' META-GOVERNOR: COHERENCE GOVERNANCE
-  ' ============================================================
+    class "FP-META-002\nIncoherence Detection Policy" as FP002 <<FunctionalPolicy>>
+    class "VP-META-002\nResolution Timeliness Policy" as VP002 <<ViabilityPolicy>>
+    class "SP-META-002\nGraph Consistency Policy" as SP002 <<StructuralPolicy>>
 
-  package "Coherence Governance (Meta-Governor)" as CoherenceGov {
-    
-    class "FP-META-002\nIncoherence Detection Policy" as FP002 <<FunctionalPolicy>> {
-      **name**: "IncoherenceDetectionPolicy"
-      **constraint**: |
-        coherence_check MUST detect:
-        [LOGICAL_CONTRADICTION, CIRCULAR_DEPENDENCY,
-         ORPHANED_CONSTRAINT, STALE_REFERENCE]
-      **evaluationCriteria**: |
-        detection_coverage >= 0.95
-    }
-    
-    class "VP-META-002\nResolution Timeliness Policy" as VP002 <<ViabilityPolicy>> {
-      **name**: "ResolutionTimelinessPolicy"
-      **constraint**: |
-        incoherence.severity == CRITICAL IMPLIES
-        resolution.proposed_within <= 1h
-      **evaluationCriteria**: |
-        P95(critical_resolution_time) <= 1h
-    }
-    
-    class "SP-META-002\nGraph Consistency Policy" as SP002 <<StructuralPolicy>> {
-      **name**: "GraphConsistencyPolicy"
-      **constraint**: |
-        neo4j.graph MUST be CDC-synchronized
-        with postgresql.source_of_truth
-        within 30s
-      **evaluationCriteria**: |
-        MAX(sync_lag_seconds) <= 30
-    }
-  }
+    class "FP-META-003\nFeasibility Assessment Policy" as FP003 <<FunctionalPolicy>>
+    class "VP-META-003\nVariety Validation Policy" as VP003 <<ViabilityPolicy>>
 
-  ' ============================================================
-  ' META-GOVERNOR: FEASIBILITY GOVERNANCE
-  ' ============================================================
-
-  package "Feasibility Governance (Meta-Governor)" as FeasibilityGov {
-    
-    class "FP-META-003\nFeasibility Assessment Policy" as FP003 <<FunctionalPolicy>> {
-      **name**: "FeasibilityAssessmentPolicy"
-      **constraint**: |
-        constraint.status == APPROVED IMPLIES
-        feasibility_assessment MUST be performed
-        BEFORE status == PUBLISHED
-      **evaluationCriteria**: |
-        COUNT(published_without_assessment) == 0
-    }
-    
-    class "VP-META-003\nVariety Validation Policy" as VP003 <<ViabilityPolicy>> {
-      **name**: "VarietyValidationPolicy"
-      **constraint**: |
-        feasibility.outcome == NOT_FEASIBLE
-        WHEN mechanism.variety < constraint.variety
-      **evaluationCriteria**: |
-        false_positive_rate(feasibility) <= 0.05
-    }
+    class "SP-META-003\nEvidence Retention Policy" as SP003 <<StructuralPolicy>>
+    class "VP-META-004\nEvidence Minimization Policy" as VP004 <<ViabilityPolicy>>
   }
 
   ' ============================================================
@@ -157,9 +77,10 @@ frame "SIE Meta-Governance Rules - v1" {
         emergence.proposal.impact.breaking == false AND
         config.automationMode IN [SEMI_AUTONOMOUS, FULLY_AUTONOMOUS]
       **controlSequence**: |
-        1. SET emergence.approvalStatus = AUTO_APPROVED
-        2. EMIT EmergenceApprovedEvent
-        3. TRIGGER execution
+        1. SET emergence.decision.status = AUTO_APPROVED
+        2. SET emergence.status = APPROVED
+        3. EMIT EmergenceApprovedEvent
+        4. TRIGGER enactment
     }
     
     class "BR-META-002\nEscalate Low Confidence" as BR002 <<BehavioralRule>> {
@@ -169,7 +90,7 @@ frame "SIE Meta-Governance Rules - v1" {
         emergence.proposal.confidence < 0.7 OR
         emergence.proposal.impact.breaking == true
       **controlSequence**: |
-        1. SET emergence.approvalStatus = PENDING
+        1. SET emergence.decision.status = PENDING
         2. EMIT ApprovalRequiredEvent(approvers)
         3. AWAIT approval OR timeout(24h)
         4. IF timeout THEN EMIT EscalationEvent
@@ -272,20 +193,46 @@ frame "SIE Meta-Governance Rules - v1" {
   }
 
   ' ============================================================
+  ' META-SUPERVISOR: EVIDENCE / RETENTION RULES
+  ' ============================================================
+
+  package "Evidence Rules (Meta-Supervisor)" as EvidenceRules {
+
+    class "BR-META-009\nEnforce Evidence Retention" as BR009 <<BehavioralRule>> {
+      **name**: "EnforceEvidenceRetention"
+      **applies**: [SP-META-003, VP-META-004]
+      **applicabilityConditions**: |
+        schedule.tick OR config.retentionPolicyChanged
+      **controlSequence**: |
+        1. COMPUTE rawWindow = max(mismatch.persistenceWindow,
+                                  control.diagnosisWindow,
+                                  adaptation.outcomeEvaluationWindow)
+        2. COMPUTE derivedWindow = max(adaptation.outcomeEvaluationWindow,
+                                      emergence.caseEvidenceWindow)
+        3. ENSURE snapshots retained for governance.auditWindow
+        4. APPLY bounding/sampling/pointer strategy for RAW tier
+        5. COMPACT/EXPIRE RAW beyond rawWindow
+        6. EXPIRE DERIVED beyond derivedWindow (unless linked to open cases)
+        7. ARCHIVE required SNAPSHOTS (replayable bundles)
+        8. EMIT RetentionAppliedEvent(windows, scope)
+    }
+  }
+
+  ' ============================================================
   ' META-SUPERVISOR: SENSOR AUTO-DEFINITION RULES
   ' ============================================================
 
   package "Sensor Auto-Definition Rules (Meta-Supervisor)" as SensorRules {
     
-    class "BR-META-009\nAuto-Define Sensor for Policy" as BR009 <<BehavioralRule>> {
+    class "BR-META-011\nAuto-Define Sensor for Policy" as BR011 <<BehavioralRule>> {
       **name**: "AutoDefineSensorForPolicy"
       **applies**: [FP-META-001]
       **applicabilityConditions**: |
-        policy.evaluationCriteria IS NOT EMPTY AND
+        policy.observability IS NOT EMPTY AND
         policy.status == INTEGRATED AND
         NOT EXISTS sensor WHERE sensor.measures == policy
       **controlSequence**: |
-        1. DERIVE measurementSchema FROM policy.evaluationCriteria
+        1. DERIVE measurementSchema FROM references(policy.constraint)
         2. CREATE EventArchetype(name=policy.name + "Measurement", schema=measurementSchema)
         3. CREATE SensorMechanism(
              receptor=ActuationFeedbackEventArchetype,
@@ -321,8 +268,10 @@ frame "SIE Meta-Governance Rules - v1" {
   BR007 .up.> FP003 : applies
   BR008 .up.> FP003 : applies
   BR008 .up.> VP003 : applies
-  BR009 .up.> FP001 : applies
+  BR009 .up.> SP003 : applies
+  BR009 .up.> VP004 : applies
   BR010 .up.> SP001 : applies
+  BR011 .up.> FP001 : applies
 }
 
 ' ============================================================
@@ -334,7 +283,7 @@ note bottom of SensorRules
   
   | Policy | Rule(s) | Purpose |
   |--------|---------|---------|
-  | FP-META-001 | BR-META-001, BR-META-009 | Emergence triggers, sensor auto-definition |
+  | FP-META-001 | BR-META-011 | Sensor auto-definition |
   | VP-META-001 | BR-META-001, BR-META-002 | Confidence-based approval |
   | SP-META-001 | BR-META-003, BR-META-010 | Immutability enforcement |
   | FP-META-002 | BR-META-004, BR-META-005 | Incoherence detection |
@@ -342,6 +291,7 @@ note bottom of SensorRules
   | SP-META-002 | BR-META-006 | Graph sync consistency |
   | FP-META-003 | BR-META-007, BR-META-008 | Feasibility workflow |
   | VP-META-003 | BR-META-008 | Variety validation |
+  | SP-META-003 / VP-META-004 | BR-META-009 | Evidence retention + minimization |
   
   These rules govern SIE's own operation. They are
   SystemicPrimitives in SIE's self-referential Definition Plane.
