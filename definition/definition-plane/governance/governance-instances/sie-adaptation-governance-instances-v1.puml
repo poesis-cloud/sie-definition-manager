@@ -56,6 +56,14 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
     object "EA-ADP-003\nOperatorProvisioningEvent" as EA_OperatorProvisioningEvent <<EventArchetype>> {
       name = "OperatorProvisioningEvent"
     }
+
+    object "EA-ADP-004\nOperatorProvisioningFeedbackEvent" as EA_OperatorProvisioningFeedbackEvent <<EventArchetype>> {
+      name = "OperatorProvisioningFeedbackEvent"
+    }
+
+    object "EA-ADP-005\nAdmissionGateDecisionEvent" as EA_AdmissionGateDecisionEvent <<EventArchetype>> {
+      name = "AdmissionGateDecisionEvent"
+    }
   }
 
   package "StateObjectArchetypes" {
@@ -251,16 +259,35 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
     iterationConditions:
     {
       "type": "ComparisonExpression",
-      "operator": "EQUALS",
-      "left": {
-        "type": "ContextVariableReferenceExpression",
-        "name": "MismatchAssessmentReceptor",
-        "propertyPath": ["requiresFurtherDiagnosis"]
-      },
-      "right": {
-        "type": "LiteralExpression",
-        "value": true
-      }
+      "operator": "OR",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "MismatchAssessmentReceptor",
+            "propertyPath": ["requiresFurtherDiagnosis"]
+          },
+          "right": {
+            "type": "LiteralExpression",
+            "value": true
+          }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "OperatorProvisioningFeedbackReceptor",
+            "propertyPath": ["provisioningStatus"]
+          },
+          "right": {
+            "type": "LiteralExpression",
+            "value": "FAILED"
+          }
+        }
+      ]
     }
     end note
   }
@@ -269,6 +296,16 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
     object "R-ADP-001\nAdaptation Trigger Receptor" as R_ADP_001 <<Receptor>> {
       name = "MismatchAssessmentReceptor"
       receivedEventArchetype = EA_MismatchAssessmentEvent
+    }
+
+    object "R-ADP-002\nProvisioning Feedback Receptor" as R_ADP_002 <<Receptor>> {
+      name = "OperatorProvisioningFeedbackReceptor"
+      receivedEventArchetype = EA_OperatorProvisioningFeedbackEvent
+    }
+
+    object "R-ADP-003\nAdmission Decision Receptor" as R_ADP_003 <<Receptor>> {
+      name = "AdmissionDecisionReceptor"
+      receivedEventArchetype = EA_AdmissionGateDecisionEvent
     }
 
     object "R-ADP-REMED-001\nCandidate Intake Receptor" as R_ADP_REMED_001 <<Receptor>> {
@@ -392,7 +429,7 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_ADP_002
-      feedbackReceptor = null
+      feedbackReceptor = R_ADP_002
     }
 
     note right of BRC_ADP_002
@@ -501,6 +538,7 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
 
   BR_ADP_001 *-- BRC_ADP_002 : has
   BRC_ADP_002 --> EFF_ADP_002 : effector
+  BRC_ADP_002 --> R_ADP_002 : feedbackReceptor
 
   INT_ADP_TRG_001 --> EFF_ADP_TRG_001 : effector
   INT_ADP_TRG_001 --> R_ADP_001 : receptor

@@ -5,7 +5,16 @@
   "description": "Structured assessment produced from mismatches + feedback.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["assessmentId", "scope", "diagnosisSummary", "assessedAt"],
+  "required": [
+    "assessmentId",
+    "scope",
+    "diagnosisSummary",
+    "assessedAt",
+    "diagnosisNeeded",
+    "repeatDiagnosis",
+    "candidateRuleStatus",
+    "waitingForRealization"
+  ],
   "properties": {
     "assessmentId": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
     "scope": {
@@ -14,10 +23,30 @@
       "additionalProperties": true
     },
     "diagnosisSummary": { "type": "string" },
+    "diagnosisNeeded": {
+      "description": "Derived boolean steering Adaptation: true when a diagnosis/control-performance assessment should run.",
+      "type": "boolean",
+      "default": false
+    },
+    "repeatDiagnosis": {
+      "description": "Derived boolean steering Adaptation loop iteration: true while diagnosis should be repeated.",
+      "type": "boolean",
+      "default": false
+    },
     "candidateRuleId": {
       "description": "Optional candidate BehavioralRule id produced during assessment.",
       "type": ["string", "null"],
       "format": "uuid"
+    },
+    "candidateRuleStatus": {
+      "description": "Derived status of the candidate BehavioralRule used by Adaptation controls (e.g., \"PUBLISHED\").",
+      "type": "string",
+      "default": "UNKNOWN"
+    },
+    "waitingForRealization": {
+      "description": "Derived boolean steering provisioning loop: true while waiting for the candidate rule to be realized in the State plane.",
+      "type": "boolean",
+      "default": false
     },
     "assessedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
   }

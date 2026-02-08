@@ -125,6 +125,22 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       name = "ControlledActivationPlanEvent"
     }
 
+    object "EA-COH-020\nEvidenceGroundingResponseEvent" as EA_EvidenceGroundingResponseEvent <<EventArchetype>> {
+      name = "EvidenceGroundingResponseEvent"
+    }
+
+    object "EA-COH-021\nControlledActivationFeedbackEvent" as EA_ControlledActivationFeedbackEvent <<EventArchetype>> {
+      name = "ControlledActivationFeedbackEvent"
+    }
+
+    object "EA-COH-022\nDecisionRequestEvent" as EA_DecisionRequestEvent <<EventArchetype>> {
+      name = "DecisionRequestEvent"
+    }
+
+    object "EA-COH-023\nDecisionResponseEvent" as EA_DecisionResponseEvent <<EventArchetype>> {
+      name = "DecisionResponseEvent"
+    }
+
   }
 
   package "StateObjectArchetypes" {
@@ -310,6 +326,10 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       implementedBehavioralRule = BR_COH_001
     }
 
+    object "SUP-ADP-001\nSupervisorControllerMechanism\n(Adaptation Supervisor)" as SUP_ADP_001 <<SupervisorControllerMechanism>> {
+      implementedBehavioralRule = BR_SUP_COH_001
+    }
+
   }
 
   package "Purposes" {
@@ -367,7 +387,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     iterationConditions = (see note)
 
-      controlSequence = [BRC_COH_001, BRC_COH_002, BRC_COH_003, BRC_COH_004, BRC_COH_005, BRC_COH_006, BRC_COH_007, BRC_COH_008, BRC_COH_009, BRC_COH_010, BRC_COH_011, BRC_COH_012, BRC_COH_013, BRC_COH_014, BRC_COH_015, BRC_COH_016, BRC_COH_017, BRC_COH_018]
+      controlSequence = [BRC_COH_001, BRC_COH_002, BRC_COH_003, BRC_COH_004, BRC_COH_005, BRC_COH_006, BRC_COH_007, BRC_COH_008, BRC_COH_009, BRC_COH_010, BRC_COH_011, BRC_COH_012, BRC_COH_012A, BRC_COH_013, BRC_COH_014, BRC_COH_015, BRC_COH_016, BRC_COH_017, BRC_COH_018]
     }
 
     note right of BR_COH_001
@@ -388,6 +408,53 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     iterationConditions:
     {
+         "type": "ComparisonExpression",
+         "operator": "OR",
+         "operands": [
+           { "type": "LiteralExpression", "value": false },
+           {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                 "type": "ContextVariableReferenceExpression",
+                 "name": "ActivationFeedbackReceptor",
+                 "propertyPath": ["activationStatus"]
+              },
+              "right": { "type": "LiteralExpression", "value": "FAILED" }
+           }
+         ]
+    }
+    end note
+
+    object "BR-SUP-COH-001\nSupervisor Coherence Checks BehavioralRule" as BR_SUP_COH_001 <<BehavioralRule>> {
+      name = "SupervisorCoherenceChecksBehavioralRule"
+      status = PUBLISHED
+
+      applyingFunctionalPolicies = [FP_META_002]
+      applyingViabilityPolicies = [VP_META_002]
+      applyingStructuralPolicies = [SP_META_002]
+
+      scopedFunctions = [FN_COH_001]
+      scopedModalities = [MOD_COH_001]
+
+      triggeringReceptor = R_COH_REMED_003
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      controlSequence = [BRC_SUP_COH_013]
+    }
+
+    note right of BR_SUP_COH_001
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
       "type": "LiteralExpression",
       "value": false
     }
@@ -400,6 +467,26 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     object "R-COH-001\nCoherence Trigger Receptor" as R_COH_001 <<Receptor>> {
       name = "CoherenceRequestReceptor"
       receivedEventArchetype = EA_CoherenceRequestEvent
+    }
+
+    object "R-COH-002\nEvidence Feedback Receptor" as R_COH_002 <<Receptor>> {
+       name = "EvidenceGroundingResponseReceptor"
+       receivedEventArchetype = EA_EvidenceGroundingResponseEvent
+    }
+
+    object "R-COH-003\nActivation Feedback Receptor" as R_COH_003 <<Receptor>> {
+      name = "ControlledActivationFeedbackReceptor"
+      receivedEventArchetype = EA_ControlledActivationFeedbackEvent
+    }
+
+    object "R-COH-004\nSupervisor Report Receptor" as R_COH_004 <<Receptor>> {
+      name = "SupervisorReportReceptor"
+      receivedEventArchetype = EA_CoherenceReportEvent
+    }
+
+    object "R-COH-005\nDecision Response Receptor" as R_COH_005 <<Receptor>> {
+      name = "DecisionResponseReceptor"
+      receivedEventArchetype = EA_DecisionResponseEvent
     }
 
     object "R-COH-REMED-001\nCoherence Plan Intake Receptor" as R_COH_REMED_001 <<Receptor>> {
@@ -666,7 +753,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_COH_002
-      feedbackReceptor = null
+      feedbackReceptor = R_COH_002
     }
 
     note right of BRC_COH_002
@@ -726,7 +813,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_COH_003
-      feedbackReceptor = null
+      feedbackReceptor = R_COH_004
     }
 
     note right of BRC_COH_003
@@ -853,8 +940,29 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     note right of BRC_COH_005
     applicabilityConditions:
     {
-      "type": "LiteralExpression",
-      "value": true
+      "type": "AndExpression",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "NOT_EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorReportReceptor",
+            "propertyPath": ["status"]
+          },
+          "right": { "type": "LiteralExpression", "value": "CRITICAL_FAILURE" }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "IN",
+          "left": { "type": "LiteralExpression", "value": "CIRCULAR_DEPENDENCY" },
+          "right": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorReportReceptor",
+            "propertyPath": ["findings"]
+          }
+        }
+      ]
     }
 
     iterationConditions:
@@ -912,8 +1020,29 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     note right of BRC_COH_006
     applicabilityConditions:
     {
-      "type": "LiteralExpression",
-      "value": true
+      "type": "AndExpression",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "NOT_EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorReportReceptor",
+            "propertyPath": ["status"]
+          },
+          "right": { "type": "LiteralExpression", "value": "CRITICAL_FAILURE" }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "IN",
+          "left": { "type": "LiteralExpression", "value": "STALE_REFERENCE" },
+          "right": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorReportReceptor",
+            "propertyPath": ["findings"]
+          }
+        }
+      ]
     }
 
     iterationConditions:
@@ -1001,8 +1130,28 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     note right of BRC_COH_007
     applicabilityConditions:
     {
-      "type": "LiteralExpression",
-      "value": true
+      "type": "AndExpression",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "NOT_EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorReportReceptor",
+            "propertyPath": ["status"]
+          },
+          "right": { "type": "LiteralExpression", "value": "CRITICAL_FAILURE" }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "IS_NOT_NULL",
+          "operand": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorReportReceptor",
+            "propertyPath": ["graphMutation"]
+          }
+        }
+      ]
     }
 
     iterationConditions:
@@ -1329,6 +1478,138 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     }
     end note
 
+    object "BRC-COH-012A\nRequest Supervisor Admission Checks" as BRC_COH_012A <<BehavioralRuleControl>> {
+      name = "SupervisorAdmissionCheckRequestControl"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_003
+      feedbackReceptor = R_COH_004
+    }
+
+    note right of BRC_COH_012A
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "SupervisorCheckRequestEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["checkSet"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": ["BEHAVIORAL_RULE_CONSISTENCY", "BEHAVIORAL_RULE_CONSTRAINT_SAT", "ACTUATION_CAPABILITY"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requestedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-SUP-COH-013\nGenerate Coherence Report (Supervisor Checks)" as BRC_SUP_COH_013 <<BehavioralRuleControl>> {
+      name = "SupervisorCoherenceReportControl"
+      applyingRule = BR_SUP_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_004
+      feedbackReceptor = null
+    }
+
+    note right of BRC_SUP_COH_013
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "CoherenceReportEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["report", "kind"],
+          "source": { "type": "LiteralExpression", "value": "SUPERVISOR_CHECK_REPORT" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["report", "status"],
+          "source": { "type": "LiteralExpression", "value": "PARTIAL" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["report", "checkSet"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorCheckIntakeReceptor",
+            "propertyPath": ["checkSet"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["report", "requestedAt"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "SupervisorCheckIntakeReceptor",
+            "propertyPath": ["requestedAt"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["publishedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
     object "BRC-COH-013\nStatic Analysis (Policies + Rules)" as BRC_COH_013 <<BehavioralRuleControl>> {
       name = "PolicyAndRuleStaticAnalysis"
       applyingRule = BR_COH_001
@@ -1344,6 +1625,14 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     }
 
     note right of BRC_COH_013
+    **Validation Scope:**
+    1. Functional Policies (Logic/Invariants)
+    2. Viability Policies (Limits/Thresholds)
+    3. Structural Policies (Composition/Wiring)
+
+    Configured to ensure any BRC's applicabilityConditions does not
+    violate or bypass declared Policies.
+
     applicabilityConditions:
     {
       "type": "ComparisonExpression",
@@ -1550,7 +1839,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_COH_016
-      feedbackReceptor = null
+      feedbackReceptor = R_COH_005
     }
 
     note right of BRC_COH_016
@@ -1715,7 +2004,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_COH_018
-      feedbackReceptor = null
+      feedbackReceptor = R_COH_003
     }
 
     note right of BRC_COH_018
@@ -1856,6 +2145,12 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       receptor = R_COH_REMED_012
     }
 
+    object "INT-COH-012A\nSupervisor Admission Checks" as INT_COH_012A <<Interaction>> {
+      name = "SupervisorAdmissionCheckDispatch"
+      effector = EFF_COH_003
+      receptor = R_COH_REMED_003
+    }
+
     object "INT-COH-013\nStatic Analysis Report" as INT_COH_013 <<Interaction>> {
       name = "StaticAnalysisReportDispatch"
       effector = EFF_COH_013
@@ -1899,11 +2194,19 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
   GOV_COH_001 --> BR_COH_001 : implements
 
+  SUP_ADP_001 --> BR_SUP_COH_001 : implements
+
   BR_COH_001 --> FP_META_002 : applies
   BR_COH_001 --> VP_META_002 : applies
   BR_COH_001 --> SP_META_002 : applies
 
   BR_COH_001 --> R_COH_001 : triggeringReceptor
+
+  BR_SUP_COH_001 --> FP_META_002 : applies
+  BR_SUP_COH_001 --> VP_META_002 : applies
+  BR_SUP_COH_001 --> SP_META_002 : applies
+
+  BR_SUP_COH_001 --> R_COH_REMED_003 : triggeringReceptor
 
   FN_COH_001 --> PURP_COH_001 : serves
   MOD_COH_001 --> CAP_COH_001 : constitutes
@@ -1913,6 +2216,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
   BR_COH_001 *-- BRC_COH_002 : has
   BRC_COH_002 --> EFF_COH_002 : effector
+  BRC_COH_002 --> R_COH_002 : feedbackReceptor
 
   BR_COH_001 *-- BRC_COH_003 : has
   BRC_COH_003 --> EFF_COH_003 : effector
@@ -1928,6 +2232,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
   BR_COH_001 *-- BRC_COH_010 : has
   BR_COH_001 *-- BRC_COH_011 : has
   BR_COH_001 *-- BRC_COH_012 : has
+  BR_COH_001 *-- BRC_COH_012A : has
   BR_COH_001 *-- BRC_COH_013 : has
   BR_COH_001 *-- BRC_COH_014 : has
   BR_COH_001 *-- BRC_COH_015 : has
@@ -1943,12 +2248,17 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
   BRC_COH_010 --> EFF_COH_010 : effector
   BRC_COH_011 --> EFF_COH_011 : effector
   BRC_COH_012 --> EFF_COH_012 : effector
+  BRC_COH_012A --> EFF_COH_003 : effector
   BRC_COH_013 --> EFF_COH_013 : effector
   BRC_COH_014 --> EFF_COH_014 : effector
   BRC_COH_015 --> EFF_COH_015 : effector
   BRC_COH_016 --> EFF_COH_016 : effector
   BRC_COH_017 --> EFF_COH_017 : effector
   BRC_COH_018 --> EFF_COH_018 : effector
+  BRC_COH_018 --> R_COH_003 : feedbackReceptor
+
+  BR_SUP_COH_001 *-- BRC_SUP_COH_013 : has
+  BRC_SUP_COH_013 --> EFF_COH_004 : effector
 
   INT_COH_TRG_001 --> EFF_COH_TRG_001 : effector
   INT_COH_TRG_001 --> R_COH_001 : receptor
@@ -1988,6 +2298,9 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
   INT_COH_012 --> EFF_COH_012 : effector
   INT_COH_012 --> R_COH_REMED_012 : receptor
+
+  INT_COH_012A --> EFF_COH_003 : effector
+  INT_COH_012A --> R_COH_REMED_003 : receptor
 
   INT_COH_013 --> EFF_COH_013 : effector
   INT_COH_013 --> R_COH_REMED_013 : receptor

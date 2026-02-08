@@ -28,6 +28,7 @@ autonumber
 
 participant "Event Bus" as Bus
 participant "GOV-COH-001\nCoherence Governor" as GOV_COH_001
+participant "SUP-ADP-001\nSupervisor (Adaptation)" as SUP_ADP_001
 
 note over GOV_COH_001
   Derived from governance-instances/sie-coherence-governance-instances-v1.puml.
@@ -52,6 +53,11 @@ alt CoherenceRequestEvent.phase == "CHECK"
 
   GOV_COH_001 -> GOV_COH_001 : BRC-COH-003 Request Supervisor Checks
   GOV_COH_001 -> Bus : publish SupervisorCheckRequestEvent
+
+  Bus -> SUP_ADP_001 : deliver SupervisorCheckRequestEvent
+  SUP_ADP_001 -> SUP_ADP_001 : BRC-SUP-COH-013 Generate Coherence Report (Supervisor Checks)
+  SUP_ADP_001 -> Bus : publish CoherenceReportEvent (partial)
+  Bus -> GOV_COH_001 : deliver CoherenceReportEvent (partial)
 
   GOV_COH_001 -> GOV_COH_001 : BRC-COH-004 Aggregate Reports
   GOV_COH_001 -> Bus : publish CoherenceReportEvent

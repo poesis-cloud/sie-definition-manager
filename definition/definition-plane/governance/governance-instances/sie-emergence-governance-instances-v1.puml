@@ -85,6 +85,22 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       name = "EmergenceCaseClosedEvent"
     }
 
+    object "EA-EMG-010\nDefinitionUpdateFeedbackEvent" as EA_DefinitionUpdateFeedbackEvent <<EventArchetype>> {
+      name = "DefinitionUpdateFeedbackEvent"
+    }
+
+    object "EA-EMG-011\nEmergenceCaseUpdateEvent" as EA_EmergenceCaseUpdateEvent <<EventArchetype>> {
+      name = "EmergenceCaseUpdateEvent"
+    }
+
+    object "EA-EMG-012\nCoherenceRequestEvent" as EA_CoherenceRequestEvent <<EventArchetype>> {
+      name = "CoherenceRequestEvent"
+    }
+
+    object "EA-EMG-013\nAdmissionGateDecisionEvent" as EA_AdmissionGateDecisionEvent <<EventArchetype>> {
+      name = "AdmissionGateDecisionEvent"
+    }
+
   }
 
   package "StateObjectArchetypes" {
@@ -337,8 +353,21 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
 
     iterationConditions:
     {
-      "type": "LiteralExpression",
-      "value": false
+         "type": "ComparisonExpression",
+         "operator": "OR",
+         "operands": [
+           { "type": "LiteralExpression", "value": "Standard triggers..." },
+           {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                 "type": "ContextVariableReferenceExpression",
+                 "name": "DefinitionUpdateFeedbackReceptor",
+                 "propertyPath": ["activationStatus"]
+              },
+              "right": { "type": "LiteralExpression", "value": "FAILED" }
+           }
+         ]
     }
     end note
 
@@ -349,6 +378,11 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     object "R-EMG-001\nEmergence Trigger Receptor" as R_EMG_001 <<Receptor>> {
       name = "EmergenceTriggerReceptor"
       receivedEventArchetype = EA_EmergenceTriggerEvent
+    }
+
+    object "R-EMG-003\nDefinition Update Feedback Receptor" as R_EMG_003 <<Receptor>> {
+      name = "DefinitionUpdateFeedbackReceptor"
+      receivedEventArchetype = EA_DefinitionUpdateFeedbackEvent
     }
 
     object "R-EMG-002\nDecision Response Receptor" as R_EMG_002 <<Receptor>> {
@@ -389,6 +423,11 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     object "R-EMG-REMED-007\nEmergence Case Closed Intake Receptor" as R_EMG_REMED_007 <<Receptor>> {
       name = "EmergenceCaseClosedIntakeReceptor"
       receivedEventArchetype = EA_EmergenceCaseClosedEvent
+    }
+
+    object "R-EMG-004\nAdmission Decision Receptor" as R_EMG_004 <<Receptor>> {
+      name = "AdmissionDecisionReceptor"
+      receivedEventArchetype = EA_AdmissionGateDecisionEvent
     }
 
   }
@@ -438,6 +477,11 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     object "EFF-DO-001\nDecision Response Effector" as EFF_DO_001 <<Effector>> {
       name = "DecisionResponseEffector"
       producedEventArchetype = EA_DecisionResponseEvent
+    }
+
+    object "EFF-EMG-008\nCoherence Request Effector" as EFF_EMG_008 <<Effector>> {
+      name = "CoherenceRequestEffector"
+      producedEventArchetype = EA_CoherenceRequestEvent
     }
 
   }
@@ -523,7 +567,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_EMG_003
-      feedbackReceptor = null
+      feedbackReceptor = R_EMG_003
     }
 
     note right of BRC_EMG_003
@@ -532,14 +576,29 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       "type": "OrExpression",
       "operands": [
         {
-          "type": "ComparisonExpression",
-          "operator": "GREATER_OR_EQUAL",
-          "left": {
-            "type": "ContextVariableReferenceExpression",
-            "name": "EmergenceTriggerReceptor",
-            "propertyPath": ["proposal", "confidence"]
-          },
-          "right": { "type": "LiteralExpression", "value": 0.7 }
+          "type": "AndExpression",
+           "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "ContextVariableReferenceExpression",
+                "name": "EmergenceTriggerReceptor",
+                "propertyPath": ["proposal", "confidence"]
+              },
+              "right": { "type": "LiteralExpression", "value": 0.7 }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "ContextVariableReferenceExpression",
+                "name": "AdmissionDecisionReceptor",
+                "propertyPath": ["outcome"]
+              },
+              "right": { "type": "LiteralExpression", "value": "PASS" }
+            }
+          ]
         },
         {
           "type": "ComparisonExpression",
@@ -606,7 +665,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_EMG_005
-      feedbackReceptor = null
+      feedbackReceptor = R_EMG_002
     }
 
     note right of BRC_EMG_005
@@ -703,6 +762,30 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     {
       "type": "LiteralExpression",
       "value": false
+    }
+    end note
+
+    object "BRC-EMG-008\nRequest Admission" as BRC_EMG_008 <<BehavioralRuleControl>> {
+      name = "AdmissionRequestControl"
+      applyingRule = BR_EMG_001
+      
+      applicabilityConditions = (see note)
+      
+      effector = EFF_EMG_008
+      feedbackReceptor = R_EMG_004
+    }
+    
+    note right of BRC_EMG_008
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "GREATER_OR_EQUAL",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "EmergenceTriggerReceptor",
+        "propertyPath": ["proposal", "confidence"]
+      },
+      "right": { "type": "LiteralExpression", "value": 0.7 }
     }
     end note
 
@@ -810,6 +893,10 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
   INT_EMG_008 --> EFF_EMG_007 : effector
   INT_EMG_008 --> R_EMG_REMED_007 : receptor
 
+  BR_EMG_001 *-- BRC_EMG_008 : has
+  BRC_EMG_008 --> EFF_EMG_008 : effector
+  BRC_EMG_008 --> R_EMG_004 : feedbackReceptor
+
   BR_EMG_001 *-- BRC_EMG_002 : has
   BRC_EMG_002 --> EFF_EMG_002 : effector
   EFF_EMG_002 ..> DecisionOwner : requests
@@ -817,6 +904,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
 
   BR_EMG_001 *-- BRC_EMG_003 : has
   BRC_EMG_003 --> EFF_EMG_003 : effector
+  BRC_EMG_003 --> R_EMG_003 : feedbackReceptor
 
   BR_EMG_001 *-- BRC_EMG_004 : has
   BRC_EMG_004 --> EFF_EMG_004 : effector

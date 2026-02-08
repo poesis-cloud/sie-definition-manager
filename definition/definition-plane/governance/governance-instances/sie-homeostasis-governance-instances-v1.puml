@@ -64,6 +64,22 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     object "EA-HOM-005\nRetentionAppliedEvent" as EA_RetentionAppliedEvent <<EventArchetype>> {
       name = "RetentionAppliedEvent"
     }
+
+    object "EA-HOM-006\nRuleExecutionFeedbackEvent" as EA_RuleExecutionFeedbackEvent <<EventArchetype>> {
+      name = "RuleExecutionFeedbackEvent"
+    }
+
+    object "EA-HOM-007\nOperatorProvisioningEvent" as EA_OperatorProvisioningEvent <<EventArchetype>> {
+      name = "OperatorProvisioningEvent"
+    }
+
+    object "EA-HOM-008\nDefinitionChangedEvent" as EA_DefinitionChangedEvent <<EventArchetype>> {
+      name = "DefinitionChangedEvent"
+    }
+
+    object "EA-HOM-009\nControlledActivationPlanEvent" as EA_ControlledActivationPlanEvent <<EventArchetype>> {
+      name = "ControlledActivationPlanEvent"
+    }
   }
 
   package "StateObjectArchetypes" {
@@ -442,16 +458,48 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     iterationConditions:
     {
       "type": "ComparisonExpression",
-      "operator": "EQUALS",
-      "left": {
-        "type": "ContextVariableReferenceExpression",
-        "name": "ControlIntentReceptor",
-        "propertyPath": ["retry"]
-      },
-      "right": {
-        "type": "LiteralExpression",
-        "value": true
-      }
+      "operator": "OR",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ControlIntentReceptor",
+            "propertyPath": ["retry"]
+          },
+          "right": {
+            "type": "LiteralExpression",
+            "value": true
+          }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ActuationFeedbackReceptor",
+            "propertyPath": ["status"]
+          },
+          "right": {
+            "type": "LiteralExpression",
+            "value": "FAILED"
+          }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "RuleExecutionFeedbackReceptor",
+            "propertyPath": ["status"]
+          },
+          "right": {
+            "type": "LiteralExpression",
+            "value": "FAILED"
+          }
+        }
+      ]
     }
     end note
   }
@@ -467,6 +515,26 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
       receivedEventArchetype = EA_ActuationFeedbackEvent
     }
 
+    object "R-HOM-003\nRule Execution Feedback Receptor" as R_HOM_003 <<Receptor>> {
+      name = "RuleExecutionFeedbackReceptor"
+      receivedEventArchetype = EA_RuleExecutionFeedbackEvent
+    }
+
+    object "R-HOM-004\nProvisioning Receptor" as R_HOM_004 <<Receptor>> {
+      name = "OperatorProvisioningReceptor"
+      receivedEventArchetype = EA_OperatorProvisioningEvent
+    }
+
+    object "R-HOM-005\nDefinition Update Receptor" as R_HOM_005 <<Receptor>> {
+      name = "DefinitionUpdateReceptor"
+      receivedEventArchetype = EA_DefinitionChangedEvent
+    }
+
+    object "R-HOM-006\nActivation Plan Receptor" as R_HOM_006 <<Receptor>> {
+      name = "ControlledActivationReceptor"
+      receivedEventArchetype = EA_ControlledActivationPlanEvent
+    }
+
     object "R-HOM-REMED-001\nRule Engine Receptor" as R_HOM_REMED_001 <<Receptor>> {
       name = "RuleEngineReceptor"
       receivedEventArchetype = EA_RuleExecutionRequestEvent
@@ -480,6 +548,11 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     object "R-HOM-DESC-003\nRetention Applied Receptor" as R_HOM_DESC_003 <<Receptor>> {
       name = "RetentionAppliedReceptor"
       receivedEventArchetype = EA_RetentionAppliedEvent
+    }
+
+    object "R-HOM-DESC-004\nFeedback Forwarding Receptor" as R_HOM_DESC_004 <<Receptor>> {
+      name = "ActuationFeedbackIntakeReceptor"
+      receivedEventArchetype = EA_ActuationFeedbackEvent
     }
   }
 
@@ -530,7 +603,7 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
       effectorEventSourceMapping = (see note)
 
       effector = EFF_HOM_001
-      feedbackReceptor = null
+      feedbackReceptor = R_HOM_003
     }
 
     note right of BRC_HOM_001
@@ -848,6 +921,13 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
       effector = EFF_HOM_003
       receptor = R_HOM_DESC_003
     }
+
+    object "INT-HOM-FB-002\nFeedback Forwarding" as INT_HOM_FB_002 <<Interaction>> {
+      name = "ActuationFeedbackForwarding"
+      effector = EFF_HOM_FB_001
+      receptor = R_HOM_DESC_004
+      description = "Operator forwards actuation feedback to Description to trigger state verification (Blind Loop mitigation)."
+    }
   }
 
   ' ------------------------------------------------------------
@@ -866,6 +946,7 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
 
   BR_HOM_001 *-- BRC_HOM_001 : has
   BRC_HOM_001 --> EFF_HOM_001 : effector
+  BRC_HOM_001 --> R_HOM_003 : feedbackReceptor
 
   BR_HOM_001 *-- BRC_HOM_002 : has
   BRC_HOM_002 --> EFF_HOM_002 : effector
@@ -889,6 +970,9 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
 
   INT_HOM_003 --> EFF_HOM_003 : effector
   INT_HOM_003 --> R_HOM_DESC_003 : receptor
+
+  INT_HOM_FB_002 --> EFF_HOM_FB_001 : effector
+  INT_HOM_FB_002 --> R_HOM_DESC_004 : receptor
 
 }
 
