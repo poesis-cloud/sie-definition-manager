@@ -18,23 +18,19 @@ title SIE Governance Sequence - Coherence - Feasibility Checks - v1
 
 autonumber
 
-participant "Description Plane - EVAL-COH-TRG-001" as EFF_COH_TRG_001
-participant "Definition Plane - R-COH-001" as R_COH_001
+participant "Event Bus" as Bus
 participant "Definition Plane - GOV-COH-001" as GOV_COH_001
 
-participant "Remediation Plane - EFF-COH-010" as EFF_COH_010
-participant "Remediation Plane - R-COH-REMED-010" as R_COH_REMED_010
-
-participant "Remediation Plane - EFF-COH-011" as EFF_COH_011
-participant "Remediation Plane - R-COH-REMED-011" as R_COH_REMED_011
-
-EFF_COH_TRG_001 -> R_COH_001 : [INT-COH-TRG-001] CoherenceRequestEvent(phase=FEASIBILITY)
+Bus -> GOV_COH_001 : [INT-COH-TRG-001] deliver CoherenceRequestEvent(phase=FEASIBILITY)
 note over GOV_COH_001
   Executes BR-COH-001 controlSequence (branch)
   - BRC-COH-010 Request Feasibility Checks
   - BRC-COH-011 Aggregate Feasibility
 end note
-EFF_COH_010 -> R_COH_REMED_010 : [INT-COH-010] FeasibilityAssessmentRequestedEvent
-EFF_COH_011 -> R_COH_REMED_011 : [INT-COH-011] FeasibilityAggregatedEvent
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-010 Request Feasibility Checks
+GOV_COH_001 -> Bus : [INT-COH-010] publish FeasibilityAssessmentRequestedEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-011 Aggregate Feasibility
+GOV_COH_001 -> Bus : [INT-COH-011] publish FeasibilityAggregatedEvent
 
 @enduml

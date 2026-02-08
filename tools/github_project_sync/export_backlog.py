@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple
 class Item:
     local_id: str
     title: str
-    kind: str  # Epic | Capability | Feature | UseCase | EnablerEpic | EnablerCapability | EnablerFeature
+    kind: str  # Epic | Capability | Feature | Story | UseCase | EnablerEpic | EnablerCapability | EnablerFeature
     parent_id: Optional[str]
     fields: Dict[str, object]
     source: str
@@ -163,6 +163,8 @@ def _parse_safe_backlog(path: Path) -> List[Item]:
                 kind = "EnablerCapability"
             elif "Capability" in stereos:
                 kind = "Capability"
+            elif "Story" in stereos:
+                kind = "Story"
             elif "Feature" in stereos and "Enabler" in stereos:
                 kind = "EnablerFeature"
             elif "Feature" in stereos:

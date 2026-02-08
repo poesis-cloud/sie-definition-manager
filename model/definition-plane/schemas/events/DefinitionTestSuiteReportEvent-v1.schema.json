@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/DefinitionTestSuiteReportEvent.json",
+  "title": "DefinitionTestSuiteReportEvent (Events v1)",
+  "description": "Report for definition/rule regression tests executed prior to publication.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scope", "status", "executedAt"],
+  "properties": {
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+    "failingCases": {
+      "description": "Pointers to failing cases (ids/URIs).",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "executedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

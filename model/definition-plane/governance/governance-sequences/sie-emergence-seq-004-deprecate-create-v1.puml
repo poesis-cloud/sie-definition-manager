@@ -18,27 +18,27 @@ title SIE Governance Sequence - Emergence - Deprecate + Create Primitive - v1
 
 autonumber
 
-participant "Description Plane - EVAL-EMG-TRG-001" as EFF_EMG_TRG_001
-participant "Definition Plane - R-EMG-001" as R_EMG_001
-participant "Definition Plane - GOV-EMG-001" as GOV_EMG_001
-participant "Remediation Plane - EFF-EMG-001" as EFF_EMG_001
-participant "Remediation Plane - R-EMG-REMED-001" as R_EMG_REMED_001
-participant "Remediation Plane - EFF-EMG-005" as EFF_EMG_005
-participant "Human (Decision Owner) - R-DO-002" as R_DO_002
-participant "Human (Decision Owner) - EFF-DO-001" as EFF_DO_001
-participant "Definition Plane - R-EMG-002" as R_EMG_002
-participant "Remediation Plane - EFF-EMG-006" as EFF_EMG_006
-participant "Remediation Plane - R-EMG-REMED-006" as R_EMG_REMED_006
+actor "Decision Owner" as DecisionOwner
 
-EFF_EMG_TRG_001 -> R_EMG_001 : [INT-EMG-TRG-001] EmergenceTriggerEvent
-EFF_EMG_001 -> R_EMG_REMED_001 : [INT-EMG-001] EmergenceCaseOpenedEvent
+participant "Event Bus" as Bus
+participant "Definition Plane - GOV-EMG-001" as GOV_EMG_001
+
+Bus -> GOV_EMG_001 : [INT-EMG-TRG-001] deliver EmergenceTriggerEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-001 Open Emergence Case
+GOV_EMG_001 -> Bus : [INT-EMG-001] publish EmergenceCaseOpenedEvent
 
 note over GOV_EMG_001
   Executes BR-EMG-001 controlSequence
   - BRC-EMG-006 Deprecate+Create Primitive
 end note
-EFF_EMG_005 -> R_DO_002 : [INT-EMG-006] ApprovalRequiredEvent
-EFF_DO_001 -> R_EMG_002 : [INT-EMG-003] DecisionResponseEvent
-EFF_EMG_006 -> R_EMG_REMED_006 : [INT-EMG-007] PrimitiveDeprecateAndCreateEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-005 Escalate For Approval
+GOV_EMG_001 -> Bus : [INT-EMG-006] publish ApprovalRequiredEvent
+Bus -> DecisionOwner : deliver ApprovalRequiredEvent
+
+DecisionOwner -> Bus : [INT-EMG-003] publish DecisionResponseEvent
+Bus -> GOV_EMG_001 : deliver DecisionResponseEvent
+
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-006 Deprecate+Create Primitive
+GOV_EMG_001 -> Bus : [INT-EMG-007] publish PrimitiveDeprecateAndCreateEvent
 
 @enduml

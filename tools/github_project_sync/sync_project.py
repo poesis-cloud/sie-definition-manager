@@ -167,6 +167,8 @@ def _update_draft_issue(draft_issue_id: str, title: str, body: str) -> None:
 def _safe_type_for_kind(kind: Optional[str]) -> str:
     if kind == "UseCase":
         return "Story"
+    if kind == "Story":
+        return "Story"
     if kind in ("EnablerEpic", "EnablerCapability", "EnablerFeature"):
         return "Enabler"
     if kind in ("Epic", "Capability", "Feature"):

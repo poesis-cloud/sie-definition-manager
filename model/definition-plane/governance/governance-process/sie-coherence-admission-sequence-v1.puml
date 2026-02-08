@@ -1,0 +1,109 @@
+@startuml sie-coherence-admission-sequence-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #57606A
+  LifeLineBackgroundColor #F6F8FA
+  LifeLineBorderColor #57606A
+  ArrowColor #57606A
+  DividerBackgroundColor #F6F8FA
+}
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Coherence ADMISSION (A–G controls, instance-aligned) - v1
+
+autonumber
+
+actor "Decision Owner" as DecisionOwner
+
+participant "Event Bus" as Bus
+participant "GOV-COH-001\nCoherence Governor" as GOV_COH_001
+
+note over GOV_COH_001
+  Derived from governance-instances/sie-coherence-governance-instances-v1.puml.
+  In ADMISSION phase, the BR controlSequence includes Controls 005..009 (always-true)
+  followed by Controls 012..018 (phase == ADMISSION).
+
+  `alt` fragments reflect the AdmissionGateDecision outcome space.
+
+  Rendering rules (per your constraints):
+  - No lifelines for receptors/effectors/events/state objects/BehavioralRule/controls.
+  - Each BRC is a self-call on the owning controller lifeline.
+end note
+
+group Trigger
+  Bus -> GOV_COH_001 : deliver CoherenceRequestEvent (phase=ADMISSION)
+end group
+
+group Pre-admission coherence actions (applicability=true)
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-005 Detect Circular Dependency
+  GOV_COH_001 -> Bus : publish IncoherenceDetectedEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-006 Auto-Resolve Stale Reference
+  GOV_COH_001 -> Bus : publish ResolutionProposedEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-007 Apply Graph Sync
+  GOV_COH_001 -> Bus : publish GraphSyncAppliedEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-008 Auto-Define Missing Sensor
+  GOV_COH_001 -> Bus : publish SensorAutoDefinedEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-009 Deprecate Unused Sensor
+  GOV_COH_001 -> Bus : publish SensorDeprecatedEvent
+end
+
+alt CoherenceRequestEvent.phase == "ADMISSION"
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-012 Validate DefinitionBundle
+  GOV_COH_001 -> Bus : publish DefinitionBundleValidationReportEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-013 Policy & Rule Static Analysis
+  GOV_COH_001 -> Bus : publish PolicyAndRuleStaticAnalysisReportEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-014 Constraint Satisfiability Checking
+  GOV_COH_001 -> Bus : publish ConstraintSatisfiabilityReportEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-015 Execute Definition Test Suite
+  GOV_COH_001 -> Bus : publish DefinitionTestSuiteReportEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-016 Admission Gate Decision
+  GOV_COH_001 -> Bus : publish AdmissionGateDecisionEvent
+
+  alt AdmissionGateDecisionEvent.outcome == "PASS"
+    note over GOV_COH_001
+      Gate outcome computed as PASS.
+    end note
+  else AdmissionGateDecisionEvent.outcome == "FAIL"
+    note over GOV_COH_001
+      Gate outcome computed as FAIL.
+    end note
+  else AdmissionGateDecisionEvent.outcome == "NEEDS_REVIEW"
+    note over GOV_COH_001
+      Default-safe outcome is NEEDS_REVIEW unless computed otherwise.
+    end note
+    GOV_COH_001 -> DecisionOwner : manual review required
+  end
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-017 Record Governance Decision
+  GOV_COH_001 -> Bus : publish GovernanceDecisionRecordedEvent
+
+  GOV_COH_001 -> GOV_COH_001 : BRC-COH-018 Controlled Activation Plan
+  GOV_COH_001 -> Bus : publish ControlledActivationPlanEvent
+else (phase not ADMISSION)
+  note over GOV_COH_001
+    Controls 012..018 are ADMISSION-only.
+  end note
+end
+
+@enduml

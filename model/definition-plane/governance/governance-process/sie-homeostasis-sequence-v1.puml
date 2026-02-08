@@ -1,0 +1,71 @@
+@startuml sie-homeostasis-sequence-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #57606A
+  LifeLineBackgroundColor #F6F8FA
+  LifeLineBorderColor #57606A
+  ArrowColor #57606A
+  DividerBackgroundColor #F6F8FA
+}
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Homeostasis (instance-aligned BehavioralRule / Controls) - v1
+
+autonumber
+
+participant "Event Bus" as Bus
+participant "OP-HOM-001\nOperator (Homeostasis)" as OP_HOM_001
+
+note over OP_HOM_001
+  This sequence is derived from:
+  - governance-instances/sie-homeostasis-governance-instances-v1.puml
+  - BR-HOM-001.controlSequence = [BRC_HOM_001, BRC_HOM_002, BRC_HOM_003]
+
+  `alt` fragments follow each Control's `applicabilityConditions`.
+  `loop` fragments follow each Control's `iterationConditions`.
+
+  Rendering rules (per your constraints):
+  - No lifelines for receptors/effectors/events/state objects/BehavioralRule/controls.
+  - Each BRC is a self-call on the owning controller lifeline.
+end note
+
+group Trigger
+  Bus -> OP_HOM_001 : deliver ControlIntentEvent
+end group
+
+alt ControlIntentEvent.phase == "ASSESS"
+  loop while ControlIntentEvent.repeatAssessment == true
+    OP_HOM_001 -> OP_HOM_001 : BRC-HOM-001 Assess Drift / Stability
+    OP_HOM_001 -> Bus : publish RuleExecutionRequestEvent
+  end
+else ControlIntentEvent.phase == "ACTUATE"
+  loop while ControlIntentEvent.repeatActuation == true
+    OP_HOM_001 -> OP_HOM_001 : BRC-HOM-002 Modify State (Actuation)
+    OP_HOM_001 -> Bus : publish ActuationControlEvent
+
+    ... feedback event (from State via Description) ...
+    Bus -> OP_HOM_001 : deliver ActuationFeedbackEvent
+  end
+else ControlIntentEvent.phase == "RETENTION"
+  OP_HOM_001 -> OP_HOM_001 : BRC-HOM-003 Enforce Evidence Retention
+  OP_HOM_001 -> Bus : publish RetentionAppliedEvent
+else (phase not applicable)
+  note over OP_HOM_001
+    No Control applies for the given phase.
+  end note
+end
+
+@enduml

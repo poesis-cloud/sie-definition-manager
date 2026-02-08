@@ -18,23 +18,10 @@ title SIE Governance Sequence - Coherence - Check Plan + Evidence + Supervisor -
 
 autonumber
 
-participant "Description Plane - EVAL-COH-TRG-001" as EFF_COH_TRG_001
-participant "Definition Plane - R-COH-001" as R_COH_001
+participant "Event Bus" as Bus
 participant "Definition Plane - GOV-COH-001" as GOV_COH_001
 
-participant "Remediation Plane - EFF-COH-001" as EFF_COH_001
-participant "Remediation Plane - R-COH-REMED-001" as R_COH_REMED_001
-
-participant "Remediation Plane - EFF-COH-002" as EFF_COH_002
-participant "Remediation Plane - R-COH-REMED-002" as R_COH_REMED_002
-
-participant "Remediation Plane - EFF-COH-003" as EFF_COH_003
-participant "Remediation Plane - R-COH-REMED-003" as R_COH_REMED_003
-
-participant "Remediation Plane - EFF-COH-004" as EFF_COH_004
-participant "Remediation Plane - R-COH-REMED-004" as R_COH_REMED_004
-
-EFF_COH_TRG_001 -> R_COH_001 : [INT-COH-TRG-001] CoherenceRequestEvent(phase=CHECK)
+Bus -> GOV_COH_001 : [INT-COH-TRG-001] deliver CoherenceRequestEvent(phase=CHECK)
 
 note over GOV_COH_001
   Executes BR-COH-001 controlSequence
@@ -44,9 +31,16 @@ note over GOV_COH_001
   - BRC-COH-004 Report
 end note
 
-EFF_COH_001 -> R_COH_REMED_001 : [INT-COH-001] CoherenceCheckPlanEvent
-EFF_COH_002 -> R_COH_REMED_002 : [INT-COH-002] EvidenceGroundingRequestEvent
-EFF_COH_003 -> R_COH_REMED_003 : [INT-COH-003] SupervisorCheckRequestEvent
-EFF_COH_004 -> R_COH_REMED_004 : [INT-COH-004] CoherenceReportEvent
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-001 Plan
+GOV_COH_001 -> Bus : [INT-COH-001] publish CoherenceCheckPlanEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-002 Ground Evidence
+GOV_COH_001 -> Bus : [INT-COH-002] publish EvidenceGroundingRequestEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-003 Supervisor Check
+GOV_COH_001 -> Bus : [INT-COH-003] publish SupervisorCheckRequestEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-004 Report
+GOV_COH_001 -> Bus : [INT-COH-004] publish CoherenceReportEvent
 
 @enduml

@@ -71,6 +71,15 @@ frame "PD - SIE - Analytics Capability Market Value Prioritization - v1" {
       end note
     }
 
+    package "Homeostasis Control" as P0_Homeostasis {
+      note as P0_Homeostasis_N
+        Continuous drift control that closes the loop:
+        - assess deviation vs desired state
+        - emit safe actuation intent
+        - reconcile feedback into updated definitions
+      end note
+    }
+
     package "Graph Analytics" as P0_Graph {
       note as P0_Graph_N
         Dependency traversal + blast radius are concrete,

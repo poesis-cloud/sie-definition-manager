@@ -18,26 +18,10 @@ title SIE Governance Sequence - Coherence - Incoherence -> Resolution -> Sync - 
 
 autonumber
 
-participant "Description Plane - EVAL-COH-TRG-001" as EFF_COH_TRG_001
-participant "Definition Plane - R-COH-001" as R_COH_001
+participant "Event Bus" as Bus
 participant "Definition Plane - GOV-COH-001" as GOV_COH_001
 
-participant "Remediation Plane - EFF-COH-005" as EFF_COH_005
-participant "Remediation Plane - R-COH-REMED-005" as R_COH_REMED_005
-
-participant "Remediation Plane - EFF-COH-006" as EFF_COH_006
-participant "Remediation Plane - R-COH-REMED-006" as R_COH_REMED_006
-
-participant "Remediation Plane - EFF-COH-007" as EFF_COH_007
-participant "Remediation Plane - R-COH-REMED-007" as R_COH_REMED_007
-
-participant "Remediation Plane - EFF-COH-008" as EFF_COH_008
-participant "Remediation Plane - R-COH-REMED-008" as R_COH_REMED_008
-
-participant "Remediation Plane - EFF-COH-009" as EFF_COH_009
-participant "Remediation Plane - R-COH-REMED-009" as R_COH_REMED_009
-
-EFF_COH_TRG_001 -> R_COH_001 : [INT-COH-TRG-001] CoherenceRequestEvent(phase=CHECK)
+Bus -> GOV_COH_001 : [INT-COH-TRG-001] deliver CoherenceRequestEvent(phase=CHECK)
 
 note over GOV_COH_001
   Executes BR-COH-001 controlSequence (branch)
@@ -48,10 +32,19 @@ note over GOV_COH_001
   - BRC-COH-009 Deprecate Sensor
 end note
 
-EFF_COH_005 -> R_COH_REMED_005 : [INT-COH-005] IncoherenceDetectedEvent
-EFF_COH_006 -> R_COH_REMED_006 : [INT-COH-006] ResolutionProposedEvent
-EFF_COH_007 -> R_COH_REMED_007 : [INT-COH-007] GraphSyncAppliedEvent
-EFF_COH_008 -> R_COH_REMED_008 : [INT-COH-008] SensorAutoDefinedEvent
-EFF_COH_009 -> R_COH_REMED_009 : [INT-COH-009] SensorDeprecatedEvent
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-005 Detect Incoherence
+GOV_COH_001 -> Bus : [INT-COH-005] publish IncoherenceDetectedEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-006 Propose Resolution
+GOV_COH_001 -> Bus : [INT-COH-006] publish ResolutionProposedEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-007 Apply Sync
+GOV_COH_001 -> Bus : [INT-COH-007] publish GraphSyncAppliedEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-008 Auto-Define Sensor
+GOV_COH_001 -> Bus : [INT-COH-008] publish SensorAutoDefinedEvent
+
+GOV_COH_001 -> GOV_COH_001 : BRC-COH-009 Deprecate Sensor
+GOV_COH_001 -> Bus : [INT-COH-009] publish SensorDeprecatedEvent
 
 @enduml

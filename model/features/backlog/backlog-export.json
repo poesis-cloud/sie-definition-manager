@@ -664,8 +664,8 @@
       "source": "sie-analytics-safe-backlog-v1.puml"
     },
     {
-      "localId": "E-4/actuation-remediation/closed-loop-control",
-      "title": "Closed Loop Control",
+      "localId": "E-4/actuation-remediation/homeostasis-closed-loop-control",
+      "title": "Homeostasis (Closed Loop Control)",
       "kind": "Feature",
       "parentId": "E-4/actuation-remediation",
       "fields": {},
@@ -788,6 +788,95 @@
         "complexity": "HIGH",
         "feasibility": "RESEARCH"
       },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6",
+      "title": "E-6 Homeostasis (continuous drift control)",
+      "kind": "Epic",
+      "parentId": null,
+      "fields": {
+        "requires": [
+          "EN-1",
+          "EN-3"
+        ]
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control",
+      "title": "Homeostasis Control",
+      "kind": "Capability",
+      "parentId": "E-6",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/drift-assessment",
+      "title": "Drift Assessment",
+      "kind": "Feature",
+      "parentId": "E-6/homeostasis-control",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/drift-assessment/assess-drift-vs-desired-definition",
+      "title": "Assess drift vs desired definition",
+      "kind": "Story",
+      "parentId": "E-6/homeostasis-control/drift-assessment",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/actuation-intent-safe",
+      "title": "Actuation Intent (safe)",
+      "kind": "Feature",
+      "parentId": "E-6/homeostasis-control",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/actuation-intent-safe/draft-and-gate-actuation-intent",
+      "title": "Draft and gate actuation intent",
+      "kind": "Story",
+      "parentId": "E-6/homeostasis-control/actuation-intent-safe",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/feedback-reconciliation",
+      "title": "Feedback Reconciliation",
+      "kind": "Feature",
+      "parentId": "E-6/homeostasis-control",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/feedback-reconciliation/reconcile-actuation-outcomes",
+      "title": "Reconcile actuation outcomes",
+      "kind": "Story",
+      "parentId": "E-6/homeostasis-control/feedback-reconciliation",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/evidence-audit-homeostasis",
+      "title": "Evidence & Audit (homeostasis)",
+      "kind": "Feature",
+      "parentId": "E-6/homeostasis-control",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-6/homeostasis-control/evidence-audit-homeostasis/produce-auditable-homeostasis-package",
+      "title": "Produce auditable homeostasis package",
+      "kind": "Story",
+      "parentId": "E-6/homeostasis-control/evidence-audit-homeostasis",
+      "fields": {},
       "source": "sie-analytics-safe-backlog-v1.puml"
     },
     {
@@ -989,6 +1078,89 @@
         "complexity": "MED"
       },
       "source": "analytics-usecases/sie-graph-analytics-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-homeostasis-actuation-intent-uc-v1",
+      "title": "UC - sie homeostasis actuation intent uc v1",
+      "kind": "UseCase",
+      "parentId": "E-6",
+      "fields": {
+        "capability": "Homeostasis Control",
+        "feature": "Actuation Intent (safe)",
+        "note": "**SAFe mapping:** Epic E-6 Homeostasis (continuous drift control)\n  Capability: Homeostasis Control\n  Feature: Actuation Intent (safe)\n\n  **Definition-plane intent**\n  Produce an actuation intent package (what should change, why, constraints)\n  and route it through safety gates (eligibility + approvals) before\n  remediation realization.",
+        "epicId": "E-6",
+        "scenarios": [
+          "As SRE Engineer, Draft Actuation Intent.",
+          "As SRE Engineer, Publish Actuation Intent.",
+          "As Operations Manager, Request / Record Approval.",
+          "As Security Officer, Check Automation Eligibility."
+        ],
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "analytics-usecases/sie-homeostasis-actuation-intent-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-homeostasis-drift-assessment-uc-v1",
+      "title": "UC - sie homeostasis drift assessment uc v1",
+      "kind": "UseCase",
+      "parentId": "E-6",
+      "fields": {
+        "capability": "Homeostasis Control",
+        "feature": "Drift Assessment",
+        "note": "**SAFe mapping:** Epic E-6 Homeostasis (continuous drift control)\n  Capability: Homeostasis Control\n  Feature: Drift Assessment\n\n  **Definition-plane intent**\n  Assess deviation between the *desired definition* and the *observed state*,\n  producing a typed drift assessment usable by Homeostasis controls.\n\n  **Evidence requirement**\n  Drift must be explainable and replayable (inputs + versions).",
+        "epicId": "E-6",
+        "scenarios": [
+          "As SRE Engineer, Ingest Measured State Evidence.",
+          "As SRE Engineer, Compute Drift Severity + Scope.",
+          "As Policy Author, Compare to Desired Definition.",
+          "As Compliance Officer, Record Drift Evidence + Rationale."
+        ],
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "analytics-usecases/sie-homeostasis-drift-assessment-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-homeostasis-evidence-audit-uc-v1",
+      "title": "UC - sie homeostasis evidence audit uc v1",
+      "kind": "UseCase",
+      "parentId": "E-6",
+      "fields": {
+        "capability": "Homeostasis Control",
+        "feature": "Evidence & Audit (homeostasis)",
+        "note": "**SAFe mapping:** Epic E-6 Homeostasis (continuous drift control)\n  Capability: Homeostasis Control\n  Feature: Evidence & Audit (homeostasis)\n\n  **Intent**\n  Ensure homeostasis decisions are auditable and reproducible:\n  evidence retention/minimization rules, replayable inputs, and trace.",
+        "epicId": "E-6",
+        "scenarios": [
+          "As Compliance Officer, Retain Evidence Under Policy.",
+          "As Compliance Officer, Minimize / Redact Sensitive Fields.",
+          "As Auditor, Produce Audit Package.",
+          "As SRE Engineer, Replay Drift Assessment Inputs."
+        ],
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "analytics-usecases/sie-homeostasis-evidence-audit-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-homeostasis-feedback-reconciliation-uc-v1",
+      "title": "UC - sie homeostasis feedback reconciliation uc v1",
+      "kind": "UseCase",
+      "parentId": "E-6",
+      "fields": {
+        "capability": "Homeostasis Control",
+        "feature": "Feedback Reconciliation",
+        "note": "**SAFe mapping:** Epic E-6 Homeostasis (continuous drift control)\n  Capability: Homeostasis Control\n  Feature: Feedback Reconciliation\n\n  **Definition-plane intent**\n  Close the loop by consuming actuation outcomes and reconciling them into\n  updated drift status and (when needed) Definition-plane adjustments.",
+        "epicId": "E-6",
+        "scenarios": [
+          "As SRE Engineer, Ingest Actuation Feedback.",
+          "As SRE Engineer, Update Drift Status (Post-Actuation).",
+          "As Incident Commander, Trigger Follow-up Governance if Unresolved."
+        ],
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "analytics-usecases/sie-homeostasis-feedback-reconciliation-uc-v1.puml"
     },
     {
       "localId": "UC:sie-knowledge-management-uc-v1",

@@ -450,8 +450,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       name: CoherenceRequestEvent
       description: Request to run coherence workflows.
       properties:
-        - phase: Enum [CHECK, FEASIBILITY]
+        - phase: Enum [CHECK, FEASIBILITY, ADMISSION]
         - scope: Object
+        - definitionBundle: Object (nullable)
         - requestedAt: DateTime
 
       name: CoherenceCheckPlanEvent
@@ -496,6 +497,67 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - incoherenceType: String
         - scope: Object
         - detectedAt: DateTime
+
+      name: DefinitionBundleValidationReportEvent
+      description: Report after validating a candidate definition bundle (integrity/schema/invariants).
+      properties:
+        - scope: Object
+        - validationStatus: Enum [PASS, FAIL]
+        - issues: Object[]
+        - validatedAt: DateTime
+        - definitionBundleDigest: String (nullable)
+
+      name: PolicyAndRuleStaticAnalysisReportEvent
+      description: Static analysis/lint report for policies and behavioral rules.
+      properties:
+        - scope: Object
+        - status: Enum [PASS, FAIL, WARN]
+        - findings: Object[]
+        - analyzedAt: DateTime
+
+      name: ConstraintSatisfiabilityReportEvent
+      description: Report for satisfiability/consistency checking of constraint sets.
+      properties:
+        - scope: Object
+        - satisfiable: Boolean
+        - unsatCore: Object (nullable)
+        - checkedAt: DateTime
+
+      name: DefinitionTestSuiteReportEvent
+      description: Report for definition/rule regression tests executed prior to publication.
+      properties:
+        - scope: Object
+        - status: Enum [PASS, FAIL]
+        - failingCases: String[]
+        - executedAt: DateTime
+
+      name: AdmissionGateDecisionEvent
+      description: Coherence admission gate decision for a candidate definition bundle (governance gate, not authorization).
+      properties:
+        - decisionType: String
+        - scope: Object
+        - outcome: Enum [PASS, FAIL, NEEDS_REVIEW]
+        - reasons: String[]
+        - references: Object (nullable)
+        - decidedAt: DateTime
+
+      name: GovernanceDecisionRecordedEvent
+      description: Record that a governance decision record was produced (decision log with optional explain/trace).
+      properties:
+        - decisionType: String
+        - scope: Object
+        - outcome: Enum [PASS, FAIL, NEEDS_REVIEW]
+        - recordRef: String (nullable)
+        - traceDigest: String (nullable)
+        - recordedAt: DateTime
+
+      name: ControlledActivationPlanEvent
+      description: Controlled activation plan produced by Coherence for safely activating a Definition.
+      properties:
+        - scope: Object
+        - activationMode: Enum [MANUAL, AUTOMATED, MIXED]
+        - plan: Object
+        - createdAt: DateTime
 
     - *Emergence Events*:
 
@@ -549,6 +611,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       properties:
         - scope: Object
         - approvedAt: DateTime
+
+      name: EmergenceCaseClosedEvent
+      description: Emitted when an emergence case is closed (terminal state).
+      properties:
+        - scope: Object
+        - outcome: Enum [APPROVED, REJECTED, ABORTED]
+        - closedAt: DateTime
+        - reason: String (nullable)
 
       name: DefinitionChangedEvent
       description: Published change to Definition-plane deliverables.

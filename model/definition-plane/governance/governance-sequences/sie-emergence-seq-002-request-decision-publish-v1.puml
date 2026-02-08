@@ -18,34 +18,33 @@ title SIE Governance Sequence - Emergence - Request Decision + Publish - v1
 
 autonumber
 
-participant "Description Plane - EVAL-EMG-TRG-001" as EFF_EMG_TRG_001
-participant "Definition Plane - R-EMG-001" as R_EMG_001
-participant "Definition Plane - GOV-EMG-001" as GOV_EMG_001
-participant "Remediation Plane - EFF-EMG-001" as EFF_EMG_001
-participant "Remediation Plane - R-EMG-REMED-001" as R_EMG_REMED_001
-participant "Remediation Plane - EFF-EMG-002" as EFF_EMG_002
-participant "Human (Decision Owner) - R-DO-001" as R_DO_001
-participant "Human (Decision Owner) - EFF-DO-001" as EFF_DO_001
-participant "Definition Plane - R-EMG-002" as R_EMG_002
-participant "Remediation Plane - EFF-EMG-003" as EFF_EMG_003
-participant "Remediation Plane - R-EMG-REMED-003" as R_EMG_REMED_003
+actor "Decision Owner" as DecisionOwner
 
-EFF_EMG_TRG_001 -> R_EMG_001 : [INT-EMG-TRG-001] EmergenceTriggerEvent
+participant "Event Bus" as Bus
+participant "Definition Plane - GOV-EMG-001" as GOV_EMG_001
+
+Bus -> GOV_EMG_001 : [INT-EMG-TRG-001] deliver EmergenceTriggerEvent
 note over GOV_EMG_001
   Executes BR-EMG-001 controlSequence
   - BRC-EMG-001 Open Emergence Case
 end note
-EFF_EMG_001 -> R_EMG_REMED_001 : [INT-EMG-001] EmergenceCaseOpenedEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-001 Open Emergence Case
+GOV_EMG_001 -> Bus : [INT-EMG-001] publish EmergenceCaseOpenedEvent
 
 note over GOV_EMG_001
   - BRC-EMG-002 Request Decision
 end note
-EFF_EMG_002 -> R_DO_001 : [INT-EMG-002] DecisionRequestEvent
-EFF_DO_001 -> R_EMG_002 : [INT-EMG-003] DecisionResponseEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-002 Request Decision
+GOV_EMG_001 -> Bus : [INT-EMG-002] publish DecisionRequestEvent
+Bus -> DecisionOwner : deliver DecisionRequestEvent
+
+DecisionOwner -> Bus : [INT-EMG-003] publish DecisionResponseEvent
+Bus -> GOV_EMG_001 : deliver DecisionResponseEvent
 
 note over GOV_EMG_001
   - BRC-EMG-003 Publish New Definitions
 end note
-EFF_EMG_003 -> R_EMG_REMED_003 : [INT-EMG-004] DefinitionChangedEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-003 Publish New Definitions
+GOV_EMG_001 -> Bus : [INT-EMG-004] publish DefinitionChangedEvent
 
 @enduml

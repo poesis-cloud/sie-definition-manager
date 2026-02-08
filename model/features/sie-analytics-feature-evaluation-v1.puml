@@ -81,6 +81,17 @@ frame "PD - SIE - Analytics Capability Evaluation View - v1" {
       end note
     }
 
+    package "Homeostasis Control" as EVAL_Homeostasis {
+      note as N_Homeostasis
+        **Complexity:** MED
+        **Feasibility:** NOW (Definition-plane control logic; bounded scope)
+        **Plane:** Definition (controller) with Remediation realization
+        **Hard deps:** evidence inputs + drift metrics, decision log/trace,
+        safety gating (eligibility + approval), actuation orchestration
+        **Integration risk:** MED (actuation connectors dominate when automated)
+      end note
+    }
+
     package "Graph Analytics" as EVAL_Graph {
       note as N_Graph
         **Complexity:** MED

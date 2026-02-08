@@ -147,7 +147,7 @@ frame "PD - SIE - Analytics Backlog (SAFe/Jira view) - v1" {
     package "Actuation & Remediation" <<Capability>> as E4_Act {
       package "Remediation Recommendation" <<Feature>> as F_Recommend
       package "Escalation Management" <<Feature>> as F_Escalate
-      package "Closed Loop Control" <<Feature>> as F_ClosedLoop
+      package "Homeostasis (Closed Loop Control)" <<Feature>> as F_ClosedLoop
       package "Auto Healing" <<Feature>> as F_AutoHeal
     }
 
@@ -169,6 +169,23 @@ frame "PD - SIE - Analytics Backlog (SAFe/Jira view) - v1" {
     }
   }
 
+  package "E-6 Homeostasis (continuous drift control)" <<Epic>> as E6 {
+    package "Homeostasis Control" <<Capability>> as E6_Homeostasis {
+      package "Drift Assessment" <<Feature>> as F_HOM_DriftAssess {
+        package "Assess drift vs desired definition" <<Story>> as S_HOM_DriftAssess
+      }
+      package "Actuation Intent (safe)" <<Feature>> as F_HOM_ActuationIntent {
+        package "Draft and gate actuation intent" <<Story>> as S_HOM_ActuationIntent
+      }
+      package "Feedback Reconciliation" <<Feature>> as F_HOM_Feedback {
+        package "Reconcile actuation outcomes" <<Story>> as S_HOM_Feedback
+      }
+      package "Evidence & Audit (homeostasis)" <<Feature>> as F_HOM_Audit {
+        package "Produce auditable homeostasis package" <<Story>> as S_HOM_Audit
+      }
+    }
+  }
+
   ' ============================================================
   ' ENABLER LINKS (runway dependencies)
   ' ============================================================
@@ -180,6 +197,8 @@ frame "PD - SIE - Analytics Backlog (SAFe/Jira view) - v1" {
   E4 ..> EN3 : requires
   E4 ..> EN1 : requires
   E5 ..> EN1 : requires
+  E6 ..> EN1 : requires
+  E6 ..> EN3 : requires
 }
 
 @enduml

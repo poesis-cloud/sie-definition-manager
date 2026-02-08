@@ -81,6 +81,10 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       name = "PrimitiveDeprecateAndCreateEvent"
     }
 
+    object "EA-EMG-009\nEmergenceCaseClosedEvent" as EA_EmergenceCaseClosedEvent <<EventArchetype>> {
+      name = "EmergenceCaseClosedEvent"
+    }
+
   }
 
   package "StateObjectArchetypes" {
@@ -321,8 +325,22 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
 
     iterationConditions = (see note)
 
-      controlSequence = [BRC_EMG_001, BRC_EMG_002, BRC_EMG_003, BRC_EMG_004, BRC_EMG_005, BRC_EMG_006]
+      controlSequence = [BRC_EMG_001, BRC_EMG_002, BRC_EMG_003, BRC_EMG_004, BRC_EMG_005, BRC_EMG_006, BRC_EMG_007]
     }
+
+    note right of BR_EMG_001
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
 
   }
 
@@ -368,6 +386,11 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       receivedEventArchetype = EA_PrimitiveDeprecateAndCreateEvent
     }
 
+    object "R-EMG-REMED-007\nEmergence Case Closed Intake Receptor" as R_EMG_REMED_007 <<Receptor>> {
+      name = "EmergenceCaseClosedIntakeReceptor"
+      receivedEventArchetype = EA_EmergenceCaseClosedEvent
+    }
+
   }
 
   package "Effectors" {
@@ -402,6 +425,11 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       producedEventArchetype = EA_PrimitiveDeprecateAndCreateEvent
     }
 
+    object "EFF-EMG-007\nCase Closure Effector" as EFF_EMG_007 <<Effector>> {
+      name = "EmergenceCaseClosureEffector"
+      producedEventArchetype = EA_EmergenceCaseClosedEvent
+    }
+
     object "EFF-EMG-TRG-001\nEmergence Trigger Emitter" as EFF_EMG_TRG_001 <<Effector>> {
       name = "EmergenceTriggerEmitter"
       producedEventArchetype = EA_EmergenceTriggerEvent
@@ -430,6 +458,20 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       feedbackReceptor = null
     }
 
+    note right of BRC_EMG_001
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
+
     object "BRC-EMG-002\nRequest Decision" as BRC_EMG_002 <<BehavioralRuleControl>> {
       name = "DecisionRequestControl"
       applyingRule = BR_EMG_001
@@ -443,6 +485,32 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       effector = EFF_EMG_002
       feedbackReceptor = R_EMG_002
     }
+
+    note right of BRC_EMG_002
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "LESS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "EmergenceTriggerReceptor",
+        "propertyPath": ["proposal", "confidence"]
+      },
+      "right": { "type": "LiteralExpression", "value": 0.7 }
+    }
+
+    iterationConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "DecisionResponseReceptor",
+        "propertyPath": ["received"]
+      },
+      "right": { "type": "LiteralExpression", "value": false }
+    }
+    end note
 
     object "BRC-EMG-003\nPublish New Definitions" as BRC_EMG_003 <<BehavioralRuleControl>> {
       name = "PublishDefinitionControl"
@@ -458,6 +526,41 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       feedbackReceptor = null
     }
 
+    note right of BRC_EMG_003
+    applicabilityConditions:
+    {
+      "type": "OrExpression",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "GREATER_OR_EQUAL",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "EmergenceTriggerReceptor",
+            "propertyPath": ["proposal", "confidence"]
+          },
+          "right": { "type": "LiteralExpression", "value": 0.7 }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "DecisionResponseReceptor",
+            "propertyPath": ["outcome"]
+          },
+          "right": { "type": "LiteralExpression", "value": "APPROVED" }
+        }
+      ]
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
+
     object "BRC-EMG-004\nAuto-Approve High Confidence" as BRC_EMG_004 <<BehavioralRuleControl>> {
       name = "AutoApproveHighConfidence"
       applyingRule = BR_EMG_001
@@ -471,6 +574,26 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       effector = EFF_EMG_004
       feedbackReceptor = null
     }
+
+    note right of BRC_EMG_004
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "GREATER_OR_EQUAL",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "EmergenceTriggerReceptor",
+        "propertyPath": ["proposal", "confidence"]
+      },
+      "right": { "type": "LiteralExpression", "value": 0.7 }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
 
     object "BRC-EMG-005\nEscalate Low Confidence" as BRC_EMG_005 <<BehavioralRuleControl>> {
       name = "EscalateLowConfidence"
@@ -486,6 +609,26 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       feedbackReceptor = null
     }
 
+    note right of BRC_EMG_005
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "LESS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "EmergenceTriggerReceptor",
+        "propertyPath": ["proposal", "confidence"]
+      },
+      "right": { "type": "LiteralExpression", "value": 0.7 }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
+
     object "BRC-EMG-006\nDeprecate Before Create" as BRC_EMG_006 <<BehavioralRuleControl>> {
       name = "DeprecateBeforeCreate"
       applyingRule = BR_EMG_001
@@ -499,6 +642,69 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       effector = EFF_EMG_006
       feedbackReceptor = null
     }
+
+    note right of BRC_EMG_006
+    applicabilityConditions:
+    {
+      "type": "OrExpression",
+      "operands": [
+        {
+          "type": "ComparisonExpression",
+          "operator": "GREATER_OR_EQUAL",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "EmergenceTriggerReceptor",
+            "propertyPath": ["proposal", "confidence"]
+          },
+          "right": { "type": "LiteralExpression", "value": 0.7 }
+        },
+        {
+          "type": "ComparisonExpression",
+          "operator": "EQUALS",
+          "left": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "DecisionResponseReceptor",
+            "propertyPath": ["outcome"]
+          },
+          "right": { "type": "LiteralExpression", "value": "APPROVED" }
+        }
+      ]
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
+
+    object "BRC-EMG-007\nClose Emergence Case" as BRC_EMG_007 <<BehavioralRuleControl>> {
+      name = "CloseEmergenceCase"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_007
+      feedbackReceptor = null
+    }
+
+    note right of BRC_EMG_007
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
 
   }
 
@@ -552,6 +758,12 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       receptor = R_EMG_REMED_006
     }
 
+    object "INT-EMG-008\nCase Closed" as INT_EMG_008 <<Interaction>> {
+      name = "EmergenceCaseClosedDispatch"
+      effector = EFF_EMG_007
+      receptor = R_EMG_REMED_007
+    }
+
   }
 
   ' Relationships
@@ -595,6 +807,9 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
   INT_EMG_007 --> EFF_EMG_006 : effector
   INT_EMG_007 --> R_EMG_REMED_006 : receptor
 
+  INT_EMG_008 --> EFF_EMG_007 : effector
+  INT_EMG_008 --> R_EMG_REMED_007 : receptor
+
   BR_EMG_001 *-- BRC_EMG_002 : has
   BRC_EMG_002 --> EFF_EMG_002 : effector
   EFF_EMG_002 ..> DecisionOwner : requests
@@ -612,9 +827,13 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
   BR_EMG_001 *-- BRC_EMG_006 : has
   BRC_EMG_006 --> EFF_EMG_006 : effector
 
+  BR_EMG_001 *-- BRC_EMG_007 : has
+  BRC_EMG_007 --> EFF_EMG_007 : effector
+
   BR_EMG_001 *-- BRC_EMG_004 : has
   BR_EMG_001 *-- BRC_EMG_005 : has
   BR_EMG_001 *-- BRC_EMG_006 : has
+  BR_EMG_001 *-- BRC_EMG_007 : has
 
 }
 

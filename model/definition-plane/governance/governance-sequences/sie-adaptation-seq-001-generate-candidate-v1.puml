@@ -18,17 +18,15 @@ title SIE Governance Sequence - Adaptation - Generate Candidate - v1
 
 autonumber
 
-participant "Description Plane - EVAL-ADP-TRG-001" as EFF_ADP_TRG_001
-participant "Definition Plane - R-ADP-001" as R_ADP_001
+participant "Event Bus" as Bus
 participant "Definition Plane - SUP-ADP-001" as SUP_ADP_001
-participant "Remediation Plane - EFF-ADP-001" as EFF_ADP_001
-participant "Remediation Plane - R-ADP-REMED-001" as R_ADP_REMED_001
 
-EFF_ADP_TRG_001 -> R_ADP_001 : [INT-ADP-TRG-001] MismatchAssessmentEvent
+Bus -> SUP_ADP_001 : [INT-ADP-TRG-001] deliver MismatchAssessmentEvent
 note over SUP_ADP_001
   Executes BR-ADP-001 controlSequence
   - BRC-ADP-001 Propose Candidate Rule
 end note
-EFF_ADP_001 -> R_ADP_REMED_001 : [INT-ADP-001] BehavioralRuleCandidateEvent
+SUP_ADP_001 -> SUP_ADP_001 : BRC-ADP-001 Propose Candidate Rule
+SUP_ADP_001 -> Bus : [INT-ADP-001] publish BehavioralRuleCandidateEvent
 
 @enduml

@@ -18,28 +18,25 @@ title SIE Governance Sequence - Emergence - Auto-Approve + Publish - v1
 
 autonumber
 
-participant "Description Plane - EVAL-EMG-TRG-001" as EFF_EMG_TRG_001
-participant "Definition Plane - R-EMG-001" as R_EMG_001
+participant "Event Bus" as Bus
 participant "Definition Plane - GOV-EMG-001" as GOV_EMG_001
-participant "Remediation Plane - EFF-EMG-001" as EFF_EMG_001
-participant "Remediation Plane - R-EMG-REMED-001" as R_EMG_REMED_001
-participant "Remediation Plane - EFF-EMG-004" as EFF_EMG_004
-participant "Remediation Plane - R-EMG-REMED-004" as R_EMG_REMED_004
-participant "Remediation Plane - EFF-EMG-003" as EFF_EMG_003
-participant "Remediation Plane - R-EMG-REMED-003" as R_EMG_REMED_003
 
-EFF_EMG_TRG_001 -> R_EMG_001 : [INT-EMG-TRG-001] EmergenceTriggerEvent
+Bus -> GOV_EMG_001 : [INT-EMG-TRG-001] deliver EmergenceTriggerEvent
 note over GOV_EMG_001
   Executes BR-EMG-001 controlSequence
   - BRC-EMG-001 Open Emergence Case
 end note
-EFF_EMG_001 -> R_EMG_REMED_001 : [INT-EMG-001] EmergenceCaseOpenedEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-001 Open Emergence Case
+GOV_EMG_001 -> Bus : [INT-EMG-001] publish EmergenceCaseOpenedEvent
 
 note over GOV_EMG_001
   - BRC-EMG-004 Auto-Approve
   - BRC-EMG-003 Publish New Definitions
 end note
-EFF_EMG_004 -> R_EMG_REMED_004 : [INT-EMG-005] EmergenceApprovedEvent
-EFF_EMG_003 -> R_EMG_REMED_003 : [INT-EMG-004] DefinitionChangedEvent
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-004 Auto-Approve
+GOV_EMG_001 -> Bus : [INT-EMG-005] publish EmergenceApprovedEvent
+
+GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-003 Publish New Definitions
+GOV_EMG_001 -> Bus : [INT-EMG-004] publish DefinitionChangedEvent
 
 @enduml

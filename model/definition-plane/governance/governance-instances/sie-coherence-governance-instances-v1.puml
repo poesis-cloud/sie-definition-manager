@@ -97,6 +97,34 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       name = "FeasibilityAggregatedEvent"
     }
 
+    object "EA-COH-013\nDefinitionBundleValidationReportEvent" as EA_DefinitionBundleValidationReportEvent <<EventArchetype>> {
+      name = "DefinitionBundleValidationReportEvent"
+    }
+
+    object "EA-COH-014\nPolicyAndRuleStaticAnalysisReportEvent" as EA_PolicyAndRuleStaticAnalysisReportEvent <<EventArchetype>> {
+      name = "PolicyAndRuleStaticAnalysisReportEvent"
+    }
+
+    object "EA-COH-015\nConstraintSatisfiabilityReportEvent" as EA_ConstraintSatisfiabilityReportEvent <<EventArchetype>> {
+      name = "ConstraintSatisfiabilityReportEvent"
+    }
+
+    object "EA-COH-016\nDefinitionTestSuiteReportEvent" as EA_DefinitionTestSuiteReportEvent <<EventArchetype>> {
+      name = "DefinitionTestSuiteReportEvent"
+    }
+
+    object "EA-COH-017\nAdmissionGateDecisionEvent" as EA_AdmissionGateDecisionEvent <<EventArchetype>> {
+      name = "AdmissionGateDecisionEvent"
+    }
+
+    object "EA-COH-018\nGovernanceDecisionRecordedEvent" as EA_GovernanceDecisionRecordedEvent <<EventArchetype>> {
+      name = "GovernanceDecisionRecordedEvent"
+    }
+
+    object "EA-COH-019\nControlledActivationPlanEvent" as EA_ControlledActivationPlanEvent <<EventArchetype>> {
+      name = "ControlledActivationPlanEvent"
+    }
+
   }
 
   package "StateObjectArchetypes" {
@@ -339,7 +367,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     iterationConditions = (see note)
 
-      controlSequence = [BRC_COH_001, BRC_COH_002, BRC_COH_003, BRC_COH_004, BRC_COH_005, BRC_COH_006, BRC_COH_007, BRC_COH_008, BRC_COH_009, BRC_COH_010, BRC_COH_011]
+      controlSequence = [BRC_COH_001, BRC_COH_002, BRC_COH_003, BRC_COH_004, BRC_COH_005, BRC_COH_006, BRC_COH_007, BRC_COH_008, BRC_COH_009, BRC_COH_010, BRC_COH_011, BRC_COH_012, BRC_COH_013, BRC_COH_014, BRC_COH_015, BRC_COH_016, BRC_COH_017, BRC_COH_018]
     }
 
     note right of BR_COH_001
@@ -354,7 +382,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       },
       "right": {
         "type": "LiteralExpression",
-        "value": ["CHECK", "FEASIBILITY"]
+        "value": ["CHECK", "FEASIBILITY", "ADMISSION"]
       }
     }
 
@@ -429,6 +457,41 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       receivedEventArchetype = EA_FeasibilityAggregatedEvent
     }
 
+    object "R-COH-REMED-012\nBundle Validation Report Intake Receptor" as R_COH_REMED_012 <<Receptor>> {
+      name = "BundleValidationReportIntakeReceptor"
+      receivedEventArchetype = EA_DefinitionBundleValidationReportEvent
+    }
+
+    object "R-COH-REMED-013\nStatic Analysis Report Intake Receptor" as R_COH_REMED_013 <<Receptor>> {
+      name = "StaticAnalysisReportIntakeReceptor"
+      receivedEventArchetype = EA_PolicyAndRuleStaticAnalysisReportEvent
+    }
+
+    object "R-COH-REMED-014\nSatisfiability Report Intake Receptor" as R_COH_REMED_014 <<Receptor>> {
+      name = "SatisfiabilityReportIntakeReceptor"
+      receivedEventArchetype = EA_ConstraintSatisfiabilityReportEvent
+    }
+
+    object "R-COH-REMED-015\nTest Suite Report Intake Receptor" as R_COH_REMED_015 <<Receptor>> {
+      name = "DefinitionTestSuiteReportIntakeReceptor"
+      receivedEventArchetype = EA_DefinitionTestSuiteReportEvent
+    }
+
+    object "R-COH-REMED-016\nAdmission Decision Intake Receptor" as R_COH_REMED_016 <<Receptor>> {
+      name = "AdmissionGateDecisionIntakeReceptor"
+      receivedEventArchetype = EA_AdmissionGateDecisionEvent
+    }
+
+    object "R-COH-REMED-017\nDecision Record Intake Receptor" as R_COH_REMED_017 <<Receptor>> {
+      name = "GovernanceDecisionRecordedIntakeReceptor"
+      receivedEventArchetype = EA_GovernanceDecisionRecordedEvent
+    }
+
+    object "R-COH-REMED-018\nActivation Plan Intake Receptor" as R_COH_REMED_018 <<Receptor>> {
+      name = "ControlledActivationPlanIntakeReceptor"
+      receivedEventArchetype = EA_ControlledActivationPlanEvent
+    }
+
   }
 
   package "Effectors" {
@@ -491,6 +554,41 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     object "EFF-COH-TRG-001\nCoherence Request Emitter" as EFF_COH_TRG_001 <<Effector>> {
       name = "CoherenceRequestEmitter"
       producedEventArchetype = EA_CoherenceRequestEvent
+    }
+
+    object "EFF-COH-012\nBundle Validation Report Effector" as EFF_COH_012 <<Effector>> {
+      name = "DefinitionBundleValidationReportEffector"
+      producedEventArchetype = EA_DefinitionBundleValidationReportEvent
+    }
+
+    object "EFF-COH-013\nStatic Analysis Report Effector" as EFF_COH_013 <<Effector>> {
+      name = "PolicyAndRuleStaticAnalysisReportEffector"
+      producedEventArchetype = EA_PolicyAndRuleStaticAnalysisReportEvent
+    }
+
+    object "EFF-COH-014\nSatisfiability Report Effector" as EFF_COH_014 <<Effector>> {
+      name = "ConstraintSatisfiabilityReportEffector"
+      producedEventArchetype = EA_ConstraintSatisfiabilityReportEvent
+    }
+
+    object "EFF-COH-015\nTest Suite Report Effector" as EFF_COH_015 <<Effector>> {
+      name = "DefinitionTestSuiteReportEffector"
+      producedEventArchetype = EA_DefinitionTestSuiteReportEvent
+    }
+
+    object "EFF-COH-016\nAdmission Decision Effector" as EFF_COH_016 <<Effector>> {
+      name = "AdmissionGateDecisionEffector"
+      producedEventArchetype = EA_AdmissionGateDecisionEvent
+    }
+
+    object "EFF-COH-017\nDecision Record Effector" as EFF_COH_017 <<Effector>> {
+      name = "GovernanceDecisionRecordedEffector"
+      producedEventArchetype = EA_GovernanceDecisionRecordedEvent
+    }
+
+    object "EFF-COH-018\nActivation Plan Effector" as EFF_COH_018 <<Effector>> {
+      name = "ControlledActivationPlanEffector"
+      producedEventArchetype = EA_ControlledActivationPlanEvent
     }
 
   }
@@ -1156,6 +1254,526 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     }
     end note
 
+    object "BRC-COH-012\nValidate Definition Bundle" as BRC_COH_012 <<BehavioralRuleControl>> {
+      name = "ValidateDefinitionBundle"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_012
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_012
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "DefinitionBundleValidationReportEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["validationStatus"],
+          "source": { "type": "LiteralExpression", "value": "PASS" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["issues"],
+          "source": { "type": "LiteralExpression", "value": [] }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["validatedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["definitionBundleDigest"],
+          "source": { "type": "LiteralExpression", "value": null }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-013\nStatic Analysis (Policies + Rules)" as BRC_COH_013 <<BehavioralRuleControl>> {
+      name = "PolicyAndRuleStaticAnalysis"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_013
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_013
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "PolicyAndRuleStaticAnalysisReportEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["status"],
+          "source": { "type": "LiteralExpression", "value": "WARN" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["findings"],
+          "source": { "type": "LiteralExpression", "value": [] }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["analyzedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-014\nConstraint Satisfiability Checking" as BRC_COH_014 <<BehavioralRuleControl>> {
+      name = "ConstraintSatisfiabilityChecking"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_014
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_014
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "ConstraintSatisfiabilityReportEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["satisfiable"],
+          "source": { "type": "LiteralExpression", "value": true }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["unsatCore"],
+          "source": { "type": "LiteralExpression", "value": null }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["checkedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-015\nExecute Definition Test Suite" as BRC_COH_015 <<BehavioralRuleControl>> {
+      name = "ExecuteDefinitionTestSuite"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_015
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_015
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "DefinitionTestSuiteReportEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["status"],
+          "source": { "type": "LiteralExpression", "value": "PASS" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["failingCases"],
+          "source": { "type": "LiteralExpression", "value": [] }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["executedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-016\nAdmission Gate Decision" as BRC_COH_016 <<BehavioralRuleControl>> {
+      name = "AdmissionGateDecision"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_016
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_016
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "AdmissionGateDecisionEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["decisionType"],
+          "source": { "type": "LiteralExpression", "value": "DEFINITION_ADMISSION" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["outcome"],
+          "source": { "type": "LiteralExpression", "value": "NEEDS_REVIEW" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["reasons"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": [
+              "Default-safe gate outcome is NEEDS_REVIEW unless automated checks compute PASS."
+            ]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["references"],
+          "source": { "type": "LiteralExpression", "value": null }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["decidedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-017\nRecord Governance Decision (Log + Explain/Trace)" as BRC_COH_017 <<BehavioralRuleControl>> {
+      name = "RecordGovernanceDecision"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_017
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_017
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "GovernanceDecisionRecordedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["decisionType"],
+          "source": { "type": "LiteralExpression", "value": "DEFINITION_ADMISSION" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["outcome"],
+          "source": { "type": "LiteralExpression", "value": "NEEDS_REVIEW" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["recordRef"],
+          "source": { "type": "LiteralExpression", "value": null }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["traceDigest"],
+          "source": { "type": "LiteralExpression", "value": null }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["recordedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-018\nControlled Activation Plan" as BRC_COH_018 <<BehavioralRuleControl>> {
+      name = "ControlledActivationPlan"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_018
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_018
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "ADMISSION" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "ControlledActivationPlanEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["activationMode"],
+          "source": { "type": "LiteralExpression", "value": "MANUAL" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["plan"],
+          "source": { "type": "LiteralExpression", "value": {} }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["createdAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
   }
 
   package "Interactions" {
@@ -1232,6 +1850,48 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       receptor = R_COH_REMED_011
     }
 
+    object "INT-COH-012\nBundle Validation Report" as INT_COH_012 <<Interaction>> {
+      name = "BundleValidationReportDispatch"
+      effector = EFF_COH_012
+      receptor = R_COH_REMED_012
+    }
+
+    object "INT-COH-013\nStatic Analysis Report" as INT_COH_013 <<Interaction>> {
+      name = "StaticAnalysisReportDispatch"
+      effector = EFF_COH_013
+      receptor = R_COH_REMED_013
+    }
+
+    object "INT-COH-014\nSatisfiability Report" as INT_COH_014 <<Interaction>> {
+      name = "SatisfiabilityReportDispatch"
+      effector = EFF_COH_014
+      receptor = R_COH_REMED_014
+    }
+
+    object "INT-COH-015\nTest Suite Report" as INT_COH_015 <<Interaction>> {
+      name = "DefinitionTestSuiteReportDispatch"
+      effector = EFF_COH_015
+      receptor = R_COH_REMED_015
+    }
+
+    object "INT-COH-016\nAdmission Gate Decision" as INT_COH_016 <<Interaction>> {
+      name = "AdmissionGateDecisionDispatch"
+      effector = EFF_COH_016
+      receptor = R_COH_REMED_016
+    }
+
+    object "INT-COH-017\nDecision Recorded" as INT_COH_017 <<Interaction>> {
+      name = "GovernanceDecisionRecordedDispatch"
+      effector = EFF_COH_017
+      receptor = R_COH_REMED_017
+    }
+
+    object "INT-COH-018\nActivation Plan" as INT_COH_018 <<Interaction>> {
+      name = "ControlledActivationPlanDispatch"
+      effector = EFF_COH_018
+      receptor = R_COH_REMED_018
+    }
+
   }
 
   ' Relationships
@@ -1267,6 +1927,13 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
   BR_COH_001 *-- BRC_COH_009 : has
   BR_COH_001 *-- BRC_COH_010 : has
   BR_COH_001 *-- BRC_COH_011 : has
+  BR_COH_001 *-- BRC_COH_012 : has
+  BR_COH_001 *-- BRC_COH_013 : has
+  BR_COH_001 *-- BRC_COH_014 : has
+  BR_COH_001 *-- BRC_COH_015 : has
+  BR_COH_001 *-- BRC_COH_016 : has
+  BR_COH_001 *-- BRC_COH_017 : has
+  BR_COH_001 *-- BRC_COH_018 : has
 
   BRC_COH_005 --> EFF_COH_005 : effector
   BRC_COH_006 --> EFF_COH_006 : effector
@@ -1275,6 +1942,13 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
   BRC_COH_009 --> EFF_COH_009 : effector
   BRC_COH_010 --> EFF_COH_010 : effector
   BRC_COH_011 --> EFF_COH_011 : effector
+  BRC_COH_012 --> EFF_COH_012 : effector
+  BRC_COH_013 --> EFF_COH_013 : effector
+  BRC_COH_014 --> EFF_COH_014 : effector
+  BRC_COH_015 --> EFF_COH_015 : effector
+  BRC_COH_016 --> EFF_COH_016 : effector
+  BRC_COH_017 --> EFF_COH_017 : effector
+  BRC_COH_018 --> EFF_COH_018 : effector
 
   INT_COH_TRG_001 --> EFF_COH_TRG_001 : effector
   INT_COH_TRG_001 --> R_COH_001 : receptor
@@ -1311,6 +1985,27 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
   INT_COH_011 --> EFF_COH_011 : effector
   INT_COH_011 --> R_COH_REMED_011 : receptor
+
+  INT_COH_012 --> EFF_COH_012 : effector
+  INT_COH_012 --> R_COH_REMED_012 : receptor
+
+  INT_COH_013 --> EFF_COH_013 : effector
+  INT_COH_013 --> R_COH_REMED_013 : receptor
+
+  INT_COH_014 --> EFF_COH_014 : effector
+  INT_COH_014 --> R_COH_REMED_014 : receptor
+
+  INT_COH_015 --> EFF_COH_015 : effector
+  INT_COH_015 --> R_COH_REMED_015 : receptor
+
+  INT_COH_016 --> EFF_COH_016 : effector
+  INT_COH_016 --> R_COH_REMED_016 : receptor
+
+  INT_COH_017 --> EFF_COH_017 : effector
+  INT_COH_017 --> R_COH_REMED_017 : receptor
+
+  INT_COH_018 --> EFF_COH_018 : effector
+  INT_COH_018 --> R_COH_REMED_018 : receptor
 
 }
 

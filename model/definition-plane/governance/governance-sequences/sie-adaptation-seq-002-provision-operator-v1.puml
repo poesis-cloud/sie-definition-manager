@@ -18,17 +18,15 @@ title SIE Governance Sequence - Adaptation - Provision Operator - v1
 
 autonumber
 
-participant "Description Plane - EVAL-ADP-TRG-001" as EFF_ADP_TRG_001
-participant "Definition Plane - R-ADP-001" as R_ADP_001
+participant "Event Bus" as Bus
 participant "Definition Plane - SUP-ADP-001" as SUP_ADP_001
-participant "Remediation Plane - EFF-ADP-002" as EFF_ADP_002
-participant "Remediation Plane - R-ADP-REMED-002" as R_ADP_REMED_002
 
-EFF_ADP_TRG_001 -> R_ADP_001 : [INT-ADP-TRG-001] MismatchAssessmentEvent
+Bus -> SUP_ADP_001 : [INT-ADP-TRG-001] deliver MismatchAssessmentEvent
 note over SUP_ADP_001
   Executes BR-ADP-001 controlSequence
   - BRC-ADP-002 Provision Adaptation Operator
 end note
-EFF_ADP_002 -> R_ADP_REMED_002 : [INT-ADP-002] OperatorProvisioningEvent
+SUP_ADP_001 -> SUP_ADP_001 : BRC-ADP-002 Provision Adaptation Operator
+SUP_ADP_001 -> Bus : [INT-ADP-002] publish OperatorProvisioningEvent
 
 @enduml

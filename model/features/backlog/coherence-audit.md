@@ -7,21 +7,22 @@ This is a *design-time* coherence check over `backlog-export.json`. It focuses o
 
 ## Inventory
 
-- Total items: **101**
+- Total items: **115**
 - By kind:
-  - Capability: **12**
+  - Capability: **13**
   - EnablerCapability: **9**
   - EnablerEpic: **3**
   - EnablerFeature: **11**
-  - Epic: **5**
-  - Feature: **49**
-  - UseCase: **12**
+  - Epic: **6**
+  - Feature: **53**
+  - Story: **4**
+  - UseCase: **16**
 
 ## Functional
 
 ### Capability ↔ UseCase coverage
 
-- All **12** Capabilities have at least one UseCase (by title match).
+- All **13** Capabilities have at least one UseCase (by title match).
 
 ### UseCase mapping completeness
 
@@ -50,7 +51,7 @@ Most Features do not carry evaluation fields. The export currently includes eval
 
 ## Dependency coherence (`requires`)
 
-- Requires edges exported: **7**
+- Requires edges exported: **9**
 - All `requires` references resolve and point to Enabler Epics (runway).
 
 ## Coherence notes / options

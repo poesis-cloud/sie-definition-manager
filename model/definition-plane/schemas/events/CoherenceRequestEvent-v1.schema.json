@@ -9,11 +9,16 @@
   "properties": {
     "phase": {
       "type": "string",
-      "enum": ["CHECK", "FEASIBILITY"]
+      "enum": ["CHECK", "FEASIBILITY", "ADMISSION"]
     },
     "scope": {
       "description": "Opaque scope selector for governance workflows.",
       "type": "object",
+      "additionalProperties": true
+    },
+    "definitionBundle": {
+      "description": "Optional candidate definition bundle for admission/validation workflows.",
+      "type": ["object", "null"],
       "additionalProperties": true
     },
     "requestedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }

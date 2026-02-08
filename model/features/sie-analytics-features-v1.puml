@@ -448,7 +448,7 @@ frame "PD - SIE (Systemic Intelligence Engine) - Analytics Feature Packages - v1
       remediation actions through BehavioralRules.
     end note
 
-    package "Closed Loop Control" as ClosedLoopControl {
+    package "Homeostasis (Closed Loop Control)" as ClosedLoopControl {
       note as ClosedNote
         Continuous monitoring and adjustment.
 

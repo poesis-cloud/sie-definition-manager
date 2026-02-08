@@ -65,7 +65,7 @@ actor "Configuration Store" as ConfigStore <<system>>
 rectangle "Actuation & Remediation" {
 
   ' --- Closed Loop Control ---
-  package "Closed Loop Control" {
+  package "Homeostasis (Closed Loop Control)" {
     usecase "Monitor Constraint\nSatisfaction" as UC_MonitorSatisfaction
     usecase "Trigger Behavioral\nRules on Deviation" as UC_TriggerRules
     usecase "Adjust System State\nToward Compliance" as UC_AdjustState

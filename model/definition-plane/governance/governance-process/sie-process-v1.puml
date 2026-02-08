@@ -5,6 +5,7 @@
 ' ============================================================
 
 skinparam shadowing false
+skinparam linetype ortho
 skinparam roundcorner 12
 skinparam ArrowColor #57606A
 skinparam DefaultFontName "SansSerif"
@@ -22,358 +23,415 @@ skinparam sequence {
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-title SIE - Systemic Processes End-to-End (Homeostasis / Adaptation / Emergence + Coherence Controls) - v1
+title SIE - Systemic Processes End-to-End (Definition Plane internal, full control coverage) - v1
+
+autonumber
 
 ' ============================================================
-' PARTICIPANTS (GROUPED BY PLANE)
+' PARTICIPANTS (Definition Plane internal)
+' - No lifelines for receptors/effectors/state objects/events/BehavioralRule/controls
+' - Events are represented only as messages to/from the Bus
+' - Each control is a self-call on its owning controller lifeline
 ' ============================================================
 
 box "Definition Plane" #E8F4E8
-  participant "Governor\n(owns Emergence)" as Governor
+  participant "Event Bus" as Bus
+  participant "Operator\n(owns Homeostasis)" as Operator
   participant "Supervisor\n(owns Adaptation)" as Supervisor
-  participant "Operator\n(CSDM definition; bound to 1 BehavioralRule)" as Operator
-  participant "Definition DB\n(Policies / BehavioralRules / Primitives)" as SDM
+  participant "Governor\n(owns Emergence + Coherence)" as Governor
 end box
 
-box "Description Plane" #E8F0FA
-  participant "State Ingestion\n+ CSDM Runtime\n(State Object Store)" as CSDM
-  participant "Policy Evaluator\n(Comparator)" as Evaluator
-  participant "Mismatch Builder\n(Signal Builder)" as Mismatch
-end box
+actor "Decision Owner\n(human input)" as DecisionOwner
 
-box "Remediation Plane" #FFE0E0
-  participant "Rule Execution Runtime\n(realizes Operator definitions)" as RuleRuntime
-  participant "Actuators\n(Executors)" as Act
-end box
+note over Bus
+  **Detailed, instance-aligned sequences (same folder):**
+  - governance-process/sie-homeostasis-sequence-v1.puml
+  - governance-process/sie-adaptation-sequence-v1.puml
+  - governance-process/sie-coherence-check-feasibility-sequence-v1.puml
+  - governance-process/sie-coherence-admission-sequence-v1.puml
+  - governance-process/sie-emergence-sequence-v1.puml
 
-box "State Plane" #F6F8FA
-  actor "State\n(External Systems)" as State
-end box
-
-actor "Decision Owner" as DecisionOwner
-
-participant "Event Bus" as Bus
-participant "Receptor Dispatch\n(Routing by scope + receptor binding)" as Dispatch
-
-note over Operator
-  **Operator invariants (CSDM definition):**
-  - An Operator is defined by exactly 1 BehavioralRule.
-  - The Operator does NOT select BehavioralRules.
-  - The Operator does NOT modify ("fix") its BehavioralRule.
-  - If a different BehavioralRule is needed, Adaptation (Supervisor/SDM) publishes a new
-    BehavioralRule and replaces the Operator definition instance (new operator bound to the new rule).
+  This diagram is *Definition-plane internal*:
+  - Evidence originates outside Definition plane and arrives as Bus deliveries.
+  - Actuation executes outside Definition plane; outcomes return as evidence deliveries.
 end note
 
-note over Operator, RuleRuntime
-  **Definition vs realization:**
-  - Operator/Supervisor/Governor are *definitions* (CSDM primitives) and live in the Definition plane.
-  - Remediation plane contains the *runtime substrate* that realizes these definitions:
-    rule execution + actuation.
-  - Effectiveness/ground-truth is still measured in the State plane and ingested by Description.
-end note
-
-note over Supervisor, Governor
-  **Process ownership (canonical):**
-  - Homeostasis: first-order regulation (execution) → Operator level.
-  - Adaptation: second-order regulation within envelope → Supervisor level.
-  - Emergence: definitional change → Governor level.
-  - Coherence: meta-governance checks + resolution dispatch → owned by Governor.
-end note
-
-note over Governor, Supervisor
-  **Mapping to SAFe governance functional items (feature folder)**
-
-  The systemic processes below are the operational form of the governance backlog:
-
-  - **E-1 Trustworthy Governance (audit + explain)**
-    - Decision Intelligence: Decision Logging, Audit Trail, Evidence Preservation, Compliance Reporting
-    - Explanation Engine: Evaluation Trace + Decision Explanation (governable traces)
-    - Multi-Stakeholder Views: Governance View (renders the same Definition artifacts)
-
-  - **EN-1 Evidence/Trace/Provenance runway**
-    - Retention + Minimization policies
-    - Replayable evaluation inputs
-
-  - **E-3 Policy & Constraint Evolution (coherent definitions)**
-    - Coherence Validation / Conflict Detection / Constraint Synthesis
-    - Rule Operationalization + Policy Simulation (inside the envelope)
-
-  - **EN-3 Safe automation runway / E-4 Safe Remediation Automation**
-    - Automation eligibility policies
-    - Approval gates + exception workflow
-    - Rollback + safe defaults / Guardrails
-end note
-
-note over SDM
-  **Policy instances referenced by systemic processes (Definition Plane)**
-
-  This process diagram references the same policy instances defined in:
-  - governance/governance-instances/sie-homeostasis-governance-instances-v1.puml
-  - governance/governance-instances/sie-adaptation-governance-instances-v1.puml
-  - governance/governance-instances/sie-coherence-governance-instances-v1.puml
-  - governance/governance-instances/sie-emergence-governance-instances-v1.puml
-
-  Homeostasis
-  - **FP-HOM-001 ConvergencePolicy**
-    - Homeostasis attempt is considered converged when deviation error reaches the
-      declared tolerance and remains stable for a bounded window.
-    - If not converged within the window (or oscillating/unstable), OperationalFeedback
-      MUST surface variety hints and/or failure modes for Coherence/Adaptation dispatch.
-
-  Evidence runway (meta-governance)
-  - **VP-META-004 EvidenceMinimizationPolicy**
-    - description.retention.preferPointers == true
-    - description.retention.redactSensitiveFields == true
-    - description.retention.storeDerivedEvidenceLongerThanRaw == true
-  - **SP-META-003 EvidenceRetentionPolicy**
-    - RAW window >= max(mismatch.persistenceWindow, control.diagnosisWindow, adaptation.outcomeEvaluationWindow)
-    - RAW boundedUniverse MUST be defined
-    - DERIVED window >= max(adaptation.outcomeEvaluationWindow, emergence.caseEvidenceWindow)
-    - SNAPSHOT window >= governance.auditWindow AND replayable == true
-    - Guardrail: Description is not a full State mirror; RAW strategy IN [POINTERS, SAMPLED, BOUNDED]
-
-  Adaptation (within envelope)
-  - **FP-META-003 FeasibilityAssessmentPolicy**
-    - constraint.status == APPROVED IMPLIES feasibility assessment MUST be performed BEFORE status == PUBLISHED
-  - **VP-META-003 VarietyValidationPolicy**
-    - feasibility.outcome == NOT_FEASIBLE WHEN mechanism.variety < constraint.variety
-
-  Coherence (meta-governance)
-  - **FP-META-002 IncoherenceDetectionPolicy**
-    - coherence_check MUST detect:
-      [LOGICAL_CONTRADICTION, CIRCULAR_DEPENDENCY, ORPHANED_CONSTRAINT, STALE_REFERENCE]
-    - CSDSL (applicabilityConditions):
-      {
-        "type": "LiteralExpression",
-        "value": true
-      }
-    - CSDSL (constraint):
-      {
-        "type": "InvariantConstraint",
-        "condition": {
-          "type": "AndExpression",
-          "operands": [
-            {
-              "type": "ComparisonExpression",
-              "operator": "IN",
-              "left": { "type": "LiteralExpression", "value": "LOGICAL_CONTRADICTION" },
-              "right": {
-                "type": "StateObjectArchetypeReferenceExpression",
-                "name": "CoherenceCheckCoverageReport",
-                "propertyPath": ["implementedDetectors"]
-              }
-            },
-            {
-              "type": "ComparisonExpression",
-              "operator": "IN",
-              "left": { "type": "LiteralExpression", "value": "CIRCULAR_DEPENDENCY" },
-              "right": {
-                "type": "StateObjectArchetypeReferenceExpression",
-                "name": "CoherenceCheckCoverageReport",
-                "propertyPath": ["implementedDetectors"]
-              }
-            },
-            {
-              "type": "ComparisonExpression",
-              "operator": "IN",
-              "left": { "type": "LiteralExpression", "value": "ORPHANED_CONSTRAINT" },
-              "right": {
-                "type": "StateObjectArchetypeReferenceExpression",
-                "name": "CoherenceCheckCoverageReport",
-                "propertyPath": ["implementedDetectors"]
-              }
-            },
-            {
-              "type": "ComparisonExpression",
-              "operator": "IN",
-              "left": { "type": "LiteralExpression", "value": "STALE_REFERENCE" },
-              "right": {
-                "type": "StateObjectArchetypeReferenceExpression",
-                "name": "CoherenceCheckCoverageReport",
-                "propertyPath": ["implementedDetectors"]
-              }
-            }
-          ]
-        }
-      }
-  - **VP-META-002 ResolutionTimelinessPolicy**
-    - incoherence.severity == CRITICAL IMPLIES resolution.proposed_within <= 1h
-    - CSDSL (applicabilityConditions):
-      {
-        "type": "LiteralExpression",
-        "value": true
-      }
-    - CSDSL (constraint):
-      {
-        "type": "InvariantConstraint",
-        "condition": {
-          "type": "OrExpression",
-          "operands": [
-            {
-              "type": "ComparisonExpression",
-              "operator": "NOT_EQUALS",
-              "left": {
-                "type": "StateObjectArchetypeReferenceExpression",
-                "name": "ResolutionTimelinessMetric",
-                "propertyPath": ["severity"]
-              },
-              "right": { "type": "LiteralExpression", "value": "CRITICAL" }
-            },
-            {
-              "type": "ComparisonExpression",
-              "operator": "LESS_OR_EQUAL",
-              "left": {
-                "type": "StateObjectArchetypeReferenceExpression",
-                "name": "ResolutionTimelinessMetric",
-                "propertyPath": ["proposedWithinSeconds"]
-              },
-              "right": { "type": "LiteralExpression", "value": 3600 }
-            }
-          ]
-        }
-      }
-  - **SP-META-002 GraphConsistencyPolicy**
-    - neo4j.graph MUST be CDC-synchronized with postgresql.source_of_truth within 30s
-    - CSDSL (applicabilityConditions):
-      {
-        "type": "LiteralExpression",
-        "value": true
-      }
-    - CSDSL (constraint):
-      {
-        "type": "InvariantConstraint",
-        "condition": {
-          "type": "ComparisonExpression",
-          "operator": "LESS_OR_EQUAL",
-          "left": {
-            "type": "StateObjectArchetypeReferenceExpression",
-            "name": "GraphSyncMetric",
-            "propertyPath": ["lagSeconds"]
-          },
-          "right": { "type": "LiteralExpression", "value": 30 }
-        }
-      }
-
-  Emergence (definitional change)
-  - **FP-META-001 EmergenceTriggerPolicy**
-    - emergence.openedBy.type MUST be one of:
-      [MISMATCH_DETECTED, COHERENCE_ESCALATION, USER_REQUEST, OBSERVATION_RECEIVED, LLM_PROPOSAL, SCHEDULED_ANALYSIS]
-  - **VP-META-001 EmergenceConfidencePolicy**
-    - emergence.proposal.confidence >= 0.7 OR emergence.decision.mode == MANUAL
-  - **SP-META-001 PrimitiveImmutabilityPolicy**
-    - primitive.status != DRAFT IMPLIES primitive.attributes ARE IMMUTABLE
+note over Bus, Governor
+  **Closed-loop boundary (definition-centric):**
+  - Evidence: State → Description → (Bus delivers into Definition)
+  - Definition: controllers evolve definitions + emit actuation intents
+  - Outcomes: observed outside Definition plane → re-enter as new evidence
 end note
 
 ' ============================================================
-' END-TO-END FLOW
+' END-TO-END FLOW (includes ALL controls)
 ' ============================================================
 
-== 1) Description: mismatch detection ==
-
-Evaluator -> Evaluator : evaluate(definitions vs measuredState)
-Evaluator -> Mismatch : evaluationOutputs(violations, drift, deviations)
-Mismatch -> Bus : publish(MismatchDetectedEvent)
-
-Bus -> Dispatch : deliver(event)
-Dispatch -> Supervisor : mismatchSignal(event)
-
-note right of Mismatch
-  **Mismatch content (examples):**
-  - violation(s) / drift / deviation measures
-  - persistence (repeated / time-bounded)
-  - scope selectors (system/tenant/policy)
-  - evidence pointers (telemetry, state objects)
+== 0) Triggers (inbound to Definition plane) ==
+note over Bus
+  Typical inbound deliveries include:
+  - ControlIntentEvent (drives Homeostasis phases)
+  - MismatchAssessmentEvent (drives Adaptation)
+  - CoherenceRequestEvent (CHECK / FEASIBILITY / ADMISSION)
+  - EmergenceTriggerEvent
+  - ActuationFeedbackEvent (observed outside Definition plane)
 end note
 
-== 2) Homeostasis: first-order regulation attempt (Operator-owned execution) ==
+== 1) Homeostasis (Operator; BRC-HOM-001..003) ==
+group Trigger
+  Bus -> Operator : deliver ControlIntentEvent
+end
 
-Supervisor -> Dispatch : routeControlIntent(mismatch, scope)
-Dispatch -> Operator : deliver(controlIntent)
+alt ControlIntentEvent.phase == "ASSESS"
+  loop while ControlIntentEvent.repeatAssessment == true
+    Operator -> Operator : BRC-HOM-001 Assess Drift / Stability
+    Operator -> Bus : publish RuleExecutionRequestEvent
+  end
+else ControlIntentEvent.phase == "ACTUATE"
+  loop while ControlIntentEvent.repeatActuation == true
+    Operator -> Operator : BRC-HOM-002 Modify State (Actuation)
+    Operator -> Bus : publish ActuationControlEvent
 
-group Homeostasis (Operator)
-  group DriftAssessment (Operator-owned; used by Homeostasis)
-    Operator -> Operator : DriftAssessment(evaluatedPolicies, snapshots, evidenceEvents)
-    note right of Operator
-      DriftAssessment outputs:
-      - ranked deviation/drift events + evidence bundle
-      - candidate causes for Decisioning/Homeostasis
+    ... feedback arrives via Bus (produced outside Definition plane) ...
+    Bus -> Operator : deliver ActuationFeedbackEvent
+  end
+else ControlIntentEvent.phase == "RETENTION"
+  Operator -> Operator : BRC-HOM-003 Enforce Evidence Retention
+  Operator -> Bus : publish RetentionAppliedEvent
+else (phase not applicable)
+  note over Operator
+    No Homeostasis control applies.
+  end note
+end
+
+== 2) Adaptation (Supervisor; BRC-ADP-001..002) ==
+group Trigger
+  Bus -> Supervisor : deliver MismatchAssessmentEvent
+end
+
+alt MismatchAssessmentEvent.diagnosisNeeded == true
+  loop while MismatchAssessmentEvent.repeatDiagnosis == true
+    Supervisor -> Supervisor : BRC-ADP-001 Diagnose Control Performance
+    Supervisor -> Bus : publish BehavioralRuleCandidateEvent
+  end
+else (no diagnosis)
+  note over Supervisor
+    BRC-ADP-001 not applicable.
+  end note
+end
+
+alt MismatchAssessmentEvent.candidateRuleStatus == "PUBLISHED"
+  loop while MismatchAssessmentEvent.waitingForRealization == true
+    Supervisor -> Supervisor : BRC-ADP-002 Provision New Operator Definition
+    Supervisor -> Bus : publish OperatorProvisioningEvent
+    Bus -> Operator : deliver OperatorProvisioningEvent
+  end
+else (candidate not published)
+  note over Supervisor
+    BRC-ADP-002 not applicable.
+  end note
+end
+
+== 3) Coherence (Governor; BRC-COH-001..018) ==
+group CHECK + FEASIBILITY
+  Bus -> Governor : deliver CoherenceRequestEvent(phase=CHECK)
+
+  Governor -> Governor : BRC-COH-001 Select Check Set
+  Governor -> Bus : publish CoherenceCheckPlanEvent
+
+  Governor -> Governor : BRC-COH-002 Request Evidence Grounding
+  Governor -> Bus : publish EvidenceGroundingRequestEvent
+
+  Governor -> Governor : BRC-COH-003 Request Supervisor Checks
+  Governor -> Bus : publish SupervisorCheckRequestEvent
+
+  Governor -> Governor : BRC-COH-004 Aggregate Reports
+  Governor -> Bus : publish CoherenceReportEvent
+
+  Governor -> Governor : BRC-COH-005 Detect Circular Dependency
+  Governor -> Bus : publish IncoherenceDetectedEvent
+
+  Governor -> Governor : BRC-COH-006 Auto-Resolve Stale Reference
+  Governor -> Bus : publish ResolutionProposedEvent
+
+  Governor -> Governor : BRC-COH-007 Apply Graph Sync
+  Governor -> Bus : publish GraphSyncAppliedEvent
+
+  Governor -> Governor : BRC-COH-008 Auto-Define Missing Sensor
+  Governor -> Bus : publish SensorAutoDefinedEvent
+
+  Governor -> Governor : BRC-COH-009 Deprecate Unused Sensor
+  Governor -> Bus : publish SensorDeprecatedEvent
+
+  Bus -> Governor : deliver CoherenceRequestEvent(phase=FEASIBILITY)
+  Governor -> Governor : BRC-COH-010 Request Feasibility Checks
+  Governor -> Bus : publish FeasibilityAssessmentRequestedEvent
+
+  Governor -> Governor : BRC-COH-011 Aggregate Feasibility Reports
+  Governor -> Bus : publish FeasibilityAggregatedEvent
+end
+
+group ADMISSION (BRC-COH-012..018; reuses 005..009)
+  Bus -> Governor : deliver CoherenceRequestEvent(phase=ADMISSION)
+
+  note over Governor
+    In ADMISSION phase, Coherence also executes controls 005..009 before 012..018.
+    They are shown above to avoid duplication.
+  end note
+
+  Governor -> Governor : BRC-COH-012 Validate DefinitionBundle
+  Governor -> Bus : publish DefinitionBundleValidationReportEvent
+
+  Governor -> Governor : BRC-COH-013 Policy & Rule Static Analysis
+  Governor -> Bus : publish PolicyAndRuleStaticAnalysisReportEvent
+
+  Governor -> Governor : BRC-COH-014 Constraint Satisfiability Checking
+  Governor -> Bus : publish ConstraintSatisfiabilityReportEvent
+
+  Governor -> Governor : BRC-COH-015 Execute Definition Test Suite
+  Governor -> Bus : publish DefinitionTestSuiteReportEvent
+
+  Governor -> Governor : BRC-COH-016 Admission Gate Decision
+  Governor -> Bus : publish AdmissionGateDecisionEvent
+
+  alt AdmissionGateDecisionEvent.outcome == "PASS"
+    note over Governor
+      Admission gate computed PASS.
+    end note
+  else AdmissionGateDecisionEvent.outcome == "FAIL"
+    note over Governor
+      Admission gate computed FAIL.
+    end note
+  else AdmissionGateDecisionEvent.outcome == "NEEDS_REVIEW"
+    Governor -> DecisionOwner : manual review required
+  end
+
+  Governor -> Governor : BRC-COH-017 Record Governance Decision
+  Governor -> Bus : publish GovernanceDecisionRecordedEvent
+
+  Governor -> Governor : BRC-COH-018 Controlled Activation Plan
+  Governor -> Bus : publish ControlledActivationPlanEvent
+end
+
+== 4) Emergence (Governor; BRC-EMG-001..007) ==
+group Trigger
+  Bus -> Governor : deliver EmergenceTriggerEvent
+end
+
+Governor -> Governor : BRC-EMG-001 Open Emergence Case
+Governor -> Bus : publish EmergenceCaseOpenedEvent
+
+alt EmergenceTriggerEvent.proposal.confidence >= 0.7
+  Governor -> Governor : BRC-EMG-004 Auto-Approve High Confidence
+  Governor -> Bus : publish EmergenceApprovedEvent
+
+  Governor -> Governor : BRC-EMG-003 Publish New Definitions
+  Governor -> Bus : publish DefinitionChangedEvent
+
+  Governor -> Governor : BRC-EMG-006 Deprecate Before Create
+  Governor -> Bus : publish PrimitiveDeprecateAndCreateEvent
+else EmergenceTriggerEvent.proposal.confidence < 0.7
+  loop while DecisionResponseEvent.received == false
+    Governor -> Governor : BRC-EMG-002 Request Decision
+    Governor -> Bus : publish DecisionRequestEvent
+    Bus -> DecisionOwner : deliver DecisionRequestEvent
+
+    Governor -> Governor : BRC-EMG-005 Escalate Low Confidence
+    Governor -> Bus : publish ApprovalRequiredEvent
+    Bus -> DecisionOwner : deliver ApprovalRequiredEvent
+
+    DecisionOwner -> Bus : publish DecisionResponseEvent
+    Bus -> Governor : deliver DecisionResponseEvent
+  end
+
+  alt DecisionResponseEvent.outcome == "APPROVED"
+    Governor -> Governor : BRC-EMG-003 Publish New Definitions
+    Governor -> Bus : publish DefinitionChangedEvent
+
+    Governor -> Governor : BRC-EMG-006 Deprecate Before Create
+    Governor -> Bus : publish PrimitiveDeprecateAndCreateEvent
+  else (not approved)
+    note over Governor
+      Decision did not approve; no definition publication.
     end note
   end
+end
 
-  Operator -> Operator : execute(its bound BehavioralRule)
-  Operator -> RuleRuntime : requestExecution(controlIntent)
-  RuleRuntime -> Act : actuate(create/modify/delete/acquire)
-  Act -> State : applyChange(control)
-  State --> Act : actuationResult(ack/fail + details)
-  State -> Bus : publish(ActuationResultEvent + StateChangeEvent)
-  Bus -> CSDM : ingest(state events)
-  CSDM -> CSDM : store state objects (including actuation results)
+Governor -> Governor : BRC-EMG-007 Close Emergence Case
+Governor -> Bus : publish EmergenceCaseClosedEvent
 
-  note right of Operator
-    **Operational feedback (examples):**
-    - convergence metrics (damping/overshoot/oscillation)
-    - actuator failures / permission failures
-    - repeated remediation ineffective
-    - no-effective-mechanism-for-scope (variety hint)
+== 5) Close the loop ==
+note over Bus
+  Outcomes are observed outside Definition plane and re-enter as evidence deliveries
+  (e.g., MismatchAssessmentEvent, ActuationFeedbackEvent).
+end note
+
+@enduml
+@startuml sie-systemic-process-sequence-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam sequence {
+  @startuml sie-systemic-process-sequence-v1
+
+  ' ============================================================
+  ' VISUAL THEME
+  ' ============================================================
+
+  skinparam shadowing false
+  skinparam linetype ortho
+  skinparam roundcorner 12
+  skinparam ArrowColor #57606A
+  skinparam DefaultFontName "SansSerif"
+  skinparam backgroundColor #FFFFFF
+
+  skinparam sequence {
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantBorderColor #57606A
+    LifeLineBackgroundColor #F6F8FA
+    LifeLineBorderColor #57606A
+    ArrowColor #57606A
+    DividerBackgroundColor #F6F8FA
+  }
+
+  skinparam noteBackgroundColor #FFF8C5
+  skinparam noteBorderColor #57606A
+
+  title SIE - Systemic Processes End-to-End (Definition Plane internal) - v1
+
+  autonumber
+
+  ' ============================================================
+  ' PARTICIPANTS (Definition Plane internal)
+  ' - No lifelines for receptors/effectors/state objects/events/BR/controls
+  ' - Triggers and feedback from outside Definition plane arrive as Bus deliveries
+  ' ============================================================
+
+  box "Definition Plane" #E8F4E8
+    participant "Event Bus" as Bus
+    participant "Operator\n(owns Homeostasis)" as Operator
+    participant "Supervisor\n(owns Adaptation)" as Supervisor
+    participant "Governor\n(owns Emergence + Coherence)" as Governor
+  end box
+
+  actor "Decision Owner\n(human input)" as DecisionOwner
+
+  note over Bus
+    **Detailed, instance-aligned sequences (same folder):**
+    - governance-process/sie-homeostasis-sequence-v1.puml
+    - governance-process/sie-adaptation-sequence-v1.puml
+    - governance-process/sie-emergence-sequence-v1.puml
+    - governance-process/sie-coherence-check-feasibility-sequence-v1.puml
+    - governance-process/sie-coherence-admission-sequence-v1.puml
+
+    This end-to-end diagram is intentionally minimal and *Definition-plane internal*:
+    - events are messages via the Bus (no event participants)
+    - controls are controller self-calls
+    - State/Description/Remediation are out-of-scope here (see notes)
   end note
-end group
 
-== 3) Description: derive operational evidence + mismatch assessment ==
+  note over Bus, Governor
+    **Closed-loop boundary (definition-centric):**
+    - Evidence originates outside Definition plane (State → Description).
+    - Definition consumes evidence via inbound Bus deliveries.
+    - Definition emits actuation intents via outbound Bus publications.
+    - Any actuation outcome is observed outside Definition plane and re-enters as new evidence.
+  end note
 
-note over CSDM, Mismatch
-  **Closed-loop boundary:**
-  Remediation does not feed Definition directly.
-  Remediation emits events → they become *measured evidence/state* in Description.
-  Only Description produces the evidence objects (mismatch, assessments) consumed by
-  Definition-plane processes (Adaptation/Emergence/Coherence dispatch).
-end note
+  ' ============================================================
+  ' END-TO-END FLOW
+  ' ============================================================
 
-CSDM -> Evaluator : provide operational feedback + measured state
-Evaluator -> Evaluator : evaluate(definitions vs updated measured state)
-Evaluator -> Evaluator : deriveOperationalFeedbackEvidence(actuationResults, stateTrajectory)
-Evaluator -> Mismatch : operationalFeedbackEvidence(convergenceMetrics, failureModes, varietyHints)
-Mismatch -> Bus : publish(OperationalFeedbackEvidenceEvent)
-Evaluator -> Mismatch : enrich mismatch with operational-performance evidence
-Mismatch -> Bus : publish(MismatchAssessmentEvent)
+  == 0) Trigger: evidence delivered into Definition plane ==
+  note over Bus
+    Incoming evidence events (produced outside Definition plane):
+    - MismatchAssessmentEvent
+    - ActuationFeedbackEvent
+    - EmergenceTriggerEvent
+  end note
 
-Bus -> Dispatch : deliver(MismatchAssessmentEvent)
-Dispatch -> Supervisor : mismatchAssessment(signal)
+  == 1) Homeostasis (Operator) ==
+  Bus -> Operator : deliver MismatchAssessmentEvent
+  Operator -> Operator : BRC-HOM-001 Assess Drift
 
-' Operational feedback as controller-to-controller interaction
-Dispatch -> Operator : mismatchAssessment(signal)
-
-Operator -> Supervisor : OperationalFeedback(mismatchAssessment, evidencePointers)
-
-note right of Operator
-  **OperationalFeedback (controller signal) semantics:**
-  This is a Definition-plane controller-to-controller interaction (Operator → Supervisor).
-  It references/encapsulates Description-plane evidence (mismatchAssessment + evidencePointers).
-  It is NOT a Remediation → Definition feedback path.
-end note
-
-== 4) Coherence: classification controls (meta-governance) ==
-
-Supervisor -> Governor : requestCoherenceClassification(mismatchAssessment, scope)
-group Coherence (superprocess; owned by Governor)
-  Governor -> Governor : openCoherence(mismatchAssessment, scope)
-
-  group Coherence Orchestration (Governor)
-    Governor -> Governor : decideCoherenceCheckSet(mismatchAssessment, scope, metaPolicies)
-    Governor -> Governor : trigger(TopologyIntegrityChecking)
-    Governor -> Governor : trigger(ObservabilityCoverageAssessment)
-    Governor -> Governor : trigger(SolverProjectionAdequacyAssessment)
-    Governor -> Governor : trigger(PolicyConsistencyChecking)
-    Governor -> Governor : trigger(BehavioralRuleConsistencyChecking)
-    Governor -> Governor : trigger(PolicyBehavioralRuleAlignmentChecking)
-    Governor -> Governor : trigger(PolicyConstraintSatisfiabilityChecking)
-    Governor -> Governor : trigger(BehavioralRuleConstraintSatisfiabilityChecking)
-    Governor -> Governor : trigger(PolicyIntegrationFeasibilityAssessment)
-    Governor -> Governor : trigger(BehavioralRuleIntegrationFeasibilityAssessment)
-    Governor -> Governor : trigger(ActuationCapabilityAssessment)
+  alt Homeostasis eligible
+    Operator -> Operator : BRC-HOM-002 Modify State (Actuation)
+    Operator -> Bus : publish ActuationControlEvent
+    note over Bus
+      Actuation execution is out-of-scope (Remediation → State).
+    end note
+  else Homeostasis not eligible (needs diagnosis)
+    Operator -> Bus : publish BehavioralRuleCandidateEvent
   end
 
-  ' ----------------------------
-  ' Coherence: Evidence grounding (Description-implemented)
+  Bus -> Operator : deliver ActuationFeedbackEvent
+
+  alt Not converged / oscillating / insufficient variety
+    Bus -> Supervisor : deliver MismatchAssessmentEvent(diagnosisNeeded=true)
+  end
+
+  == 2) Adaptation (Supervisor) ==
+  Bus -> Supervisor : deliver MismatchAssessmentEvent
+  Supervisor -> Supervisor : BRC-ADP-001 Propose Candidate Rule
+  Supervisor -> Bus : publish BehavioralRuleCandidateEvent
+
+  Supervisor -> Supervisor : BRC-ADP-002 Provision / Replace Operator
+  Supervisor -> Bus : publish OperatorProvisioningEvent
+  Bus -> Operator : deliver OperatorProvisioningEvent
+
+  == 3) Coherence (Governor) ==
+  Supervisor -> Bus : publish CoherenceRequestEvent(phase=CHECK)
+  Bus -> Governor : deliver CoherenceRequestEvent
+  Governor -> Governor : BRC-COH-001..004 CHECK (plan / evidence / supervisor / report)
+
+  alt Incoherence detected
+    Governor -> Governor : BRC-COH-005..009 Resolve + Sync
+    Governor -> Bus : publish ResolutionProposedEvent
+  end
+
+  Governor -> Governor : BRC-COH-010..011 FEASIBILITY
+  Governor -> Bus : publish FeasibilityAggregatedEvent
+
+  alt Admission gate requires decision
+    Governor -> Bus : publish DecisionRequestEvent
+    Bus -> DecisionOwner : deliver DecisionRequestEvent
+    DecisionOwner -> Bus : publish DecisionResponseEvent
+    Bus -> Governor : deliver DecisionResponseEvent
+  end
+
+  == 4) Emergence (Governor) ==
+  Bus -> Governor : deliver EmergenceTriggerEvent
+  Governor -> Governor : BRC-EMG-001 Open Case
+
+  alt Confidence >= 0.7
+    Governor -> Governor : BRC-EMG-004 Auto-Approve
+    Governor -> Governor : BRC-EMG-003 Publish New Definitions
+    Governor -> Bus : publish DefinitionChangedEvent
+  else Confidence < 0.7
+    Governor -> Governor : BRC-EMG-002 Request Decision
+    Governor -> Bus : publish DecisionRequestEvent
+    Bus -> DecisionOwner : deliver DecisionRequestEvent
+    DecisionOwner -> Bus : publish DecisionResponseEvent
+    Bus -> Governor : deliver DecisionResponseEvent
+    Governor -> Governor : BRC-EMG-003 Publish New Definitions
+    Governor -> Bus : publish DefinitionChangedEvent
+  end
+
+  == 5) Close the loop ==
+  note over Bus
+    Outcome is observed outside Definition plane and returns as new evidence
+    (e.g., new MismatchAssessmentEvent / ActuationFeedbackEvent deliveries).
+  end note
+
+  @enduml
   ' ----------------------------
   group TopologyIntegrityChecking (Owner: Governor; implemented in Description)
     Governor -> CSDM : TopologyIntegrityChecking(scope)
@@ -452,7 +510,7 @@ group Coherence (superprocess; owned by Governor)
   end
 
   ' ----------------------------
-  ' Coherence: Aggregate and dispatch
+  ' Coherence: Aggregate and route
   ' ----------------------------
   Governor -> Governor : aggregate(incoherences + conflicts + SAT/SMT + feasibility)
   Governor -> Governor : build(CoherenceReport + FeasibilityReport + recommendedPath)
@@ -467,8 +525,8 @@ alt ClassificationReport.recommendedPath == REMEDIATE
   end note
 
   loop while mismatch persists
-    Supervisor -> Dispatch : routeControlIntent(mismatch, scope)
-    Dispatch -> Operator : deliver(controlIntent)
+    Supervisor -> Bus : publish(ControlIntentEvent)
+    Bus -> Operator : deliver(ControlIntentEvent)
     Operator -> Operator : execute(its bound BehavioralRule)
     Operator -> RuleRuntime : requestExecution(controlIntent)
     RuleRuntime -> Act : actuate(...)
@@ -482,8 +540,7 @@ alt ClassificationReport.recommendedPath == REMEDIATE
     Mismatch -> Bus : publish(OperationalFeedbackEvidenceEvent)
     Evaluator -> Mismatch : enrich mismatch with operational-performance evidence
     Mismatch -> Bus : publish(MismatchAssessmentEvent)
-    Bus -> Dispatch : deliver(MismatchAssessmentEvent)
-    Dispatch -> Supervisor : mismatchAssessment(signal)
+    Bus -> Supervisor : deliver(MismatchAssessmentEvent)
   end
 
 else ClassificationReport.recommendedPath == ADAPT
@@ -507,9 +564,10 @@ else ClassificationReport.recommendedPath == ADAPT
       but MUST NOT change Policies that define the envelope.
     end note
 
-    SDM -> Dispatch : notify(BehavioralRulePublishedEvent)
-    Dispatch -> Operator : provisionNewOperator(boundTo = BehavioralRuleCandidate)
-    Dispatch -> Operator : deprecateOldOperator(if replaced)
+    SDM -> Bus : publish(BehavioralRulePublishedEvent)
+    Bus -> Operator : deliver(BehavioralRulePublishedEvent)
+    Operator -> Operator : provisionNewOperator(boundTo = BehavioralRuleCandidate)
+    Operator -> Operator : deprecateOldOperator(if replaced)
 
     note over State, Bus
       The new BehavioralRule must be *realized in the State plane* (deployed/available/active)
@@ -520,12 +578,11 @@ else ClassificationReport.recommendedPath == ADAPT
 
   == 5) Homeostasis retry (Operator-owned, new operator instance) ==
 
-  Bus -> Dispatch : deliver(BehavioralRuleRealizationStatusEvent)
-  Dispatch -> Supervisor : behavioralRuleRealizationStatus(signal)
+  Bus -> Supervisor : deliver(BehavioralRuleRealizationStatusEvent)
 
   opt BehavioralRuleRealizationStatusEvent.status == REALIZED_IN_STATE
-    Supervisor -> Dispatch : routeControlIntent(mismatch, scope)
-    Dispatch -> Operator : deliver(controlIntent)
+    Supervisor -> Bus : publish(ControlIntentEvent)
+    Bus -> Operator : deliver(ControlIntentEvent)
     Operator -> Operator : execute(its bound BehavioralRule)
     Operator -> RuleRuntime : requestExecution(controlIntent)
     RuleRuntime -> Act : actuate(...)
@@ -536,8 +593,7 @@ else ClassificationReport.recommendedPath == ADAPT
     Evaluator -> Evaluator : evaluate(definitions vs updated measured state)
     Evaluator -> Mismatch : enrich mismatch with operational-performance evidence
     Mismatch -> Bus : publish(MismatchAssessmentEvent)
-    Bus -> Dispatch : deliver(MismatchAssessmentEvent)
-    Dispatch -> Supervisor : mismatchAssessment(signal)
+    Bus -> Supervisor : deliver(MismatchAssessmentEvent)
   end
 
 else ClassificationReport.recommendedPath == RESOLVE_DEFINITION

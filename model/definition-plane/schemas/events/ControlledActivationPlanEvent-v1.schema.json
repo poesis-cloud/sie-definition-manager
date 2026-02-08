@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/ControlledActivationPlanEvent.json",
+  "title": "ControlledActivationPlanEvent (Events v1)",
+  "description": "Controlled activation plan produced by Coherence for safely activating a Definition (manual/automated/mixed).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scope", "activationMode", "plan", "createdAt"],
+  "properties": {
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "activationMode": {
+      "type": "string",
+      "enum": ["MANUAL", "AUTOMATED", "MIXED"]
+    },
+    "plan": {
+      "description": "Opaque activation plan; may include rollout steps, guardrails, rollback, and human approval gates.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "createdAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}
