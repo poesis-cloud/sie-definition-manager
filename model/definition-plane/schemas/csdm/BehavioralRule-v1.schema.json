@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/BehavioralRule.json",
+  "title": "BehavioralRule (CSDM v1)",
+  "description": "Constraint over system behavioral properties; operationalizes policies and defines an ordered control sequence.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name", "status", "triggeringReceptor", "applicabilityConditions", "iterationConditions", "controlSequence"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "status": { "$ref": "sie://schemas/csdm/v1/BehavioralRuleStatus.json" },
+
+    "applyingFunctionalPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "applyingViabilityPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "applyingStructuralPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+
+    "scopedFunctions": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "scopedModalities": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+
+    "triggeringReceptor": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+
+    "applicabilityConditions": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/LogicalExpression" },
+    "iterationConditions": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/LogicalExpression" },
+
+    "controlSequence": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "Ordered references to BehavioralRuleControl primitives."
+    }
+  }
+}

@@ -1,0 +1,104 @@
+@startuml sie-safe-backlog-taxonomy-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+frame "PD - SIE - SAFe/Jira Backlog Taxonomy (Systemics-aligned) - v1" {
+
+  note as SystemicsAnchor
+    **Systemics anchor (CSDM closed-loop boundary)**
+    - Description plane: Sensor + Comparator (observations, evaluations, evidence)
+    - Definition plane: Controller (policies/constraints/rules + decisions)
+    - Remediation plane: Actuator substrate (execution/orchestration)
+
+    **Coherence rule**
+    A backlog item is only *operationally valuable* if it results in a Definition-plane
+    deliverable and can be realized through Remediation into State, then re-observed.
+  end note
+
+  package "Portfolio Epic" <<Epic>> as Epic {
+    note as EpicNote
+      **Definition (SAFe)**
+      Outcome-oriented, cross-cutting initiative with measurable business value.
+
+      **Required fields (design-time)**
+      - Intent / outcome (what changes in the world)
+      - Planes impacted (Dfn/Desc/Rem)
+      - Safety constraints (Assurance+Safety gates)
+      - Evidence requirements (what must be observable to prove value)
+      - Hard dependencies / integrations
+
+      **SIE mapping (systemics term)**
+      Epic ≈ "Control objective / governance objective" at portfolio scope.
+    end note
+
+    package "Capability" <<Capability>> as Capability {
+      note as CapNote
+        **Definition (SAFe)**
+        Solution-level capability enabling multiple features.
+
+        **SIE mapping**
+        Capability ≈ "controller sub-mechanism" (Definition) or "sensor/comparator mechanism"
+        (Description) or "actuation substrate" (Remediation), but always bounded by the loop.
+      end note
+
+      package "Feature" <<Feature>> as Feature {
+        note as FeatNote
+          **Definition (SAFe)**
+          Program-level feature: concrete, demonstrable, shippable increment.
+
+          **SIE mapping**
+          Feature ≈ definable deliverable or bounded engine behavior producing typed outputs.
+        end note
+
+        package "Story" <<Story>> as Story {
+          note as StoryNote
+            Stories/tasks are out-of-scope for this repo (design-time only).
+          end note
+        }
+      }
+    }
+  }
+
+  package "Enabler (type)" <<Enabler>> as Enabler {
+    note as EnablerNote
+      **Enabler definition (SAFe)**
+      Work that builds the runway (architecture, infrastructure, compliance, instrumentation)
+      needed to deliver business features.
+
+      **SIE mapping**
+      Enablers correspond to *capabilities* (evidence substrate, trace, provenance, compiler,
+      orchestration) and MUST preserve plane placement:
+      - Definition enablers define and compile deliverables.
+      - Description enablers produce evidence + trace.
+      - Remediation enablers execute safely.
+    end note
+  }
+
+  Epic ..> Capability : decomposes to
+  Capability ..> Feature : decomposes to
+  Feature ..> Story : decomposes to
+
+  Enabler ..> Epic : can enable
+  Enabler ..> Capability : can enable
+  Enabler ..> Feature : can enable
+}
+
+@enduml

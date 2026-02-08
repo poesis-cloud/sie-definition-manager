@@ -1,0 +1,1317 @@
+@startuml sie-coherence-governance-instances-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+frame "CD - SIE - Governance - Coherence Instances - v1" {
+
+  note as InitNote
+    **Initialization (SIE instance bootstrap)**
+
+    This diagram specifies the default, auto-defined *governance* definitions
+    used for Coherence (meta-governance: consistency, satisfiability,
+    feasibility, alignment checks + resolution dispatch).
+
+    At initialization time, SIE seeds these definitions in the Definition Plane,
+    and binds the Governor controller to exactly one BehavioralRule (CSDM invariant).
+
+    **Mapping to feature backlog**
+    - E-3 Constraint Intelligence: Conflict Detection / Coherence Validation / Constraint Synthesis
+    - E-1 Explanation Engine: traces + replay provide evidence for coherence checks
+
+    **Systemics mapping**: Coherence ≈ meta-regulation / second-order cybernetics
+    checks ensuring the Definition remains internally consistent and realizable.
+  end note
+
+  ' ------------------------------------------------------------
+  ' Primitives grouped by type
+  ' ------------------------------------------------------------
+
+  package "EventArchetypes" {
+
+    object "EA-COH-001\nCoherenceRequestEvent" as EA_CoherenceRequestEvent <<EventArchetype>> {
+      name = "CoherenceRequestEvent"
+    }
+
+    object "EA-COH-002\nCoherenceCheckPlanEvent" as EA_CoherenceCheckPlanEvent <<EventArchetype>> {
+      name = "CoherenceCheckPlanEvent"
+    }
+
+    object "EA-COH-003\nEvidenceGroundingRequestEvent" as EA_EvidenceGroundingRequestEvent <<EventArchetype>> {
+      name = "EvidenceGroundingRequestEvent"
+    }
+
+    object "EA-COH-004\nSupervisorCheckRequestEvent" as EA_SupervisorCheckRequestEvent <<EventArchetype>> {
+      name = "SupervisorCheckRequestEvent"
+    }
+
+    object "EA-COH-005\nCoherenceReportEvent" as EA_CoherenceReportEvent <<EventArchetype>> {
+      name = "CoherenceReportEvent"
+    }
+
+    object "EA-COH-006\nIncoherenceDetectedEvent" as EA_IncoherenceDetectedEvent <<EventArchetype>> {
+      name = "IncoherenceDetectedEvent"
+    }
+
+    object "EA-COH-007\nResolutionProposedEvent" as EA_ResolutionProposedEvent <<EventArchetype>> {
+      name = "ResolutionProposedEvent"
+    }
+
+    object "EA-COH-008\nGraphSyncAppliedEvent" as EA_GraphSyncAppliedEvent <<EventArchetype>> {
+      name = "GraphSyncAppliedEvent"
+    }
+
+    object "EA-COH-009\nSensorAutoDefinedEvent" as EA_SensorAutoDefinedEvent <<EventArchetype>> {
+      name = "SensorAutoDefinedEvent"
+    }
+
+    object "EA-COH-010\nSensorDeprecatedEvent" as EA_SensorDeprecatedEvent <<EventArchetype>> {
+      name = "SensorDeprecatedEvent"
+    }
+
+    object "EA-COH-011\nFeasibilityAssessmentRequestedEvent" as EA_FeasibilityAssessmentRequestedEvent <<EventArchetype>> {
+      name = "FeasibilityAssessmentRequestedEvent"
+    }
+
+    object "EA-COH-012\nFeasibilityAggregatedEvent" as EA_FeasibilityAggregatedEvent <<EventArchetype>> {
+      name = "FeasibilityAggregatedEvent"
+    }
+
+  }
+
+  package "StateObjectArchetypes" {
+
+    object "SOA-COH-001\nCoherenceCheckCoverageReport" as SOA_COH_001 <<StateObjectArchetype>> {
+      name = "CoherenceCheckCoverageReport"
+    }
+
+    object "SOA-COH-002\nResolutionTimelinessMetric" as SOA_COH_002 <<StateObjectArchetype>> {
+      name = "ResolutionTimelinessMetric"
+    }
+
+    object "SOA-COH-003\nGraphSyncMetric" as SOA_COH_003 <<StateObjectArchetype>> {
+      name = "GraphSyncMetric"
+    }
+
+  }
+
+  package "Policies" {
+
+    object "FP-META-002\nIncoherence Detection Policy" as FP_META_002 <<FunctionalPolicy>> {
+      name = "IncoherenceDetectionPolicy"
+      status = PUBLISHED
+      scopedPurposes = [PURP_COH_001]
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of FP_META_002
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "AndExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "LOGICAL_CONTRADICTION" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "CIRCULAR_DEPENDENCY" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "ORPHANED_CONSTRAINT" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "STALE_REFERENCE" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      coherence_check MUST detect:
+      [LOGICAL_CONTRADICTION, CIRCULAR_DEPENDENCY,
+       ORPHANED_CONSTRAINT, STALE_REFERENCE]
+    end note
+
+    object "VP-META-002\nResolution Timeliness Policy" as VP_META_002 <<ViabilityPolicy>> {
+      name = "ResolutionTimelinessPolicy"
+      status = PUBLISHED
+      scopedCapacities = [CAP_COH_001]
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of VP_META_002
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "OrExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "NOT_EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "ResolutionTimelinessMetric",
+                "propertyPath": ["severity"]
+              },
+              "right": { "type": "LiteralExpression", "value": "CRITICAL" }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "LESS_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "ResolutionTimelinessMetric",
+                "propertyPath": ["proposedWithinSeconds"]
+              },
+              "right": { "type": "LiteralExpression", "value": 3600 }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      incoherence.severity == CRITICAL IMPLIES
+      resolution.proposed_within <= 1h
+    end note
+
+    object "SP-META-002\nGraph Consistency Policy" as SP_META_002 <<StructuralPolicy>> {
+      name = "GraphConsistencyPolicy"
+      status = PUBLISHED
+      scopedComponents = (see note)
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of SP_META_002
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "ComparisonExpression",
+          "operator": "LESS_OR_EQUAL",
+          "left": {
+            "type": "StateObjectArchetypeReferenceExpression",
+            "name": "GraphSyncMetric",
+            "propertyPath": ["lagSeconds"]
+          },
+          "right": { "type": "LiteralExpression", "value": 30 }
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      neo4j.graph MUST be CDC-synchronized
+      with postgresql.source_of_truth
+      within 30s
+    end note
+
+  }
+
+  package "ControllerMechanisms" {
+
+    object "GOV-COH-001\nGovernorControllerMechanism\n(Coherence Governor)" as GOV_COH_001 <<GovernorControllerMechanism>> {
+      implementedBehavioralRule = BR_COH_001
+    }
+
+  }
+
+  package "Purposes" {
+
+    object "PURP-COH-001\nCoherence Purpose" as PURP_COH_001 <<Purpose>> {
+      name = "CoherencePurpose"
+      description = "Meta-governance. Detect, classify, and resolve incoherences across the definition graph; synchronize governance artifacts and dispatch to Adaptation/Emergence when needed."
+    }
+
+  }
+
+  package "Functions" {
+
+    object "FN-COH-001\nCoherence Classification" as FN_COH_001 <<Function>> {
+      name = "CoherenceClassification"
+      purpose = PURP_COH_001
+    }
+
+  }
+
+  package "Capacities" {
+
+    object "CAP-COH-001\nMeta-Governance Capacity" as CAP_COH_001 <<Capacity>> {
+      name = "MetaGovernanceCapacity"
+      description = "Capacity to maintain coherence of definitions, evidence coupling, and governance loop topology under change."
+    }
+
+  }
+
+  package "Modalities" {
+
+    object "MOD-COH-001\nDefinition Modality" as MOD_COH_001 <<Modality>> {
+      name = "MetaGovernance"
+      capacity = CAP_COH_001
+    }
+
+  }
+
+  package "BehavioralRules" {
+
+    object "BR-COH-001\nCoherence BehavioralRule" as BR_COH_001 <<BehavioralRule>> {
+      name = "CoherenceBehavioralRule"
+      status = PUBLISHED
+
+      applyingFunctionalPolicies = [FP_META_002]
+      applyingViabilityPolicies = [VP_META_002]
+      applyingStructuralPolicies = [SP_META_002]
+
+      scopedFunctions = [FN_COH_001]
+      scopedModalities = [MOD_COH_001]
+
+      triggeringReceptor = R_COH_001
+
+    applicabilityConditions = (see note)
+
+    iterationConditions = (see note)
+
+      controlSequence = [BRC_COH_001, BRC_COH_002, BRC_COH_003, BRC_COH_004, BRC_COH_005, BRC_COH_006, BRC_COH_007, BRC_COH_008, BRC_COH_009, BRC_COH_010, BRC_COH_011]
+    }
+
+    note right of BR_COH_001
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "IN",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": ["CHECK", "FEASIBILITY"]
+      }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+    end note
+
+  }
+
+  package "Receptors" {
+
+    object "R-COH-001\nCoherence Trigger Receptor" as R_COH_001 <<Receptor>> {
+      name = "CoherenceRequestReceptor"
+      receivedEventArchetype = EA_CoherenceRequestEvent
+    }
+
+    object "R-COH-REMED-001\nCoherence Plan Intake Receptor" as R_COH_REMED_001 <<Receptor>> {
+      name = "CoherencePlanIntakeReceptor"
+      receivedEventArchetype = EA_CoherenceCheckPlanEvent
+    }
+
+    object "R-COH-REMED-002\nEvidence Grounding Intake Receptor" as R_COH_REMED_002 <<Receptor>> {
+      name = "EvidenceGroundingIntakeReceptor"
+      receivedEventArchetype = EA_EvidenceGroundingRequestEvent
+    }
+
+    object "R-COH-REMED-003\nSupervisor Check Intake Receptor" as R_COH_REMED_003 <<Receptor>> {
+      name = "SupervisorCheckIntakeReceptor"
+      receivedEventArchetype = EA_SupervisorCheckRequestEvent
+    }
+
+    object "R-COH-REMED-004\nReport Intake Receptor" as R_COH_REMED_004 <<Receptor>> {
+      name = "CoherenceReportIntakeReceptor"
+      receivedEventArchetype = EA_CoherenceReportEvent
+    }
+
+    object "R-COH-REMED-005\nIncoherence Intake Receptor" as R_COH_REMED_005 <<Receptor>> {
+      name = "IncoherenceIntakeReceptor"
+      receivedEventArchetype = EA_IncoherenceDetectedEvent
+    }
+
+    object "R-COH-REMED-006\nResolution Intake Receptor" as R_COH_REMED_006 <<Receptor>> {
+      name = "ResolutionIntakeReceptor"
+      receivedEventArchetype = EA_ResolutionProposedEvent
+    }
+
+    object "R-COH-REMED-007\nGraph Sync Intake Receptor" as R_COH_REMED_007 <<Receptor>> {
+      name = "GraphSyncIntakeReceptor"
+      receivedEventArchetype = EA_GraphSyncAppliedEvent
+    }
+
+    object "R-COH-REMED-008\nSensor Auto-Defined Intake Receptor" as R_COH_REMED_008 <<Receptor>> {
+      name = "SensorAutoDefinedIntakeReceptor"
+      receivedEventArchetype = EA_SensorAutoDefinedEvent
+    }
+
+    object "R-COH-REMED-009\nSensor Deprecated Intake Receptor" as R_COH_REMED_009 <<Receptor>> {
+      name = "SensorDeprecatedIntakeReceptor"
+      receivedEventArchetype = EA_SensorDeprecatedEvent
+    }
+
+    object "R-COH-REMED-010\nFeasibility Request Intake Receptor" as R_COH_REMED_010 <<Receptor>> {
+      name = "FeasibilityRequestIntakeReceptor"
+      receivedEventArchetype = EA_FeasibilityAssessmentRequestedEvent
+    }
+
+    object "R-COH-REMED-011\nFeasibility Aggregate Intake Receptor" as R_COH_REMED_011 <<Receptor>> {
+      name = "FeasibilityAggregateIntakeReceptor"
+      receivedEventArchetype = EA_FeasibilityAggregatedEvent
+    }
+
+  }
+
+  package "Effectors" {
+
+    object "EFF-COH-001\nCheck Plan Effector" as EFF_COH_001 <<Effector>> {
+      name = "CoherenceCheckPlanEffector"
+      producedEventArchetype = EA_CoherenceCheckPlanEvent
+    }
+
+    object "EFF-COH-002\nEvidence Request Effector" as EFF_COH_002 <<Effector>> {
+      name = "EvidenceGroundingEffector"
+      producedEventArchetype = EA_EvidenceGroundingRequestEvent
+    }
+
+    object "EFF-COH-003\nSupervisor Check Effector" as EFF_COH_003 <<Effector>> {
+      name = "SupervisorCheckRequestEffector"
+      producedEventArchetype = EA_SupervisorCheckRequestEvent
+    }
+
+    object "EFF-COH-004\nReport Publication Effector" as EFF_COH_004 <<Effector>> {
+      name = "CoherenceReportEffector"
+      producedEventArchetype = EA_CoherenceReportEvent
+    }
+
+    object "EFF-COH-005\nIncoherence Detected Effector" as EFF_COH_005 <<Effector>> {
+      name = "IncoherenceDetectedEffector"
+      producedEventArchetype = EA_IncoherenceDetectedEvent
+    }
+
+    object "EFF-COH-006\nResolution Proposed Effector" as EFF_COH_006 <<Effector>> {
+      name = "ResolutionProposedEffector"
+      producedEventArchetype = EA_ResolutionProposedEvent
+    }
+
+    object "EFF-COH-007\nGraph Sync Effector" as EFF_COH_007 <<Effector>> {
+      name = "GraphSyncEffector"
+      producedEventArchetype = EA_GraphSyncAppliedEvent
+    }
+
+    object "EFF-COH-008\nSensor Auto-Defined Effector" as EFF_COH_008 <<Effector>> {
+      name = "SensorAutoDefinedEffector"
+      producedEventArchetype = EA_SensorAutoDefinedEvent
+    }
+
+    object "EFF-COH-009\nSensor Deprecated Effector" as EFF_COH_009 <<Effector>> {
+      name = "SensorDeprecatedEffector"
+      producedEventArchetype = EA_SensorDeprecatedEvent
+    }
+
+    object "EFF-COH-010\nFeasibility Request Effector" as EFF_COH_010 <<Effector>> {
+      name = "FeasibilityAssessmentRequestEffector"
+      producedEventArchetype = EA_FeasibilityAssessmentRequestedEvent
+    }
+
+    object "EFF-COH-011\nFeasibility Aggregate Effector" as EFF_COH_011 <<Effector>> {
+      name = "FeasibilityAggregationEffector"
+      producedEventArchetype = EA_FeasibilityAggregatedEvent
+    }
+
+    object "EFF-COH-TRG-001\nCoherence Request Emitter" as EFF_COH_TRG_001 <<Effector>> {
+      name = "CoherenceRequestEmitter"
+      producedEventArchetype = EA_CoherenceRequestEvent
+    }
+
+  }
+
+  package "BehavioralRuleControls" {
+
+    object "BRC-COH-001\nSelect Check Set" as BRC_COH_001 <<BehavioralRuleControl>> {
+      name = "SelectCheckSetControl"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_001
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_001
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "CHECK" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "CoherenceCheckPlanEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requestedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-002\nRequest Evidence Grounding" as BRC_COH_002 <<BehavioralRuleControl>> {
+      name = "EvidenceGroundingRequestControl"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_002
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_002
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "CHECK" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "EvidenceGroundingRequestEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["evidenceSelectors"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requestedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-003\nRequest Supervisor Checks" as BRC_COH_003 <<BehavioralRuleControl>> {
+      name = "SupervisorCheckRequestControl"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_003
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_003
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "CHECK" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "SupervisorCheckRequestEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["checkSet"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": ["LOGICAL_CONTRADICTION", "CIRCULAR_DEPENDENCY", "ORPHANED_CONSTRAINT", "STALE_REFERENCE"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requestedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-004\nAggregate Reports" as BRC_COH_004 <<BehavioralRuleControl>> {
+      name = "AggregateCoherenceReportsControl"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_004
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_004
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "CHECK" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "CoherenceReportEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["report"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": {
+              "status": "COMPLETED",
+              "scope": "(see input scope)"
+            }
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["publishedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-005\nDetect Circular Dependency" as BRC_COH_005 <<BehavioralRuleControl>> {
+      name = "DetectCircularDependency"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_005
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_005
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "IncoherenceDetectedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["incoherenceType"],
+          "source": { "type": "LiteralExpression", "value": "CIRCULAR_DEPENDENCY" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["detectedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-006\nAuto-Resolve Stale Reference" as BRC_COH_006 <<BehavioralRuleControl>> {
+      name = "AutoResolveStaleReference"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_006
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_006
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "ResolutionProposedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["incoherenceId"],
+          "source": { "type": "LiteralExpression", "value": "00000000-0000-0000-0000-000000000000" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["resolutionStrategy"],
+          "source": { "type": "LiteralExpression", "value": "modify_scope" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["resolutionType"],
+          "source": { "type": "LiteralExpression", "value": "modify_scope" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["proposedChanges"],
+          "source": { "type": "LiteralExpression", "value": [] }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["proposedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["proposedBy"],
+          "source": { "type": "LiteralExpression", "value": "automated" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["confidence"],
+          "source": { "type": "LiteralExpression", "value": 0.8 }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requiresApproval"],
+          "source": { "type": "LiteralExpression", "value": true }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-007\nSync Graph on Change" as BRC_COH_007 <<BehavioralRuleControl>> {
+      name = "SyncGraphOnChange"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_007
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_007
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "GraphSyncAppliedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["mutation"],
+          "source": { "type": "LiteralExpression", "value": {} }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["appliedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-008\nAuto-Define Sensor for Policy" as BRC_COH_008 <<BehavioralRuleControl>> {
+      name = "AutoDefineSensorForPolicy"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_008
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_008
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "SensorAutoDefinedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["policyId"],
+          "source": { "type": "LiteralExpression", "value": "00000000-0000-0000-0000-000000000000" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["createdAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-009\nDeprecate Orphan Sensor" as BRC_COH_009 <<BehavioralRuleControl>> {
+      name = "DeprecateOrphanSensor"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_009
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_009
+    applicabilityConditions:
+    {
+      "type": "LiteralExpression",
+      "value": true
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "SensorDeprecatedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["sensorId"],
+          "source": { "type": "LiteralExpression", "value": "00000000-0000-0000-0000-000000000000" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["deprecatedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-010\nRequest Feasibility Checks" as BRC_COH_010 <<BehavioralRuleControl>> {
+      name = "TriggerFeasibilityCheck"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_010
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_010
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "FEASIBILITY" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "FeasibilityAssessmentRequestedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requestedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-COH-011\nAggregate Feasibility Reports" as BRC_COH_011 <<BehavioralRuleControl>> {
+      name = "AggregateFeasibility"
+      applyingRule = BR_COH_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_COH_011
+      feedbackReceptor = null
+    }
+
+    note right of BRC_COH_011
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "CoherenceRequestReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": { "type": "LiteralExpression", "value": "FEASIBILITY" }
+    }
+
+    iterationConditions:
+    {
+      "type": "LiteralExpression",
+      "value": false
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "FeasibilityAggregatedEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "CoherenceRequestReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["aggregatedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+  }
+
+  package "Interactions" {
+
+    object "INT-COH-TRG-001\nCoherenceRequest Dispatch" as INT_COH_TRG_001 <<Interaction>> {
+      name = "CoherenceRequestDispatch"
+      effector = EFF_COH_TRG_001
+      receptor = R_COH_001
+    }
+
+    object "INT-COH-001\nPlan Dispatch" as INT_COH_001 <<Interaction>> {
+      name = "CoherencePlanDispatch"
+      effector = EFF_COH_001
+      receptor = R_COH_REMED_001
+    }
+
+    object "INT-COH-002\nEvidence Grounding" as INT_COH_002 <<Interaction>> {
+      name = "EvidenceGroundingDispatch"
+      effector = EFF_COH_002
+      receptor = R_COH_REMED_002
+    }
+
+    object "INT-COH-003\nSupervisor Check" as INT_COH_003 <<Interaction>> {
+      name = "SupervisorCheckDispatch"
+      effector = EFF_COH_003
+      receptor = R_COH_REMED_003
+    }
+
+    object "INT-COH-004\nReport Publication" as INT_COH_004 <<Interaction>> {
+      name = "CoherenceReportDispatch"
+      effector = EFF_COH_004
+      receptor = R_COH_REMED_004
+    }
+
+    object "INT-COH-005\nIncoherence Detected" as INT_COH_005 <<Interaction>> {
+      name = "IncoherenceDetectedDispatch"
+      effector = EFF_COH_005
+      receptor = R_COH_REMED_005
+    }
+
+    object "INT-COH-006\nResolution Proposed" as INT_COH_006 <<Interaction>> {
+      name = "ResolutionProposedDispatch"
+      effector = EFF_COH_006
+      receptor = R_COH_REMED_006
+    }
+
+    object "INT-COH-007\nGraph Sync" as INT_COH_007 <<Interaction>> {
+      name = "GraphSyncDispatch"
+      effector = EFF_COH_007
+      receptor = R_COH_REMED_007
+    }
+
+    object "INT-COH-008\nSensor Auto-Defined" as INT_COH_008 <<Interaction>> {
+      name = "SensorAutoDefinedDispatch"
+      effector = EFF_COH_008
+      receptor = R_COH_REMED_008
+    }
+
+    object "INT-COH-009\nSensor Deprecated" as INT_COH_009 <<Interaction>> {
+      name = "SensorDeprecatedDispatch"
+      effector = EFF_COH_009
+      receptor = R_COH_REMED_009
+    }
+
+    object "INT-COH-010\nFeasibility Request" as INT_COH_010 <<Interaction>> {
+      name = "FeasibilityRequestDispatch"
+      effector = EFF_COH_010
+      receptor = R_COH_REMED_010
+    }
+
+    object "INT-COH-011\nFeasibility Aggregate" as INT_COH_011 <<Interaction>> {
+      name = "FeasibilityAggregateDispatch"
+      effector = EFF_COH_011
+      receptor = R_COH_REMED_011
+    }
+
+  }
+
+  ' Relationships
+  ' ------------------------------------------------------------
+
+  GOV_COH_001 --> BR_COH_001 : implements
+
+  BR_COH_001 --> FP_META_002 : applies
+  BR_COH_001 --> VP_META_002 : applies
+  BR_COH_001 --> SP_META_002 : applies
+
+  BR_COH_001 --> R_COH_001 : triggeringReceptor
+
+  FN_COH_001 --> PURP_COH_001 : serves
+  MOD_COH_001 --> CAP_COH_001 : constitutes
+
+  BR_COH_001 *-- BRC_COH_001 : has
+  BRC_COH_001 --> EFF_COH_001 : effector
+
+  BR_COH_001 *-- BRC_COH_002 : has
+  BRC_COH_002 --> EFF_COH_002 : effector
+
+  BR_COH_001 *-- BRC_COH_003 : has
+  BRC_COH_003 --> EFF_COH_003 : effector
+
+  BR_COH_001 *-- BRC_COH_004 : has
+  BRC_COH_004 --> EFF_COH_004 : effector
+
+  BR_COH_001 *-- BRC_COH_005 : has
+  BR_COH_001 *-- BRC_COH_006 : has
+  BR_COH_001 *-- BRC_COH_007 : has
+  BR_COH_001 *-- BRC_COH_008 : has
+  BR_COH_001 *-- BRC_COH_009 : has
+  BR_COH_001 *-- BRC_COH_010 : has
+  BR_COH_001 *-- BRC_COH_011 : has
+
+  BRC_COH_005 --> EFF_COH_005 : effector
+  BRC_COH_006 --> EFF_COH_006 : effector
+  BRC_COH_007 --> EFF_COH_007 : effector
+  BRC_COH_008 --> EFF_COH_008 : effector
+  BRC_COH_009 --> EFF_COH_009 : effector
+  BRC_COH_010 --> EFF_COH_010 : effector
+  BRC_COH_011 --> EFF_COH_011 : effector
+
+  INT_COH_TRG_001 --> EFF_COH_TRG_001 : effector
+  INT_COH_TRG_001 --> R_COH_001 : receptor
+
+  INT_COH_001 --> EFF_COH_001 : effector
+  INT_COH_001 --> R_COH_REMED_001 : receptor
+
+  INT_COH_002 --> EFF_COH_002 : effector
+  INT_COH_002 --> R_COH_REMED_002 : receptor
+
+  INT_COH_003 --> EFF_COH_003 : effector
+  INT_COH_003 --> R_COH_REMED_003 : receptor
+
+  INT_COH_004 --> EFF_COH_004 : effector
+  INT_COH_004 --> R_COH_REMED_004 : receptor
+
+  INT_COH_005 --> EFF_COH_005 : effector
+  INT_COH_005 --> R_COH_REMED_005 : receptor
+
+  INT_COH_006 --> EFF_COH_006 : effector
+  INT_COH_006 --> R_COH_REMED_006 : receptor
+
+  INT_COH_007 --> EFF_COH_007 : effector
+  INT_COH_007 --> R_COH_REMED_007 : receptor
+
+  INT_COH_008 --> EFF_COH_008 : effector
+  INT_COH_008 --> R_COH_REMED_008 : receptor
+
+  INT_COH_009 --> EFF_COH_009 : effector
+  INT_COH_009 --> R_COH_REMED_009 : receptor
+
+  INT_COH_010 --> EFF_COH_010 : effector
+  INT_COH_010 --> R_COH_REMED_010 : receptor
+
+  INT_COH_011 --> EFF_COH_011 : effector
+  INT_COH_011 --> R_COH_REMED_011 : receptor
+
+}
+
+@enduml

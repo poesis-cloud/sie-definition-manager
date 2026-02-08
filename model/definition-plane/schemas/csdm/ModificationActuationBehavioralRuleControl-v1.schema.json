@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/ModificationActuationBehavioralRuleControl.json",
+  "title": "ModificationActuationBehavioralRuleControl (CSDM v1)",
+  "description": "BehavioralRuleControl that defines new state for a StateObjectArchetype using a selector.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/BehavioralRuleControl.json" }
+  ],
+  "type": "object",
+  "required": ["stateObjectArchetype", "stateObjectSourceMapping", "stateObjectSelector"],
+  "properties": {
+    "stateObjectArchetype": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "stateObjectSourceMapping": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/SourceMappingExpression" },
+    "stateObjectSelector": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/SelectorExpression" }
+  }
+}

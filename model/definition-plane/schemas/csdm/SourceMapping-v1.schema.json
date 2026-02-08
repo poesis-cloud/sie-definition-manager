@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/SourceMapping.json",
+  "title": "SourceMapping (CSDM v1)",
+  "description": "Design-time mapping describing how a target event/object is constructed from source events/scalars.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["valueMapping"],
+  "properties": {
+    "valueMapping": {
+      "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/SourceMappingExpression",
+      "description": "CSDSL mapping expression (Event/StateObject/SystemicPrimitive structure/scalar mappings)."
+    }
+  }
+}

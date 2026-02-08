@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Decision Intelligence - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-1 Trustworthy Governance (audit + explain)
+  Capability: Decision Intelligence
+  Feature: Decision Intelligence
+
+  **Plane ownership:** Description plane evidence/audit substrate;
+  Definition plane uses it to justify and replay decisions.
+
+  **Requires capabilities:** Evidence+State substrate (tiered retention),
+  Versioning+Provenance, Security+Access, Provenance+Lineage.
+
+  **Hard dependencies:** decision log store, evidence vault/archive, reporting engine.
+
+  **Feasibility tier:** NEXT
+  (tamper-evidence / chain-of-custody often needs specialized storage integration).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

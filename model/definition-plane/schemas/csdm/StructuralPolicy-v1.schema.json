@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/StructuralPolicy.json",
+  "title": "StructuralPolicy (CSDM v1)",
+  "description": "Policy constraining the system's structural properties.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/Policy.json" }
+  ],
+  "type": "object",
+  "properties": {
+    "scopedComponents": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Component primitives scoped by this policy."
+    }
+  }
+}

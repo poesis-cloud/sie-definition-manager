@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/Capacity.json",
+  "title": "Capacity (CSDM v1)",
+  "description": "System capacity: what the system can withstand / remain viable under.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["description"],
+  "properties": {
+    "description": { "type": "string" },
+    "modalities": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Modality primitives constituting this capacity."
+    }
+  }
+}

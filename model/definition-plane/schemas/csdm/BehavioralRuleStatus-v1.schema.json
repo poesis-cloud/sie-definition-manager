@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/BehavioralRuleStatus.json",
+  "title": "BehavioralRuleStatus (CSDM v1)",
+  "type": "string",
+  "enum": [
+    "DRAFT",
+    "PROPOSED",
+    "APPROVED",
+    "REJECTED",
+    "PUBLISHED",
+    "INTEGRATED",
+    "SUSPENDED",
+    "DEPRECATED"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/SubsystemIntegrationGovernance.json",
+  "title": "SubsystemIntegrationGovernance (CSDM v1)",
+  "description": "Explicit governance relationship between a supersystem and a subsystem.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name", "supersystem", "subsystem"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "supersystem": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "subsystem": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+
+    "lifecycleGovernance": { "type": "boolean" },
+    "contractEnforcement": { "type": "boolean" },
+    "configurationAuthority": { "type": "boolean" },
+    "substitutionAuthority": { "type": "boolean" },
+    "viabilityAccountability": { "type": "boolean" },
+    "resourceAllocation": { "type": "boolean" },
+    "boundaryInclusion": { "type": "boolean" },
+
+    "purposeContribution": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Purpose primitives of the supersystem materially supported by the subsystem."
+    }
+  }
+}

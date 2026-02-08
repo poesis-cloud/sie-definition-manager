@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/StateObjectArchetype.json",
+  "title": "StateObjectArchetype (CSDM v1)",
+  "description": "Defines the structure and semantics of a state object used to represent observed/mutable state.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name", "schema"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "schema": { "$ref": "sie://schemas/csdm/v1/ArchetypeSchema.json" }
+  }
+}

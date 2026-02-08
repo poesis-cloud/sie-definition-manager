@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/Constraint.json",
+  "title": "Constraint (CSDM v1)",
+  "description": "Union type for definitional constraints. In CSDM v1, constraints are expressed primarily as Policies and BehavioralRules.",
+  "oneOf": [
+    { "$ref": "sie://schemas/csdm/v1/Policy.json" },
+    { "$ref": "sie://schemas/csdm/v1/BehavioralRule.json" }
+  ]
+}

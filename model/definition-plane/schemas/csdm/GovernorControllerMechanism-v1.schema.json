@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/GovernorControllerMechanism.json",
+  "title": "GovernorControllerMechanism (CSDM v1)",
+  "description": "Controller mechanism owning policies (definition-level constraints).",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/ControllerMechanism.json" }
+  ],
+  "type": "object",
+  "properties": {
+    "ownedPolicies": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Policy primitives owned by this governor."
+    }
+  }
+}

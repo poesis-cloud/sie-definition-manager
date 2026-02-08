@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/ApprovalRequiredEvent.json",
+  "title": "ApprovalRequiredEvent (Events v1)",
+  "description": "Emitted when automated approval is not possible.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proposal", "requestedAt"],
+  "properties": {
+    "proposal": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "requestedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

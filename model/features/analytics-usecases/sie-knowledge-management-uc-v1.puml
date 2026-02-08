@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Knowledge Management - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)
+  Capability: Knowledge Management
+  Feature: Knowledge Management
+
+  **Plane ownership:** Definition-plane support (pattern/rationale as deliverables);
+  learns from Description-plane outcomes/decisions.
+
+  **Requires capabilities:** Versioning+Provenance, Evidence+State substrate,
+  Semantic Intelligence (similarity/recommendations), Security+Access.
+
+  **Hard dependencies:** KB/pattern repository, decision log, LLM (for retrieval+generation).
+
+  **Feasibility tier:** NEXT
+  (main risk: governance of the knowledge base + provenance quality).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

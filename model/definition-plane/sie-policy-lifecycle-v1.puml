@@ -71,8 +71,7 @@ state "Policy Lifecycle" as PolicyLifecycle {
   }
   note right of FEASIBILITY_ASSESSMENT
     **Pre-Integration Viability Check**
-    Supervisor (for Policy) or
-    Operator (for BehavioralRule)
+    Supervisor (for Policy and BehavioralRule)
     assesses whether they CAN
     operationalize/implement the constraint.
 
@@ -220,7 +219,8 @@ note as PolicyTransitions
 
   **Feasibility Assessment Roles:**
   - **Policy → Supervisor** assesses "Can I OPERATIONALIZE this?"
-  - **BehavioralRule → Operator** assesses "Can I EXIST to REALIZE this?"
+  - **BehavioralRule → Supervisor** assesses "Can this rule be realized safely?"
+    (Operators provide operational feedback evidence, but do not gate feasibility.)
 
   **Governance Hierarchy:**
   - Governor OWNS Policy

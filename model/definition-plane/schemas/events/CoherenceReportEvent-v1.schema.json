@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/CoherenceReportEvent.json",
+  "title": "CoherenceReportEvent (Events v1)",
+  "description": "Coherence assessment report.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report", "publishedAt"],
+  "properties": {
+    "report": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "publishedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

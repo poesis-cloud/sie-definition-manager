@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/IncoherenceDetectedEvent.json",
+  "title": "IncoherenceDetectedEvent (Events v1)",
+  "description": "A coherence workflow detected incoherence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["incoherenceType", "scope", "detectedAt"],
+  "properties": {
+    "incoherenceType": { "type": "string" },
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "detectedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

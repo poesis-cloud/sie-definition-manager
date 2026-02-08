@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Multi-Stakeholder Views - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-1 Trustworthy Governance (audit + explain)
+  Capability: Multi-Stakeholder Views
+  Feature: Multi-Stakeholder Views
+
+  **Plane ownership:** Output contracts across planes.
+  SIE provides **view models + query constraints**; rendering belongs to domain apps.
+
+  **Requires capabilities:** Security+Access (role-scoped queries), Provenance+Lineage,
+  Explanation Engine (for narrative), Decision Intelligence (for audit), Temporal/Graph (for metrics).
+
+  **Hard dependencies:** CSDM repo, dashboard API, view renderer, (optional) LLM.
+
+  **Feasibility tier:** NOW
+  for “contracts + query layer”; UI/dashboard rendering is OUT-OF-SIE scope.
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

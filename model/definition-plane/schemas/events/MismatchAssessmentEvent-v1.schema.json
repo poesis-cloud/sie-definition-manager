@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/MismatchAssessmentEvent.json",
+  "title": "MismatchAssessmentEvent (Events v1)",
+  "description": "Structured assessment produced from mismatches + feedback.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["assessmentId", "scope", "diagnosisSummary", "assessedAt"],
+  "properties": {
+    "assessmentId": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "diagnosisSummary": { "type": "string" },
+    "candidateRuleId": {
+      "description": "Optional candidate BehavioralRule id produced during assessment.",
+      "type": ["string", "null"],
+      "format": "uuid"
+    },
+    "assessedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

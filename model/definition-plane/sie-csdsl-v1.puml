@@ -113,6 +113,10 @@ frame "CD - SIE CSDSL (Canonical Systemic Domain Specific Language) - v1" {
     - No type annotations clutter the CSDSL AST
 
     **Where CSDSL expressions appear in CSDM:**
+    The CSDM attributes below are modeled as `String`, but their semantic value
+    is a JSON-serialized CSDSL AST node.
+    The right-hand side denotes the expected AST node type.
+
     - Policy.applicabilityConditions → LogicalExpression
     - Policy.constraint → ConstraintExpression
     - BehavioralRule.applicabilityConditions → LogicalExpression

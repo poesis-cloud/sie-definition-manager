@@ -1,0 +1,238 @@
+@startuml sie-analytics-capabilities-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+frame "PD - SIE - Analytics Feature Capability Map - v1" {
+
+  note as ScopeNote
+    **Purpose**
+    Maps the analytics *features* (as defined in `sie-analytics-features-v1`) to
+    the required **SIE capabilities** to implement them coherently.
+
+    **Related views**
+    - Market prioritization: `sie-analytics-market-value-v1`
+    - Aggregated evaluation: `sie-analytics-feature-evaluation-v1`
+
+    **Systemics mapping (closed-loop)**
+    - Description Plane = Sensor + Comparator (observations, evaluations, evidence)
+    - Definition Plane  = Controller (policies/constraints/rules + decisions)
+    - Remediation Plane = Actuator substrate (execution/playbooks/orchestration)
+
+    **Coherence rule**
+    Any “analytics” output becomes *actionable* only when it is compiled into
+    Definition-plane deliverables (constraints/rules) and realized through the
+    Remediation plane.
+  end note
+
+  ' ============================================================
+  ' CROSS-CUTTING FOUNDATIONS (capabilities)
+  ' ============================================================
+
+  package "Foundations" as CapFoundations {
+
+    package "Evidence + State Substrate" as CapEvidence {
+      note as CapEvidenceNote
+        Required for: Temporal Analytics, Decision Intelligence,
+        Explanation Engine, Learning From Decisions.
+
+        - Event archetypes + schema registry
+        - Evidence storage tiering (raw/derived/snapshots)
+        - State snapshotting + replay inputs
+        - Data minimization + redaction at ingest
+      end note
+    }
+
+    package "Versioning + Provenance" as CapProvenance {
+      note as CapProvNote
+        Required for: Decision Logging, Audit Trail,
+        Policy Versioning, “why/how” explanations.
+
+        - Constraint / policy version graph (semantic versioning)
+        - Provenance: who/what produced evidence + when
+        - Lineage: decision -> constraints -> evidence -> traces
+      end note
+    }
+
+    package "Instrumentation + Trace" as CapTrace {
+      note as CapTraceNote
+        Required for: Evaluation Trace, Debuggable Logs,
+        Counterfactual Reasoning, Causal Attribution.
+
+        - Deterministic evaluation traces
+        - Intermediate values capture (bounded)
+        - Replay with fixed versions + fixed evidence
+      end note
+    }
+
+    package "Security + Access" as CapSecurity {
+      note as CapSecNote
+        Required for: Multi-stakeholder views, audit/evidence,
+        knowledge base, LLM grounding.
+
+        - Row/tenant isolation
+        - Field-level redaction rules
+        - Role-based query constraints (view contracts)
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' ANALYTICS ENGINES (capabilities)
+  ' ============================================================
+
+  package "Analytics Engines" as CapEngines {
+
+    package "CSDSL Runtime" as CapCsdsl {
+      note as CapCsdslNote
+        - Type system + compilation
+        - Fast evaluation + short-circuit
+        - Instrumentation hooks for trace
+      end note
+    }
+
+    package "Formal Methods" as CapFormal {
+      note as CapFormalNote
+        Required for: Conflict Detection, Coherence Validation,
+        Counterfactual “minimal change”.
+
+        - SMT solving on normalized CSDSL AST
+        - Proof/unsat cores for explanations
+      end note
+    }
+
+    package "Graph Reasoning" as CapGraph {
+      note as CapGraphNote
+        Required for: Dependency Traversal, Blast Radius,
+        Coupling Metrics, Critical Paths.
+
+        - Graph store + traversal queries
+        - Derived metrics + caching
+      end note
+    }
+
+    package "Temporal + Forecasting" as CapTemporal {
+      note as CapTemporalNote
+        Required for: Trend/Drift/Anomaly detection.
+
+        - Time-series aggregation
+        - Forecast models (stat/ML) + confidence
+      end note
+    }
+
+    package "Semantic Intelligence" as CapSemantic {
+      note as CapSemanticNote
+        Required for: NL translation, documentation, similarity.
+
+        - LLM integration + prompt contracts
+        - Embeddings + retrieval (RAG)
+        - Output validation against CSDSL types + formal checks
+      end note
+    }
+
+    package "Explanation + Counterfactual" as CapExplain {
+      note as CapExplainNote
+        Requires CapTrace + CapFormal.
+
+        - Attribution (necessary/sufficient)
+        - Counterfactual minimal change synthesis
+        - Stakeholder-specific renderings (via view contracts)
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' GOVERNANCE + ACTUATION (capabilities)
+  ' ============================================================
+
+  package "Governance + Actuation" as CapGovernance {
+
+    package "Definition Deliverable Compiler" as CapCompiler {
+      note as CapCompilerNote
+        Bridges analytics into the closed-loop:
+        - produces policies/constraints/rules deliverables
+        - validates operationalizability
+        - emits activable artifacts for Remediation
+      end note
+    }
+
+    package "Actuation Orchestration" as CapActuation {
+      note as CapActNote
+        Required for: Auto-healing, remediation,
+        escalation workflows.
+
+        - Orchestrator connectors
+        - Ticketing + exception workflow integration
+        - Actuation gating + rollback
+      end note
+    }
+
+    package "Assurance + Safety" as CapSafety {
+      note as CapSafetyNote
+        Prevents incoherent autonomy:
+        - automation eligibility policy
+        - human approval gates (when required)
+        - confidence thresholds + fallbacks
+        - auditability of LLM outputs and actions
+      end note
+    }
+  }
+
+  ' ============================================================
+  ' COMPLEXITY / SCOPE FLAGS
+  ' ============================================================
+
+  note as FlagNote
+    **Potentially out-of-scope or high integration complexity**
+
+    - "Map code change to business outcome": requires external SDLC + domain
+      mapping adapters (typically provided by a domain app like ITIP).
+
+    - "View Renderer" and dashboards: SIE should provide **view models + query
+      contracts**; rendering/UI belongs to domain applications.
+
+    - Tamper-evidence / chain-of-custody / e-discovery: feasible but likely an
+      integration with specialized storage/ledger; treat as optional capability.
+
+    - Emergence detection claims: treat as heuristic + monitoring; avoid
+      over-promising “unpredictable behavior” detection without bounded signals.
+  end note
+
+  ' ============================================================
+  ' DEPENDENCIES (capability-level)
+  ' ============================================================
+
+  CapExplain ..> CapTrace : requires
+  CapExplain ..> CapFormal : requires
+  CapSemantic ..> CapCsdsl : validates
+  CapFormal ..> CapCsdsl : uses AST
+
+  CapTemporal ..> CapEvidence : consumes
+  CapGraph ..> CapEvidence : consumes
+  CapTrace ..> CapEvidence : consumes
+  CapProvenance ..> CapEvidence : anchors
+
+  CapCompiler ..> CapCsdsl : compiles
+  CapActuation ..> CapCompiler : consumes
+  CapSafety ..> CapActuation : gates
+  CapSafety ..> CapSemantic : constrains
+}
+
+@enduml

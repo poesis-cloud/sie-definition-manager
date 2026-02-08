@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Semantic Intelligence - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)
+  Capability: Semantic Intelligence
+  Feature: Semantic Intelligence
+
+  **Plane ownership:** Definition-plane support capability (controller assist);
+  uses Description-plane evidence only for grounding inputs.
+
+  **Requires capabilities:** Semantic Intelligence, CSDSL Runtime, Security+Access,
+  Provenance+Lineage, LLM Output Assurance.
+
+  **Hard dependencies:** LLM, KB (retrieval), CSDSL engine.
+
+  **Feasibility tier:** NEXT
+  (risk is primarily: quality + assurance of generated/translated artifacts).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/ActuationType.json",
+  "title": "ActuationType (CSDM v1)",
+  "type": "string",
+  "enum": ["CREATION", "MODIFICATION", "DELETION", "ACQUISITION"]
+}

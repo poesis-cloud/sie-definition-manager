@@ -1,0 +1,621 @@
+@startuml sie-emergence-governance-instances-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+frame "CD - SIE - Governance - Emergence Instances - v1" {
+
+  note as InitNote
+    **Initialization (SIE instance bootstrap)**
+
+    This diagram specifies the default, auto-defined *governance* definitions
+    used for Emergence (definitional change / new primitives / new envelopes).
+
+    At initialization time, SIE seeds these definitions in the Definition Plane,
+    and binds the Governor controller to exactly one BehavioralRule (CSDM invariant).
+
+    **Mapping to feature backlog**
+    - EN-3 Safe automation runway: Approval gates + exception workflow; rollback + safe defaults
+    - E-3 Constraint Synthesis / Policy Translation: produces new primitives / new envelopes
+    - E-1 Decision Intelligence: decision logging + audit trail are mandatory evidence for Emergence
+
+    **Systemics mapping**: Emergence ≈ morphogenesis / structural-change control
+    (third-order regulation), owned by Governor.
+  end note
+
+  ' ------------------------------------------------------------
+  ' Primitives grouped by type
+  ' ------------------------------------------------------------
+
+  package "EventArchetypes" {
+
+    object "EA-EMG-001\nEmergenceTriggerEvent" as EA_EmergenceTriggerEvent <<EventArchetype>> {
+      name = "EmergenceTriggerEvent"
+    }
+
+    object "EA-EMG-002\nEmergenceCaseOpenedEvent" as EA_EmergenceCaseOpenedEvent <<EventArchetype>> {
+      name = "EmergenceCaseOpenedEvent"
+    }
+
+    object "EA-EMG-003\nDecisionRequestEvent" as EA_DecisionRequestEvent <<EventArchetype>> {
+      name = "DecisionRequestEvent"
+    }
+
+    object "EA-EMG-004\nDecisionResponseEvent" as EA_DecisionResponseEvent <<EventArchetype>> {
+      name = "DecisionResponseEvent"
+    }
+
+    object "EA-EMG-005\nApprovalRequiredEvent" as EA_ApprovalRequiredEvent <<EventArchetype>> {
+      name = "ApprovalRequiredEvent"
+    }
+
+    object "EA-EMG-006\nEmergenceApprovedEvent" as EA_EmergenceApprovedEvent <<EventArchetype>> {
+      name = "EmergenceApprovedEvent"
+    }
+
+    object "EA-EMG-007\nDefinitionChangedEvent" as EA_DefinitionChangedEvent <<EventArchetype>> {
+      name = "DefinitionChangedEvent"
+    }
+
+    object "EA-EMG-008\nPrimitiveDeprecateAndCreateEvent" as EA_PrimitiveDeprecateAndCreateEvent <<EventArchetype>> {
+      name = "PrimitiveDeprecateAndCreateEvent"
+    }
+
+  }
+
+  package "StateObjectArchetypes" {
+
+    object "SOA-EMG-001\nEmergenceCase" as SOA_EMG_001 <<StateObjectArchetype>> {
+      name = "EmergenceCase"
+    }
+
+    object "SOA-EMG-002\nEmergenceProposal" as SOA_EMG_002 <<StateObjectArchetype>> {
+      name = "EmergenceProposal"
+    }
+
+    object "SOA-EMG-003\nPrimitiveChange" as SOA_EMG_003 <<StateObjectArchetype>> {
+      name = "PrimitiveChange"
+    }
+
+  }
+
+  package "Policies" {
+
+    object "FP-META-001\nEmergence Trigger Policy" as FP_META_001 <<FunctionalPolicy>> {
+      name = "EmergenceTriggerPolicy"
+      status = PUBLISHED
+      scopedPurposes = [PURP_EMG_001]
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of FP_META_001
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "ComparisonExpression",
+          "operator": "IN",
+          "left": {
+            "type": "StateObjectArchetypeReferenceExpression",
+            "name": "EmergenceCase",
+            "propertyPath": ["openedBy", "type"]
+          },
+          "right": {
+            "type": "LiteralExpression",
+            "value": [
+              "MISMATCH_DETECTED",
+              "COHERENCE_ESCALATION",
+              "USER_REQUEST",
+              "OBSERVATION_RECEIVED",
+              "LLM_PROPOSAL",
+              "SCHEDULED_ANALYSIS"
+            ]
+          }
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      emergence.openedBy.type MUST be one of:
+      [MISMATCH_DETECTED, COHERENCE_ESCALATION,
+       USER_REQUEST, OBSERVATION_RECEIVED,
+       LLM_PROPOSAL, SCHEDULED_ANALYSIS]
+    end note
+
+    object "VP-META-001\nEmergence Confidence Policy" as VP_META_001 <<ViabilityPolicy>> {
+      name = "EmergenceConfidencePolicy"
+      status = PUBLISHED
+      scopedCapacities = [CAP_EMG_001]
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of VP_META_001
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "OrExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EmergenceProposal",
+                "propertyPath": ["confidence"]
+              },
+              "right": { "type": "LiteralExpression", "value": 0.7 }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EmergenceProposal",
+                "propertyPath": ["decisionMode"]
+              },
+              "right": { "type": "LiteralExpression", "value": "MANUAL" }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      emergence.proposal.confidence >= 0.7
+      OR emergence.decision.mode == MANUAL
+    end note
+
+    object "SP-META-001\nPrimitive Immutability Policy" as SP_META_001 <<StructuralPolicy>> {
+      name = "PrimitiveImmutabilityPolicy"
+      status = PUBLISHED
+      scopedComponents = (see note)
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of SP_META_001
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "OrExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "PrimitiveChange",
+                "propertyPath": ["primitiveStatus"]
+              },
+              "right": { "type": "LiteralExpression", "value": "DRAFT" }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "PrimitiveChange",
+                "propertyPath": ["changedAttributesCount"]
+              },
+              "right": { "type": "LiteralExpression", "value": 0 }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      primitive.status != DRAFT IMPLIES
+      primitive.attributes ARE IMMUTABLE
+    end note
+
+  }
+
+  package "ExternalActors" {
+
+    object "Decision Owner" as DecisionOwner <<Human>> {
+      name = "DecisionOwner"
+    }
+
+  }
+
+  package "ControllerMechanisms" {
+
+    object "GOV-EMG-001\nGovernorControllerMechanism\n(Emergence Governor)" as GOV_EMG_001 <<GovernorControllerMechanism>> {
+      implementedBehavioralRule = BR_EMG_001
+    }
+
+  }
+
+  package "Purposes" {
+
+    object "PURP-EMG-001\nEmergence Purpose" as PURP_EMG_001 <<Purpose>> {
+      name = "EmergencePurpose"
+      description = "Second-order definitional change. Create or evolve policies, rules, and other primitives when the current envelope is insufficient (new requirements / purpose shifts)."
+    }
+
+  }
+
+  package "Functions" {
+
+    object "FN-EMG-001\nEmergence Casework" as FN_EMG_001 <<Function>> {
+      name = "EmergenceCasework"
+      purpose = PURP_EMG_001
+    }
+
+  }
+
+  package "Capacities" {
+
+    object "CAP-EMG-001\nDefinition Change Capacity" as CAP_EMG_001 <<Capacity>> {
+      name = "DefinitionChangeCapacity"
+      description = "Capacity to introduce definitional changes safely (new primitives, new constraints) while preserving governance invariants."
+    }
+
+  }
+
+  package "Modalities" {
+
+    object "MOD-EMG-001\nDefinition Modality" as MOD_EMG_001 <<Modality>> {
+      name = "DefinitionChange"
+      capacity = CAP_EMG_001
+    }
+
+  }
+
+  package "BehavioralRules" {
+
+    object "BR-EMG-001\nEmergence BehavioralRule" as BR_EMG_001 <<BehavioralRule>> {
+      name = "EmergenceBehavioralRule"
+      status = PUBLISHED
+
+      applyingFunctionalPolicies = [FP_META_001]
+      applyingViabilityPolicies = [VP_META_001]
+      applyingStructuralPolicies = [SP_META_001]
+
+      scopedFunctions = [FN_EMG_001]
+      scopedModalities = [MOD_EMG_001]
+
+      triggeringReceptor = R_EMG_001
+
+    applicabilityConditions = (see note)
+
+    iterationConditions = (see note)
+
+      controlSequence = [BRC_EMG_001, BRC_EMG_002, BRC_EMG_003, BRC_EMG_004, BRC_EMG_005, BRC_EMG_006]
+    }
+
+  }
+
+  package "Receptors" {
+
+    object "R-EMG-001\nEmergence Trigger Receptor" as R_EMG_001 <<Receptor>> {
+      name = "EmergenceTriggerReceptor"
+      receivedEventArchetype = EA_EmergenceTriggerEvent
+    }
+
+    object "R-EMG-002\nDecision Response Receptor" as R_EMG_002 <<Receptor>> {
+      name = "DecisionResponseReceptor"
+      receivedEventArchetype = EA_DecisionResponseEvent
+    }
+
+    object "R-EMG-REMED-001\nEmergence Case Intake Receptor" as R_EMG_REMED_001 <<Receptor>> {
+      name = "EmergenceCaseIntakeReceptor"
+      receivedEventArchetype = EA_EmergenceCaseOpenedEvent
+    }
+
+    object "R-DO-001\nDecision Request Inbox" as R_DO_001 <<Receptor>> {
+      name = "DecisionRequestInboxReceptor"
+      receivedEventArchetype = EA_DecisionRequestEvent
+    }
+
+    object "R-EMG-REMED-003\nDefinition Change Intake Receptor" as R_EMG_REMED_003 <<Receptor>> {
+      name = "DefinitionChangeIntakeReceptor"
+      receivedEventArchetype = EA_DefinitionChangedEvent
+    }
+
+    object "R-EMG-REMED-004\nEmergence Approved Intake Receptor" as R_EMG_REMED_004 <<Receptor>> {
+      name = "EmergenceApprovedIntakeReceptor"
+      receivedEventArchetype = EA_EmergenceApprovedEvent
+    }
+
+    object "R-DO-002\nApproval Required Inbox" as R_DO_002 <<Receptor>> {
+      name = "ApprovalRequiredInboxReceptor"
+      receivedEventArchetype = EA_ApprovalRequiredEvent
+    }
+
+    object "R-EMG-REMED-006\nPrimitive Change Intake Receptor" as R_EMG_REMED_006 <<Receptor>> {
+      name = "PrimitiveChangeIntakeReceptor"
+      receivedEventArchetype = EA_PrimitiveDeprecateAndCreateEvent
+    }
+
+  }
+
+  package "Effectors" {
+
+    object "EFF-EMG-001\nCase Opening Effector" as EFF_EMG_001 <<Effector>> {
+      name = "EmergenceCaseEffector"
+      producedEventArchetype = EA_EmergenceCaseOpenedEvent
+    }
+
+    object "EFF-EMG-002\nDecision Request Effector" as EFF_EMG_002 <<Effector>> {
+      name = "DecisionRequestEffector"
+      producedEventArchetype = EA_DecisionRequestEvent
+    }
+
+    object "EFF-EMG-003\nDefinition Publication Effector" as EFF_EMG_003 <<Effector>> {
+      name = "DefinitionPublicationEffector"
+      producedEventArchetype = EA_DefinitionChangedEvent
+    }
+
+    object "EFF-EMG-004\nAuto-Approval Effector" as EFF_EMG_004 <<Effector>> {
+      name = "EmergenceAutoApprovalEffector"
+      producedEventArchetype = EA_EmergenceApprovedEvent
+    }
+
+    object "EFF-EMG-005\nApproval Required Effector" as EFF_EMG_005 <<Effector>> {
+      name = "ApprovalRequiredEffector"
+      producedEventArchetype = EA_ApprovalRequiredEvent
+    }
+
+    object "EFF-EMG-006\nDeprecate+Create Effector" as EFF_EMG_006 <<Effector>> {
+      name = "PrimitiveDeprecateAndCreateEffector"
+      producedEventArchetype = EA_PrimitiveDeprecateAndCreateEvent
+    }
+
+    object "EFF-EMG-TRG-001\nEmergence Trigger Emitter" as EFF_EMG_TRG_001 <<Effector>> {
+      name = "EmergenceTriggerEmitter"
+      producedEventArchetype = EA_EmergenceTriggerEvent
+    }
+
+    object "EFF-DO-001\nDecision Response Effector" as EFF_DO_001 <<Effector>> {
+      name = "DecisionResponseEffector"
+      producedEventArchetype = EA_DecisionResponseEvent
+    }
+
+  }
+
+  package "BehavioralRuleControls" {
+
+    object "BRC-EMG-001\nOpen Emergence Case" as BRC_EMG_001 <<BehavioralRuleControl>> {
+      name = "OpenEmergenceCaseControl"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_001
+      feedbackReceptor = null
+    }
+
+    object "BRC-EMG-002\nRequest Decision" as BRC_EMG_002 <<BehavioralRuleControl>> {
+      name = "DecisionRequestControl"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_002
+      feedbackReceptor = R_EMG_002
+    }
+
+    object "BRC-EMG-003\nPublish New Definitions" as BRC_EMG_003 <<BehavioralRuleControl>> {
+      name = "PublishDefinitionControl"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_003
+      feedbackReceptor = null
+    }
+
+    object "BRC-EMG-004\nAuto-Approve High Confidence" as BRC_EMG_004 <<BehavioralRuleControl>> {
+      name = "AutoApproveHighConfidence"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_004
+      feedbackReceptor = null
+    }
+
+    object "BRC-EMG-005\nEscalate Low Confidence" as BRC_EMG_005 <<BehavioralRuleControl>> {
+      name = "EscalateLowConfidence"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_005
+      feedbackReceptor = null
+    }
+
+    object "BRC-EMG-006\nDeprecate Before Create" as BRC_EMG_006 <<BehavioralRuleControl>> {
+      name = "DeprecateBeforeCreate"
+      applyingRule = BR_EMG_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_EMG_006
+      feedbackReceptor = null
+    }
+
+  }
+
+  package "Interactions" {
+
+    object "INT-EMG-TRG-001\nEmergenceTrigger Dispatch" as INT_EMG_TRG_001 <<Interaction>> {
+      name = "EmergenceTriggerDispatch"
+      effector = EFF_EMG_TRG_001
+      receptor = R_EMG_001
+    }
+
+    object "INT-EMG-001\nCase Opened" as INT_EMG_001 <<Interaction>> {
+      name = "EmergenceCaseOpenedDispatch"
+      effector = EFF_EMG_001
+      receptor = R_EMG_REMED_001
+    }
+
+    object "INT-EMG-002\nDecision Request" as INT_EMG_002 <<Interaction>> {
+      name = "DecisionRequestDispatch"
+      effector = EFF_EMG_002
+      receptor = R_DO_001
+    }
+
+    object "INT-EMG-003\nDecision Response" as INT_EMG_003 <<Interaction>> {
+      name = "DecisionResponseDispatch"
+      effector = EFF_DO_001
+      receptor = R_EMG_002
+    }
+
+    object "INT-EMG-004\nDefinition Changed" as INT_EMG_004 <<Interaction>> {
+      name = "DefinitionChangedDispatch"
+      effector = EFF_EMG_003
+      receptor = R_EMG_REMED_003
+    }
+
+    object "INT-EMG-005\nEmergence Approved" as INT_EMG_005 <<Interaction>> {
+      name = "EmergenceApprovedDispatch"
+      effector = EFF_EMG_004
+      receptor = R_EMG_REMED_004
+    }
+
+    object "INT-EMG-006\nApproval Required" as INT_EMG_006 <<Interaction>> {
+      name = "ApprovalRequiredDispatch"
+      effector = EFF_EMG_005
+      receptor = R_DO_002
+    }
+
+    object "INT-EMG-007\nDeprecate+Create" as INT_EMG_007 <<Interaction>> {
+      name = "PrimitiveDeprecateAndCreateDispatch"
+      effector = EFF_EMG_006
+      receptor = R_EMG_REMED_006
+    }
+
+  }
+
+  ' Relationships
+  ' ------------------------------------------------------------
+
+  GOV_EMG_001 --> BR_EMG_001 : implements
+
+  BR_EMG_001 --> FP_META_001 : applies
+  BR_EMG_001 --> VP_META_001 : applies
+  BR_EMG_001 --> SP_META_001 : applies
+
+  BR_EMG_001 --> R_EMG_001 : triggeringReceptor
+
+  FN_EMG_001 --> PURP_EMG_001 : serves
+  MOD_EMG_001 --> CAP_EMG_001 : constitutes
+
+  BR_EMG_001 *-- BRC_EMG_001 : has
+  BRC_EMG_001 --> EFF_EMG_001 : effector
+
+  INT_EMG_TRG_001 --> EFF_EMG_TRG_001 : effector
+  INT_EMG_TRG_001 --> R_EMG_001 : receptor
+
+  INT_EMG_001 --> EFF_EMG_001 : effector
+  INT_EMG_001 --> R_EMG_REMED_001 : receptor
+
+  INT_EMG_002 --> EFF_EMG_002 : effector
+  INT_EMG_002 --> R_DO_001 : receptor
+
+  INT_EMG_003 --> EFF_DO_001 : effector
+  INT_EMG_003 --> R_EMG_002 : receptor
+
+  INT_EMG_004 --> EFF_EMG_003 : effector
+  INT_EMG_004 --> R_EMG_REMED_003 : receptor
+
+  INT_EMG_005 --> EFF_EMG_004 : effector
+  INT_EMG_005 --> R_EMG_REMED_004 : receptor
+
+  INT_EMG_006 --> EFF_EMG_005 : effector
+  INT_EMG_006 --> R_DO_002 : receptor
+
+  INT_EMG_007 --> EFF_EMG_006 : effector
+  INT_EMG_007 --> R_EMG_REMED_006 : receptor
+
+  BR_EMG_001 *-- BRC_EMG_002 : has
+  BRC_EMG_002 --> EFF_EMG_002 : effector
+  EFF_EMG_002 ..> DecisionOwner : requests
+  BRC_EMG_002 --> R_EMG_002 : feedbackReceptor
+
+  BR_EMG_001 *-- BRC_EMG_003 : has
+  BRC_EMG_003 --> EFF_EMG_003 : effector
+
+  BR_EMG_001 *-- BRC_EMG_004 : has
+  BRC_EMG_004 --> EFF_EMG_004 : effector
+
+  BR_EMG_001 *-- BRC_EMG_005 : has
+  BRC_EMG_005 --> EFF_EMG_005 : effector
+
+  BR_EMG_001 *-- BRC_EMG_006 : has
+  BRC_EMG_006 --> EFF_EMG_006 : effector
+
+  BR_EMG_001 *-- BRC_EMG_004 : has
+  BR_EMG_001 *-- BRC_EMG_005 : has
+  BR_EMG_001 *-- BRC_EMG_006 : has
+
+}
+
+@enduml

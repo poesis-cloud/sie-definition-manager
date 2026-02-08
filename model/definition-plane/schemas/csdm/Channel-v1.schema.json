@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/Channel.json",
+  "title": "Channel (CSDM v1)",
+  "description": "Structural carrier mediating interactions between exactly two interfaces.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name", "protocol", "interfaceA", "interfaceB"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "protocol": { "type": "string" },
+    "interactions": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "interfaceA": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "interfaceB": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" }
+  }
+}

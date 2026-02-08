@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/EmergenceApprovedEvent.json",
+  "title": "EmergenceApprovedEvent (Events v1)",
+  "description": "Emergence approval completed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scope", "approvedAt"],
+  "properties": {
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "approvedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

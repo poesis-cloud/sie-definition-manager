@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/DecisionRequestEvent.json",
+  "title": "DecisionRequestEvent (Events v1)",
+  "description": "Request decision/approval from external Decision Owner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proposal", "evidencePointers", "requestedAt"],
+  "properties": {
+    "proposal": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "evidencePointers": {
+      "description": "URI references.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requestedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

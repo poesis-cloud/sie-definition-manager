@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/CoherenceRequestEvent.json",
+  "title": "CoherenceRequestEvent (Events v1)",
+  "description": "Request to run coherence workflows.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["phase", "scope", "requestedAt"],
+  "properties": {
+    "phase": {
+      "type": "string",
+      "enum": ["CHECK", "FEASIBILITY"]
+    },
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "requestedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

@@ -80,6 +80,190 @@ note over Supervisor, Governor
   - Coherence: meta-governance checks + resolution dispatch → owned by Governor.
 end note
 
+note over Governor, Supervisor
+  **Mapping to SAFe governance functional items (feature folder)**
+
+  The systemic processes below are the operational form of the governance backlog:
+
+  - **E-1 Trustworthy Governance (audit + explain)**
+    - Decision Intelligence: Decision Logging, Audit Trail, Evidence Preservation, Compliance Reporting
+    - Explanation Engine: Evaluation Trace + Decision Explanation (governable traces)
+    - Multi-Stakeholder Views: Governance View (renders the same Definition artifacts)
+
+  - **EN-1 Evidence/Trace/Provenance runway**
+    - Retention + Minimization policies
+    - Replayable evaluation inputs
+
+  - **E-3 Policy & Constraint Evolution (coherent definitions)**
+    - Coherence Validation / Conflict Detection / Constraint Synthesis
+    - Rule Operationalization + Policy Simulation (inside the envelope)
+
+  - **EN-3 Safe automation runway / E-4 Safe Remediation Automation**
+    - Automation eligibility policies
+    - Approval gates + exception workflow
+    - Rollback + safe defaults / Guardrails
+end note
+
+note over SDM
+  **Policy instances referenced by systemic processes (Definition Plane)**
+
+  This process diagram references the same policy instances defined in:
+  - governance/governance-instances/sie-homeostasis-governance-instances-v1.puml
+  - governance/governance-instances/sie-adaptation-governance-instances-v1.puml
+  - governance/governance-instances/sie-coherence-governance-instances-v1.puml
+  - governance/governance-instances/sie-emergence-governance-instances-v1.puml
+
+  Homeostasis
+  - **FP-HOM-001 ConvergencePolicy**
+    - Homeostasis attempt is considered converged when deviation error reaches the
+      declared tolerance and remains stable for a bounded window.
+    - If not converged within the window (or oscillating/unstable), OperationalFeedback
+      MUST surface variety hints and/or failure modes for Coherence/Adaptation dispatch.
+
+  Evidence runway (meta-governance)
+  - **VP-META-004 EvidenceMinimizationPolicy**
+    - description.retention.preferPointers == true
+    - description.retention.redactSensitiveFields == true
+    - description.retention.storeDerivedEvidenceLongerThanRaw == true
+  - **SP-META-003 EvidenceRetentionPolicy**
+    - RAW window >= max(mismatch.persistenceWindow, control.diagnosisWindow, adaptation.outcomeEvaluationWindow)
+    - RAW boundedUniverse MUST be defined
+    - DERIVED window >= max(adaptation.outcomeEvaluationWindow, emergence.caseEvidenceWindow)
+    - SNAPSHOT window >= governance.auditWindow AND replayable == true
+    - Guardrail: Description is not a full State mirror; RAW strategy IN [POINTERS, SAMPLED, BOUNDED]
+
+  Adaptation (within envelope)
+  - **FP-META-003 FeasibilityAssessmentPolicy**
+    - constraint.status == APPROVED IMPLIES feasibility assessment MUST be performed BEFORE status == PUBLISHED
+  - **VP-META-003 VarietyValidationPolicy**
+    - feasibility.outcome == NOT_FEASIBLE WHEN mechanism.variety < constraint.variety
+
+  Coherence (meta-governance)
+  - **FP-META-002 IncoherenceDetectionPolicy**
+    - coherence_check MUST detect:
+      [LOGICAL_CONTRADICTION, CIRCULAR_DEPENDENCY, ORPHANED_CONSTRAINT, STALE_REFERENCE]
+    - CSDSL (applicabilityConditions):
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+    - CSDSL (constraint):
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "AndExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "LOGICAL_CONTRADICTION" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "CIRCULAR_DEPENDENCY" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "ORPHANED_CONSTRAINT" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": { "type": "LiteralExpression", "value": "STALE_REFERENCE" },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "CoherenceCheckCoverageReport",
+                "propertyPath": ["implementedDetectors"]
+              }
+            }
+          ]
+        }
+      }
+  - **VP-META-002 ResolutionTimelinessPolicy**
+    - incoherence.severity == CRITICAL IMPLIES resolution.proposed_within <= 1h
+    - CSDSL (applicabilityConditions):
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+    - CSDSL (constraint):
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "OrExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "NOT_EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "ResolutionTimelinessMetric",
+                "propertyPath": ["severity"]
+              },
+              "right": { "type": "LiteralExpression", "value": "CRITICAL" }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "LESS_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "ResolutionTimelinessMetric",
+                "propertyPath": ["proposedWithinSeconds"]
+              },
+              "right": { "type": "LiteralExpression", "value": 3600 }
+            }
+          ]
+        }
+      }
+  - **SP-META-002 GraphConsistencyPolicy**
+    - neo4j.graph MUST be CDC-synchronized with postgresql.source_of_truth within 30s
+    - CSDSL (applicabilityConditions):
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+    - CSDSL (constraint):
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "ComparisonExpression",
+          "operator": "LESS_OR_EQUAL",
+          "left": {
+            "type": "StateObjectArchetypeReferenceExpression",
+            "name": "GraphSyncMetric",
+            "propertyPath": ["lagSeconds"]
+          },
+          "right": { "type": "LiteralExpression", "value": 30 }
+        }
+      }
+
+  Emergence (definitional change)
+  - **FP-META-001 EmergenceTriggerPolicy**
+    - emergence.openedBy.type MUST be one of:
+      [MISMATCH_DETECTED, COHERENCE_ESCALATION, USER_REQUEST, OBSERVATION_RECEIVED, LLM_PROPOSAL, SCHEDULED_ANALYSIS]
+  - **VP-META-001 EmergenceConfidencePolicy**
+    - emergence.proposal.confidence >= 0.7 OR emergence.decision.mode == MANUAL
+  - **SP-META-001 PrimitiveImmutabilityPolicy**
+    - primitive.status != DRAFT IMPLIES primitive.attributes ARE IMMUTABLE
+end note
+
 ' ============================================================
 ' END-TO-END FLOW
 ' ============================================================

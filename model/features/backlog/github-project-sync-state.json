@@ -1,0 +1,812 @@
+{
+  "mapping": {
+    "EN-1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBERg",
+      "title": "EN-1 Evidence, Trace, Provenance runway",
+      "kind": "EnablerEpic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGMw"
+    },
+    "EN-1/evidence-state-substrate": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBERs",
+      "title": "Evidence + State Substrate",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGM0"
+    },
+    "EN-1/instrumentation-trace": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBESE",
+      "title": "Instrumentation + Trace",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGM4"
+    },
+    "EN-1/versioning-provenance": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBESY",
+      "title": "Versioning + Provenance",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGM8"
+    },
+    "EN-1/security-access": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBESk",
+      "title": "Security + Access",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNA"
+    },
+    "EN-1/retention-minimization-policies": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBES0",
+      "title": "Retention + Minimization policies",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNI"
+    },
+    "EN-1/replayable-evaluation-inputs": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBES8",
+      "title": "Replayable evaluation inputs",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNM"
+    },
+    "EN-2": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBETI",
+      "title": "EN-2 Constraint runtime + formal validation runway",
+      "kind": "EnablerEpic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNQ"
+    },
+    "EN-2/csdsl-runtime": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBETg",
+      "title": "CSDSL Runtime",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNU"
+    },
+    "EN-2/formal-methods-smt": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBETs",
+      "title": "Formal Methods (SMT)",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNY"
+    },
+    "EN-2/normalized-csdsl-ast-solver-interface": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBET4",
+      "title": "Normalized CSDSL AST + solver interface",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNc"
+    },
+    "EN-2/unsat-core-explanations": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEUI",
+      "title": "Unsat-core explanations",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNk"
+    },
+    "EN-3": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEUk",
+      "title": "EN-3 Safe automation runway",
+      "kind": "EnablerEpic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNo"
+    },
+    "EN-3/assurance-safety": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEU0",
+      "title": "Assurance + Safety",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNs"
+    },
+    "EN-3/definition-deliverable-compiler": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEU8",
+      "title": "Definition Deliverable Compiler",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGNw"
+    },
+    "EN-3/actuation-orchestration": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEVM",
+      "title": "Actuation Orchestration",
+      "kind": "EnablerCapability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGN0"
+    },
+    "EN-3/automation-eligibility-policies": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEVQ",
+      "title": "Automation eligibility policies",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGN4"
+    },
+    "EN-3/approval-gates-exception-workflow": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEVg",
+      "title": "Approval gates + exception workflow",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGN8"
+    },
+    "EN-3/rollback-safe-defaults": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEV0",
+      "title": "Rollback + safe defaults",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOA"
+    },
+    "E-1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEWI",
+      "title": "E-1 Trustworthy Governance (audit + explain)",
+      "kind": "Epic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOE"
+    },
+    "E-1/decision-intelligence": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEWQ",
+      "title": "Decision Intelligence",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOI"
+    },
+    "E-1/decision-intelligence/decision-logging": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEZM",
+      "title": "Decision Logging",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOc"
+    },
+    "E-1/decision-intelligence/audit-trail": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEZU",
+      "title": "Audit Trail",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOg"
+    },
+    "E-1/decision-intelligence/evidence-preservation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEZk",
+      "title": "Evidence Preservation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOk"
+    },
+    "E-1/decision-intelligence/compliance-reporting": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEZo",
+      "title": "Compliance Reporting",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOo"
+    },
+    "E-1/explanation-engine": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEZ8",
+      "title": "Explanation Engine",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOs"
+    },
+    "E-1/explanation-engine/evaluation-trace": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEaQ",
+      "title": "Evaluation Trace",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGOw"
+    },
+    "E-1/explanation-engine/decision-explanation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEaU",
+      "title": "Decision Explanation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGO0"
+    },
+    "E-1/explanation-engine/causal-attribution": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEaY",
+      "title": "Causal Attribution",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGO4"
+    },
+    "E-1/explanation-engine/counterfactual-reasoning": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEak",
+      "title": "Counterfactual Reasoning",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGO8"
+    },
+    "E-1/multi-stakeholder-views": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEao",
+      "title": "Multi-Stakeholder Views",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPA"
+    },
+    "E-1/multi-stakeholder-views/developer-view": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEa4",
+      "title": "Developer View",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPE"
+    },
+    "E-1/multi-stakeholder-views/architect-view": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEbE",
+      "title": "Architect View",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPI"
+    },
+    "E-1/multi-stakeholder-views/executive-view": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEbc",
+      "title": "Executive View",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPM"
+    },
+    "E-1/multi-stakeholder-views/auditor-view": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEbk",
+      "title": "Auditor View",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPQ"
+    },
+    "E-1/multi-stakeholder-views/governance-view": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEbo",
+      "title": "Governance View",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPU"
+    },
+    "E-2": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEb4",
+      "title": "E-2 Operational Drift & Blast-Radius Intelligence",
+      "kind": "Epic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPY"
+    },
+    "E-2/temporal-analytics": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEb8",
+      "title": "Temporal Analytics",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPc"
+    },
+    "E-2/temporal-analytics/trend-detection": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEcE",
+      "title": "Trend Detection",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPg"
+    },
+    "E-2/temporal-analytics/drift-detection": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEcU",
+      "title": "Drift Detection",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPk"
+    },
+    "E-2/temporal-analytics/anomaly-detection": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEcc",
+      "title": "Anomaly Detection",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPo"
+    },
+    "E-2/temporal-analytics/historical-correlation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEcw",
+      "title": "Historical Correlation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPs"
+    },
+    "E-2/temporal-analytics/forecasting": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEc8",
+      "title": "Forecasting",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGPw"
+    },
+    "E-2/graph-analytics": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEdA",
+      "title": "Graph Analytics",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGP0"
+    },
+    "E-2/graph-analytics/coupling-metrics": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEdM",
+      "title": "Coupling Metrics",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGP4"
+    },
+    "E-2/graph-analytics/critical-path-analysis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEdQ",
+      "title": "Critical Path Analysis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGP8"
+    },
+    "E-2/graph-analytics/bottleneck-detection": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEdg",
+      "title": "Bottleneck Detection",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQA"
+    },
+    "E-2/graph-analytics/what-if-analysis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEdo",
+      "title": "What If Analysis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQE"
+    },
+    "E-2/graph-analytics/impact-visualization": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEdw",
+      "title": "Impact Visualization",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQI"
+    },
+    "E-3": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEeA",
+      "title": "E-3 Policy & Constraint Evolution (coherent definitions)",
+      "kind": "Epic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQM"
+    },
+    "E-3/constraint-intelligence": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEeI",
+      "title": "Constraint Intelligence",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQQ"
+    },
+    "E-3/constraint-intelligence/gap-analysis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEeY",
+      "title": "Gap Analysis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQU"
+    },
+    "E-3/constraint-intelligence/coverage-analysis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEeg",
+      "title": "Coverage Analysis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQY"
+    },
+    "E-3/constraint-intelligence/conflict-detection": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEek",
+      "title": "Conflict Detection",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQc"
+    },
+    "E-3/constraint-intelligence/coherence-validation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEe0",
+      "title": "Coherence Validation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQg"
+    },
+    "E-3/constraint-intelligence/constraint-synthesis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEfA",
+      "title": "Constraint Synthesis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQk"
+    },
+    "E-3/policy-intelligence": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEfE",
+      "title": "Policy Intelligence",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQo"
+    },
+    "E-3/policy-intelligence/policy-translation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEfY",
+      "title": "Policy Translation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQs"
+    },
+    "E-3/policy-intelligence/rule-operationalization": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEfg",
+      "title": "Rule Operationalization",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQ0"
+    },
+    "E-3/policy-intelligence/policy-versioning": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEfs",
+      "title": "Policy Versioning",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQ4"
+    },
+    "E-3/policy-intelligence/policy-simulation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEf0",
+      "title": "Policy Simulation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGQ8"
+    },
+    "E-3/semantic-intelligence": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEgA",
+      "title": "Semantic Intelligence",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRA"
+    },
+    "E-3/semantic-intelligence/intent-recognition": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEgI",
+      "title": "Intent Recognition",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRE"
+    },
+    "E-3/semantic-intelligence/contextual-interpretation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEgQ",
+      "title": "Contextual Interpretation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRI"
+    },
+    "E-3/semantic-intelligence/similarity-analysis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEgc",
+      "title": "Similarity Analysis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRM"
+    },
+    "E-3/semantic-intelligence/natural-language-generation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEgk",
+      "title": "Natural Language Generation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRQ"
+    },
+    "E-3/knowledge-management": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEgs",
+      "title": "Knowledge Management",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRU"
+    },
+    "E-3/knowledge-management/constraint-pattern-library": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEg0",
+      "title": "Constraint Pattern Library",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRY"
+    },
+    "E-3/knowledge-management/rationale-capture": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEg4",
+      "title": "Rationale Capture",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRc"
+    },
+    "E-3/knowledge-management/expertise-encoding": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEhE",
+      "title": "Expertise Encoding",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRg"
+    },
+    "E-3/knowledge-management/learning-from-decisions": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEhM",
+      "title": "Learning From Decisions",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRk"
+    },
+    "E-4": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEhc",
+      "title": "E-4 Safe Remediation Automation",
+      "kind": "Epic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRo"
+    },
+    "E-4/actuation-remediation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEho",
+      "title": "Actuation & Remediation",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRs"
+    },
+    "E-4/actuation-remediation/remediation-recommendation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEh4",
+      "title": "Remediation Recommendation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGRw"
+    },
+    "E-4/actuation-remediation/escalation-management": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEiA",
+      "title": "Escalation Management",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGR0"
+    },
+    "E-4/actuation-remediation/closed-loop-control": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEiM",
+      "title": "Closed Loop Control",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGR4"
+    },
+    "E-4/actuation-remediation/auto-healing": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEiU",
+      "title": "Auto Healing",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGR8"
+    },
+    "E-4/assurance-safety": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEis",
+      "title": "Assurance & Safety",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSA"
+    },
+    "E-4/assurance-safety/provenance-lineage": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEi4",
+      "title": "Provenance & Lineage",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSE"
+    },
+    "E-4/assurance-safety/uncertainty-confidence": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEjY",
+      "title": "Uncertainty & Confidence",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSI"
+    },
+    "E-4/assurance-safety/llm-output-assurance": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEjg",
+      "title": "LLM Output Assurance",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSM"
+    },
+    "E-4/assurance-safety/automation-guardrails": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEjk",
+      "title": "Automation Guardrails",
+      "kind": "EnablerFeature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSQ"
+    },
+    "E-5": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEjw",
+      "title": "E-5 Systemic Reasoning (domain-adapter heavy)",
+      "kind": "Epic",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSU"
+    },
+    "E-5/systemic-reasoning": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEj4",
+      "title": "Systemic Reasoning",
+      "kind": "Capability",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSY"
+    },
+    "E-5/systemic-reasoning/cross-domain-impact-analysis": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEx0",
+      "title": "Cross-Domain Impact Analysis",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSs"
+    },
+    "E-5/systemic-reasoning/blast-radius-calculation": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEyE",
+      "title": "Blast Radius Calculation",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGSw"
+    },
+    "E-5/systemic-reasoning/dependency-chain-traversal": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEyU",
+      "title": "Dependency Chain Traversal",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGS0"
+    },
+    "E-5/systemic-reasoning/risk-propagation-modeling": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEyo",
+      "title": "Risk Propagation Modeling",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGS8"
+    },
+    "E-5/systemic-reasoning/emergence-detection": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEy4",
+      "title": "Emergence Detection",
+      "kind": "Feature",
+      "source": "sie-analytics-safe-backlog-v1.puml",
+      "description_updated": false,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTA"
+    },
+    "UC:sie-actuation-remediation-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEzE",
+      "title": "UC - sie actuation remediation uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-actuation-remediation-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTE"
+    },
+    "UC:sie-assurance-safety-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEzk",
+      "title": "UC - sie assurance safety uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-assurance-safety-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTM"
+    },
+    "UC:sie-constraint-intelligence-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEzs",
+      "title": "UC - sie constraint intelligence uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-constraint-intelligence-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTQ"
+    },
+    "UC:sie-decision-intelligence-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBEz4",
+      "title": "UC - sie decision intelligence uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-decision-intelligence-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTU"
+    },
+    "UC:sie-explanation-engine-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE0E",
+      "title": "UC - sie explanation engine uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-explanation-engine-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTY"
+    },
+    "UC:sie-graph-analytics-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE0Q",
+      "title": "UC - sie graph analytics uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-graph-analytics-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTc"
+    },
+    "UC:sie-knowledge-management-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE0k",
+      "title": "UC - sie knowledge management uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-knowledge-management-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTg"
+    },
+    "UC:sie-multi-stakeholder-views-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE0w",
+      "title": "UC - sie multi stakeholder views uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-multi-stakeholder-views-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTk"
+    },
+    "UC:sie-policy-intelligence-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE08",
+      "title": "UC - sie policy intelligence uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-policy-intelligence-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTo"
+    },
+    "UC:sie-semantic-intelligence-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE1E",
+      "title": "UC - sie semantic intelligence uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-semantic-intelligence-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTs"
+    },
+    "UC:sie-systemic-reasoning-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE1M",
+      "title": "UC - sie systemic reasoning uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-systemic-reasoning-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGTw"
+    },
+    "UC:sie-temporal-analytics-uc-v1": {
+      "projectItemId": "PVTI_lADOD0JEYc4BOk6bzglBE1Y",
+      "title": "UC - sie temporal analytics uc v1",
+      "kind": "UseCase",
+      "source": "analytics-usecases/sie-temporal-analytics-uc-v1.puml",
+      "description_updated": true,
+      "draftIssueId": "DI_lADOD0JEYc4BOk6bzgKJGT0"
+    }
+  }
+}

@@ -27,6 +27,22 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Policy Intelligence - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)
+  Capability: Policy Intelligence
+  Feature: Policy Intelligence
+
+  **Plane ownership:** Definition plane (policy lifecycle -> executable definitions).
+
+  **Requires capabilities:** Definition Deliverable Compiler, CSDSL Runtime,
+  Versioning+Provenance, Semantic Intelligence (translation), Formal Methods (validation).
+
+  **Hard dependencies:** Policy repository, CSDSL engine, LLM, simulation engine.
+
+  **Feasibility tier:** NEXT
+  (simulation + operationalizability validation drive scope).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

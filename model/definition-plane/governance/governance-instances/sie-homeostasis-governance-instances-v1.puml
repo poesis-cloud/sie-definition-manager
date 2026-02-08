@@ -1,0 +1,895 @@
+@startuml sie-homeostasis-governance-instances-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+frame "CD - SIE - Governance - Homeostasis Instances - v1" {
+
+  note as InitNote
+    **Initialization (SIE instance bootstrap)**
+
+    This diagram specifies the default, auto-defined *governance* definitions
+    used for Homeostasis (first-order regulation).
+
+    At initialization time, SIE seeds these `BehavioralRule` and
+    `BehavioralRuleControl` instances in the Definition Plane, and binds the
+    Operator controller to exactly one BehavioralRule (CSDM invariant).
+
+    **Mapping to feature backlog**
+    - EN-1: Retention + Minimization policies (runway)
+    - E-1: Evidence Preservation (governable audit/evidence substrate)
+  end note
+
+  ' ------------------------------------------------------------
+  ' Primitives grouped by type
+  ' ------------------------------------------------------------
+
+  package "EventArchetypes" {
+    object "EA-HOM-001\nControlIntentEvent" as EA_ControlIntentEvent <<EventArchetype>> {
+      name = "ControlIntentEvent"
+    }
+
+    object "EA-HOM-002\nRuleExecutionRequestEvent" as EA_RuleExecutionRequestEvent <<EventArchetype>> {
+      name = "RuleExecutionRequestEvent"
+    }
+
+    object "EA-HOM-003\nActuationControlEvent" as EA_ActuationControlEvent <<EventArchetype>> {
+      name = "ActuationControlEvent"
+    }
+
+    object "EA-HOM-004\nActuationFeedbackEvent" as EA_ActuationFeedbackEvent <<EventArchetype>> {
+      name = "ActuationFeedbackEvent"
+    }
+
+    object "EA-HOM-005\nRetentionAppliedEvent" as EA_RetentionAppliedEvent <<EventArchetype>> {
+      name = "RetentionAppliedEvent"
+    }
+  }
+
+  package "StateObjectArchetypes" {
+
+    object "SOA-HOM-001\nHomeostasisConvergenceObservation" as SOA_HOM_001 <<StateObjectArchetype>> {
+      name = "HomeostasisConvergenceObservation"
+    }
+
+    object "SOA-HOM-002\nRetentionConfig" as SOA_HOM_002 <<StateObjectArchetype>> {
+      name = "RetentionConfig"
+    }
+
+    object "SOA-HOM-003\nEvidenceRetentionSpec" as SOA_HOM_003 <<StateObjectArchetype>> {
+      name = "EvidenceRetentionSpec"
+    }
+
+  }
+
+  package "Policies" {
+    object "FP-HOM-001\nConvergence Policy" as FP_HOM_001 <<FunctionalPolicy>> {
+      name = "ConvergencePolicy"
+      status = PUBLISHED
+      scopedPurposes = [PURP_HOM_001]
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of FP_HOM_001
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "AndExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "LESS_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "HomeostasisConvergenceObservation",
+                "propertyPath": ["deviationError"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "HomeostasisConvergenceObservation",
+                "propertyPath": ["tolerance"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "HomeostasisConvergenceObservation",
+                "propertyPath": ["stableForSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "HomeostasisConvergenceObservation",
+                "propertyPath": ["requiredStableWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "HomeostasisConvergenceObservation",
+                "propertyPath": ["oscillating"]
+              },
+              "right": { "type": "LiteralExpression", "value": false }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE governance):**
+
+      Homeostasis attempt is considered *converged* when the measured deviation
+      error reaches the declared tolerance and remains stable for a bounded window.
+
+      If not converged within the window (or oscillating/unstable), OperationalFeedback
+      MUST surface variety hints and/or failure modes for Coherence/Adaptation dispatch.
+    end note
+
+    object "VP-META-004\nEvidence Minimization Policy" as VP_META_004 <<ViabilityPolicy>> {
+      name = "EvidenceMinimizationPolicy"
+      status = PUBLISHED
+      scopedCapacities = [CAP_HOM_001]
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of VP_META_004
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "AndExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "RetentionConfig",
+                "propertyPath": ["preferPointers"]
+              },
+              "right": { "type": "LiteralExpression", "value": true }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "RetentionConfig",
+                "propertyPath": ["redactSensitiveFields"]
+              },
+              "right": { "type": "LiteralExpression", "value": true }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "RetentionConfig",
+                "propertyPath": ["storeDerivedEvidenceLongerThanRaw"]
+              },
+              "right": { "type": "LiteralExpression", "value": true }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      - description.retention.preferPointers == true
+      - description.retention.redactSensitiveFields == true
+      - description.retention.storeDerivedEvidenceLongerThanRaw == true
+    end note
+
+    object "SP-META-003\nEvidence Retention Policy" as SP_META_003 <<StructuralPolicy>> {
+      name = "EvidenceRetentionPolicy"
+      status = PUBLISHED
+      scopedComponents = (see note)
+      applicabilityConditions = (see note)
+      constraint = (see note)
+    }
+    note right of SP_META_003
+      applicabilityConditions:
+      {
+        "type": "LiteralExpression",
+        "value": true
+      }
+
+      constraint:
+      {
+        "type": "InvariantConstraint",
+        "condition": {
+          "type": "AndExpression",
+          "operands": [
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["rawWindowSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["mismatchPersistenceWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["rawWindowSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["controlDiagnosisWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["rawWindowSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["adaptationOutcomeEvaluationWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["rawBoundedUniverseDefined"]
+              },
+              "right": { "type": "LiteralExpression", "value": true }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["derivedWindowSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["adaptationOutcomeEvaluationWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["derivedWindowSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["emergenceCaseEvidenceWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "GREATER_OR_EQUAL",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["snapshotWindowSeconds"]
+              },
+              "right": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["governanceAuditWindowSeconds"]
+              }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "EQUALS",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["snapshotReplayable"]
+              },
+              "right": { "type": "LiteralExpression", "value": true }
+            },
+            {
+              "type": "ComparisonExpression",
+              "operator": "IN",
+              "left": {
+                "type": "StateObjectArchetypeReferenceExpression",
+                "name": "EvidenceRetentionSpec",
+                "propertyPath": ["rawStrategy"]
+              },
+              "right": {
+                "type": "LiteralExpression",
+                "value": ["POINTERS", "SAMPLED", "BOUNDED"]
+              }
+            }
+          ]
+        }
+      }
+
+      **Constraint (from SIE meta-governance):**
+
+      Retention is tiered: RAW measured evidence vs DERIVED activable evidence vs SNAPSHOTS.
+
+      - RAW window >= max(mismatch.persistenceWindow, control.diagnosisWindow, adaptation.outcomeEvaluationWindow)
+      - RAW boundedUniverse MUST be defined
+      - DERIVED window >= max(adaptation.outcomeEvaluationWindow, emergence.caseEvidenceWindow)
+      - SNAPSHOT window >= governance.auditWindow AND replayable == true
+      - Guardrail: Description is not a full State mirror; RAW strategy IN [POINTERS, SAMPLED, BOUNDED]
+    end note
+  }
+
+  package "ControllerMechanisms" {
+    object "OP-HOM-001\nOperatorControllerMechanism\n(Homeostasis Operator)" as OP_HOM_001 <<OperatorControllerMechanism>> {
+      implementedBehavioralRule = BR_HOM_001
+    }
+  }
+
+  package "Purposes" {
+    object "PURP-HOM-001\nHomeostasis Purpose" as PURP_HOM_001 <<Purpose>> {
+      name = "HomeostasisPurpose"
+      description = "First-order regulation. Execute control actions to keep the running system within declared constraints (policies/behavioral rules)."
+    }
+  }
+
+  package "Functions" {
+    object "FN-HOM-001\nHomeostasis Execution" as FN_HOM_001 <<Function>> {
+      name = "HomeostasisExecution"
+      purpose = PURP_HOM_001
+    }
+  }
+
+  package "Capacities" {
+    object "CAP-HOM-001\nControl Execution Capacity" as CAP_HOM_001 <<Capacity>> {
+      name = "ControlExecutionCapacity"
+      description = "Capacity to execute controls and apply actuation to maintain viability under operational disturbances."
+    }
+  }
+
+  package "Modalities" {
+    object "MOD-HOM-001\nControl Modality" as MOD_HOM_001 <<Modality>> {
+      name = "Control"
+      capacity = CAP_HOM_001
+    }
+  }
+
+  package "BehavioralRules" {
+    object "BR-HOM-001\nHomeostasis BehavioralRule" as BR_HOM_001 <<BehavioralRule>> {
+      name = "HomeostasisBehavioralRule"
+      status = PUBLISHED
+
+      applyingFunctionalPolicies = [FP_HOM_001]
+      applyingViabilityPolicies = [VP_META_004]
+      applyingStructuralPolicies = [SP_META_003]
+
+      scopedFunctions = [FN_HOM_001]
+      scopedModalities = [MOD_HOM_001]
+
+      triggeringReceptor = R_HOM_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      controlSequence = [BRC_HOM_001, BRC_HOM_002, BRC_HOM_003]
+    }
+
+    note right of BR_HOM_001
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "ControlIntentReceptor",
+        "propertyPath": ["intentType"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": "HOMEOSTASIS"
+      }
+    }
+
+    iterationConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "ControlIntentReceptor",
+        "propertyPath": ["retry"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": true
+      }
+    }
+    end note
+  }
+
+  package "Receptors" {
+    object "R-HOM-001\nHomeostasis Trigger Receptor" as R_HOM_001 <<Receptor>> {
+      name = "ControlIntentReceptor"
+      receivedEventArchetype = EA_ControlIntentEvent
+    }
+
+    object "R-HOM-002\nOperational Feedback Receptor" as R_HOM_002 <<Receptor>> {
+      name = "ActuationFeedbackReceptor"
+      receivedEventArchetype = EA_ActuationFeedbackEvent
+    }
+
+    object "R-HOM-REMED-001\nRule Engine Receptor" as R_HOM_REMED_001 <<Receptor>> {
+      name = "RuleEngineReceptor"
+      receivedEventArchetype = EA_RuleExecutionRequestEvent
+    }
+
+    object "R-HOM-REMED-002\nActuation Orchestrator Receptor" as R_HOM_REMED_002 <<Receptor>> {
+      name = "ActuationOrchestratorReceptor"
+      receivedEventArchetype = EA_ActuationControlEvent
+    }
+
+    object "R-HOM-DESC-003\nRetention Applied Receptor" as R_HOM_DESC_003 <<Receptor>> {
+      name = "RetentionAppliedReceptor"
+      receivedEventArchetype = EA_RetentionAppliedEvent
+    }
+  }
+
+  package "Effectors" {
+    object "EFF-HOM-001\nRequest Rule Execution" as EFF_HOM_001 <<Effector>> {
+      name = "RuleExecutionRequestEffector"
+      producedEventArchetype = EA_RuleExecutionRequestEvent
+    }
+
+    object "EFF-HOM-002\nActuation Control Effector" as EFF_HOM_002 <<Effector>> {
+      name = "ActuationControlEffector"
+      producedEventArchetype = EA_ActuationControlEvent
+    }
+
+    object "EFF-HOM-003\nRetention Enforcement Effector" as EFF_HOM_003 <<Effector>> {
+      name = "RetentionEnforcementEffector"
+      producedEventArchetype = EA_RetentionAppliedEvent
+    }
+
+    object "EFF-HOM-TRG-001\nControl Intent Emitter" as EFF_HOM_TRG_001 <<Effector>> {
+      name = "ControlIntentEmitter"
+      producedEventArchetype = EA_ControlIntentEvent
+    }
+
+    object "EFF-HOM-FB-001\nActuation Feedback Emitter" as EFF_HOM_FB_001 <<Effector>> {
+      name = "ActuationFeedbackEmitter"
+      producedEventArchetype = EA_ActuationFeedbackEvent
+    }
+  }
+
+  package "Actuations" {
+    object "ACT-HOM-002\nActuation Declaration" as ACT_HOM_002 <<Actuation>> {
+      name = "HomeostasisActuation"
+      type = MODIFICATION
+      stateObjectArchetype = "<StateObjectArchetype>"
+    }
+  }
+
+  package "BehavioralRuleControls" {
+    object "BRC-HOM-001\nAssess Drift / Stability" as BRC_HOM_001 <<BehavioralRuleControl>> {
+      name = "DriftAssessmentControl"
+      applyingRule = BR_HOM_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_HOM_001
+      feedbackReceptor = null
+    }
+
+    note right of BRC_HOM_001
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "ControlIntentReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": "ASSESS"
+      }
+    }
+
+    iterationConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "ControlIntentReceptor",
+        "propertyPath": ["repeatAssessment"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": true
+      }
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "RuleExecutionRequestEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["intentId"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ControlIntentReceptor",
+            "propertyPath": ["intentId"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["scope"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ControlIntentReceptor",
+            "propertyPath": ["scope"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["requestedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+    end note
+
+    object "BRC-HOM-002\nModify State (Actuation)" as BRC_HOM_002 <<ModificationActuationBehavioralRuleControl>> {
+      name = "ModifyStateControl"
+      applyingRule = BR_HOM_001
+
+      applicabilityConditions = (see note)
+
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      stateObjectSourceMapping = (see note)
+
+      stateObjectSelector = (see note)
+
+      effector = EFF_HOM_002
+      feedbackReceptor = R_HOM_002
+    }
+
+    note right of BRC_HOM_002
+    applicabilityConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "ControlIntentReceptor",
+        "propertyPath": ["phase"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": "ACTUATE"
+      }
+    }
+
+    iterationConditions:
+    {
+      "type": "ComparisonExpression",
+      "operator": "EQUALS",
+      "left": {
+        "type": "ContextVariableReferenceExpression",
+        "name": "ControlIntentReceptor",
+        "propertyPath": ["repeatActuation"]
+      },
+      "right": {
+        "type": "LiteralExpression",
+        "value": true
+      }
+    }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "ActuationControlEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["actuationType"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": "MODIFICATION"
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["resourceId"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ControlIntentReceptor",
+            "propertyPath": ["resourceId"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["desiredState"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ControlIntentReceptor",
+            "propertyPath": ["desiredState"]
+          }
+        }
+      ]
+    }
+
+    stateObjectSourceMapping:
+    {
+      "type": "StateObjectStructureSourceMapping",
+      "targetArchetype": "ManagedResource",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["desiredState"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "ControlIntentReceptor",
+            "propertyPath": ["desiredState"]
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["updatedAt"],
+          "source": {
+            "type": "FunctionCallExpression",
+            "functionName": "now",
+            "arguments": []
+          }
+        }
+      ]
+    }
+
+    stateObjectSelector:
+    {
+      "type": "StateObjectSelectorExpression",
+      "archetype": "ManagedResource",
+      "filter": {
+        "type": "ComparisonExpression",
+        "operator": "EQUALS",
+        "left": {
+          "type": "StateObjectArchetypeReferenceExpression",
+          "name": "ManagedResource",
+          "propertyPath": ["id"]
+        },
+        "right": {
+          "type": "ContextVariableReferenceExpression",
+          "name": "ControlIntentReceptor",
+          "propertyPath": ["resourceId"]
+        }
+      }
+    }
+    end note
+
+    object "BRC-HOM-003\nEnforce Evidence Retention" as BRC_HOM_003 <<BehavioralRuleControl>> {
+      name = "EnforceEvidenceRetention"
+      applyingRule = BR_HOM_001
+
+      applicabilityConditions = (see note)
+      iterationConditions = (see note)
+
+      effectorEventSourceMapping = (see note)
+
+      effector = EFF_HOM_003
+      feedbackReceptor = null
+    }
+
+    note right of BRC_HOM_003
+      **Merged from SIE meta-governance BR-META-009 (flattened as a Control)**
+
+      **Original applicabilityConditions:**
+      - schedule.tick OR config.retentionPolicyChanged
+
+      **Original controlSequence (intent):**
+      - Compute rawWindow, derivedWindow
+      - Ensure snapshots retained for governance.auditWindow
+      - Apply bounding/sampling/pointer strategy for RAW
+      - Expire/compact RAW + DERIVED beyond windows
+      - Archive required SNAPSHOTS (replayable bundles)
+      - Emit RetentionAppliedEvent
+
+      **Coherence fix:** modeled as a Control within the single Homeostasis BehavioralRule
+      to preserve the CSDM invariant “one controller mechanism implements exactly one BehavioralRule”.
+
+      applicabilityConditions:
+      {
+        "type": "ComparisonExpression",
+        "operator": "EQUALS",
+        "left": {
+          "type": "ContextVariableReferenceExpression",
+          "name": "ControlIntentReceptor",
+          "propertyPath": ["phase"]
+        },
+        "right": {
+          "type": "LiteralExpression",
+          "value": "RETENTION"
+        }
+      }
+
+      iterationConditions:
+      {
+        "type": "LiteralExpression",
+        "value": false
+      }
+
+      effectorEventSourceMapping:
+      {
+        "type": "EventStructureSourceMapping",
+        "targetArchetype": "RetentionAppliedEvent",
+        "mappings": [
+          {
+            "type": "PropertyMapping",
+            "targetPath": ["rawWindow"],
+            "source": {
+              "type": "ContextVariableReferenceExpression",
+              "name": "ControlIntentReceptor",
+              "propertyPath": ["rawWindow"]
+            }
+          },
+          {
+            "type": "PropertyMapping",
+            "targetPath": ["derivedWindow"],
+            "source": {
+              "type": "ContextVariableReferenceExpression",
+              "name": "ControlIntentReceptor",
+              "propertyPath": ["derivedWindow"]
+            }
+          },
+          {
+            "type": "PropertyMapping",
+            "targetPath": ["appliedAt"],
+            "source": {
+              "type": "FunctionCallExpression",
+              "functionName": "now",
+              "arguments": []
+            }
+          }
+        ]
+      }
+    end note
+  }
+
+  package "Interactions" {
+    object "INT-HOM-TRG-001\nControlIntent Dispatch" as INT_HOM_TRG_001 <<Interaction>> {
+      name = "ControlIntentDispatch"
+      effector = EFF_HOM_TRG_001
+      receptor = R_HOM_001
+    }
+
+    object "INT-HOM-001\nRule Execution Request" as INT_HOM_001 <<Interaction>> {
+      name = "RuleExecutionRequest"
+      effector = EFF_HOM_001
+      receptor = R_HOM_REMED_001
+    }
+
+    object "INT-HOM-002\nActuation Control" as INT_HOM_002 <<Interaction>> {
+      name = "ActuationControlDispatch"
+      effector = EFF_HOM_002
+      receptor = R_HOM_REMED_002
+    }
+
+    object "INT-HOM-FB-001\nActuation Feedback" as INT_HOM_FB_001 <<Interaction>> {
+      name = "ActuationFeedbackIngest"
+      effector = EFF_HOM_FB_001
+      receptor = R_HOM_002
+    }
+
+    object "INT-HOM-003\nRetention Applied" as INT_HOM_003 <<Interaction>> {
+      name = "RetentionAppliedDispatch"
+      effector = EFF_HOM_003
+      receptor = R_HOM_DESC_003
+    }
+  }
+
+  ' ------------------------------------------------------------
+  ' Relationships
+  ' ------------------------------------------------------------
+
+  OP_HOM_001 --> BR_HOM_001 : implements
+
+  BR_HOM_001 --> VP_META_004 : applies
+  BR_HOM_001 --> SP_META_003 : applies
+
+  BR_HOM_001 --> R_HOM_001 : triggeringReceptor
+
+  FN_HOM_001 --> PURP_HOM_001 : serves
+  MOD_HOM_001 --> CAP_HOM_001 : constitutes
+
+  BR_HOM_001 *-- BRC_HOM_001 : has
+  BRC_HOM_001 --> EFF_HOM_001 : effector
+
+  BR_HOM_001 *-- BRC_HOM_002 : has
+  BRC_HOM_002 --> EFF_HOM_002 : effector
+  BRC_HOM_002 o-- ACT_HOM_002 : declares
+  BRC_HOM_002 --> R_HOM_002 : feedbackReceptor
+
+  BR_HOM_001 *-- BRC_HOM_003 : has
+  BRC_HOM_003 --> EFF_HOM_003 : effector
+
+  INT_HOM_TRG_001 --> EFF_HOM_TRG_001 : effector
+  INT_HOM_TRG_001 --> R_HOM_001 : receptor
+
+  INT_HOM_001 --> EFF_HOM_001 : effector
+  INT_HOM_001 --> R_HOM_REMED_001 : receptor
+
+  INT_HOM_002 --> EFF_HOM_002 : effector
+  INT_HOM_002 --> R_HOM_REMED_002 : receptor
+
+  INT_HOM_FB_001 --> EFF_HOM_FB_001 : effector
+  INT_HOM_FB_001 --> R_HOM_002 : receptor
+
+  INT_HOM_003 --> EFF_HOM_003 : effector
+  INT_HOM_003 --> R_HOM_DESC_003 : receptor
+
+}
+
+@enduml

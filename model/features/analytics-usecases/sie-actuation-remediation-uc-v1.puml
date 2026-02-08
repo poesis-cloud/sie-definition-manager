@@ -27,6 +27,22 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Actuation & Remediation - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-4 Safe Remediation Automation
+  Capability: Actuation & Remediation
+  Feature: Actuation & Remediation
+
+  **Plane ownership:** Remediation plane (actuation substrate) realizing Definition-plane rules.
+
+  **Requires capabilities:** Definition Deliverable Compiler, Actuation Orchestration,
+  Automation Guardrails, Uncertainty+Confidence, Provenance+Lineage.
+
+  **Hard dependencies:** rule engine runtime, orchestrator, ticketing, config store.
+
+  **Feasibility tier:** NEXT
+  (connectors + safety gating dominate the complexity).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/AcquisitionActuationBehavioralRuleControl.json",
+  "title": "AcquisitionActuationBehavioralRuleControl (CSDM v1)",
+  "description": "BehavioralRuleControl that defines acquisition of matching state objects.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/BehavioralRuleControl.json" }
+  ],
+  "type": "object",
+  "required": ["stateObjectArchetype", "stateObjectSelector"],
+  "properties": {
+    "stateObjectArchetype": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "stateObjectSelector": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/SelectorExpression" }
+  }
+}

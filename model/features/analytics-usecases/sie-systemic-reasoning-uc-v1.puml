@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Systemic Reasoning - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-5 Systemic Reasoning (domain-adapter heavy)
+  Capability: Systemic Reasoning
+  Feature: Systemic Reasoning
+
+  **Plane ownership:** Description plane (cross-domain reasoning over observed state);
+  feeds Definition-plane decisions (coherence/emergence/adaptation).
+
+  **Requires capabilities:** Graph Reasoning, Temporal+Forecasting,
+  Evidence+State substrate, Uncertainty+Confidence.
+
+  **Hard dependencies:** graph DB, event stream, CSDM repository.
+
+  **Feasibility tier:** NEXT
+  ("code change -> business outcome" is integration-heavy; keep as adapters).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

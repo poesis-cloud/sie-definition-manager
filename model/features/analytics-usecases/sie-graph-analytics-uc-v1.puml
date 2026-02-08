@@ -27,6 +27,24 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Graph Analytics - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-2 Operational Drift & Blast-Radius Intelligence
+  Capability: Graph Analytics
+  Feature: Graph Analytics
+
+  **Plane ownership:** Description plane (structural sensing/computation);
+  feeds Systemic Reasoning and Coherence governance.
+
+  **Requires capabilities:** Graph Reasoning, Evidence+State substrate,
+  Versioning+Provenance (graph snapshots), Security+Access.
+
+  **Hard dependencies:** graph DB, visualization engine (rendering outside SIE),
+  simulation engine.
+
+  **Feasibility tier:** NOW
+  (core traversal + coupling metrics are straightforward once graph exists).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/ViabilityPolicy.json",
+  "title": "ViabilityPolicy (CSDM v1)",
+  "description": "Policy constraining the system's viability properties.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/Policy.json" }
+  ],
+  "type": "object",
+  "properties": {
+    "scopedCapacities": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Capacity primitives scoped by this policy."
+    }
+  }
+}

@@ -1,0 +1,185 @@
+@startuml sie-analytics-safe-backlog-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+frame "PD - SIE - Analytics Backlog (SAFe/Jira view) - v1" {
+
+  note as Preamble
+    **How to read**
+    - Business Epics (value) decompose into Capabilities and Features.
+    - Enabler Epics provide runway; they are prerequisites, not "nice-to-haves".
+
+    **Source models**
+    - Feature packages: `sie-analytics-features-v1`
+    - Capability map: `sie-analytics-capabilities-v1`
+    - Market priority: `sie-analytics-market-value-v1`
+    - Evaluation view: `sie-analytics-feature-evaluation-v1`
+  end note
+
+  ' ============================================================
+  ' ENABLER EPICS (runway)
+  ' ============================================================
+
+  package "EN-1 Evidence, Trace, Provenance runway" <<Epic,Enabler>> as EN1 {
+    package "Evidence + State Substrate" <<Capability,Enabler>> as EN1_Evidence
+    package "Instrumentation + Trace" <<Capability,Enabler>> as EN1_Trace
+    package "Versioning + Provenance" <<Capability,Enabler>> as EN1_Prov
+    package "Security + Access" <<Capability,Enabler>> as EN1_Sec
+
+    package "Retention + Minimization policies" <<Feature,Enabler>> as EN1_Retention
+    package "Replayable evaluation inputs" <<Feature,Enabler>> as EN1_Replay
+  }
+
+  package "EN-2 Constraint runtime + formal validation runway" <<Epic,Enabler>> as EN2 {
+    package "CSDSL Runtime" <<Capability,Enabler>> as EN2_CSD
+    package "Formal Methods (SMT)" <<Capability,Enabler>> as EN2_Formal
+
+    package "Normalized CSDSL AST + solver interface" <<Feature,Enabler>> as EN2_AST
+    package "Unsat-core explanations" <<Feature,Enabler>> as EN2_Unsat
+  }
+
+  package "EN-3 Safe automation runway" <<Epic,Enabler>> as EN3 {
+    package "Assurance + Safety" <<Capability,Enabler>> as EN3_Safety
+    package "Definition Deliverable Compiler" <<Capability,Enabler>> as EN3_Compiler
+    package "Actuation Orchestration" <<Capability,Enabler>> as EN3_Actuation
+
+    package "Automation eligibility policies" <<Feature,Enabler>> as EN3_Eligibility
+    package "Approval gates + exception workflow" <<Feature,Enabler>> as EN3_Gates
+    package "Rollback + safe defaults" <<Feature,Enabler>> as EN3_Rollback
+  }
+
+  ' ============================================================
+  ' BUSINESS EPICS (value)
+  ' ============================================================
+
+  package "E-1 Trustworthy Governance (audit + explain)" <<Epic>> as E1 {
+    package "Decision Intelligence" <<Capability>> as E1_Decision {
+      package "Decision Logging" <<Feature>> as F_DecisionLog
+      package "Audit Trail" <<Feature>> as F_AuditTrail
+      package "Evidence Preservation" <<Feature>> as F_EvidencePres
+      package "Compliance Reporting" <<Feature>> as F_Compliance
+    }
+
+    package "Explanation Engine" <<Capability>> as E1_Explain {
+      package "Evaluation Trace" <<Feature>> as F_Trace
+      package "Decision Explanation" <<Feature>> as F_Explain
+      package "Causal Attribution" <<Feature>> as F_Attrib
+      package "Counterfactual Reasoning" <<Feature>> as F_Cf
+    }
+
+    package "Multi-Stakeholder Views" <<Capability>> as E1_Views {
+      package "Developer View" <<Feature>> as F_DevView
+      package "Architect View" <<Feature>> as F_ArchView
+      package "Executive View" <<Feature>> as F_ExecView
+      package "Auditor View" <<Feature>> as F_AudView
+      package "Governance View" <<Feature>> as F_GovView
+    }
+  }
+
+  package "E-2 Operational Drift & Blast-Radius Intelligence" <<Epic>> as E2 {
+    package "Temporal Analytics" <<Capability>> as E2_Temporal {
+      package "Trend Detection" <<Feature>> as F_Trend
+      package "Drift Detection" <<Feature>> as F_Drift
+      package "Anomaly Detection" <<Feature>> as F_Anomaly
+      package "Historical Correlation" <<Feature>> as F_Hist
+      package "Forecasting" <<Feature>> as F_Forecast
+    }
+
+    package "Graph Analytics" <<Capability>> as E2_Graph {
+      package "Coupling Metrics" <<Feature>> as F_Coupling
+      package "Critical Path Analysis" <<Feature>> as F_CriticalPath
+      package "Bottleneck Detection" <<Feature>> as F_Bottleneck
+      package "What If Analysis" <<Feature>> as F_WhatIf
+      package "Impact Visualization" <<Feature>> as F_ImpactViz
+    }
+  }
+
+  package "E-3 Policy & Constraint Evolution (coherent definitions)" <<Epic>> as E3 {
+    package "Constraint Intelligence" <<Capability>> as E3_Constraint {
+      package "Gap Analysis" <<Feature>> as F_Gap
+      package "Coverage Analysis" <<Feature>> as F_Coverage
+      package "Conflict Detection" <<Feature>> as F_Conflict
+      package "Coherence Validation" <<Feature>> as F_Coherence
+      package "Constraint Synthesis" <<Feature>> as F_Synthesis
+    }
+
+    package "Policy Intelligence" <<Capability>> as E3_Policy {
+      package "Policy Translation" <<Feature>> as F_PolicyTranslate
+      package "Rule Operationalization" <<Feature>> as F_Operationalize
+      package "Policy Versioning" <<Feature>> as F_PolicyVersion
+      package "Policy Simulation" <<Feature>> as F_Sim
+    }
+
+    package "Semantic Intelligence" <<Capability>> as E3_Semantic {
+      package "Intent Recognition" <<Feature>> as F_Intent
+      package "Contextual Interpretation" <<Feature>> as F_Context
+      package "Similarity Analysis" <<Feature>> as F_Similarity
+      package "Natural Language Generation" <<Feature>> as F_NLG
+    }
+
+    package "Knowledge Management" <<Capability>> as E3_KM {
+      package "Constraint Pattern Library" <<Feature>> as F_Patterns
+      package "Rationale Capture" <<Feature>> as F_Rationale
+      package "Expertise Encoding" <<Feature>> as F_Expertise
+      package "Learning From Decisions" <<Feature>> as F_Learn
+    }
+  }
+
+  package "E-4 Safe Remediation Automation" <<Epic>> as E4 {
+    package "Actuation & Remediation" <<Capability>> as E4_Act {
+      package "Remediation Recommendation" <<Feature>> as F_Recommend
+      package "Escalation Management" <<Feature>> as F_Escalate
+      package "Closed Loop Control" <<Feature>> as F_ClosedLoop
+      package "Auto Healing" <<Feature>> as F_AutoHeal
+    }
+
+    package "Assurance & Safety" <<Capability>> as E4_Safety {
+      package "Provenance & Lineage" <<Feature,Enabler>> as F_Lineage
+      package "Uncertainty & Confidence" <<Feature,Enabler>> as F_Confidence
+      package "LLM Output Assurance" <<Feature,Enabler>> as F_LLMGuard
+      package "Automation Guardrails" <<Feature,Enabler>> as F_Guardrails
+    }
+  }
+
+  package "E-5 Systemic Reasoning (domain-adapter heavy)" <<Epic>> as E5 {
+    package "Systemic Reasoning" <<Capability>> as E5_Systemic {
+      package "Cross-Domain Impact Analysis" <<Feature>> as F_CrossDomain
+      package "Blast Radius Calculation" <<Feature>> as F_Blast
+      package "Dependency Chain Traversal" <<Feature>> as F_DepTraversal
+      package "Risk Propagation Modeling" <<Feature>> as F_RiskProp
+      package "Emergence Detection" <<Feature>> as F_Emergence
+    }
+  }
+
+  ' ============================================================
+  ' ENABLER LINKS (runway dependencies)
+  ' ============================================================
+
+  E1 ..> EN1 : requires
+  E2 ..> EN1 : requires
+  E3 ..> EN1 : requires
+  E3 ..> EN2 : requires
+  E4 ..> EN3 : requires
+  E4 ..> EN1 : requires
+  E5 ..> EN1 : requires
+}
+
+@enduml

@@ -1,0 +1,35 @@
+{
+  "org": "SIForge",
+  "projectNumber": 2,
+  "fieldNames": {
+    "status": "Status",
+    "priority": "Priority",
+    "effort": "Estimate",
+    "safeType": "Item SAFe Type",
+    "complexity": "Complexity"
+  },
+  "defaults": {
+    "statusForNewItems": "Backlog"
+  },
+  "mappings": {
+    "priorityBucketToValue": {
+      "P0": "P0",
+      "P1": "P1",
+      "P2": "P2",
+      "P3": "P3"
+    },
+    "complexityToEffort": {
+      "LOW": 2,
+      "LOW/MED": 3,
+      "MED": 5,
+      "MED/HIGH": 8,
+      "HIGH": 13
+    }
+  },
+  "sources": {
+    "safeBacklogModel": "../sie-analytics-safe-backlog-v1.puml",
+    "marketValueModel": "../sie-analytics-market-value-v1.puml",
+    "evaluationModel": "../sie-analytics-feature-evaluation-v1.puml",
+    "usecaseDir": "../analytics-usecases"
+  }
+}

@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Constraint Intelligence - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)
+  Capability: Constraint Intelligence
+  Feature: Constraint Intelligence
+
+  **Plane ownership:** Definition plane (constraint/rule synthesis + coherence);
+  consumes Description-plane evidence for gap/coverage.
+
+  **Requires capabilities:** CSDSL Runtime, Formal Methods (SMT), Semantic Intelligence,
+  Versioning+Provenance, Evidence+State substrate.
+
+  **Hard dependencies:** SMT solver, LLM, CSDM repo.
+
+  **Feasibility tier:** NEXT
+  (formal verification + synthesis is the gating complexity).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

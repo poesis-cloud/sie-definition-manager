@@ -1,0 +1,1195 @@
+{
+  "schema": "sif.features.backlog.export.v1",
+  "config": {
+    "org": "SIForge",
+    "projectNumber": 2
+  },
+  "items": [
+    {
+      "localId": "EN-1",
+      "title": "EN-1 Evidence, Trace, Provenance runway",
+      "kind": "EnablerEpic",
+      "parentId": null,
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-1/evidence-state-substrate",
+      "title": "Evidence + State Substrate",
+      "kind": "EnablerCapability",
+      "parentId": "EN-1",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-1/instrumentation-trace",
+      "title": "Instrumentation + Trace",
+      "kind": "EnablerCapability",
+      "parentId": "EN-1",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-1/versioning-provenance",
+      "title": "Versioning + Provenance",
+      "kind": "EnablerCapability",
+      "parentId": "EN-1",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-1/security-access",
+      "title": "Security + Access",
+      "kind": "EnablerCapability",
+      "parentId": "EN-1",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-1/retention-minimization-policies",
+      "title": "Retention + Minimization policies",
+      "kind": "EnablerFeature",
+      "parentId": "EN-1",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-1/replayable-evaluation-inputs",
+      "title": "Replayable evaluation inputs",
+      "kind": "EnablerFeature",
+      "parentId": "EN-1",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-2",
+      "title": "EN-2 Constraint runtime + formal validation runway",
+      "kind": "EnablerEpic",
+      "parentId": null,
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-2/csdsl-runtime",
+      "title": "CSDSL Runtime",
+      "kind": "EnablerCapability",
+      "parentId": "EN-2",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-2/formal-methods-smt",
+      "title": "Formal Methods (SMT)",
+      "kind": "EnablerCapability",
+      "parentId": "EN-2",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-2/normalized-csdsl-ast-solver-interface",
+      "title": "Normalized CSDSL AST + solver interface",
+      "kind": "EnablerFeature",
+      "parentId": "EN-2",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-2/unsat-core-explanations",
+      "title": "Unsat-core explanations",
+      "kind": "EnablerFeature",
+      "parentId": "EN-2",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3",
+      "title": "EN-3 Safe automation runway",
+      "kind": "EnablerEpic",
+      "parentId": null,
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3/assurance-safety",
+      "title": "Assurance + Safety",
+      "kind": "EnablerCapability",
+      "parentId": "EN-3",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3/definition-deliverable-compiler",
+      "title": "Definition Deliverable Compiler",
+      "kind": "EnablerCapability",
+      "parentId": "EN-3",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3/actuation-orchestration",
+      "title": "Actuation Orchestration",
+      "kind": "EnablerCapability",
+      "parentId": "EN-3",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3/automation-eligibility-policies",
+      "title": "Automation eligibility policies",
+      "kind": "EnablerFeature",
+      "parentId": "EN-3",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3/approval-gates-exception-workflow",
+      "title": "Approval gates + exception workflow",
+      "kind": "EnablerFeature",
+      "parentId": "EN-3",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "EN-3/rollback-safe-defaults",
+      "title": "Rollback + safe defaults",
+      "kind": "EnablerFeature",
+      "parentId": "EN-3",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1",
+      "title": "E-1 Trustworthy Governance (audit + explain)",
+      "kind": "Epic",
+      "parentId": null,
+      "fields": {
+        "requires": [
+          "EN-1"
+        ]
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/decision-intelligence",
+      "title": "Decision Intelligence",
+      "kind": "Capability",
+      "parentId": "E-1",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "MED",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/decision-intelligence/decision-logging",
+      "title": "Decision Logging",
+      "kind": "Feature",
+      "parentId": "E-1/decision-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/decision-intelligence/audit-trail",
+      "title": "Audit Trail",
+      "kind": "Feature",
+      "parentId": "E-1/decision-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/decision-intelligence/evidence-preservation",
+      "title": "Evidence Preservation",
+      "kind": "Feature",
+      "parentId": "E-1/decision-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/decision-intelligence/compliance-reporting",
+      "title": "Compliance Reporting",
+      "kind": "Feature",
+      "parentId": "E-1/decision-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/explanation-engine",
+      "title": "Explanation Engine",
+      "kind": "Capability",
+      "parentId": "E-1",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "MED/HIGH",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/explanation-engine/evaluation-trace",
+      "title": "Evaluation Trace",
+      "kind": "Feature",
+      "parentId": "E-1/explanation-engine",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/explanation-engine/decision-explanation",
+      "title": "Decision Explanation",
+      "kind": "Feature",
+      "parentId": "E-1/explanation-engine",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/explanation-engine/causal-attribution",
+      "title": "Causal Attribution",
+      "kind": "Feature",
+      "parentId": "E-1/explanation-engine",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/explanation-engine/counterfactual-reasoning",
+      "title": "Counterfactual Reasoning",
+      "kind": "Feature",
+      "parentId": "E-1/explanation-engine",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/multi-stakeholder-views",
+      "title": "Multi-Stakeholder Views",
+      "kind": "Capability",
+      "parentId": "E-1",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "LOW/MED",
+        "feasibility": "NOW"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/multi-stakeholder-views/developer-view",
+      "title": "Developer View",
+      "kind": "Feature",
+      "parentId": "E-1/multi-stakeholder-views",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/multi-stakeholder-views/architect-view",
+      "title": "Architect View",
+      "kind": "Feature",
+      "parentId": "E-1/multi-stakeholder-views",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/multi-stakeholder-views/executive-view",
+      "title": "Executive View",
+      "kind": "Feature",
+      "parentId": "E-1/multi-stakeholder-views",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/multi-stakeholder-views/auditor-view",
+      "title": "Auditor View",
+      "kind": "Feature",
+      "parentId": "E-1/multi-stakeholder-views",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-1/multi-stakeholder-views/governance-view",
+      "title": "Governance View",
+      "kind": "Feature",
+      "parentId": "E-1/multi-stakeholder-views",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2",
+      "title": "E-2 Operational Drift & Blast-Radius Intelligence",
+      "kind": "Epic",
+      "parentId": null,
+      "fields": {
+        "requires": [
+          "EN-1"
+        ]
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/temporal-analytics",
+      "title": "Temporal Analytics",
+      "kind": "Capability",
+      "parentId": "E-2",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "LOW/MED",
+        "feasibility": "NOW"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/temporal-analytics/trend-detection",
+      "title": "Trend Detection",
+      "kind": "Feature",
+      "parentId": "E-2/temporal-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/temporal-analytics/drift-detection",
+      "title": "Drift Detection",
+      "kind": "Feature",
+      "parentId": "E-2/temporal-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/temporal-analytics/anomaly-detection",
+      "title": "Anomaly Detection",
+      "kind": "Feature",
+      "parentId": "E-2/temporal-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/temporal-analytics/historical-correlation",
+      "title": "Historical Correlation",
+      "kind": "Feature",
+      "parentId": "E-2/temporal-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/temporal-analytics/forecasting",
+      "title": "Forecasting",
+      "kind": "Feature",
+      "parentId": "E-2/temporal-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/graph-analytics",
+      "title": "Graph Analytics",
+      "kind": "Capability",
+      "parentId": "E-2",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/graph-analytics/coupling-metrics",
+      "title": "Coupling Metrics",
+      "kind": "Feature",
+      "parentId": "E-2/graph-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/graph-analytics/critical-path-analysis",
+      "title": "Critical Path Analysis",
+      "kind": "Feature",
+      "parentId": "E-2/graph-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/graph-analytics/bottleneck-detection",
+      "title": "Bottleneck Detection",
+      "kind": "Feature",
+      "parentId": "E-2/graph-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/graph-analytics/what-if-analysis",
+      "title": "What If Analysis",
+      "kind": "Feature",
+      "parentId": "E-2/graph-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-2/graph-analytics/impact-visualization",
+      "title": "Impact Visualization",
+      "kind": "Feature",
+      "parentId": "E-2/graph-analytics",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3",
+      "title": "E-3 Policy & Constraint Evolution (coherent definitions)",
+      "kind": "Epic",
+      "parentId": null,
+      "fields": {
+        "requires": [
+          "EN-1",
+          "EN-2"
+        ]
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/constraint-intelligence",
+      "title": "Constraint Intelligence",
+      "kind": "Capability",
+      "parentId": "E-3",
+      "fields": {
+        "priorityBucket": "P1",
+        "complexity": "HIGH",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/constraint-intelligence/gap-analysis",
+      "title": "Gap Analysis",
+      "kind": "Feature",
+      "parentId": "E-3/constraint-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/constraint-intelligence/coverage-analysis",
+      "title": "Coverage Analysis",
+      "kind": "Feature",
+      "parentId": "E-3/constraint-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/constraint-intelligence/conflict-detection",
+      "title": "Conflict Detection",
+      "kind": "Feature",
+      "parentId": "E-3/constraint-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/constraint-intelligence/coherence-validation",
+      "title": "Coherence Validation",
+      "kind": "Feature",
+      "parentId": "E-3/constraint-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/constraint-intelligence/constraint-synthesis",
+      "title": "Constraint Synthesis",
+      "kind": "Feature",
+      "parentId": "E-3/constraint-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/policy-intelligence",
+      "title": "Policy Intelligence",
+      "kind": "Capability",
+      "parentId": "E-3",
+      "fields": {
+        "priorityBucket": "P1",
+        "complexity": "HIGH",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/policy-intelligence/policy-translation",
+      "title": "Policy Translation",
+      "kind": "Feature",
+      "parentId": "E-3/policy-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/policy-intelligence/rule-operationalization",
+      "title": "Rule Operationalization",
+      "kind": "Feature",
+      "parentId": "E-3/policy-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/policy-intelligence/policy-versioning",
+      "title": "Policy Versioning",
+      "kind": "Feature",
+      "parentId": "E-3/policy-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/policy-intelligence/policy-simulation",
+      "title": "Policy Simulation",
+      "kind": "Feature",
+      "parentId": "E-3/policy-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/semantic-intelligence",
+      "title": "Semantic Intelligence",
+      "kind": "Capability",
+      "parentId": "E-3",
+      "fields": {
+        "priorityBucket": "P2",
+        "complexity": "MED",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/semantic-intelligence/intent-recognition",
+      "title": "Intent Recognition",
+      "kind": "Feature",
+      "parentId": "E-3/semantic-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/semantic-intelligence/contextual-interpretation",
+      "title": "Contextual Interpretation",
+      "kind": "Feature",
+      "parentId": "E-3/semantic-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/semantic-intelligence/similarity-analysis",
+      "title": "Similarity Analysis",
+      "kind": "Feature",
+      "parentId": "E-3/semantic-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/semantic-intelligence/natural-language-generation",
+      "title": "Natural Language Generation",
+      "kind": "Feature",
+      "parentId": "E-3/semantic-intelligence",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/knowledge-management",
+      "title": "Knowledge Management",
+      "kind": "Capability",
+      "parentId": "E-3",
+      "fields": {
+        "priorityBucket": "P2",
+        "complexity": "MED",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/knowledge-management/constraint-pattern-library",
+      "title": "Constraint Pattern Library",
+      "kind": "Feature",
+      "parentId": "E-3/knowledge-management",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/knowledge-management/rationale-capture",
+      "title": "Rationale Capture",
+      "kind": "Feature",
+      "parentId": "E-3/knowledge-management",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/knowledge-management/expertise-encoding",
+      "title": "Expertise Encoding",
+      "kind": "Feature",
+      "parentId": "E-3/knowledge-management",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-3/knowledge-management/learning-from-decisions",
+      "title": "Learning From Decisions",
+      "kind": "Feature",
+      "parentId": "E-3/knowledge-management",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4",
+      "title": "E-4 Safe Remediation Automation",
+      "kind": "Epic",
+      "parentId": null,
+      "fields": {
+        "requires": [
+          "EN-3",
+          "EN-1"
+        ]
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/actuation-remediation",
+      "title": "Actuation & Remediation",
+      "kind": "Capability",
+      "parentId": "E-4",
+      "fields": {
+        "priorityBucket": "P1",
+        "complexity": "HIGH",
+        "feasibility": "NEXT"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/actuation-remediation/remediation-recommendation",
+      "title": "Remediation Recommendation",
+      "kind": "Feature",
+      "parentId": "E-4/actuation-remediation",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/actuation-remediation/escalation-management",
+      "title": "Escalation Management",
+      "kind": "Feature",
+      "parentId": "E-4/actuation-remediation",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/actuation-remediation/closed-loop-control",
+      "title": "Closed Loop Control",
+      "kind": "Feature",
+      "parentId": "E-4/actuation-remediation",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/actuation-remediation/auto-healing",
+      "title": "Auto Healing",
+      "kind": "Feature",
+      "parentId": "E-4/actuation-remediation",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/assurance-safety",
+      "title": "Assurance & Safety",
+      "kind": "Capability",
+      "parentId": "E-4",
+      "fields": {
+        "priorityBucket": "P0",
+        "complexity": "MED",
+        "feasibility": "NOW"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/assurance-safety/provenance-lineage",
+      "title": "Provenance & Lineage",
+      "kind": "EnablerFeature",
+      "parentId": "E-4/assurance-safety",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/assurance-safety/uncertainty-confidence",
+      "title": "Uncertainty & Confidence",
+      "kind": "EnablerFeature",
+      "parentId": "E-4/assurance-safety",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/assurance-safety/llm-output-assurance",
+      "title": "LLM Output Assurance",
+      "kind": "EnablerFeature",
+      "parentId": "E-4/assurance-safety",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-4/assurance-safety/automation-guardrails",
+      "title": "Automation Guardrails",
+      "kind": "EnablerFeature",
+      "parentId": "E-4/assurance-safety",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5",
+      "title": "E-5 Systemic Reasoning (domain-adapter heavy)",
+      "kind": "Epic",
+      "parentId": null,
+      "fields": {
+        "requires": [
+          "EN-1"
+        ]
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5/systemic-reasoning",
+      "title": "Systemic Reasoning",
+      "kind": "Capability",
+      "parentId": "E-5",
+      "fields": {
+        "priorityBucket": "P3",
+        "complexity": "HIGH",
+        "feasibility": "RESEARCH"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5/systemic-reasoning/cross-domain-impact-analysis",
+      "title": "Cross-Domain Impact Analysis",
+      "kind": "Feature",
+      "parentId": "E-5/systemic-reasoning",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5/systemic-reasoning/blast-radius-calculation",
+      "title": "Blast Radius Calculation",
+      "kind": "Feature",
+      "parentId": "E-5/systemic-reasoning",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5/systemic-reasoning/dependency-chain-traversal",
+      "title": "Dependency Chain Traversal",
+      "kind": "Feature",
+      "parentId": "E-5/systemic-reasoning",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5/systemic-reasoning/risk-propagation-modeling",
+      "title": "Risk Propagation Modeling",
+      "kind": "Feature",
+      "parentId": "E-5/systemic-reasoning",
+      "fields": {},
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "E-5/systemic-reasoning/emergence-detection",
+      "title": "Emergence Detection",
+      "kind": "Feature",
+      "parentId": "E-5/systemic-reasoning",
+      "fields": {
+        "complexity": "HIGH",
+        "feasibility": "RESEARCH"
+      },
+      "source": "sie-analytics-safe-backlog-v1.puml"
+    },
+    {
+      "localId": "UC:sie-actuation-remediation-uc-v1",
+      "title": "UC - sie actuation remediation uc v1",
+      "kind": "UseCase",
+      "parentId": "E-4",
+      "fields": {
+        "capability": "Actuation & Remediation",
+        "feature": "Actuation & Remediation",
+        "note": "**SAFe mapping:** Epic E-4 Safe Remediation Automation\n  Capability: Actuation & Remediation\n  Feature: Actuation & Remediation\n\n  **Plane ownership:** Remediation plane (actuation substrate) realizing Definition-plane rules.\n\n  **Requires capabilities:** Definition Deliverable Compiler, Actuation Orchestration,\n  Automation Guardrails, Uncertainty+Confidence, Provenance+Lineage.\n\n  **Hard dependencies:** rule engine runtime, orchestrator, ticketing, config store.\n\n  **Feasibility tier:** NEXT\n  (connectors + safety gating dominate the complexity).",
+        "planeOwnership": "Remediation plane (actuation substrate) realizing Definition-plane rules.",
+        "requiredCapabilities": [
+          "Definition Deliverable Compiler",
+          "Actuation Orchestration"
+        ],
+        "hardDependencies": [
+          "rule engine runtime",
+          "orchestrator",
+          "ticketing",
+          "config store."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-4",
+        "scenarios": [
+          "As SRE Engineer, Monitor Constraint Satisfaction.",
+          "As SRE Engineer, Trigger Behavioral Rules on Deviation.",
+          "As SRE Engineer, Propose Concrete Remediation Steps.",
+          "As SRE Engineer, Self-Correct Configuration Drift.",
+          "As SRE Engineer, Restore Compliant State from Snapshot.",
+          "As Operations Manager, Rank Options by Impact and Cost."
+        ],
+        "complexity": "HIGH"
+      },
+      "source": "analytics-usecases/sie-actuation-remediation-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-assurance-safety-uc-v1",
+      "title": "UC - sie assurance safety uc v1",
+      "kind": "UseCase",
+      "parentId": "E-4",
+      "fields": {
+        "capability": "Assurance & Safety",
+        "feature": "Assurance & Safety (cross-cutting feature set)",
+        "note": "**SAFe mapping:** Epic E-4 Safe Remediation Automation\n  Capability: Assurance & Safety\n  Feature: Assurance & Safety (cross-cutting feature set)\n\n  **Plane ownership:** Cross-cutting (all planes), anchored in Definition-plane gating.\n\n  **Requires capabilities:** Provenance+Lineage, LLM Output Assurance,\n  Formal Methods, Automation Guardrails, Security+Access.\n\n  **Hard dependencies:** decision log, trace store, SMT, orchestrator.\n\n  **Feasibility tier:** NOW\n  as policy/contract definitions; enforcement expands as integrations mature.",
+        "planeOwnership": "Cross-cutting (all planes), anchored in Definition-plane gating.",
+        "requiredCapabilities": [
+          "Provenance+Lineage",
+          "LLM Output Assurance"
+        ],
+        "hardDependencies": [
+          "decision log",
+          "trace store",
+          "SMT",
+          "orchestrator."
+        ],
+        "feasibility": "NOW",
+        "epicId": "E-4",
+        "scenarios": [
+          "As Governance Officer, Calibrate Automation Thresholds.",
+          "As Governance Officer, Gate Actuation by Eligibility Policy.",
+          "As Policy Author, Validate Generated CSDSL Against Types.",
+          "As Policy Author, Prove/Refute Constraint Coherence (SMT).",
+          "As Security Officer, Require Human Approval for High Risk.",
+          "As Security Officer, Enforce Blast Radius Limits."
+        ],
+        "complexity": "MED"
+      },
+      "source": "analytics-usecases/sie-assurance-safety-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-constraint-intelligence-uc-v1",
+      "title": "UC - sie constraint intelligence uc v1",
+      "kind": "UseCase",
+      "parentId": "E-3",
+      "fields": {
+        "capability": "Constraint Intelligence",
+        "feature": "Constraint Intelligence",
+        "note": "**SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)\n  Capability: Constraint Intelligence\n  Feature: Constraint Intelligence\n\n  **Plane ownership:** Definition plane (constraint/rule synthesis + coherence);\n  consumes Description-plane evidence for gap/coverage.\n\n  **Requires capabilities:** CSDSL Runtime, Formal Methods (SMT), Semantic Intelligence,\n  Versioning+Provenance, Evidence+State substrate.\n\n  **Hard dependencies:** SMT solver, LLM, CSDM repo.\n\n  **Feasibility tier:** NEXT\n  (formal verification + synthesis is the gating complexity).",
+        "planeOwnership": "Definition plane (constraint/rule synthesis + coherence);",
+        "requiredCapabilities": [
+          "CSDSL Runtime",
+          "Formal Methods (SMT)",
+          "Semantic Intelligence"
+        ],
+        "hardDependencies": [
+          "SMT solver",
+          "LLM",
+          "CSDM repo."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-3",
+        "scenarios": [
+          "As Policy Author, Translate NL Policy to CSDSL.",
+          "As Policy Author, Generate Constraint Variants.",
+          "As Policy Author, Suggest Conflict Resolution.",
+          "As Policy Author, Recommend Additional Constraints.",
+          "As System Architect, Detect Unconstrained Critical Paths.",
+          "As System Architect, Infer Constraints from Good Behavior."
+        ],
+        "complexity": "HIGH"
+      },
+      "source": "analytics-usecases/sie-constraint-intelligence-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-decision-intelligence-uc-v1",
+      "title": "UC - sie decision intelligence uc v1",
+      "kind": "UseCase",
+      "parentId": "E-1",
+      "fields": {
+        "capability": "Decision Intelligence",
+        "feature": "Decision Intelligence",
+        "note": "**SAFe mapping:** Epic E-1 Trustworthy Governance (audit + explain)\n  Capability: Decision Intelligence\n  Feature: Decision Intelligence\n\n  **Plane ownership:** Description plane evidence/audit substrate;\n  Definition plane uses it to justify and replay decisions.\n\n  **Requires capabilities:** Evidence+State substrate (tiered retention),\n  Versioning+Provenance, Security+Access, Provenance+Lineage.\n\n  **Hard dependencies:** decision log store, evidence vault/archive, reporting engine.\n\n  **Feasibility tier:** NEXT\n  (tamper-evidence / chain-of-custody often needs specialized storage integration).",
+        "planeOwnership": "Description plane evidence/audit substrate;",
+        "requiredCapabilities": [
+          "Evidence+State substrate (tiered retention)"
+        ],
+        "hardDependencies": [
+          "decision log store",
+          "evidence vault/archive",
+          "reporting engine."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-1",
+        "scenarios": [
+          "As Auditor, Support Time-Based Queries.",
+          "As Auditor, Maintain Tamper-Evident Records.",
+          "As Auditor, Create Audit Evidence Packages.",
+          "As Auditor, Enable Forensic Analysis.",
+          "As Auditor, Support Decision Replay.",
+          "As Compliance Officer, Generate Regulatory Attestations."
+        ],
+        "complexity": "MED"
+      },
+      "source": "analytics-usecases/sie-decision-intelligence-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-explanation-engine-uc-v1",
+      "title": "UC - sie explanation engine uc v1",
+      "kind": "UseCase",
+      "parentId": "E-1",
+      "fields": {
+        "capability": "Explanation Engine",
+        "feature": "Explanation Engine",
+        "note": "**SAFe mapping:** Epic E-1 Trustworthy Governance (audit + explain)\n  Capability: Explanation Engine\n  Feature: Explanation Engine\n\n  **Plane ownership:** Description+Definition (trace capture + controller-facing explanation);\n  outputs are view-models and evidence packages (rendered elsewhere).\n\n  **Requires capabilities:** Instrumentation+Trace, Versioning+Provenance,\n  Explanation+Counterfactual, Formal Methods (attribution/counterfactual),\n  Security+Access.\n\n  **Hard dependencies:** trace store, decision log, CSDSL engine, (optional) LLM.\n\n  **Feasibility tier:** NEXT\n  (requires deterministic trace + bounded data retention).",
+        "planeOwnership": "Description+Definition (trace capture + controller-facing explanation);",
+        "requiredCapabilities": [
+          "Instrumentation+Trace",
+          "Versioning+Provenance"
+        ],
+        "hardDependencies": [
+          "trace store",
+          "decision log",
+          "CSDSL engine",
+          "(optional) LLM."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-1",
+        "scenarios": [
+          "As Developer, Identify Triggering Constraint.",
+          "As Developer, Capture Step-by-Step Evaluation.",
+          "As Developer, Provide Debuggable Logs.",
+          "As Developer, Explain What Would Change Decision.",
+          "As Developer, Identify Minimal Change for Outcome.",
+          "As Policy Author, Link Decision to Governing Policy."
+        ],
+        "complexity": "MED/HIGH"
+      },
+      "source": "analytics-usecases/sie-explanation-engine-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-graph-analytics-uc-v1",
+      "title": "UC - sie graph analytics uc v1",
+      "kind": "UseCase",
+      "parentId": "E-2",
+      "fields": {
+        "capability": "Graph Analytics",
+        "feature": "Graph Analytics",
+        "note": "**SAFe mapping:** Epic E-2 Operational Drift & Blast-Radius Intelligence\n  Capability: Graph Analytics\n  Feature: Graph Analytics\n\n  **Plane ownership:** Description plane (structural sensing/computation);\n  feeds Systemic Reasoning and Coherence governance.\n\n  **Requires capabilities:** Graph Reasoning, Evidence+State substrate,\n  Versioning+Provenance (graph snapshots), Security+Access.\n\n  **Hard dependencies:** graph DB, visualization engine (rendering outside SIE),\n  simulation engine.\n\n  **Feasibility tier:** NOW\n  (core traversal + coupling metrics are straightforward once graph exists).",
+        "planeOwnership": "Description plane (structural sensing/computation);",
+        "requiredCapabilities": [
+          "Graph Reasoning",
+          "Evidence+State substrate"
+        ],
+        "hardDependencies": [
+          "graph DB",
+          "visualization engine (rendering outside SIE)"
+        ],
+        "feasibility": "NOW",
+        "epicId": "E-2",
+        "scenarios": [
+          "As System Architect, Render Dependency Graphs with Highlights.",
+          "As System Architect, Show Propagation Paths.",
+          "As System Architect, Calculate Afferent and Efferent Coupling.",
+          "As System Architect, Identify Highly Coupled Components.",
+          "As System Architect, Recommend Decoupling Strategies.",
+          "As Change Manager, Evaluate Constraints on Hypothetical State."
+        ],
+        "complexity": "MED"
+      },
+      "source": "analytics-usecases/sie-graph-analytics-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-knowledge-management-uc-v1",
+      "title": "UC - sie knowledge management uc v1",
+      "kind": "UseCase",
+      "parentId": "E-3",
+      "fields": {
+        "capability": "Knowledge Management",
+        "feature": "Knowledge Management",
+        "note": "**SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)\n  Capability: Knowledge Management\n  Feature: Knowledge Management\n\n  **Plane ownership:** Definition-plane support (pattern/rationale as deliverables);\n  learns from Description-plane outcomes/decisions.\n\n  **Requires capabilities:** Versioning+Provenance, Evidence+State substrate,\n  Semantic Intelligence (similarity/recommendations), Security+Access.\n\n  **Hard dependencies:** KB/pattern repository, decision log, LLM (for retrieval+generation).\n\n  **Feasibility tier:** NEXT\n  (main risk: governance of the knowledge base + provenance quality).",
+        "planeOwnership": "Definition-plane support (pattern/rationale as deliverables);",
+        "requiredCapabilities": [
+          "Versioning+Provenance",
+          "Evidence+State substrate"
+        ],
+        "hardDependencies": [
+          "KB/pattern repository",
+          "decision log",
+          "LLM (for retrieval+generation)."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-3",
+        "scenarios": [
+          "As Policy Author, Catalog Proven Constraint Templates.",
+          "As Policy Author, Enable Pattern-Based Constraint Authoring.",
+          "As Policy Author, Record Constraint Design Rationale.",
+          "As Policy Author, Support Rationale-Based Search.",
+          "As System Architect, Provide Domain-Specific Pattern Packs.",
+          "As System Architect, Support Custom Organizational Patterns."
+        ],
+        "complexity": "MED"
+      },
+      "source": "analytics-usecases/sie-knowledge-management-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-multi-stakeholder-views-uc-v1",
+      "title": "UC - sie multi stakeholder views uc v1",
+      "kind": "UseCase",
+      "parentId": "E-1",
+      "fields": {
+        "capability": "Multi-Stakeholder Views",
+        "feature": "Multi-Stakeholder Views",
+        "note": "**SAFe mapping:** Epic E-1 Trustworthy Governance (audit + explain)\n  Capability: Multi-Stakeholder Views\n  Feature: Multi-Stakeholder Views\n\n  **Plane ownership:** Output contracts across planes.\n  SIE provides **view models + query constraints**; rendering belongs to domain apps.\n\n  **Requires capabilities:** Security+Access (role-scoped queries), Provenance+Lineage,\n  Explanation Engine (for narrative), Decision Intelligence (for audit), Temporal/Graph (for metrics).\n\n  **Hard dependencies:** CSDM repo, dashboard API, view renderer, (optional) LLM.\n\n  **Feasibility tier:** NOW\n  for \u201ccontracts + query layer\u201d; UI/dashboard rendering is OUT-OF-SIE scope.",
+        "planeOwnership": "Output contracts across planes.",
+        "requiredCapabilities": [
+          "Security+Access (role-scoped queries)",
+          "Provenance+Lineage"
+        ],
+        "hardDependencies": [
+          "CSDM repo",
+          "dashboard API",
+          "view renderer",
+          "(optional) LLM."
+        ],
+        "feasibility": "NOW",
+        "epicId": "E-1",
+        "scenarios": [
+          "As Developer, Show Constraint Violations with Code Locations.",
+          "As Developer, Provide Quick-Fix Suggestions.",
+          "As Developer, Display Integration Patterns.",
+          "As Developer, Offer Local Testing Tools.",
+          "As System Architect, Show Cross-System Alignment.",
+          "As System Architect, Display Architecture Debt Indicators."
+        ],
+        "complexity": "LOW/MED"
+      },
+      "source": "analytics-usecases/sie-multi-stakeholder-views-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-policy-intelligence-uc-v1",
+      "title": "UC - sie policy intelligence uc v1",
+      "kind": "UseCase",
+      "parentId": "E-3",
+      "fields": {
+        "capability": "Policy Intelligence",
+        "feature": "Policy Intelligence",
+        "note": "**SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)\n  Capability: Policy Intelligence\n  Feature: Policy Intelligence\n\n  **Plane ownership:** Definition plane (policy lifecycle -> executable definitions).\n\n  **Requires capabilities:** Definition Deliverable Compiler, CSDSL Runtime,\n  Versioning+Provenance, Semantic Intelligence (translation), Formal Methods (validation).\n\n  **Hard dependencies:** Policy repository, CSDSL engine, LLM, simulation engine.\n\n  **Feasibility tier:** NEXT\n  (simulation + operationalizability validation drive scope).",
+        "planeOwnership": "Definition plane (policy lifecycle -> executable definitions).",
+        "requiredCapabilities": [
+          "Definition Deliverable Compiler",
+          "CSDSL Runtime"
+        ],
+        "hardDependencies": [
+          "Policy repository",
+          "CSDSL engine",
+          "LLM",
+          "simulation engine."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-3",
+        "scenarios": [
+          "As Policy Author, Convert High-Level Policy to CSDSL Rules.",
+          "As Policy Author, Generate Behavioral Rules from Definitions.",
+          "As Policy Author, Support Policy Branching for Testing.",
+          "As Policy Author, Dry-Run Policies Against Historical Data.",
+          "As Policy Author, Compare Policy Variants.",
+          "As Governance Officer, Bridge Business and Technical Policy."
+        ],
+        "complexity": "HIGH"
+      },
+      "source": "analytics-usecases/sie-policy-intelligence-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-semantic-intelligence-uc-v1",
+      "title": "UC - sie semantic intelligence uc v1",
+      "kind": "UseCase",
+      "parentId": "E-3",
+      "fields": {
+        "capability": "Semantic Intelligence",
+        "feature": "Semantic Intelligence",
+        "note": "**SAFe mapping:** Epic E-3 Policy & Constraint Evolution (coherent definitions)\n  Capability: Semantic Intelligence\n  Feature: Semantic Intelligence\n\n  **Plane ownership:** Definition-plane support capability (controller assist);\n  uses Description-plane evidence only for grounding inputs.\n\n  **Requires capabilities:** Semantic Intelligence, CSDSL Runtime, Security+Access,\n  Provenance+Lineage, LLM Output Assurance.\n\n  **Hard dependencies:** LLM, KB (retrieval), CSDSL engine.\n\n  **Feasibility tier:** NEXT\n  (risk is primarily: quality + assurance of generated/translated artifacts).",
+        "planeOwnership": "Definition-plane support capability (controller assist);",
+        "requiredCapabilities": [
+          "Semantic Intelligence",
+          "CSDSL Runtime",
+          "Security+Access"
+        ],
+        "hardDependencies": [
+          "LLM",
+          "KB (retrieval)",
+          "CSDSL engine."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-3",
+        "scenarios": [
+          "As Policy Author, Parse Natural Language Policy Request.",
+          "As Policy Author, Map Business Objective to Constraint Pattern.",
+          "As Policy Author, Suggest Templates from History.",
+          "As Policy Author, Create Policy Documentation.",
+          "As System Architect, Identify Implicit Goals.",
+          "As System Architect, Find Semantically Similar Constraints."
+        ],
+        "complexity": "MED"
+      },
+      "source": "analytics-usecases/sie-semantic-intelligence-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-systemic-reasoning-uc-v1",
+      "title": "UC - sie systemic reasoning uc v1",
+      "kind": "UseCase",
+      "parentId": "E-5",
+      "fields": {
+        "capability": "Systemic Reasoning",
+        "feature": "Systemic Reasoning",
+        "note": "**SAFe mapping:** Epic E-5 Systemic Reasoning (domain-adapter heavy)\n  Capability: Systemic Reasoning\n  Feature: Systemic Reasoning\n\n  **Plane ownership:** Description plane (cross-domain reasoning over observed state);\n  feeds Definition-plane decisions (coherence/emergence/adaptation).\n\n  **Requires capabilities:** Graph Reasoning, Temporal+Forecasting,\n  Evidence+State substrate, Uncertainty+Confidence.\n\n  **Hard dependencies:** graph DB, event stream, CSDM repository.\n\n  **Feasibility tier:** NEXT\n  (\"code change -> business outcome\" is integration-heavy; keep as adapters).",
+        "planeOwnership": "Description plane (cross-domain reasoning over observed state);",
+        "requiredCapabilities": [
+          "Graph Reasoning",
+          "Temporal+Forecasting"
+        ],
+        "hardDependencies": [
+          "graph DB",
+          "event stream",
+          "CSDM repository."
+        ],
+        "feasibility": "NEXT",
+        "epicId": "E-5",
+        "scenarios": [
+          "As System Architect, Map Code Change to Business Outcome.",
+          "As System Architect, Identify Hidden Dependencies.",
+          "As System Architect, Resolve Transitive Dependencies.",
+          "As System Architect, Identify Single Points of Failure.",
+          "As System Architect, Map Capability to Deployment.",
+          "As SRE Engineer, Correlate Infra Events to Service Degradation."
+        ],
+        "complexity": "HIGH"
+      },
+      "source": "analytics-usecases/sie-systemic-reasoning-uc-v1.puml"
+    },
+    {
+      "localId": "UC:sie-temporal-analytics-uc-v1",
+      "title": "UC - sie temporal analytics uc v1",
+      "kind": "UseCase",
+      "parentId": "E-2",
+      "fields": {
+        "capability": "Temporal Analytics",
+        "feature": "Temporal Analytics",
+        "note": "**SAFe mapping:** Epic E-2 Operational Drift & Blast-Radius Intelligence\n  Capability: Temporal Analytics\n  Feature: Temporal Analytics\n\n  **Plane ownership:** Description plane (time-aware sensing + comparator);\n  can trigger Definition-plane governance intent when thresholds predict drift.\n\n  **Requires capabilities:** Evidence+State substrate, Temporal+Forecasting,\n  Uncertainty+Confidence, Security+Access.\n\n  **Hard dependencies:** TSDB, (optional) ML service, alert system.\n\n  **Feasibility tier:** NOW\n  (start with trend/drift aggregation; forecasting/anomaly ML expands later).",
+        "planeOwnership": "Description plane (time-aware sensing + comparator);",
+        "requiredCapabilities": [
+          "Evidence+State substrate",
+          "Temporal+Forecasting"
+        ],
+        "hardDependencies": [
+          "TSDB",
+          "(optional) ML service",
+          "alert system."
+        ],
+        "feasibility": "NOW",
+        "epicId": "E-2",
+        "scenarios": [
+          "As SRE Engineer, Detect Quality Trends.",
+          "As SRE Engineer, Flag Accelerating Deviation.",
+          "As SRE Engineer, Identify Recurring Failure Patterns.",
+          "As SRE Engineer, Detect Evaluation Outliers.",
+          "As SRE Engineer, Identify Sudden Behavior Changes.",
+          "As Capacity Planner, Identify Seasonal Patterns."
+        ],
+        "complexity": "LOW/MED"
+      },
+      "source": "analytics-usecases/sie-temporal-analytics-uc-v1.puml"
+    }
+  ]
+}

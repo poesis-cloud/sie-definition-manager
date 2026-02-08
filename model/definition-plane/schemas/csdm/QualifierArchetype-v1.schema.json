@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/QualifierArchetype.json",
+  "title": "QualifierArchetype (CSDM v1)",
+  "description": "Defines the structure and semantics of a qualifier archetype.",
+  "type": "object",
+  "required": ["id", "name", "schema"],
+  "properties": {
+    "id": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "schema": { "$ref": "sie://schemas/csdm/v1/ArchetypeSchema.json" }
+  }
+}

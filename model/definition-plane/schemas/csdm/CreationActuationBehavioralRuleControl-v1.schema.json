@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/CreationActuationBehavioralRuleControl.json",
+  "title": "CreationActuationBehavioralRuleControl (CSDM v1)",
+  "description": "BehavioralRuleControl that defines initial state for a StateObjectArchetype.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/BehavioralRuleControl.json" }
+  ],
+  "type": "object",
+  "required": ["stateObjectArchetype", "stateObjectSourceMapping"],
+  "properties": {
+    "stateObjectArchetype": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "stateObjectSourceMapping": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/SourceMappingExpression" }
+  }
+}

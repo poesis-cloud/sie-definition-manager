@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/SystemicPrimitiveArchetypeQualifierArchetype.json",
+  "title": "SystemicPrimitiveArchetypeQualifierArchetype (CSDM v1)",
+  "description": "Qualifier archetype attached to a systemic primitive archetype (applies to all instances of the primitive subtype).",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/QualifierArchetype.json" }
+  ],
+  "type": "object",
+  "properties": {
+    "systemicPrimitiveArchetypeId": {
+      "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID",
+      "description": "Identifier of the SystemicPrimitiveArchetype this qualifier archetype belongs to."
+    }
+  }
+}

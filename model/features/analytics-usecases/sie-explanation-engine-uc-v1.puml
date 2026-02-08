@@ -27,6 +27,24 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Explanation Engine - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-1 Trustworthy Governance (audit + explain)
+  Capability: Explanation Engine
+  Feature: Explanation Engine
+
+  **Plane ownership:** Description+Definition (trace capture + controller-facing explanation);
+  outputs are view-models and evidence packages (rendered elsewhere).
+
+  **Requires capabilities:** Instrumentation+Trace, Versioning+Provenance,
+  Explanation+Counterfactual, Formal Methods (attribution/counterfactual),
+  Security+Access.
+
+  **Hard dependencies:** trace store, decision log, CSDSL engine, (optional) LLM.
+
+  **Feasibility tier:** NEXT
+  (requires deterministic trace + bounded data retention).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/BehavioralRuleCandidateEvent.json",
+  "title": "BehavioralRuleCandidateEvent (Events v1)",
+  "description": "Candidate behavioral rule synthesized from mismatch evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scope", "rationale", "createdAt"],
+  "properties": {
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "rationale": { "type": "string" },
+    "createdAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

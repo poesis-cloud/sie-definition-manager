@@ -737,6 +737,53 @@ frame "PD - SIE (Systemic Intelligence Engine) - Analytics Feature Packages - v1
   }
 
   ' ============================================================
+  ' ASSURANCE & SAFETY (CROSS-CUTTING)
+  ' ============================================================
+
+  package "Assurance & Safety" as AssuranceSafety {
+
+    note as SafetyNote
+      **Cross-cutting guardrails for autonomy + analytics quality.**
+
+      Systemics intent: preserve closed-loop coherence by ensuring that
+      analytics outputs become actionable only when validated, auditable,
+      and gated by Definition-plane deliverables.
+    end note
+
+    package "Provenance & Lineage" as ProvenanceLineage {
+      note as ProvNote
+        - Links decisions to constraint/policy versions
+        - Links traces/evidence to producing sensors and transformations
+        - Enables replay with identical inputs
+      end note
+    }
+
+    package "Uncertainty & Confidence" as UncertaintyConfidence {
+      note as UncertaintyNote
+        - Records confidence for forecasts/LLM outputs
+        - Calibrates thresholds for automation eligibility
+        - Drives escalation vs auto-action gating
+      end note
+    }
+
+    package "LLM Output Assurance" as LLMOutputAssurance {
+      note as LLMGuardNote
+        - Enforces typed CSDSL output constraints
+        - Requires formal checks for generated constraints (SMT)
+        - Maintains prompt/retrieval provenance for audit
+      end note
+    }
+
+    package "Automation Guardrails" as AutomationGuardrails {
+      note as AutoGuardNote
+        - Policy-based gating of auto-healing / actuation
+        - Rollback + blast-radius limits for effectors
+        - Two-person approval for high-risk changes
+      end note
+    }
+  }
+
+  ' ============================================================
   ' DEPENDENCIES
   ' ============================================================
 
@@ -773,8 +820,20 @@ frame "PD - SIE (Systemic Intelligence Engine) - Analytics Feature Packages - v1
   KnowledgeManagement ..> SemanticIntelligence : enables\nsimilarity
   KnowledgeManagement ..> DecisionIntelligence : learns from\ndecisions
 
+  ' Assurance & Safety constrains autonomy and strengthens auditability
+  AssuranceSafety ..> DecisionIntelligence : strengthens\naudit
+  AssuranceSafety ..> ExplanationEngine : strengthens\ntrust
+  AssuranceSafety ..> ConstraintIntelligence : requires\nvalidation
+  AssuranceSafety ..> ActuationRemediation : gates\naction
+  AssuranceSafety ..> SemanticIntelligence : constrains\nLLM
+
   ' Decision Intelligence supports audit chain
   DecisionIntelligence ..> MultiStakeholderViews : supports\nauditor view
+
+  note as CapabilityMapNote
+    Capability mapping and scope/complexity flags are defined in:
+    - `model/features/sie-analytics-capabilities-v1.puml`
+  end note
 }
 
 @enduml

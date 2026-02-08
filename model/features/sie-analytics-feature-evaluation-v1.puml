@@ -1,0 +1,192 @@
+@startuml sie-analytics-feature-evaluation-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+' ============================================================
+
+frame "PD - SIE - Analytics Capability Evaluation View - v1" {
+
+  note as Legend
+    **Purpose**
+    Aggregated view that maps prioritized capabilities to **complexity/effort** and
+    **hard dependencies**, aligned with the closed-loop (Description/Definition/Remediation)
+    and the capability map in `sie-analytics-capabilities-v1`.
+
+    **Complexity scale**
+    - **LOW**: mostly internal SIE logic + limited integrations
+    - **MED**: requires durable evidence/trace/provenance and one major dependency
+    - **HIGH**: formal methods, orchestration/connectors, or domain-adapter heavy
+
+    **Feasibility tier**
+    - **NOW**: coherent MVP value with bounded scope
+    - **NEXT**: needs 1–2 additional engine capabilities + stronger assurance
+    - **RESEARCH**: integration-dominant or unbounded claims
+  end note
+
+  package "P0 - Adoption Gates (market baseline)" as P0 {
+
+    package "Assurance & Safety" as EVAL_Safety {
+      note as N_Safety
+        **Complexity:** MED
+        **Feasibility:** NOW (as Definition-plane policies/contracts)
+        **Plane:** Cross-cutting; anchored in Definition-plane gating
+        **Hard deps:** decision log, trace store, (optional) SMT, orchestrator
+        **Integration risk:** MED (enforcement depends on runtime hooks)
+      end note
+    }
+
+    package "Decision Intelligence" as EVAL_Decision {
+      note as N_Decision
+        **Complexity:** MED
+        **Feasibility:** NEXT
+        **Plane:** Description substrate + Definition auditability
+        **Hard deps:** evidence store (tiered), retention, reporting
+        **Integration risk:** MED/HIGH (tamper-evidence is specialized)
+      end note
+    }
+
+    package "Explanation Engine" as EVAL_Explain {
+      note as N_Explain
+        **Complexity:** MED/HIGH
+        **Feasibility:** NEXT
+        **Plane:** Description+Definition (trace -> explanation -> governance)
+        **Hard deps:** deterministic trace, replay, CSDSL runtime, (optional) SMT/LLM
+        **Integration risk:** MED (bounded retention + determinism are key)
+      end note
+    }
+
+    package "Temporal Analytics" as EVAL_Temporal {
+      note as N_Temporal
+        **Complexity:** LOW/MED
+        **Feasibility:** NOW
+        **Plane:** Description (sensor+comparator)
+        **Hard deps:** TSDB/aggregations, alerting
+        **Integration risk:** LOW/MED
+      end note
+    }
+
+    package "Graph Analytics" as EVAL_Graph {
+      note as N_Graph
+        **Complexity:** MED
+        **Feasibility:** NOW
+        **Plane:** Description (structural sensing)
+        **Hard deps:** graph store + traversal, snapshot/versioning
+        **Integration risk:** MED (graph ingestion contracts)
+      end note
+    }
+
+    package "Multi-Stakeholder Views" as EVAL_Views {
+      note as N_Views
+        **Complexity:** LOW/MED
+        **Feasibility:** NOW (contracts + RBAC query constraints)
+        **Plane:** Output contracts across planes
+        **Hard deps:** RBAC/ABAC, query layer, evidence/provenance
+        **Integration risk:** HIGH if UI/dashboards included (out-of-scope)
+      end note
+    }
+  }
+
+  package "P1 - Differentiators (pricing power)" as P1 {
+
+    package "Constraint Intelligence" as EVAL_Constraint {
+      note as N_Constraint
+        **Complexity:** HIGH
+        **Feasibility:** NEXT
+        **Plane:** Definition (constraint coherence + synthesis)
+        **Hard deps:** SMT solver, CSDSL AST normalization, provenance
+        **Integration risk:** MED (solver + semantics discipline)
+      end note
+    }
+
+    package "Policy Intelligence" as EVAL_Policy {
+      note as N_Policy
+        **Complexity:** HIGH
+        **Feasibility:** NEXT
+        **Plane:** Definition (policy lifecycle -> deliverables)
+        **Hard deps:** CSDSL runtime, simulation harness, (optional) SMT/LLM
+        **Integration risk:** MED/HIGH (policy semantics + simulation data)
+      end note
+    }
+
+    package "Actuation & Remediation" as EVAL_Actuation {
+      note as N_Actuation
+        **Complexity:** HIGH
+        **Feasibility:** NEXT
+        **Plane:** Remediation (actuation substrate)
+        **Hard deps:** orchestrator, connectors, ticketing, rollback
+        **Integration risk:** HIGH (connector surface + safety gating)
+      end note
+    }
+  }
+
+  package "P2 - Accelerators (bundle/enablers)" as P2 {
+
+    package "Semantic Intelligence" as EVAL_Semantic {
+      note as N_Semantic
+        **Complexity:** MED
+        **Feasibility:** NEXT
+        **Plane:** Definition support capability
+        **Hard deps:** LLM, retrieval/KB, output validation (types/formal)
+        **Integration risk:** MED (quality + assurance is the differentiator)
+      end note
+    }
+
+    package "Knowledge Management" as EVAL_KM {
+      note as N_KM
+        **Complexity:** MED
+        **Feasibility:** NEXT
+        **Plane:** Definition support; learns from Description outcomes
+        **Hard deps:** KB/pattern repo, provenance/decision logs, (optional) LLM
+        **Integration risk:** MED (governance of KB quality)
+      end note
+    }
+  }
+
+  package "P3 - Research / Integration-Heavy" as P3 {
+
+    package "Systemic Reasoning" as EVAL_Systemic {
+      note as N_Systemic
+        **Complexity:** HIGH
+        **Feasibility:** RESEARCH
+        **Plane:** Description reasoning feeding Definition decisions
+        **Hard deps:** cross-domain adapters, graph+temporal substrate
+        **Integration risk:** VERY HIGH (domain mapping dominates)
+      end note
+    }
+
+    package "Emergence Detection" as EVAL_Emergence {
+      note as N_Emergence
+        **Complexity:** HIGH
+        **Feasibility:** RESEARCH
+        **Plane:** Description monitoring feeding Coherence/Emergence governance
+        **Hard deps:** bounded signals, feedback-loop detectors, trace
+        **Integration risk:** HIGH (avoid unbounded claims; keep heuristic)
+      end note
+    }
+  }
+
+  ' Cross-links (evaluation narrative)
+  EVAL_Safety ..> EVAL_Actuation : gates
+  EVAL_Decision ..> EVAL_Explain : evidence
+  EVAL_Graph ..> EVAL_Systemic : substrate
+  EVAL_Temporal ..> EVAL_Systemic : substrate
+  EVAL_Constraint ..> EVAL_Policy : validates
+}
+
+@enduml

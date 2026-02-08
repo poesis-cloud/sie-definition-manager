@@ -1,0 +1,34 @@
+@startuml sie-adaptation-seq-001-generate-candidate-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE Governance Sequence - Adaptation - Generate Candidate - v1
+
+autonumber
+
+participant "Description Plane - EVAL-ADP-TRG-001" as EFF_ADP_TRG_001
+participant "Definition Plane - R-ADP-001" as R_ADP_001
+participant "Definition Plane - SUP-ADP-001" as SUP_ADP_001
+participant "Remediation Plane - EFF-ADP-001" as EFF_ADP_001
+participant "Remediation Plane - R-ADP-REMED-001" as R_ADP_REMED_001
+
+EFF_ADP_TRG_001 -> R_ADP_001 : [INT-ADP-TRG-001] MismatchAssessmentEvent
+note over SUP_ADP_001
+  Executes BR-ADP-001 controlSequence
+  - BRC-ADP-001 Propose Candidate Rule
+end note
+EFF_ADP_001 -> R_ADP_REMED_001 : [INT-ADP-001] BehavioralRuleCandidateEvent
+
+@enduml

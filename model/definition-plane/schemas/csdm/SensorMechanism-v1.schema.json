@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/SensorMechanism.json",
+  "title": "SensorMechanism (CSDM v1)",
+  "description": "Observation mechanism on actuations; typically auto-defined from a Sensing.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/Mechanism.json" }
+  ],
+  "type": "object"
+}

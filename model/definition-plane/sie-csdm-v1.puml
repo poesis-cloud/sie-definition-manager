@@ -335,10 +335,292 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       properties:
         - incoherenceId: UUID
         - resolutionStrategy: Enum [create_constraint, deprecate_constraint, modify_scope, priority_override]
+        - resolutionType: Enum [create_constraint, deprecate_constraint, modify_scope, priority_override]
+        - scope: Object
         - proposedChanges: Object[]
+        - proposedAt: DateTime
         - proposedBy: Enum [user, llm, automated]
         - confidence: Number (0-1)
         - requiresApproval: Boolean
+
+    - *SIE Governance / Closed-loop Workflow Events*:
+
+      name: ControlIntentEvent
+      description: Systemic intent driving a Homeostasis cycle.
+      properties:
+        - phase: Enum [ASSESS, ACTUATE, RETENTION]
+        - intentId: UUID
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: RuleExecutionRequestEvent
+      description: Request to execute a rule set to assess drift/mismatch.
+      properties:
+        - intentId: UUID
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: RetentionAppliedEvent
+      description: Evidence retention policy applied on Description artifacts.
+      properties:
+        - rawWindow: String (ISO-8601 duration)
+        - derivedWindow: String (ISO-8601 duration)
+        - appliedAt: DateTime
+
+      name: ActuationControlEvent
+      description: Request to perform an actuation against the State plane.
+      properties:
+        - actuationType: Enum [create, modify, delete, acquire]
+        - resourceId: String
+        - desiredState: Object
+
+      name: ActuationFeedbackEvent
+      description: Feedback emitted from actuation execution.
+      properties:
+        - operation: Enum [create, modify, delete, acquire]
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode (nullable)
+        - valueMapping: Map (nullable)
+
+      name: ActuationResultEvent
+      description: State-sourced actuation outcome (ground truth).
+      properties:
+        - resourceId: String
+        - status: Enum [SUCCESS, FAILURE, PARTIAL]
+        - details: Object (nullable)
+        - occurredAt: DateTime
+
+      name: StateChangeEvent
+      description: State-sourced change notification for replay/observability.
+      properties:
+        - resourceId: String
+        - changeType: String
+        - before: Object (nullable)
+        - after: Object (nullable)
+        - occurredAt: DateTime
+
+    - *Description-derived Evidence Events*:
+
+      name: MismatchDetectedEvent
+      description: A definition/description mismatch has been detected.
+      properties:
+        - mismatchId: UUID
+        - mismatchType: Enum [VALUE_DEVIATION, COVERAGE_GAP, SCHEMA_DRIFT, REFERENCE_GAP, VARIETY_DEFICIT, SEMANTIC_DRIFT]
+        - severity: Enum [INFO, WARNING, ERROR, CRITICAL]
+        - definitionRefs: UUID[]
+        - descriptionRefs: String[]
+        - evidencePointers: String[] (URI references)
+        - detectedAt: DateTime
+
+      name: OperationalFeedbackEvidenceEvent
+      description: Derived operational feedback evidence emitted for governance.
+      properties:
+        - feedbackId: UUID
+        - scope: Object
+        - evidencePointers: String[] (URI references)
+        - derivedAt: DateTime
+
+      name: MismatchAssessmentEvent
+      description: Structured assessment produced from mismatches + feedback.
+      properties:
+        - assessmentId: UUID
+        - scope: Object
+        - diagnosisSummary: String
+        - candidateRuleId: UUID (nullable)
+        - assessedAt: DateTime
+
+    - *Adaptation Events*:
+
+      name: BehavioralRuleCandidateEvent
+      description: Candidate behavioral rule synthesized from mismatch evidence.
+      properties:
+        - scope: Object
+        - rationale: String
+        - createdAt: DateTime
+
+      name: OperatorProvisioningEvent
+      description: Request to provision / replace an Operator realization.
+      properties:
+        - boundBehavioralRuleId: UUID
+        - provisionMode: Enum [ADD_OPERATOR, REPLACE_OPERATOR, UPDATE_OPERATOR, ROLLBACK_OPERATOR]
+        - requestedAt: DateTime
+
+    - *Coherence Events*:
+
+      name: CoherenceRequestEvent
+      description: Request to run coherence workflows.
+      properties:
+        - phase: Enum [CHECK, FEASIBILITY]
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: CoherenceCheckPlanEvent
+      description: Coherence check plan emitted for execution.
+      properties:
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: EvidenceGroundingRequestEvent
+      description: Request to ground evidence for a coherence assessment.
+      properties:
+        - evidenceSelectors: Object
+        - requestedAt: DateTime
+
+      name: SupervisorCheckRequestEvent
+      description: Request supervisor-level checks.
+      properties:
+        - checkSet: String[]
+        - requestedAt: DateTime
+
+      name: CoherenceReportEvent
+      description: Coherence assessment report.
+      properties:
+        - report: Object
+        - publishedAt: DateTime
+
+      name: FeasibilityAssessmentRequestedEvent
+      description: Request feasibility evaluation of proposed definitions.
+      properties:
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: FeasibilityAggregatedEvent
+      description: Aggregated feasibility result.
+      properties:
+        - scope: Object
+        - aggregatedAt: DateTime
+
+      name: IncoherenceDetectedEvent
+      description: A coherence workflow detected incoherence.
+      properties:
+        - incoherenceType: String
+        - scope: Object
+        - detectedAt: DateTime
+
+    - *Emergence Events*:
+
+      name: EmergenceTriggerEvent
+      description: Trigger to open an emergence case (new primitives/constraints).
+      properties:
+        - triggerType: String
+        - scope: Object
+        - proposal: Object
+        - evidencePointers: String[] (URI references)
+        - definitionBundle: Object (nullable)
+        - targetId: UUID (nullable)
+
+      name: EmergenceCaseOpenedEvent
+      description: Emitted when an emergence case is opened.
+      properties:
+        - triggerType: String
+        - scope: Object
+        - openedAt: DateTime
+
+      name: DecisionRequestEvent
+      description: Request decision/approval from external Decision Owner.
+      properties:
+        - proposal: Object
+        - evidencePointers: String[] (URI references)
+        - requestedAt: DateTime
+
+      name: DecisionResponseEvent
+      description: Decision Owner response consumed by governance.
+      properties:
+        - decision: Enum [APPROVED, REJECTED, REQUEST_CHANGES]
+        - rationale: String (nullable)
+        - respondedAt: DateTime
+        - decisionPayload: Object (nullable)
+
+      name: ApprovalRequiredEvent
+      description: Emitted when automated approval is not possible.
+      properties:
+        - proposal: Object
+        - requestedAt: DateTime
+
+      name: EscalationEvent
+      description: Escalation due to timeout or risk threshold.
+      properties:
+        - reason: String
+        - escalatedAt: DateTime
+        - target: String
+
+      name: EmergenceApprovedEvent
+      description: Emergence approval completed.
+      properties:
+        - scope: Object
+        - approvedAt: DateTime
+
+      name: DefinitionChangedEvent
+      description: Published change to Definition-plane deliverables.
+      properties:
+        - definitionBundle: Object
+        - publishedAt: DateTime
+
+      name: ResolutionRequiresEmergenceEvent
+      description: A resolution path requires Emergence.
+      properties:
+        - scope: Object
+        - incoherenceId: UUID (nullable)
+        - raisedAt: DateTime
+
+      name: PrimitiveDeprecateAndCreateEvent
+      description: Instruction to deprecate a primitive and create a replacement.
+      properties:
+        - targetId: UUID
+        - createdAt: DateTime
+
+      name: PrimitiveDeprecatedEvent
+      description: Primitive deprecation completed.
+      properties:
+        - primitiveId: UUID
+        - deprecatedAt: DateTime
+
+      name: PrimitiveCreatedEvent
+      description: Primitive creation completed.
+      properties:
+        - primitiveId: UUID
+        - createdAt: DateTime
+
+    - *Synchronization / Observability Events*:
+
+      name: GraphSyncAppliedEvent
+      description: Mutation successfully applied to the systemic knowledge graph.
+      properties:
+        - mutation: Object
+        - appliedAt: DateTime
+
+      name: SensorAutoDefinedEvent
+      description: Auto-definition created a new sensor binding.
+      properties:
+        - policyId: UUID
+        - createdAt: DateTime
+
+      name: SensorDeprecatedEvent
+      description: Sensor binding deprecated.
+      properties:
+        - sensorId: UUID
+        - deprecatedAt: DateTime
+
+      name: BehavioralRulePublishedEvent
+      description: Behavioral rule published into the Definition plane.
+      properties:
+        - behavioralRuleId: UUID
+        - publishedAt: DateTime
+
+      name: BehavioralRuleRealizationStatusEvent
+      description: Runtime realization status for a behavioral rule.
+      properties:
+        - behavioralRuleId: UUID
+        - status: Enum [PENDING, REALIZED_IN_STATE, FAILED]
+        - reportedAt: DateTime
+        - details: Object (nullable)
+
+      name: SyncLagAlertEvent
+      description: Alert emitted when sync lag exceeds threshold.
+      properties:
+        - stream: String
+        - lagSeconds: Number
+        - detectedAt: DateTime
   end note
 
   ' ============================================================

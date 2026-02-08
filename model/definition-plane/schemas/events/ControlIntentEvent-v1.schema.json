@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/events/v1/ControlIntentEvent.json",
+  "title": "ControlIntentEvent (Events v1)",
+  "description": "Systemic intent driving a Homeostasis cycle.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["phase", "intentId", "scope", "requestedAt"],
+  "properties": {
+    "phase": {
+      "type": "string",
+      "enum": ["ASSESS", "ACTUATE", "RETENTION"]
+    },
+    "intentId": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "scope": {
+      "description": "Opaque scope selector for governance workflows.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "requestedAt": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/DateTime" }
+  }
+}

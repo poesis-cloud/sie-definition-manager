@@ -27,6 +27,23 @@ skinparam noteBorderColor #57606A
 
 title UC - SIE Temporal Analytics - v1
 
+note as FeasibilityNote
+  **SAFe mapping:** Epic E-2 Operational Drift & Blast-Radius Intelligence
+  Capability: Temporal Analytics
+  Feature: Temporal Analytics
+
+  **Plane ownership:** Description plane (time-aware sensing + comparator);
+  can trigger Definition-plane governance intent when thresholds predict drift.
+
+  **Requires capabilities:** Evidence+State substrate, Temporal+Forecasting,
+  Uncertainty+Confidence, Security+Access.
+
+  **Hard dependencies:** TSDB, (optional) ML service, alert system.
+
+  **Feasibility tier:** NOW
+  (start with trend/drift aggregation; forecasting/anomaly ML expands later).
+end note
+
 ' ============================================================
 ' ACTORS
 ' ============================================================

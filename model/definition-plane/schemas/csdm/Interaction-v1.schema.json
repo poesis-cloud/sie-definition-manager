@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/Interaction.json",
+  "title": "Interaction (CSDM v1)",
+  "description": "Atomic causal coupling from a producing effector to a receiving receptor.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name", "effector", "receptor"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "effector": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "receptor": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" }
+  }
+}
