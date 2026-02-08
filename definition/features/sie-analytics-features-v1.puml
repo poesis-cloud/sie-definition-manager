@@ -832,7 +832,7 @@ frame "PD - SIE (Systemic Intelligence Engine) - Analytics Feature Packages - v1
 
   note as CapabilityMapNote
     Capability mapping and scope/complexity flags are defined in:
-    - `model/features/sie-analytics-capabilities-v1.puml`
+    - `definition/features/sie-analytics-capabilities-v1.puml`
   end note
 }
 

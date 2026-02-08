@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, DefaultDict, Iterable
 
 
-BACKLOG_EXPORT_PATH = Path("model/features/backlog/backlog-export.json")
+BACKLOG_EXPORT_PATH = Path("definition/features/backlog/backlog-export.json")
 
 
 @dataclass(frozen=True)
@@ -229,7 +229,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument(
         "--export",
         default=str(BACKLOG_EXPORT_PATH),
-        help="Path to backlog-export.json (default: model/features/backlog/backlog-export.json)",
+        help="Path to backlog-export.json (default: definition/features/backlog/backlog-export.json)",
     )
     parser.add_argument("--out", help="Write Markdown report to this path (default: stdout)")
     args = parser.parse_args(list(argv) if argv is not None else None)
