@@ -3,11 +3,10 @@
   "plantuml.render": "Local",
   "plantuml.java": "/usr/bin/java",
   "plantuml.commandArgs": [
-    "-Dplantuml.include.path=${workspaceFolder}/concept/cam/base:${workspaceFolder}/concept/sie/model"
+    "-Dplantuml.include.path=${workspaceFolder}/definition"
   ],
-  "plantuml.diagramsRoot": "concept",
+  "plantuml.diagramsRoot": "definition",
   "plantuml.includepaths": [
-    "concept/cam/base",
-    "concept/sie/model"
+    "definition"
   ]
 }
