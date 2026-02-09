@@ -39,6 +39,6 @@ DecisionOwner -> Bus : [INT-EMG-003] publish DecisionResponseEvent
 Bus -> GOV_EMG_001 : deliver DecisionResponseEvent
 
 GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-006 Deprecate+Create Primitive
-GOV_EMG_001 -> Bus : [INT-EMG-007] publish PrimitiveDeprecateAndCreateEvent
+GOV_EMG_001 -> Bus : [INT-EMG-007] publish MechanismAssignment(UPDATE_DEFINITION)
 
 @enduml

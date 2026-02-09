@@ -61,6 +61,12 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       properties = ["mechanismId", "definition", "assignmentMode"]
     }
 
+    object "EA-INF-EMG-003\nOperationFeedbackEvent" as EA_OperationFeedback <<EventArchetype>> {
+      name = "OperationFeedbackEvent"
+      description = "Feedback from Operations"
+      properties = ["feedbackType", "sourceMechanismId", "payload"]
+    }
+
     object "EA-EMG-001\nEmergenceTriggerEvent" as EA_EmergenceTriggerEvent <<EventArchetype>> {
       name = "EmergenceTriggerEvent"
     }
@@ -394,7 +400,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
 
     object "R-EMG-003\nDefinition Update Feedback Receptor" as R_EMG_003 <<Receptor>> {
       name = "DefinitionUpdateFeedbackReceptor"
-      receivedEventArchetype = EA_DefinitionUpdateFeedbackEvent
+      receivedEventArchetype = EA_OperationFeedback
     }
 
     object "R-EMG-002\nDecision Response Receptor" as R_EMG_002 <<Receptor>> {

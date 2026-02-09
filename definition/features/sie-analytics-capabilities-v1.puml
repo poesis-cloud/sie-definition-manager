@@ -60,6 +60,21 @@ frame "PD - SIE - Analytics Feature Capability Map - v1" {
       end note
     }
 
+    package "Description Query + View Contracts" as CapDescription {
+      note as CapDescriptionNote
+        Required for: interface-coherent analytics and governance.
+
+        Enables the Definition plane (and Governance mechanisms) to request
+        a **SystemicDescription** snapshot from the Description plane using a
+        stable selector + view contract.
+
+        - Description selector model (scope + time + granularity)
+        - Snapshot semantics (immutable, replayable, bounded)
+        - View contracts (role-based shaping + redaction)
+        - Provenance links: snapshot -> sources -> transformations
+      end note
+    }
+
     package "Versioning + Provenance" as CapProvenance {
       note as CapProvNote
         Required for: Decision Logging, Audit Trail,

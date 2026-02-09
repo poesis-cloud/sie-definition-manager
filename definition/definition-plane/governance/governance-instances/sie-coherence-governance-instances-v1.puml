@@ -508,7 +508,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     object "R-COH-OBS-002\nEvidence Grounding Intake Receptor" as R_COH_OBS_002 <<Receptor>> {
       name = "EvidenceGroundingIntakeReceptor"
-      receivedEventArchetype = EA_EvidenceGroundingRequestEvent
+      receivedEventArchetype = EA_DescriptionQuery
     }
 
     object "R-COH-OBS-003\nSupervisor Check Intake Receptor" as R_COH_OBS_003 <<Receptor>> {
@@ -538,12 +538,12 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     object "R-COH-OPS-008\nSensor Auto-Defined Intake Receptor" as R_COH_OPS_008 <<Receptor>> {
       name = "SensorAutoDefinedIntakeReceptor"
-      receivedEventArchetype = EA_SensorAutoDefinedEvent
+      receivedEventArchetype = EA_MechanismAssignment
     }
 
     object "R-COH-OPS-009\nSensor Deprecated Intake Receptor" as R_COH_OPS_009 <<Receptor>> {
       name = "SensorDeprecatedIntakeReceptor"
-      receivedEventArchetype = EA_SensorDeprecatedEvent
+      receivedEventArchetype = EA_MechanismAssignment
     }
 
     object "R-COH-OBS-010\nFeasibility Request Intake Receptor" as R_COH_OBS_010 <<Receptor>> {

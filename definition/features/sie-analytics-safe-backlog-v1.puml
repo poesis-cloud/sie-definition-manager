@@ -40,12 +40,14 @@ frame "PD - SIE - Analytics Backlog (SAFe/Jira view) - v1" {
 
   package "EN-1 Evidence, Trace, Provenance runway" <<Epic,Enabler>> as EN1 {
     package "Evidence + State Substrate" <<Capability,Enabler>> as EN1_Evidence
+    package "Description Query + View Contracts" <<Capability,Enabler>> as EN1_Desc
     package "Instrumentation + Trace" <<Capability,Enabler>> as EN1_Trace
     package "Versioning + Provenance" <<Capability,Enabler>> as EN1_Prov
     package "Security + Access" <<Capability,Enabler>> as EN1_Sec
 
     package "Retention + Minimization policies" <<Feature,Enabler>> as EN1_Retention
     package "Replayable evaluation inputs" <<Feature,Enabler>> as EN1_Replay
+    package "Description selectors + snapshot contracts" <<Feature,Enabler>> as EN1_DescContracts
   }
 
   package "EN-2 Constraint runtime + formal validation runway" <<Epic,Enabler>> as EN2 {

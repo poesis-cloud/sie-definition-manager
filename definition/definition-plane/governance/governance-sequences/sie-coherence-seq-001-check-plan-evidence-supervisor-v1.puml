@@ -35,7 +35,7 @@ GOV_COH_001 -> GOV_COH_001 : BRC-COH-001 Plan
 GOV_COH_001 -> Bus : [INT-COH-001] publish CoherenceCheckPlanEvent
 
 GOV_COH_001 -> GOV_COH_001 : BRC-COH-002 Ground Evidence
-GOV_COH_001 -> Bus : [INT-COH-002] publish EvidenceGroundingRequestEvent
+GOV_COH_001 -> Bus : [INT-COH-002] publish DescriptionQueryEvent
 
 GOV_COH_001 -> GOV_COH_001 : BRC-COH-003 Supervisor Check
 GOV_COH_001 -> Bus : [INT-COH-003] publish SupervisorCheckRequestEvent

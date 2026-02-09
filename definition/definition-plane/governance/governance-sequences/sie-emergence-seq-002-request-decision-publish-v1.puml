@@ -45,6 +45,6 @@ note over GOV_EMG_001
   - BRC-EMG-003 Publish New Definitions
 end note
 GOV_EMG_001 -> GOV_EMG_001 : BRC-EMG-003 Publish New Definitions
-GOV_EMG_001 -> Bus : [INT-EMG-004] publish DefinitionChangedEvent
+GOV_EMG_001 -> Bus : [INT-EMG-004] publish MechanismAssignment(UPDATE_DEFINITION)
 
 @enduml

@@ -59,10 +59,10 @@ note over Observations, Operations
   - **Operations**: Hosts Actor Mechanisms; Pushes Operation Feedback (Outcome).
 
   **Interface Interactions:**
-  - **Provisioning**: Gov -> Obs/Ops (AssignMechanism)
-  - **Signaling**: Obs/Ops -> Gov (ObservationSignal / OperationFeedback)
-  - **Analysis**: Gov -> Obs (QueryDescription)
-  - **Validation**: Osp -> Gov (RequestAuthorization)
+  - **Provisioning**: Gov -> Obs/Ops (assignForObservation / assignForOperation)
+  - **Signaling**: Obs/Ops -> Gov (pushObservationSignal / pushOperationFeedback)
+  - **Analysis**: Gov -> Obs (getDescription)
+  - **Validation**: Gov -> Ops (grantAuthorization) | Ops -> Gov (requestAuthorization)
 end note
 
 ' ============================================================
@@ -75,11 +75,11 @@ note over Governor, Operations
   Each mechanism bundles: Definition (Logic) + Identity (Credentials) + Config.
 end note
 
-Governor -> Observations : INT-GOV-INF-001 AssignMechanism (Observer)
-note right: Payload: EA-GOV-INF-001 (PROVISION)
+Governor -> Observations : IObservationControl.assignForObservation(Observer)
+note right: Payload: MechanismAssignmentEvent (PROVISION)
 
-Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Actor)
-note right: Payload: EA-GOV-INF-001 (PROVISION)
+Governor -> Operations : IOperationControl.assignForOperation(Actor)
+note right: Payload: MechanismAssignmentEvent (PROVISION)
 
 == 1) Triggers (inbound to Governance) ==
 note over Operator, Governor
@@ -101,13 +101,14 @@ alt ControlIntent.phase == "ASSESS"
   loop while ControlIntent.repeatAssessment == true
     Operator -> Operator : BRC-HOM-001 Assess Drift / Stability
     
-    Operator -> Operations : Request Rule Execution (via Mechanism Update or Command)
+    Operator -> Operations : IOperationControl.assignForOperation(RuleExecution)
+    note right: Payload: MechanismAssignmentEvent (EXECUTE_RULE)
     Operations -> Operations : Execute Rule Logic
     
     alt Execution Success
-        Operations -> Operator : OperationFeedbackEvent (RuleExecutionFeedback=SUCCESS)
+        Operations -> Operator : IOperationFeedback.pushOperationFeedback(RuleExecutionFeedback=SUCCESS)
     else Execution Failure
-        Operations -> Operator : OperationFeedbackEvent (RuleExecutionFeedback=FAILURE)
+        Operations -> Operator : IOperationFeedback.pushOperationFeedback(RuleExecutionFeedback=FAILURE)
         Operator -> Operator : Handle Failure / Re-Assess
     end
   end
@@ -115,23 +116,23 @@ else ControlIntent.phase == "ACTUATE"
   loop while ControlIntent.repeatActuation == true
     Operator -> Operator : BRC-HOM-002 Modify State (Actuation)
     note right
-      Standard Command: ActuationControl
+      Standard Command: MechanismAssignment (UPDATE_STATE)
     end note
-    Operator -> Operations : ActuationControlEvent
+    Operator -> Operations : IOperationControl.assignForOperation(Actuation)
+    note right: Payload: MechanismAssignmentEvent (UPDATE_STATE)
     Operations -> Operations : Perform Actuation
 
     alt Actuation Success
-        Operations -> Operator : OperationFeedbackEvent (ActuationFeedback=SUCCESS)
-        Operations -> Observations : ActuationFeedbackEvent (Consequence Reporting)
-        Observations -> Operator : ObservationSignalEvent (ControlIntent Update)
+        Operations -> Operator : IOperationFeedback.pushOperationFeedback(ActuationFeedback=SUCCESS)
+        Observations -> Operator : IObservationSignal.pushObservationSignal(ControlIntent Update)
     else Actuation Failure
-        Operations -> Operator : OperationFeedbackEvent (ActuationFeedback=FAILURE)
+        Operations -> Operator : IOperationFeedback.pushOperationFeedback(ActuationFeedback=FAILURE)
         Operator -> Operator : Handle Failure / Re-Assess
     end
   end
 else ControlIntent.phase == "RETENTION"
   Operator -> Operator : BRC-HOM-003 Enforce Evidence Retention
-  Operator -> Observations : RetentionAppliedEvent
+  Operator -> Observations : IObservationControl.assignForObservation(RetentionPolicy)
   Observations -> Observations : Enforce Data Policy
 else (phase not applicable)
   note over Operator
@@ -155,7 +156,7 @@ end note
 alt MismatchAssessment.diagnosisNeeded == true
   loop while MismatchAssessment.repeatDiagnosis == true
     Supervisor -> Supervisor : BRC-ADP-001 Diagnose Control Performance
-    Supervisor -> Observations : ObservationSignal (BehavioralRuleCandidate)
+    Observations -> Supervisor : IObservationSignal.pushObservationSignal(BehavioralRuleCandidate)
     Observations -> Observations : Log Candidate Proposal
   end
 end
@@ -166,16 +167,15 @@ alt MismatchAssessment.candidateRuleStatus == "PUBLISHED"
     
     Supervisor -> Operator : MechanismAssignmentEvent (Update Definition)
     
-    Supervisor -> Operations : INT-GOV-INF-001 AssignMechanism (Update Internal Logic)
-    note right: Payload: EA-GOV-INF-001 (UPDATE)
+    Supervisor -> Operations : IOperationControl.assignForOperation(UpdatedLogic)
+    note right: Payload: MechanismAssignmentEvent (UPDATE_CONFIG)
     
     Operations -> Operations : Provision Operator Mechanism
     
     alt Provisioning Success
-        Operations -> Supervisor : OperationFeedbackEvent (Provisioning=SUCCESS)
-        Operations -> Observations : OperationFeedbackEvent (Consequence Reporting)
+      Operations -> Supervisor : IOperationFeedback.pushOperationFeedback(Provisioning=SUCCESS)
     else Provisioning Failure
-        Operations -> Supervisor : OperationFeedbackEvent (Provisioning=FAILURE)
+      Operations -> Supervisor : IOperationFeedback.pushOperationFeedback(Provisioning=FAILURE)
         Supervisor -> Supervisor : Handle Failure / Diagnosis
     end
   end
@@ -187,22 +187,21 @@ Supervisor -> Governor : ObservationSignal (CoherenceRequest=CHECK)
 group CHECK + FEASIBILITY
   alt CoherenceRequest.phase == "CHECK"
     Governor -> Governor : BRC-COH-001 Select Check Set
-    Governor -> Observations : CoherenceCheckPlanEvent
-    Observations -> Observations : Initialize Check Context
+    Governor -> Observations : IObservationControl.getDescription(CoherenceCheckSelector)
+    Observations -> Observations : Prepare Evidence Context
 
     Governor -> Governor : BRC-COH-002 Request Evidence Grounding
     
-    Governor -> Observations : INT-GOV-INF-006 QueryDescription (EvidenceSelectors)
-    note right: Payload: EA-GOV-INF-006 DescriptionQueryEvent
+    Governor -> Observations : IObservationControl.getDescription(EvidenceSelectors)
+    note right: Payload: DescriptionQueryEvent
     
     Observations -> Observations : Fetch Evidence
     
     alt Evidence Found
-        Observations -> Governor : INT-GOV-INF-007 ReturnDescription (Snapshot)
-        note right: Payload: EA-GOV-INF-007 DescriptionSnapshotEvent
+      Observations --> Governor : SystemicDescription (Snapshot)
     else Evidence Missing
-        Observations -> Governor : ReturnDescription (Empty/Error)
-        Governor -> Governor : Handle Missing Evidence
+      Observations --> Governor : SystemicDescription (Empty/Error)
+      Governor -> Governor : Handle Missing Evidence
     end
 
     Governor -> Governor : BRC-COH-003 Request Supervisor Checks
@@ -211,43 +210,38 @@ group CHECK + FEASIBILITY
     Supervisor --> Governor : CoherenceReportEvent
 
     Governor -> Governor : BRC-COH-004 Aggregate Reports
-    Governor -> Observations : CoherenceReportEvent
-    Observations -> Observations : Store/Analyze Report
+    Governor -> Governor : Record Coherence Report
   end
 
   alt CoherenceReport.status == "CRITICAL_FAILURE"
     Governor -> Governor : Abort Coherence Check
   else CoherenceReport.status != "CRITICAL_FAILURE"
      Governor -> Governor : BRC-COH-005 Detect Circular Dependency
-  Governor -> Observations : IncoherenceDetectedEvent
-  Observations -> Observations : Register Incoherence
+  Governor -> Governor : Register Incoherence
 
   Governor -> Governor : BRC-COH-006 Auto-Resolve Stale Reference
-  Governor -> Observations : ResolutionProposedEvent
-  Observations -> Observations : Propose Resolution
+  Governor -> Governor : Propose Resolution
 
   Governor -> Governor : BRC-COH-007 Apply Graph Sync
-  Governor -> Observations : GraphSyncAppliedEvent
-  Observations -> Observations : Update Graph
+  Governor -> Governor : Update Graph
 
   Governor -> Governor : BRC-COH-008 Auto-Define Missing Sensor
-  Governor -> Operations : SensorAutoDefinedEvent
+  Governor -> Operations : IOperationControl.assignForOperation(SensorConfig)
   Operations -> Operations : Deploy Sensor Config
 
   Governor -> Governor : BRC-COH-009 Deprecate Unused Sensor
-  Governor -> Operations : SensorDeprecatedEvent
+  Governor -> Operations : IOperationControl.unassignForOperation(SensorConfig)
   Operations -> Operations : Remove Sensor Config
   end
 
   alt CoherenceRequest.phase == "FEASIBILITY"
     Governor -> Governor : BRC-COH-010 Request Feasibility Checks
-    Governor -> Observations : FeasibilityAssessmentRequestedEvent
+    Governor -> Observations : IObservationControl.getDescription(FeasibilitySelectors)
     Observations -> Observations : Assess Feasibility
 
     Governor -> Governor : BRC-COH-011 Aggregate Feasibility Reports
 
-    Governor -> Observations : FeasibilityAggregatedEvent
-    Observations -> Observations : Aggregate Feasibility (FeasibilityAggregated)
+    Governor -> Governor : Record Feasibility Summary
   end
 end
 
@@ -259,8 +253,8 @@ group ADMISSION (BRC-COH-012..018; reuses 005..009)
   alt CoherenceRequestEvent.phase == "ADMISSION"
   
     Governor -> Governor : BRC-COH-012 Validate DefinitionBundle
-    Governor -> Observations : DefinitionBundleValidationReportEvent
-    Observations -> Observations : Log Validation (DefinitionBundleValidationReport)
+    Governor -> Observations : IObservationControl.getDescription(DefinitionBundleValidationSelector)
+    Observations --> Governor : SystemicDescription (DefinitionBundleValidation)
 
     Governor -> Governor : BRC-COH-012A Request Supervisor Admission Checks
     Governor -> Supervisor : SupervisorCheckRequestEvent (ADMISSION checkSet)
@@ -269,21 +263,20 @@ group ADMISSION (BRC-COH-012..018; reuses 005..009)
     Supervisor --> Governor : CoherenceReportEvent
 
     Governor -> Governor : BRC-COH-013 Policy & Rule Static Analysis
-    Governor -> Observations : PolicyAndRuleStaticAnalysisReportEvent
-    Observations -> Observations : Log Static Analysis (PolicyAndRuleStaticAnalysisReport)
+    Governor -> Observations : IObservationControl.getDescription(PolicyStaticAnalysisSelector)
+    Observations --> Governor : SystemicDescription (PolicyAndRuleStaticAnalysis)
 
     Governor -> Governor : BRC-COH-014 Constraint Satisfiability Checking
-    Governor -> Observations : ConstraintSatisfiabilityReportEvent
-    Observations -> Observations : Log SAT Result (ConstraintSatisfiabilityReport)
+    Governor -> Observations : IObservationControl.getDescription(ConstraintSatisfiabilitySelector)
+    Observations --> Governor : SystemicDescription (ConstraintSatisfiability)
 
     Governor -> Governor : BRC-COH-015 Execute Definition Test Suite
-    Governor -> Observations : DefinitionTestSuiteReportEvent
-    Observations -> Observations : Log Test Results (DefinitionTestSuiteReport)
+    Governor -> Observations : IObservationControl.getDescription(DefinitionTestSuiteSelector)
+    Observations --> Governor : SystemicDescription (DefinitionTestSuiteReport)
 
     Governor -> Governor : BRC-COH-016 Admission Gate Decision
     Governor -> Supervisor : AdmissionGateDecisionEvent (trigger for Provisioning)
-    Governor -> Observations : AdmissionGateDecisionEvent (Audit)
-    Observations -> Observations : Audit Decision (AdmissionGateDecision)
+    Governor -> Governor : Record Admission Gate Decision
 
     alt AdmissionGateDecisionEvent.outcome == "PASS"
       note over Governor
@@ -299,13 +292,12 @@ group ADMISSION (BRC-COH-012..018; reuses 005..009)
     end
 
     Governor -> Governor : BRC-COH-017 Record Governance Decision
-    Governor -> Observations : GovernanceDecisionRecordedEvent
-    Observations -> Observations : Archive Decision Record (GovernanceDecisionRecorded)
+    Governor -> Governor : Archive Governance Decision
 
     Governor -> Governor : BRC-COH-018 Controlled Activation Plan
     Governor -> Operator : ControlledActivationPlanEvent (instruction to Operator)
-    Governor -> Operations : INT-GOV-INF-005 GrantAuthorization (ActivationPlan)
-    note right: Payload: EA-GOV-INF-005 AuthorizationResponseEvent
+    Governor -> Operations : IOperationControl.grantAuthorization(ActivationPlan)
+    note right: Payload: AuthorizationResponseEvent
     
     Operations -> Operations : Execute Activation Plan (ControlledActivationPlan)
 
@@ -324,13 +316,11 @@ note over Governor
 end note
 
 Governor -> Governor : BRC-EMG-001 Open Emergence Case
-Governor -> Observations : EmergenceCaseOpenedEvent
-Observations -> Observations : Open Tracking Case
+Governor -> Governor : Open Tracking Case
 
 alt EmergenceTriggerEvent.proposal.confidence >= 0.7
   Governor -> Governor : BRC-EMG-004 Auto-Approve High Confidence
-  Governor -> Observations : EmergenceApprovedEvent
-  Observations -> Observations : Log Approval
+  Governor -> Governor : Log Approval
 
   Governor -> Governor : BRC-EMG-NEW Request Admission Check
   Governor -> Governor : CoherenceRequestEvent(phase=ADMISSION)
@@ -338,10 +328,10 @@ alt EmergenceTriggerEvent.proposal.confidence >= 0.7
   alt AdmissionGateDecisionEvent.outcome == "PASS"
     Governor -> Governor : BRC-EMG-003 Publish New Definitions
     
-    Governor -> Operator : DefinitionChangedEvent
+    Governor -> Operator : MechanismAssignmentEvent (UPDATE_DEFINITION)
     
-    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Update Definitions)
-    note right: Payload: EA-GOV-INF-001 (PROVISION/UPDATE)
+    Governor -> Operations : IOperationControl.assignForOperation(NewDefs)
+    note right: Payload: MechanismAssignmentEvent (PROVISION/UPDATE_DEFINITION)
     
     Operations -> Operations : Update Runtime Definitions (DefinitionChanged)
 
@@ -353,7 +343,7 @@ alt EmergenceTriggerEvent.proposal.confidence >= 0.7
     end
 
     Governor -> Governor : BRC-EMG-006 Deprecate Before Create
-    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Deprecate)
+    Governor -> Operations : IOperationControl.unassignForOperation(OldDefs)
     
     Operations -> Operations : Manage Lifecycle (PrimitiveDeprecateAndCreate)
   else
@@ -375,12 +365,12 @@ else EmergenceTriggerEvent.proposal.confidence < 0.7
   alt DecisionResponseEvent.outcome == "APPROVED"
     Governor -> Governor : BRC-EMG-003 Publish New Definitions
     
-    Governor -> Operator : DefinitionChangedEvent
-    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Update Definitions)
+    Governor -> Operator : MechanismAssignmentEvent (UPDATE_DEFINITION)
+    Governor -> Operations : IOperationControl.assignForOperation(NewDefs)
     Operations -> Operations : Update Runtime Definitions (DefinitionChanged)
 
     Governor -> Governor : BRC-EMG-006 Deprecate Before Create
-    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Deprecate)
+    Governor -> Operations : IOperationControl.unassignForOperation(OldDefs)
     Operations -> Operations : Manage Lifecycle (PrimitiveDeprecateAndCreate)
   else (not approved)
     note over Governor
@@ -390,8 +380,7 @@ else EmergenceTriggerEvent.proposal.confidence < 0.7
 end
 
 Governor -> Governor : BRC-EMG-007 Close Emergence Case
-Governor -> Observations : EmergenceCaseClosedEvent
-Observations -> Observations : Close Tracking Case
+Governor -> Governor : Close Tracking Case
 
 == 5) Close the loop ==
 note over Observations, Operations

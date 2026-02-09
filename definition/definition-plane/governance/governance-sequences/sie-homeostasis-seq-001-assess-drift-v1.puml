@@ -21,12 +21,12 @@ autonumber
 participant "Event Bus" as Bus
 participant "Definition Plane - OP-HOM-001" as OP_HOM_001
 
-Bus -> OP_HOM_001 : [INT-HOM-TRG-001] ControlIntentEvent(phase=ASSESS)
+Bus -> OP_HOM_001 : [INT-HOM-TRG-001] ObservationSignal(ControlIntent[phase=ASSESS])
 note over OP_HOM_001
   Executes BR-HOM-001 controlSequence
   - BRC-HOM-001 Assess Drift
 end note
 OP_HOM_001 -> OP_HOM_001 : BRC-HOM-001 Assess Drift
-OP_HOM_001 -> Bus : [INT-HOM-001] publish RuleExecutionRequestEvent
+OP_HOM_001 -> Bus : [INT-HOM-001] publish MechanismAssignment(EXECUTE_RULE)
 
 @enduml

@@ -548,12 +548,12 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
 
     object "R-HOM-OPS-001\nRule Engine Receptor" as R_HOM_OPS_001 <<Receptor>> {
       name = "RuleEngineReceptor"
-      receivedEventArchetype = EA_RuleExecutionRequestEvent
+      receivedEventArchetype = EA_MechanismAssignment
     }
 
     object "R-HOM-OPS-002\nActuation Orchestrator Receptor" as R_HOM_OPS_002 <<Receptor>> {
       name = "ActuationOrchestratorReceptor"
-      receivedEventArchetype = EA_ActuationControlEvent
+      receivedEventArchetype = EA_MechanismAssignment
     }
 
     object "R-HOM-OBS-003\nRetention Applied Receptor" as R_HOM_OBS_003 <<Receptor>> {
@@ -563,7 +563,7 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
 
     object "R-HOM-OBS-004\nFeedback Forwarding Receptor" as R_HOM_OBS_004 <<Receptor>> {
       name = "ActuationFeedbackIntakeReceptor"
-      receivedEventArchetype = EA_ActuationFeedbackEvent
+      receivedEventArchetype = EA_OperationFeedback
     }
   }
 

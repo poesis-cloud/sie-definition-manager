@@ -21,7 +21,7 @@ autonumber
 participant "Event Bus" as Bus
 participant "Definition Plane - OP-HOM-001" as OP_HOM_001
 
-Bus -> OP_HOM_001 : [INT-HOM-TRG-001] ControlIntentEvent(phase=RETENTION)
+Bus -> OP_HOM_001 : [INT-HOM-TRG-001] ObservationSignal(ControlIntent[phase=RETENTION])
 note over OP_HOM_001
   Executes BR-HOM-001 controlSequence
   - BRC-HOM-003 Enforce Evidence Retention

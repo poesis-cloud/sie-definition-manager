@@ -42,9 +42,9 @@ GOV_COH_001 -> GOV_COH_001 : BRC-COH-007 Apply Sync
 GOV_COH_001 -> Bus : [INT-COH-007] publish GraphSyncAppliedEvent
 
 GOV_COH_001 -> GOV_COH_001 : BRC-COH-008 Auto-Define Sensor
-GOV_COH_001 -> Bus : [INT-COH-008] publish SensorAutoDefinedEvent
+GOV_COH_001 -> Bus : [INT-COH-008] publish MechanismAssignment(PROVISION)
 
 GOV_COH_001 -> GOV_COH_001 : BRC-COH-009 Deprecate Sensor
-GOV_COH_001 -> Bus : [INT-COH-009] publish SensorDeprecatedEvent
+GOV_COH_001 -> Bus : [INT-COH-009] publish MechanismAssignment(DEPROVISION)
 
 @enduml
