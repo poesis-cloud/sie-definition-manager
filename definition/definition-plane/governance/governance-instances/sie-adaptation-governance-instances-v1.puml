@@ -49,6 +49,13 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
       name = "MismatchAssessmentEvent"
     }
 
+    ' Interface Wrappers (Adaptation)
+    object "EA-INF-ADP-001\nMechanismAssignmentEvent" as EA_MechanismAssignment <<EventArchetype>> {
+      name = "MechanismAssignmentEvent"
+      description = "Provisioning Payload (Gov -> Plane)"
+      properties = ["mechanismId", "definition", "assignmentMode"]
+    }
+
     object "EA-ADP-002\nBehavioralRuleCandidateEvent" as EA_BehavioralRuleCandidateEvent <<EventArchetype>> {
       name = "BehavioralRuleCandidateEvent"
     }
@@ -308,12 +315,12 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
       receivedEventArchetype = EA_AdmissionGateDecisionEvent
     }
 
-    object "R-ADP-REMED-001\nCandidate Intake Receptor" as R_ADP_REMED_001 <<Receptor>> {
+    object "R-ADP-OBS-001\nCandidate Intake Receptor" as R_ADP_OBS_001 <<Receptor>> {
       name = "BehavioralRuleCandidateIntakeReceptor"
       receivedEventArchetype = EA_BehavioralRuleCandidateEvent
     }
 
-    object "R-ADP-REMED-002\nOperator Provisioning Receptor" as R_ADP_REMED_002 <<Receptor>> {
+    object "R-ADP-OPS-002\nOperator Provisioning Receptor" as R_ADP_OPS_002 <<Receptor>> {
       name = "OperatorProvisioningReceptor"
       receivedEventArchetype = EA_OperatorProvisioningEvent
     }
@@ -466,11 +473,11 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "OperatorProvisioningEvent",
+      "targetArchetype": "MechanismAssignmentEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["boundBehavioralRuleId"],
+          "targetPath": ["mechanismId"],
           "source": {
             "type": "ContextVariableReferenceExpression",
             "name": "MismatchAssessmentReceptor",
@@ -479,7 +486,7 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["provisionMode"],
+          "targetPath": ["deploymentMode"],
           "source": {
             "type": "LiteralExpression",
             "value": "REPLACE_OPERATOR"
@@ -487,11 +494,10 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["requestedAt"],
+          "targetPath": ["assignmentMode"],
           "source": {
-            "type": "FunctionCallExpression",
-            "functionName": "now",
-            "arguments": []
+            "type": "LiteralExpression",
+            "value": "PROVISION"
           }
         }
       ]
@@ -509,13 +515,21 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
     object "INT-ADP-001\nCandidate Publication" as INT_ADP_001 <<Interaction>> {
       name = "BehavioralRuleCandidatePublication"
       effector = EFF_ADP_001
-      receptor = R_ADP_REMED_001
+      receptor = R_ADP_OBS_001
     }
 
     object "INT-ADP-002\nOperator Provisioning" as INT_ADP_002 <<Interaction>> {
       name = "OperatorProvisioningDispatch"
       effector = EFF_ADP_002
-      receptor = R_ADP_REMED_002
+      receptor = R_ADP_OPS_002
+    }
+
+    ' Interface Interactions (Adaptation)
+    object "INT-INF-ADP-001\nAssign Mechanism" as INT_INF_ADP_001 <<Interaction>> {
+      name = "MechanismAssignmentDispatch"
+      effector = EFF_INF_ADP_001
+      receptor = R_INF_ADP_001
+      description = "Binding: Gov -> Plane (MechanismAssignmentEvent)"
     }
   }
 
@@ -544,10 +558,10 @@ frame "CD - SIE - Governance - Adaptation Instances - v1" {
   INT_ADP_TRG_001 --> R_ADP_001 : receptor
 
   INT_ADP_001 --> EFF_ADP_001 : effector
-  INT_ADP_001 --> R_ADP_REMED_001 : receptor
+  INT_ADP_001 --> R_ADP_OBS_001 : receptor
 
   INT_ADP_002 --> EFF_ADP_002 : effector
-  INT_ADP_002 --> R_ADP_REMED_002 : receptor
+  INT_ADP_002 --> R_ADP_OPS_002 : receptor
 
 }
 

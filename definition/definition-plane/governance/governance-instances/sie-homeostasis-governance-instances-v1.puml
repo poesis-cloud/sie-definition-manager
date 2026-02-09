@@ -49,12 +49,23 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
       name = "ControlIntentEvent"
     }
 
-    object "EA-HOM-002\nRuleExecutionRequestEvent" as EA_RuleExecutionRequestEvent <<EventArchetype>> {
-      name = "RuleExecutionRequestEvent"
+    ' Interface Wrappers (Homeostasis)
+    object "EA-INF-HOM-001\nObservationSignalEvent" as EA_ObservationSignal <<EventArchetype>> {
+      name = "ObservationSignalEvent"
+      description = "Carrier for ControlIntent (Evidence from Obs)"
+      properties = ["signalType", "sourceMechanismId", "payload"]
     }
 
-    object "EA-HOM-003\nActuationControlEvent" as EA_ActuationControlEvent <<EventArchetype>> {
-      name = "ActuationControlEvent"
+    object "EA-INF-HOM-002\nOperationFeedbackEvent" as EA_OperationFeedback <<EventArchetype>> {
+      name = "OperationFeedbackEvent"
+      description = "Carrier for RuleFeedback (Outcome from Ops)"
+      properties = ["feedbackType", "sourceMechanismId", "payload"]
+    }
+
+    object "EA-INF-HOM-003\nMechanismAssignmentEvent" as EA_MechanismAssignment <<EventArchetype>> {
+      name = "MechanismAssignmentEvent"
+      description = "Control Payload (Actuation/Assessment Config)"
+      properties = ["mechanismId", "definition", "assignmentMode"]
     }
 
     object "EA-HOM-004\nActuationFeedbackEvent" as EA_ActuationFeedbackEvent <<EventArchetype>> {
@@ -535,22 +546,22 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
       receivedEventArchetype = EA_ControlledActivationPlanEvent
     }
 
-    object "R-HOM-REMED-001\nRule Engine Receptor" as R_HOM_REMED_001 <<Receptor>> {
+    object "R-HOM-OPS-001\nRule Engine Receptor" as R_HOM_OPS_001 <<Receptor>> {
       name = "RuleEngineReceptor"
       receivedEventArchetype = EA_RuleExecutionRequestEvent
     }
 
-    object "R-HOM-REMED-002\nActuation Orchestrator Receptor" as R_HOM_REMED_002 <<Receptor>> {
+    object "R-HOM-OPS-002\nActuation Orchestrator Receptor" as R_HOM_OPS_002 <<Receptor>> {
       name = "ActuationOrchestratorReceptor"
       receivedEventArchetype = EA_ActuationControlEvent
     }
 
-    object "R-HOM-DESC-003\nRetention Applied Receptor" as R_HOM_DESC_003 <<Receptor>> {
+    object "R-HOM-OBS-003\nRetention Applied Receptor" as R_HOM_OBS_003 <<Receptor>> {
       name = "RetentionAppliedReceptor"
       receivedEventArchetype = EA_RetentionAppliedEvent
     }
 
-    object "R-HOM-DESC-004\nFeedback Forwarding Receptor" as R_HOM_DESC_004 <<Receptor>> {
+    object "R-HOM-OBS-004\nFeedback Forwarding Receptor" as R_HOM_OBS_004 <<Receptor>> {
       name = "ActuationFeedbackIntakeReceptor"
       receivedEventArchetype = EA_ActuationFeedbackEvent
     }
@@ -559,12 +570,12 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
   package "Effectors" {
     object "EFF-HOM-001\nRequest Rule Execution" as EFF_HOM_001 <<Effector>> {
       name = "RuleExecutionRequestEffector"
-      producedEventArchetype = EA_RuleExecutionRequestEvent
+      producedEventArchetype = EA_MechanismAssignment
     }
 
     object "EFF-HOM-002\nActuation Control Effector" as EFF_HOM_002 <<Effector>> {
       name = "ActuationControlEffector"
-      producedEventArchetype = EA_ActuationControlEvent
+      producedEventArchetype = EA_MechanismAssignment
     }
 
     object "EFF-HOM-003\nRetention Enforcement Effector" as EFF_HOM_003 <<Effector>> {
@@ -640,33 +651,31 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "RuleExecutionRequestEvent",
+      "targetArchetype": "MechanismAssignmentEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["intentId"],
+          "targetPath": ["mechanismId"],
           "source": {
             "type": "ContextVariableReferenceExpression",
             "name": "ControlIntentReceptor",
-            "propertyPath": ["intentId"]
+            "propertyPath": ["mechanismId"]
           }
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["scope"],
+          "targetPath": ["assignmentMode"],
           "source": {
-            "type": "ContextVariableReferenceExpression",
-            "name": "ControlIntentReceptor",
-            "propertyPath": ["scope"]
+            "type": "LiteralExpression",
+            "value": "UPDATE_CONFIG"
           }
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["requestedAt"],
+          "targetPath": ["definition.policyState"],
           "source": {
-            "type": "FunctionCallExpression",
-            "functionName": "now",
-            "arguments": []
+            "type": "LiteralExpression",
+            "value": "ASSESSING"
           }
         }
       ]
@@ -725,19 +734,11 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "ActuationControlEvent",
+      "targetArchetype": "MechanismAssignmentEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["actuationType"],
-          "source": {
-            "type": "LiteralExpression",
-            "value": "MODIFICATION"
-          }
-        },
-        {
-          "type": "PropertyMapping",
-          "targetPath": ["resourceId"],
+          "targetPath": ["mechanismId"],
           "source": {
             "type": "ContextVariableReferenceExpression",
             "name": "ControlIntentReceptor",
@@ -746,7 +747,15 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["desiredState"],
+          "targetPath": ["assignmentMode"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": "UPDATE_STATE"
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["state"],
           "source": {
             "type": "ContextVariableReferenceExpression",
             "name": "ControlIntentReceptor",
@@ -901,13 +910,13 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     object "INT-HOM-001\nRule Execution Request" as INT_HOM_001 <<Interaction>> {
       name = "RuleExecutionRequest"
       effector = EFF_HOM_001
-      receptor = R_HOM_REMED_001
+      receptor = R_HOM_OPS_001
     }
 
     object "INT-HOM-002\nActuation Control" as INT_HOM_002 <<Interaction>> {
       name = "ActuationControlDispatch"
       effector = EFF_HOM_002
-      receptor = R_HOM_REMED_002
+      receptor = R_HOM_OPS_002
     }
 
     object "INT-HOM-FB-001\nActuation Feedback" as INT_HOM_FB_001 <<Interaction>> {
@@ -919,14 +928,29 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
     object "INT-HOM-003\nRetention Applied" as INT_HOM_003 <<Interaction>> {
       name = "RetentionAppliedDispatch"
       effector = EFF_HOM_003
-      receptor = R_HOM_DESC_003
+      receptor = R_HOM_OBS_003
     }
 
     object "INT-HOM-FB-002\nFeedback Forwarding" as INT_HOM_FB_002 <<Interaction>> {
       name = "ActuationFeedbackForwarding"
       effector = EFF_HOM_FB_001
-      receptor = R_HOM_DESC_004
-      description = "Operator forwards actuation feedback to Description to trigger state verification (Blind Loop mitigation)."
+      receptor = R_HOM_OBS_004
+      description = "Operator forwards actuation feedback to Observations to trigger state verification (Blind Loop mitigation)."
+    }
+
+    ' Interface Interactions (Homeostasis)
+    object "INT-INF-HOM-001\nSignal Observation" as INT_INF_HOM_001 <<Interaction>> {
+      name = "SignalObservationDispatch"
+      effector = EFF_INF_HOM_001
+      receptor = R_INF_HOM_001
+      description = "Binding: Obs -> Gov (ObservationSignal)"
+    }
+    
+    object "INT-INF-HOM-002\nPush Feedback" as INT_INF_HOM_002 <<Interaction>> {
+      name = "OperationFeedbackDispatch"
+      effector = EFF_INF_HOM_002
+      receptor = R_INF_HOM_002
+      description = "Binding: Ops -> Gov (OperationFeedback)"
     }
   }
 
@@ -960,19 +984,19 @@ frame "CD - SIE - Governance - Homeostasis Instances - v1" {
   INT_HOM_TRG_001 --> R_HOM_001 : receptor
 
   INT_HOM_001 --> EFF_HOM_001 : effector
-  INT_HOM_001 --> R_HOM_REMED_001 : receptor
+  INT_HOM_001 --> R_HOM_OPS_001 : receptor
 
   INT_HOM_002 --> EFF_HOM_002 : effector
-  INT_HOM_002 --> R_HOM_REMED_002 : receptor
+  INT_HOM_002 --> R_HOM_OPS_002 : receptor
 
   INT_HOM_FB_001 --> EFF_HOM_FB_001 : effector
   INT_HOM_FB_001 --> R_HOM_002 : receptor
 
   INT_HOM_003 --> EFF_HOM_003 : effector
-  INT_HOM_003 --> R_HOM_DESC_003 : receptor
+  INT_HOM_003 --> R_HOM_OBS_003 : receptor
 
   INT_HOM_FB_002 --> EFF_HOM_FB_001 : effector
-  INT_HOM_FB_002 --> R_HOM_DESC_004 : receptor
+  INT_HOM_FB_002 --> R_HOM_OBS_004 : receptor
 
 }
 

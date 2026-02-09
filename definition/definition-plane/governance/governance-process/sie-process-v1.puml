@@ -29,276 +29,225 @@ autonumber
 
 ' ============================================================
 ' PARTICIPANTS (Functional workflow)
-' - Description Plane (Left): Observations, Evidence, Analytics
-' - Definition Plane (Center): Governance Controllers (Operator/Supervisor/Governor)
-' - Remediation Plane (Right): Execution, Actuation, Deployment
+' - Observations Plane (Left): Truth (Sensing, Measurement, Interpretation)
+' - Governance Plane (Center): Meaning (Policies, Rules, Structure)
+' - Operations Plane (Right): Change (Execution, Actuation, Coordination)
 ' - Event Bus transport is intentionally omitted (technical). Where relevant, interactions are annotated
 '   as "may be mediated by an Event Bus".
 ' ============================================================
 
-box "Description Plane" #F8F4F8
-  participant "Interface\n(Evidence & Analytics)" as DescInterface
+box "Observations Plane" #F8F4F8
+  participant "Observations\n(Interface)" as Observations
 end box
 
-box "Definition Plane" #E8F4E8
-  participant "Operator\n(owns Homeostasis)" as Operator
-  participant "Supervisor\n(owns Adaptation)" as Supervisor
-  participant "Governor\n(owns Emergence + Coherence)" as Governor
+box "Governance Plane" #E8F4E8
+  participant "Operator\n(Homeostasis)" as Operator
+  participant "Supervisor\n(Adaptation)" as Supervisor
+  participant "Governor\n(Emergence/Coh.)" as Governor
 end box
 
-box "Remediation Plane" #F4F8F8
-  participant "Interface\n(Execution & Actuation)" as RemedInterface
+box "Operations Plane" #F4F8F8
+  participant "Operations\n(Interface)" as Operations
 end box
 
 actor "Decision Owner\n(human input)" as DecisionOwner
 
-note over DescInterface, RemedInterface
-  **Plane Responsibilities & Functional Flow:**
-  - **Description**: Senses State, computes Evidence, evaluates policies, holds historical data.
-  - **Definition**: Consumes Evidence, executes Governance Logic, evolves Definitions.
-  - **Remediation**: Realizes Definitions (Actuation), orchestrates workflows.
+note over Observations, Operations
+  **The Systemic Triad (Mechanism-Centric):**
+  - **Governance**: Defines and assigns Controller Mechanisms (Logic + Rights).
+  - **Observations**: Hosts Observer Mechanisms; Pushes Observation Signal (Evidence).
+  - **Operations**: Hosts Actor Mechanisms; Pushes Operation Feedback (Outcome).
 
-  **Closed-loop boundary:**
-  1. State -> Description (Observation)
-  2. Description -> Definition (Evidence/Triggers)
-  3. Definition -> Remediation (Instructions/Deliverables)
-  4. Remediation -> State (Actuation)
+  **Interface Interactions:**
+  - **Provisioning**: Gov -> Obs/Ops (AssignMechanism)
+  - **Signaling**: Obs/Ops -> Gov (ObservationSignal / OperationFeedback)
+  - **Analysis**: Gov -> Obs (QueryDescription)
+  - **Validation**: Osp -> Gov (RequestAuthorization)
 end note
 
 ' ============================================================
 ' END-TO-END FLOW (includes ALL controls)
 ' ============================================================
 
-== 0) Triggers (inbound to Definition plane) ==
+== 0) Constitution (Mechanism Assignment) ==
+note over Governor, Operations
+  Governance provisions the runtime planes by assigning "Controller Mechanisms".
+  Each mechanism bundles: Definition (Logic) + Identity (Credentials) + Config.
+end note
+
+Governor -> Observations : INT-GOV-INF-001 AssignMechanism (Observer)
+note right: Payload: EA-GOV-INF-001 (PROVISION)
+
+Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Actor)
+note right: Payload: EA-GOV-INF-001 (PROVISION)
+
+== 1) Triggers (inbound to Governance) ==
 note over Operator, Governor
-  Typical inbound deliveries from Description/Remediation:
-  - ControlIntentEvent (drives Homeostasis phases)
-  - MismatchAssessmentEvent (drives Adaptation)
-  - CoherenceRequestEvent (CHECK / FEASIBILITY / ADMISSION)
-  - EmergenceTriggerEvent
-  - ActuationFeedbackEvent (observed feedback)
-
-  **Transport note:** these may be mediated by an Event Bus.
+  Runtime signals flow back from planes via the Standard Interfaces.
+  Payloads are wrapped in:
+  - EA-GOV-INF-002 ObservationSignalEvent
+  - EA-GOV-INF-003 OperationFeedbackEvent
 end note
 
-DescInterface -> Operator : ControlIntentEvent / MismatchAssessmentEvent / ...
-DescInterface -> Governor : EmergenceTriggerEvent / CoherenceRequestEvent
+Observations -> Operator : ObservationSignal (ControlIntent / Mismatch)
+Observations -> Governor : ObservationSignal (Emergence / Coherence)
 
-== 1) Homeostasis (Operator; BRC-HOM-001..003) ==
+== 2) Homeostasis (Operator; BRC-HOM-001..003) ==
 note over Operator
-  Trigger: ControlIntentEvent arrives (from evidence; may be mediated by Event Bus)
+  Trigger: ObservationSignalEvent (ControlIntent) arrives.
 end note
 
-alt ControlIntentEvent.phase == "ASSESS"
-  loop while ControlIntentEvent.repeatAssessment == true
+alt ControlIntent.phase == "ASSESS"
+  loop while ControlIntent.repeatAssessment == true
     Operator -> Operator : BRC-HOM-001 Assess Drift / Stability
-    note right
-      EventSourceMapping:
-      - intentId -> RuleExecutionRequestEvent.intentId
-      - scope -> RuleExecutionRequestEvent.scope
-    end note
-    Operator -> RemedInterface : RuleExecutionRequestEvent
-    RemedInterface -> RemedInterface : Execute Rule Logic (RuleExecutionRequest)
+    
+    Operator -> Operations : Request Rule Execution (via Mechanism Update or Command)
+    Operations -> Operations : Execute Rule Logic
     
     alt Execution Success
-        RemedInterface -> Operator : RuleExecutionFeedbackEvent(status=SUCCESS)
+        Operations -> Operator : OperationFeedbackEvent (RuleExecutionFeedback=SUCCESS)
     else Execution Failure
-        RemedInterface -> Operator : RuleExecutionFeedbackEvent(status=FAILURE)
-        note right: Logic execution failure feedback
+        Operations -> Operator : OperationFeedbackEvent (RuleExecutionFeedback=FAILURE)
         Operator -> Operator : Handle Failure / Re-Assess
     end
   end
-else ControlIntentEvent.phase == "ACTUATE"
-  loop while ControlIntentEvent.repeatActuation == true
+else ControlIntent.phase == "ACTUATE"
+  loop while ControlIntent.repeatActuation == true
     Operator -> Operator : BRC-HOM-002 Modify State (Actuation)
     note right
-      EventSourceMapping:
-      - resourceId -> ActuationControlEvent.resourceId
-      - desiredState -> ActuationControlEvent.desiredState
-      - "MODIFICATION" -> ActuationControlEvent.actuationType
+      Standard Command: ActuationControl
     end note
-    Operator -> RemedInterface : ActuationControlEvent
-    RemedInterface -> RemedInterface : Perform Actuation (ActuationControl)
+    Operator -> Operations : ActuationControlEvent
+    Operations -> Operations : Perform Actuation
 
     alt Actuation Success
-        RemedInterface -> Operator : ActuationFeedbackEvent(status=SUCCESS)
-        Operator -> DescInterface : ActuationFeedbackEvent (Forward for Verification)
-        DescInterface -> Operator : ControlIntentEvent (Update Loop Condition)
+        Operations -> Operator : OperationFeedbackEvent (ActuationFeedback=SUCCESS)
+        Operations -> Observations : ActuationFeedbackEvent (Consequence Reporting)
+        Observations -> Operator : ObservationSignalEvent (ControlIntent Update)
     else Actuation Failure
-        RemedInterface -> Operator : ActuationFeedbackEvent(status=FAILURE)
-        note right: Actuation failure feedback
+        Operations -> Operator : OperationFeedbackEvent (ActuationFeedback=FAILURE)
         Operator -> Operator : Handle Failure / Re-Assess
     end
   end
-else ControlIntentEvent.phase == "RETENTION"
+else ControlIntent.phase == "RETENTION"
   Operator -> Operator : BRC-HOM-003 Enforce Evidence Retention
-  note right
-    EventSourceMapping:
-    - rawWindow -> RetentionAppliedEvent.rawWindow
-    - derivedWindow -> RetentionAppliedEvent.derivedWindow
-  end note
-  Operator -> DescInterface : RetentionAppliedEvent
-  DescInterface -> DescInterface : Enforce Data Policy (RetentionApplied)
+  Operator -> Observations : RetentionAppliedEvent
+  Observations -> Observations : Enforce Data Policy
 else (phase not applicable)
   note over Operator
     No Homeostasis control applies.
   end note
 end
 
-alt Homeostasis not converged / oscillating / insufficient variety
-  Operator -> Supervisor : MismatchAssessmentEvent(diagnosisNeeded=true) (may be mediated by Event Bus)
+alt Homeostasis not converged
+  Operator -> Supervisor : ObservationSignal (MismatchAssessment=TRUE)
 else Homeostasis converged
   note over Operator
     No Adaptation escalation required.
   end note
 end
 
-== 2) Adaptation (Supervisor; BRC-ADP-001..002) ==
+== 3) Adaptation (Supervisor; BRC-ADP-001..002) ==
 note over Supervisor
-  Trigger: MismatchAssessmentEvent arrives (from evidence; may be mediated by Event Bus)
+  Trigger: ObservationSignal (MismatchAssessment) arrives.
 end note
 
-alt MismatchAssessmentEvent.diagnosisNeeded == true
-  loop while MismatchAssessmentEvent.repeatDiagnosis == true
+alt MismatchAssessment.diagnosisNeeded == true
+  loop while MismatchAssessment.repeatDiagnosis == true
     Supervisor -> Supervisor : BRC-ADP-001 Diagnose Control Performance
-    note right
-      EventSourceMapping:
-      - scope -> BehavioralRuleCandidateEvent.scope
-      - diagnosisSummary -> BehavioralRuleCandidateEvent.rationale
-    end note
-    Supervisor -> DescInterface : BehavioralRuleCandidateEvent
-    DescInterface -> DescInterface : Log Candidate Proposal (BehavioralRuleCandidate)
+    Supervisor -> Observations : ObservationSignal (BehavioralRuleCandidate)
+    Observations -> Observations : Log Candidate Proposal
   end
-else (no diagnosis)
-  note over Supervisor
-    BRC-ADP-001 not applicable.
-  end note
 end
 
-alt MismatchAssessmentEvent.candidateRuleStatus == "PUBLISHED"
-  loop while MismatchAssessmentEvent.waitingForRealization == true
+alt MismatchAssessment.candidateRuleStatus == "PUBLISHED"
+  loop while MismatchAssessment.waitingForRealization == true
     Supervisor -> Supervisor : BRC-ADP-002 Provision New Operator Definition
-    note right
-      EventSourceMapping:
-      - candidateRuleId -> OperatorProvisioningEvent.boundBehavioralRuleId
-      - "REPLACE_OPERATOR" -> OperatorProvisioningEvent.provisionMode
-    end note
-    Supervisor -> Operator : OperatorProvisioningEvent (may be mediated by Event Bus)
-    Supervisor -> RemedInterface : OperatorProvisioningEvent (Start deployment)
-    RemedInterface -> RemedInterface : Provision Operator (OperatorProvisioning)
+    
+    Supervisor -> Operator : MechanismAssignmentEvent (Update Definition)
+    
+    Supervisor -> Operations : INT-GOV-INF-001 AssignMechanism (Update Internal Logic)
+    note right: Payload: EA-GOV-INF-001 (UPDATE)
+    
+    Operations -> Operations : Provision Operator Mechanism
     
     alt Provisioning Success
-        RemedInterface -> Supervisor : OperatorProvisioningFeedbackEvent(status=SUCCESS)
+        Operations -> Supervisor : OperationFeedbackEvent (Provisioning=SUCCESS)
+        Operations -> Observations : OperationFeedbackEvent (Consequence Reporting)
     else Provisioning Failure
-        RemedInterface -> Supervisor : OperatorProvisioningFeedbackEvent(status=FAILURE)
-        note right: Provisioning failure feedback
+        Operations -> Supervisor : OperationFeedbackEvent (Provisioning=FAILURE)
         Supervisor -> Supervisor : Handle Failure / Diagnosis
     end
   end
-else (candidate not published)
-  note over Supervisor
-    BRC-ADP-002 not applicable.
-  end note
 end
 
-Supervisor -> Governor : CoherenceRequestEvent(phase=CHECK) (may be mediated by Event Bus)
+Supervisor -> Governor : ObservationSignal (CoherenceRequest=CHECK)
 
-== 3) Coherence (Governor; BRC-COH-001..018) ==
+== 4) Coherence (Governor; BRC-COH-001..018) ==
 group CHECK + FEASIBILITY
-  alt CoherenceRequestEvent.phase == "CHECK"
+  alt CoherenceRequest.phase == "CHECK"
     Governor -> Governor : BRC-COH-001 Select Check Set
-    note right
-       EventSourceMapping: scope -> CheckPlan.scope
-    end note
-    Governor -> DescInterface : CoherenceCheckPlanEvent
-    DescInterface -> DescInterface : Initialize Check Context (CoherenceCheckPlan)
+    Governor -> Observations : CoherenceCheckPlanEvent
+    Observations -> Observations : Initialize Check Context
 
     Governor -> Governor : BRC-COH-002 Request Evidence Grounding
-    note right
-       EventSourceMapping: scope -> EvidenceSelectors
-    end note
-    Governor -> DescInterface : EvidenceGroundingRequestEvent
-    DescInterface -> DescInterface : Fetch Evidence (EvidenceGroundingRequest)
-
+    
+    Governor -> Observations : INT-GOV-INF-006 QueryDescription (EvidenceSelectors)
+    note right: Payload: EA-GOV-INF-006 DescriptionQueryEvent
+    
+    Observations -> Observations : Fetch Evidence
+    
     alt Evidence Found
-        DescInterface -> Governor : EvidenceGroundingResponseEvent(status=FOUND)
-    else Evidence Missing/Error
-        DescInterface -> Governor : EvidenceGroundingResponseEvent(status=MISSING)
-        Governor -> Governor : Handle Missing Evidence (Abort/Retry)
+        Observations -> Governor : INT-GOV-INF-007 ReturnDescription (Snapshot)
+        note right: Payload: EA-GOV-INF-007 DescriptionSnapshotEvent
+    else Evidence Missing
+        Observations -> Governor : ReturnDescription (Empty/Error)
+        Governor -> Governor : Handle Missing Evidence
     end
 
     Governor -> Governor : BRC-COH-003 Request Supervisor Checks
-    note right
-       EventSourceMapping: ["LOGICAL..","CIRCULAR.."] -> checkSet
-    end note
-    Governor -> Supervisor : SupervisorCheckRequestEvent (may be mediated by Event Bus)
-    Supervisor -> Supervisor : BRC-SUP-COH-013 Generate Coherence Report (Supervisor Checks)
-    note right
-       EventSourceMapping: checkSet -> report.checkSet
-    end note
-    Supervisor --> Governor : CoherenceReportEvent (partial; may be mediated by Event Bus)
+    Governor -> Supervisor : SupervisorCheckRequestEvent
+    Supervisor -> Supervisor : BRC-SUP-COH-013 Generate Coherence Report
+    Supervisor --> Governor : CoherenceReportEvent
 
     Governor -> Governor : BRC-COH-004 Aggregate Reports
-    note right
-       EventSourceMapping: "COMPLETED" -> report.status
-    end note
-    Governor -> DescInterface : CoherenceReportEvent
-    DescInterface -> DescInterface : Store/Analyze Report (CoherenceReport)
+    Governor -> Observations : CoherenceReportEvent
+    Observations -> Observations : Store/Analyze Report
   end
 
   alt CoherenceReport.status == "CRITICAL_FAILURE"
     Governor -> Governor : Abort Coherence Check
   else CoherenceReport.status != "CRITICAL_FAILURE"
      Governor -> Governor : BRC-COH-005 Detect Circular Dependency
-  note right
-     EventSourceMapping: scope -> IncoherenceDetected.scope
-  end note
-  Governor -> DescInterface : IncoherenceDetectedEvent
-  DescInterface -> DescInterface : Register Incoherence (IncoherenceDetected)
+  Governor -> Observations : IncoherenceDetectedEvent
+  Observations -> Observations : Register Incoherence
 
   Governor -> Governor : BRC-COH-006 Auto-Resolve Stale Reference
-  note right
-     EventSourceMapping: scope -> ResolutionProposed.scope
-  end note
-  Governor -> DescInterface : ResolutionProposedEvent
-  DescInterface -> DescInterface : Propose Resolution (ResolutionProposed)
+  Governor -> Observations : ResolutionProposedEvent
+  Observations -> Observations : Propose Resolution
 
   Governor -> Governor : BRC-COH-007 Apply Graph Sync
-  note right
-     EventSourceMapping: {} -> mutation
-  end note
-  Governor -> DescInterface : GraphSyncAppliedEvent
-  DescInterface -> DescInterface : Update Graph (GraphSyncApplied)
+  Governor -> Observations : GraphSyncAppliedEvent
+  Observations -> Observations : Update Graph
 
   Governor -> Governor : BRC-COH-008 Auto-Define Missing Sensor
-  note right
-     EventSourceMapping: 00..00 -> policyId
-  end note
-  Governor -> RemedInterface : SensorAutoDefinedEvent
-  RemedInterface -> RemedInterface : Deploy Sensor Config (SensorAutoDefined)
+  Governor -> Operations : SensorAutoDefinedEvent
+  Operations -> Operations : Deploy Sensor Config
 
   Governor -> Governor : BRC-COH-009 Deprecate Unused Sensor
-  note right
-     EventSourceMapping: 00..00 -> sensorId
-  end note
-  Governor -> RemedInterface : SensorDeprecatedEvent
-  RemedInterface -> RemedInterface : Remove Sensor Config (SensorDeprecated)
+  Governor -> Operations : SensorDeprecatedEvent
+  Operations -> Operations : Remove Sensor Config
   end
 
-  alt CoherenceRequestEvent.phase == "FEASIBILITY"
+  alt CoherenceRequest.phase == "FEASIBILITY"
     Governor -> Governor : BRC-COH-010 Request Feasibility Checks
-    note right
-       EventSourceMapping: scope -> FeasibilityAssessmentRequested.scope
-    end note
-    Governor -> DescInterface : FeasibilityAssessmentRequestedEvent
-    DescInterface -> DescInterface : Assess Feasibility (FeasibilityAssessmentRequested)
+    Governor -> Observations : FeasibilityAssessmentRequestedEvent
+    Observations -> Observations : Assess Feasibility
 
     Governor -> Governor : BRC-COH-011 Aggregate Feasibility Reports
-    note right
-       EventSourceMapping: scope -> FeasibilityAggregated.scope
-    end note
-    Governor -> DescInterface : FeasibilityAggregatedEvent
-    DescInterface -> DescInterface : Aggregate Feasibility (FeasibilityAggregated)
+
+    Governor -> Observations : FeasibilityAggregatedEvent
+    Observations -> Observations : Aggregate Feasibility (FeasibilityAggregated)
   end
 end
 
@@ -310,52 +259,31 @@ group ADMISSION (BRC-COH-012..018; reuses 005..009)
   alt CoherenceRequestEvent.phase == "ADMISSION"
   
     Governor -> Governor : BRC-COH-012 Validate DefinitionBundle
-    note right
-       EventSourceMapping: scope -> DefinitionBundleValidationReport.scope
-    end note
-    Governor -> DescInterface : DefinitionBundleValidationReportEvent
-    DescInterface -> DescInterface : Log Validation (DefinitionBundleValidationReport)
+    Governor -> Observations : DefinitionBundleValidationReportEvent
+    Observations -> Observations : Log Validation (DefinitionBundleValidationReport)
 
     Governor -> Governor : BRC-COH-012A Request Supervisor Admission Checks
-    note right
-       EventSourceMapping: ["CONSISTENCY", "SAT", "ACTUATION"] -> checkSet
-    end note
-    Governor -> Supervisor : SupervisorCheckRequestEvent (ADMISSION checkSet; may be mediated by Event Bus)
+    Governor -> Supervisor : SupervisorCheckRequestEvent (ADMISSION checkSet)
     
-    ' Explicitly showing Supervisor response flow here for clarity
     Supervisor -> Supervisor : BRC-SUP-COH-013 Generate Coherence Report
     Supervisor --> Governor : CoherenceReportEvent
 
     Governor -> Governor : BRC-COH-013 Policy & Rule Static Analysis
-    note right
-       Validation Scope: Functional, Viability, Structural
-       Verifies BRC logic compiles against Policies
-       EventSourceMapping: scope -> AnalysisReport.scope
-    end note
-    Governor -> DescInterface : PolicyAndRuleStaticAnalysisReportEvent
-    DescInterface -> DescInterface : Log Static Analysis (PolicyAndRuleStaticAnalysisReport)
+    Governor -> Observations : PolicyAndRuleStaticAnalysisReportEvent
+    Observations -> Observations : Log Static Analysis (PolicyAndRuleStaticAnalysisReport)
 
     Governor -> Governor : BRC-COH-014 Constraint Satisfiability Checking
-    note right
-       EventSourceMapping: scope -> SatReport.scope
-    end note
-    Governor -> DescInterface : ConstraintSatisfiabilityReportEvent
-    DescInterface -> DescInterface : Log SAT Result (ConstraintSatisfiabilityReport)
+    Governor -> Observations : ConstraintSatisfiabilityReportEvent
+    Observations -> Observations : Log SAT Result (ConstraintSatisfiabilityReport)
 
     Governor -> Governor : BRC-COH-015 Execute Definition Test Suite
-    note right
-       EventSourceMapping: scope -> TestSuiteReport.scope
-    end note
-    Governor -> DescInterface : DefinitionTestSuiteReportEvent
-    DescInterface -> DescInterface : Log Test Results (DefinitionTestSuiteReport)
+    Governor -> Observations : DefinitionTestSuiteReportEvent
+    Observations -> Observations : Log Test Results (DefinitionTestSuiteReport)
 
     Governor -> Governor : BRC-COH-016 Admission Gate Decision
-    note right
-       EventSourceMapping: scope -> AdmissionGateDecision.scope
-    end note
     Governor -> Supervisor : AdmissionGateDecisionEvent (trigger for Provisioning)
-    Governor -> DescInterface : AdmissionGateDecisionEvent (Audit)
-    DescInterface -> DescInterface : Audit Decision (AdmissionGateDecision)
+    Governor -> Observations : AdmissionGateDecisionEvent (Audit)
+    Observations -> Observations : Audit Decision (AdmissionGateDecision)
 
     alt AdmissionGateDecisionEvent.outcome == "PASS"
       note over Governor
@@ -371,18 +299,20 @@ group ADMISSION (BRC-COH-012..018; reuses 005..009)
     end
 
     Governor -> Governor : BRC-COH-017 Record Governance Decision
-    Governor -> DescInterface : GovernanceDecisionRecordedEvent
-    DescInterface -> DescInterface : Archive Decision Record (GovernanceDecisionRecorded)
+    Governor -> Observations : GovernanceDecisionRecordedEvent
+    Observations -> Observations : Archive Decision Record (GovernanceDecisionRecorded)
 
     Governor -> Governor : BRC-COH-018 Controlled Activation Plan
     Governor -> Operator : ControlledActivationPlanEvent (instruction to Operator)
-    Governor -> RemedInterface : ControlledActivationPlanEvent
-    RemedInterface -> RemedInterface : Execute Activation Plan (ControlledActivationPlan)
+    Governor -> Operations : INT-GOV-INF-005 GrantAuthorization (ActivationPlan)
+    note right: Payload: EA-GOV-INF-005 AuthorizationResponseEvent
+    
+    Operations -> Operations : Execute Activation Plan (ControlledActivationPlan)
 
     alt Activation Success
-        RemedInterface -> Governor : ControlledActivationFeedbackEvent(status=SUCCESS)
+        Operations -> Governor : OperationFeedbackEvent (Status=SUCCESS)
     else Activation Failure
-        RemedInterface -> Governor : ControlledActivationFeedbackEvent(status=FAILURE)
+        Operations -> Governor : OperationFeedbackEvent (Status=FAILURE)
         Governor -> Governor : Handle Activation Failure
     end
   end
@@ -390,52 +320,42 @@ end
 
 == 4) Emergence (Governor; BRC-EMG-001..007) ==
 note over Governor
-  Trigger: EmergenceTriggerEvent arrives (from evidence; may be mediated by Event Bus)
+  Trigger: ObservationSignal (EmergenceTrigger) arrives.
 end note
 
 Governor -> Governor : BRC-EMG-001 Open Emergence Case
-note right
-   EventSourceMapping: trigger -> EmergenceCase
-end note
-Governor -> DescInterface : EmergenceCaseOpenedEvent
-DescInterface -> DescInterface : Open Tracking Case (EmergenceCaseOpened)
+Governor -> Observations : EmergenceCaseOpenedEvent
+Observations -> Observations : Open Tracking Case
 
 alt EmergenceTriggerEvent.proposal.confidence >= 0.7
   Governor -> Governor : BRC-EMG-004 Auto-Approve High Confidence
-  note right
-     EventSourceMapping: caseId -> EmergenceApproved
-  end note
-  Governor -> DescInterface : EmergenceApprovedEvent
-  DescInterface -> DescInterface : Log Approval (EmergenceApproved)
+  Governor -> Observations : EmergenceApprovedEvent
+  Observations -> Observations : Log Approval
 
   Governor -> Governor : BRC-EMG-NEW Request Admission Check
-  note right
-     EventSourceMapping: proposal -> CoherenceRequest(ADMISSION)
-  end note
   Governor -> Governor : CoherenceRequestEvent(phase=ADMISSION)
   
   alt AdmissionGateDecisionEvent.outcome == "PASS"
     Governor -> Governor : BRC-EMG-003 Publish New Definitions
-  note right
-     EventSourceMapping: proposal.definitions -> DefinitionChanged
-  end note
-  Governor -> Operator : DefinitionChangedEvent
-  Governor -> RemedInterface : DefinitionChangedEvent (Update Runtime)
-  RemedInterface -> RemedInterface : Update Runtime Definitions (DefinitionChanged)
+    
+    Governor -> Operator : DefinitionChangedEvent
+    
+    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Update Definitions)
+    note right: Payload: EA-GOV-INF-001 (PROVISION/UPDATE)
+    
+    Operations -> Operations : Update Runtime Definitions (DefinitionChanged)
 
-  alt Runtime Update Success
-     RemedInterface -> Governor : DefinitionUpdateFeedbackEvent(status=SUCCESS)
-  else Runtime Update Failure
-     RemedInterface -> Governor : DefinitionUpdateFeedbackEvent(status=FAILURE)
-     Governor -> Governor : Handle Update Failure
-  end
+    alt Runtime Update Success
+       Operations -> Governor : OperationFeedbackEvent (Status=SUCCESS)
+    else Runtime Update Failure
+       Operations -> Governor : OperationFeedbackEvent (Status=FAILURE)
+       Governor -> Governor : Handle Update Failure
+    end
 
-  Governor -> Governor : BRC-EMG-006 Deprecate Before Create
-  note right
-     EventSourceMapping: proposal.obsolete -> DeprecateAndCreate
-  end note
-  Governor -> RemedInterface : PrimitiveDeprecateAndCreateEvent
-  RemedInterface -> RemedInterface : Manage Lifecycle (PrimitiveDeprecateAndCreate)
+    Governor -> Governor : BRC-EMG-006 Deprecate Before Create
+    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Deprecate)
+    
+    Operations -> Operations : Manage Lifecycle (PrimitiveDeprecateAndCreate)
   else
     note over Governor
        Admission Check Failed (Block Publication)
@@ -444,15 +364,9 @@ alt EmergenceTriggerEvent.proposal.confidence >= 0.7
 else EmergenceTriggerEvent.proposal.confidence < 0.7
   loop while DecisionResponseEvent.received == false
     Governor -> Governor : BRC-EMG-002 Request Decision
-    note right
-       EventSourceMapping: proposal -> DecisionRequest
-    end note
     Governor -> DecisionOwner : DecisionRequestEvent (may be mediated by Event Bus)
 
     Governor -> Governor : BRC-EMG-005 Escalate Low Confidence
-    note right
-       EventSourceMapping: proposal -> ApprovalRequired
-    end note
     Governor -> DecisionOwner : ApprovalRequiredEvent (may be mediated by Event Bus)
 
     DecisionOwner --> Governor : DecisionResponseEvent (may be mediated by Event Bus)
@@ -460,19 +374,14 @@ else EmergenceTriggerEvent.proposal.confidence < 0.7
 
   alt DecisionResponseEvent.outcome == "APPROVED"
     Governor -> Governor : BRC-EMG-003 Publish New Definitions
-    note right
-       EventSourceMapping: proposal.definitions -> DefinitionChanged
-    end note
+    
     Governor -> Operator : DefinitionChangedEvent
-    Governor -> RemedInterface : DefinitionChangedEvent
-    RemedInterface -> RemedInterface : Update Runtime Definitions (DefinitionChanged)
+    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Update Definitions)
+    Operations -> Operations : Update Runtime Definitions (DefinitionChanged)
 
     Governor -> Governor : BRC-EMG-006 Deprecate Before Create
-    note right
-       EventSourceMapping: proposal.obsolete -> DeprecateAndCreate
-    end note
-    Governor -> RemedInterface : PrimitiveDeprecateAndCreateEvent
-    RemedInterface -> RemedInterface : Manage Lifecycle (PrimitiveDeprecateAndCreate)
+    Governor -> Operations : INT-GOV-INF-001 AssignMechanism (Deprecate)
+    Operations -> Operations : Manage Lifecycle (PrimitiveDeprecateAndCreate)
   else (not approved)
     note over Governor
       Decision did not approve; no definition publication.
@@ -481,15 +390,12 @@ else EmergenceTriggerEvent.proposal.confidence < 0.7
 end
 
 Governor -> Governor : BRC-EMG-007 Close Emergence Case
-note right
-   EventSourceMapping: caseId -> EmergenceCaseClosed
-end note
-Governor -> DescInterface : EmergenceCaseClosedEvent
-DescInterface -> DescInterface : Close Tracking Case (EmergenceCaseClosed)
+Governor -> Observations : EmergenceCaseClosedEvent
+Observations -> Observations : Close Tracking Case
 
 == 5) Close the loop ==
-note over DescInterface, RemedInterface
-  Outcomes of Remediation (Actuation) and Description (Evidence) re-enter the Definition Plane
+note over Observations, Operations
+  Outcomes of Operations (Actuation) and Observations (Evidence) re-enter the Definition Plane
   as new triggers, completing the Systemic Governance Loop.
 end note
 

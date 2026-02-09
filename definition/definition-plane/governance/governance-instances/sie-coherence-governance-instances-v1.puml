@@ -49,16 +49,36 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
   package "EventArchetypes" {
 
+    ' Interface Wrappers (Coherence)
+    object "EA-INF-COH-001\nDescriptionQueryEvent" as EA_DescriptionQuery <<EventArchetype>> {
+      name = "DescriptionQueryEvent"
+      description = "Request for Analysis Snapshot"
+    }
+    object "EA-INF-COH-002\nDescriptionSnapshotEvent" as EA_DescriptionSnapshot <<EventArchetype>> {
+      name = "DescriptionSnapshotEvent"
+      description = "Response with Systemic Primitives"
+    }
+    object "EA-INF-COH-003\nAuthorizationRequestEvent" as EA_AuthRequest <<EventArchetype>> {
+      name = "AuthorizationRequestEvent"
+      description = "Runtime Gatekeeper Request"
+    }
+    object "EA-INF-COH-004\nAuthorizationResponseEvent" as EA_AuthResponse <<EventArchetype>> {
+      name = "AuthorizationResponseEvent"
+      description = "Runtime Gatekeeper Decision"
+    }
+    object "EA-INF-COH-005\nMechanismAssignmentEvent" as EA_MechanismAssignment <<EventArchetype>> {
+      name = "MechanismAssignmentEvent"
+      description = "Control Payload (Actuation/Config)"
+      properties = ["mechanismId", "definition", "assignmentMode"]
+    }
+
+
     object "EA-COH-001\nCoherenceRequestEvent" as EA_CoherenceRequestEvent <<EventArchetype>> {
       name = "CoherenceRequestEvent"
     }
 
     object "EA-COH-002\nCoherenceCheckPlanEvent" as EA_CoherenceCheckPlanEvent <<EventArchetype>> {
       name = "CoherenceCheckPlanEvent"
-    }
-
-    object "EA-COH-003\nEvidenceGroundingRequestEvent" as EA_EvidenceGroundingRequestEvent <<EventArchetype>> {
-      name = "EvidenceGroundingRequestEvent"
     }
 
     object "EA-COH-004\nSupervisorCheckRequestEvent" as EA_SupervisorCheckRequestEvent <<EventArchetype>> {
@@ -79,14 +99,6 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     object "EA-COH-008\nGraphSyncAppliedEvent" as EA_GraphSyncAppliedEvent <<EventArchetype>> {
       name = "GraphSyncAppliedEvent"
-    }
-
-    object "EA-COH-009\nSensorAutoDefinedEvent" as EA_SensorAutoDefinedEvent <<EventArchetype>> {
-      name = "SensorAutoDefinedEvent"
-    }
-
-    object "EA-COH-010\nSensorDeprecatedEvent" as EA_SensorDeprecatedEvent <<EventArchetype>> {
-      name = "SensorDeprecatedEvent"
     }
 
     object "EA-COH-011\nFeasibilityAssessmentRequestedEvent" as EA_FeasibilityAssessmentRequestedEvent <<EventArchetype>> {
@@ -489,92 +501,92 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
       receivedEventArchetype = EA_DecisionResponseEvent
     }
 
-    object "R-COH-REMED-001\nCoherence Plan Intake Receptor" as R_COH_REMED_001 <<Receptor>> {
+    object "R-COH-OBS-001\nCoherence Plan Intake Receptor" as R_COH_OBS_001 <<Receptor>> {
       name = "CoherencePlanIntakeReceptor"
       receivedEventArchetype = EA_CoherenceCheckPlanEvent
     }
 
-    object "R-COH-REMED-002\nEvidence Grounding Intake Receptor" as R_COH_REMED_002 <<Receptor>> {
+    object "R-COH-OBS-002\nEvidence Grounding Intake Receptor" as R_COH_OBS_002 <<Receptor>> {
       name = "EvidenceGroundingIntakeReceptor"
       receivedEventArchetype = EA_EvidenceGroundingRequestEvent
     }
 
-    object "R-COH-REMED-003\nSupervisor Check Intake Receptor" as R_COH_REMED_003 <<Receptor>> {
+    object "R-COH-OBS-003\nSupervisor Check Intake Receptor" as R_COH_OBS_003 <<Receptor>> {
       name = "SupervisorCheckIntakeReceptor"
       receivedEventArchetype = EA_SupervisorCheckRequestEvent
     }
 
-    object "R-COH-REMED-004\nReport Intake Receptor" as R_COH_REMED_004 <<Receptor>> {
+    object "R-COH-OBS-004\nReport Intake Receptor" as R_COH_OBS_004 <<Receptor>> {
       name = "CoherenceReportIntakeReceptor"
       receivedEventArchetype = EA_CoherenceReportEvent
     }
 
-    object "R-COH-REMED-005\nIncoherence Intake Receptor" as R_COH_REMED_005 <<Receptor>> {
+    object "R-COH-OBS-005\nIncoherence Intake Receptor" as R_COH_OBS_005 <<Receptor>> {
       name = "IncoherenceIntakeReceptor"
       receivedEventArchetype = EA_IncoherenceDetectedEvent
     }
 
-    object "R-COH-REMED-006\nResolution Intake Receptor" as R_COH_REMED_006 <<Receptor>> {
+    object "R-COH-OBS-006\nResolution Intake Receptor" as R_COH_OBS_006 <<Receptor>> {
       name = "ResolutionIntakeReceptor"
       receivedEventArchetype = EA_ResolutionProposedEvent
     }
 
-    object "R-COH-REMED-007\nGraph Sync Intake Receptor" as R_COH_REMED_007 <<Receptor>> {
+    object "R-COH-OBS-007\nGraph Sync Intake Receptor" as R_COH_OBS_007 <<Receptor>> {
       name = "GraphSyncIntakeReceptor"
       receivedEventArchetype = EA_GraphSyncAppliedEvent
     }
 
-    object "R-COH-REMED-008\nSensor Auto-Defined Intake Receptor" as R_COH_REMED_008 <<Receptor>> {
+    object "R-COH-OPS-008\nSensor Auto-Defined Intake Receptor" as R_COH_OPS_008 <<Receptor>> {
       name = "SensorAutoDefinedIntakeReceptor"
       receivedEventArchetype = EA_SensorAutoDefinedEvent
     }
 
-    object "R-COH-REMED-009\nSensor Deprecated Intake Receptor" as R_COH_REMED_009 <<Receptor>> {
+    object "R-COH-OPS-009\nSensor Deprecated Intake Receptor" as R_COH_OPS_009 <<Receptor>> {
       name = "SensorDeprecatedIntakeReceptor"
       receivedEventArchetype = EA_SensorDeprecatedEvent
     }
 
-    object "R-COH-REMED-010\nFeasibility Request Intake Receptor" as R_COH_REMED_010 <<Receptor>> {
+    object "R-COH-OBS-010\nFeasibility Request Intake Receptor" as R_COH_OBS_010 <<Receptor>> {
       name = "FeasibilityRequestIntakeReceptor"
       receivedEventArchetype = EA_FeasibilityAssessmentRequestedEvent
     }
 
-    object "R-COH-REMED-011\nFeasibility Aggregate Intake Receptor" as R_COH_REMED_011 <<Receptor>> {
+    object "R-COH-OBS-011\nFeasibility Aggregate Intake Receptor" as R_COH_OBS_011 <<Receptor>> {
       name = "FeasibilityAggregateIntakeReceptor"
       receivedEventArchetype = EA_FeasibilityAggregatedEvent
     }
 
-    object "R-COH-REMED-012\nBundle Validation Report Intake Receptor" as R_COH_REMED_012 <<Receptor>> {
+    object "R-COH-OBS-012\nBundle Validation Report Intake Receptor" as R_COH_OBS_012 <<Receptor>> {
       name = "BundleValidationReportIntakeReceptor"
       receivedEventArchetype = EA_DefinitionBundleValidationReportEvent
     }
 
-    object "R-COH-REMED-013\nStatic Analysis Report Intake Receptor" as R_COH_REMED_013 <<Receptor>> {
+    object "R-COH-OBS-013\nStatic Analysis Report Intake Receptor" as R_COH_OBS_013 <<Receptor>> {
       name = "StaticAnalysisReportIntakeReceptor"
       receivedEventArchetype = EA_PolicyAndRuleStaticAnalysisReportEvent
     }
 
-    object "R-COH-REMED-014\nSatisfiability Report Intake Receptor" as R_COH_REMED_014 <<Receptor>> {
+    object "R-COH-OBS-014\nSatisfiability Report Intake Receptor" as R_COH_OBS_014 <<Receptor>> {
       name = "SatisfiabilityReportIntakeReceptor"
       receivedEventArchetype = EA_ConstraintSatisfiabilityReportEvent
     }
 
-    object "R-COH-REMED-015\nTest Suite Report Intake Receptor" as R_COH_REMED_015 <<Receptor>> {
+    object "R-COH-OBS-015\nTest Suite Report Intake Receptor" as R_COH_OBS_015 <<Receptor>> {
       name = "DefinitionTestSuiteReportIntakeReceptor"
       receivedEventArchetype = EA_DefinitionTestSuiteReportEvent
     }
 
-    object "R-COH-REMED-016\nAdmission Decision Intake Receptor" as R_COH_REMED_016 <<Receptor>> {
+    object "R-COH-OBS-016\nAdmission Decision Intake Receptor" as R_COH_OBS_016 <<Receptor>> {
       name = "AdmissionGateDecisionIntakeReceptor"
       receivedEventArchetype = EA_AdmissionGateDecisionEvent
     }
 
-    object "R-COH-REMED-017\nDecision Record Intake Receptor" as R_COH_REMED_017 <<Receptor>> {
+    object "R-COH-OBS-017\nDecision Record Intake Receptor" as R_COH_OBS_017 <<Receptor>> {
       name = "GovernanceDecisionRecordedIntakeReceptor"
       receivedEventArchetype = EA_GovernanceDecisionRecordedEvent
     }
 
-    object "R-COH-REMED-018\nActivation Plan Intake Receptor" as R_COH_REMED_018 <<Receptor>> {
+    object "R-COH-OPS-018\nActivation Plan Intake Receptor" as R_COH_OPS_018 <<Receptor>> {
       name = "ControlledActivationPlanIntakeReceptor"
       receivedEventArchetype = EA_ControlledActivationPlanEvent
     }
@@ -590,10 +602,10 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     object "EFF-COH-002\nEvidence Request Effector" as EFF_COH_002 <<Effector>> {
       name = "EvidenceGroundingEffector"
-      producedEventArchetype = EA_EvidenceGroundingRequestEvent
+      producedEventArchetype = EA_DescriptionQuery
     }
 
-    object "EFF-COH-003\nSupervisor Check Effector" as EFF_COH_003 <<Effector>> {
+    object "EFF-COH-003\nSupervisorCheckRequestEffector" as EFF_COH_003 <<Effector>> {
       name = "SupervisorCheckRequestEffector"
       producedEventArchetype = EA_SupervisorCheckRequestEvent
     }
@@ -620,12 +632,12 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
 
     object "EFF-COH-008\nSensor Auto-Defined Effector" as EFF_COH_008 <<Effector>> {
       name = "SensorAutoDefinedEffector"
-      producedEventArchetype = EA_SensorAutoDefinedEvent
+      producedEventArchetype = EA_MechanismAssignment
     }
 
     object "EFF-COH-009\nSensor Deprecated Effector" as EFF_COH_009 <<Effector>> {
       name = "SensorDeprecatedEffector"
-      producedEventArchetype = EA_SensorDeprecatedEvent
+      producedEventArchetype = EA_MechanismAssignment
     }
 
     object "EFF-COH-010\nFeasibility Request Effector" as EFF_COH_010 <<Effector>> {
@@ -778,24 +790,15 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "EvidenceGroundingRequestEvent",
+      "targetArchetype": "DescriptionQueryEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["evidenceSelectors"],
+          "targetPath": ["queries"],
           "source": {
             "type": "ContextVariableReferenceExpression",
             "name": "CoherenceRequestReceptor",
             "propertyPath": ["scope"]
-          }
-        },
-        {
-          "type": "PropertyMapping",
-          "targetPath": ["requestedAt"],
-          "source": {
-            "type": "FunctionCallExpression",
-            "functionName": "now",
-            "arguments": []
           }
         }
       ]
@@ -1213,21 +1216,22 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "SensorAutoDefinedEvent",
+      "targetArchetype": "MechanismAssignmentEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["policyId"],
-          "source": { "type": "LiteralExpression", "value": "00000000-0000-0000-0000-000000000000" }
+          "targetPath": ["mechanismId"],
+          "source": { "type": "LiteralExpression", "value": "NEW_SENSOR" }
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["createdAt"],
-          "source": {
-            "type": "FunctionCallExpression",
-            "functionName": "now",
-            "arguments": []
-          }
+          "targetPath": ["assignmentMode"],
+          "source": { "type": "LiteralExpression", "value": "PROVISION" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["definition"],
+          "source": { "type": "LiteralExpression", "value": {"policyId": "00000000-0000-0000-0000-000000000000"} }
         }
       ]
     }
@@ -1263,21 +1267,17 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "SensorDeprecatedEvent",
+      "targetArchetype": "MechanismAssignmentEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["sensorId"],
+          "targetPath": ["mechanismId"],
           "source": { "type": "LiteralExpression", "value": "00000000-0000-0000-0000-000000000000" }
         },
         {
           "type": "PropertyMapping",
-          "targetPath": ["deprecatedAt"],
-          "source": {
-            "type": "FunctionCallExpression",
-            "functionName": "now",
-            "arguments": []
-          }
+          "targetPath": ["assignmentMode"],
+          "source": { "type": "LiteralExpression", "value": "DEPROVISION" }
         }
       ]
     }
@@ -2029,34 +2029,24 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     effectorEventSourceMapping:
     {
       "type": "EventStructureSourceMapping",
-      "targetArchetype": "ControlledActivationPlanEvent",
+      "targetArchetype": "AuthorizationResponseEvent",
       "mappings": [
         {
           "type": "PropertyMapping",
-          "targetPath": ["scope"],
+          "targetPath": ["requestId"],
+          "source": { "type": "LiteralExpression", "value": "GEN-001" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["decision"],
+          "source": { "type": "LiteralExpression", "value": "APPROVED" }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["payload"],
           "source": {
-            "type": "ContextVariableReferenceExpression",
-            "name": "CoherenceRequestReceptor",
-            "propertyPath": ["scope"]
-          }
-        },
-        {
-          "type": "PropertyMapping",
-          "targetPath": ["activationMode"],
-          "source": { "type": "LiteralExpression", "value": "MANUAL" }
-        },
-        {
-          "type": "PropertyMapping",
-          "targetPath": ["plan"],
-          "source": { "type": "LiteralExpression", "value": {} }
-        },
-        {
-          "type": "PropertyMapping",
-          "targetPath": ["createdAt"],
-          "source": {
-            "type": "FunctionCallExpression",
-            "functionName": "now",
-            "arguments": []
+            "type": "LiteralExpression",
+            "value": {}
           }
         }
       ]
@@ -2076,115 +2066,137 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
     object "INT-COH-001\nPlan Dispatch" as INT_COH_001 <<Interaction>> {
       name = "CoherencePlanDispatch"
       effector = EFF_COH_001
-      receptor = R_COH_REMED_001
+      receptor = R_COH_OBS_001
     }
 
     object "INT-COH-002\nEvidence Grounding" as INT_COH_002 <<Interaction>> {
       name = "EvidenceGroundingDispatch"
       effector = EFF_COH_002
-      receptor = R_COH_REMED_002
+      receptor = R_COH_OBS_002
     }
 
     object "INT-COH-003\nSupervisor Check" as INT_COH_003 <<Interaction>> {
       name = "SupervisorCheckDispatch"
       effector = EFF_COH_003
-      receptor = R_COH_REMED_003
+      receptor = R_COH_OBS_003
     }
 
     object "INT-COH-004\nReport Publication" as INT_COH_004 <<Interaction>> {
       name = "CoherenceReportDispatch"
       effector = EFF_COH_004
-      receptor = R_COH_REMED_004
+      receptor = R_COH_OBS_004
     }
 
     object "INT-COH-005\nIncoherence Detected" as INT_COH_005 <<Interaction>> {
       name = "IncoherenceDetectedDispatch"
       effector = EFF_COH_005
-      receptor = R_COH_REMED_005
+      receptor = R_COH_OBS_005
     }
 
     object "INT-COH-006\nResolution Proposed" as INT_COH_006 <<Interaction>> {
       name = "ResolutionProposedDispatch"
       effector = EFF_COH_006
-      receptor = R_COH_REMED_006
+      receptor = R_COH_OBS_006
     }
 
     object "INT-COH-007\nGraph Sync" as INT_COH_007 <<Interaction>> {
       name = "GraphSyncDispatch"
       effector = EFF_COH_007
-      receptor = R_COH_REMED_007
+      receptor = R_COH_OBS_007
     }
 
     object "INT-COH-008\nSensor Auto-Defined" as INT_COH_008 <<Interaction>> {
       name = "SensorAutoDefinedDispatch"
       effector = EFF_COH_008
-      receptor = R_COH_REMED_008
+      receptor = R_COH_OPS_008
     }
 
     object "INT-COH-009\nSensor Deprecated" as INT_COH_009 <<Interaction>> {
       name = "SensorDeprecatedDispatch"
       effector = EFF_COH_009
-      receptor = R_COH_REMED_009
+      receptor = R_COH_OPS_009
     }
 
     object "INT-COH-010\nFeasibility Request" as INT_COH_010 <<Interaction>> {
       name = "FeasibilityRequestDispatch"
       effector = EFF_COH_010
-      receptor = R_COH_REMED_010
+      receptor = R_COH_OBS_010
     }
 
     object "INT-COH-011\nFeasibility Aggregate" as INT_COH_011 <<Interaction>> {
       name = "FeasibilityAggregateDispatch"
       effector = EFF_COH_011
-      receptor = R_COH_REMED_011
+      receptor = R_COH_OBS_011
+    }
+
+    ' Interface Interactions (Coherence)
+    object "INT-INF-COH-001\nQuery Description" as INT_INF_COH_001 <<Interaction>> {
+      name = "DescriptionQueryDispatch"
+      effector = EFF_INF_COH_001
+      receptor = R_INF_COH_001
+      description = "Binding: Gov -> Obs (DescriptionQueryEvent)"
+    }
+    
+    object "INT-INF-COH-003\nRequest Authorization" as INT_INF_COH_003 <<Interaction>> {
+      name = "AuthorizationRequestDispatch"
+      effector = EFF_INF_COH_003
+      receptor = R_INF_COH_003
+      description = "Binding: Ops -> Gov (AuthorizationRequestEvent)"
+    }
+    
+    object "INT-INF-COH-004\nGrant Authorization" as INT_INF_COH_004 <<Interaction>> {
+      name = "AuthorizationResponseDispatch"
+      effector = EFF_INF_COH_004
+      receptor = R_INF_COH_004
+      description = "Binding: Gov -> Ops (AuthorizationResponseEvent)"
     }
 
     object "INT-COH-012\nBundle Validation Report" as INT_COH_012 <<Interaction>> {
       name = "BundleValidationReportDispatch"
       effector = EFF_COH_012
-      receptor = R_COH_REMED_012
+      receptor = R_COH_OBS_012
     }
 
     object "INT-COH-012A\nSupervisor Admission Checks" as INT_COH_012A <<Interaction>> {
       name = "SupervisorAdmissionCheckDispatch"
       effector = EFF_COH_003
-      receptor = R_COH_REMED_003
+      receptor = R_COH_OBS_003
     }
 
     object "INT-COH-013\nStatic Analysis Report" as INT_COH_013 <<Interaction>> {
       name = "StaticAnalysisReportDispatch"
       effector = EFF_COH_013
-      receptor = R_COH_REMED_013
+      receptor = R_COH_OBS_013
     }
 
     object "INT-COH-014\nSatisfiability Report" as INT_COH_014 <<Interaction>> {
       name = "SatisfiabilityReportDispatch"
       effector = EFF_COH_014
-      receptor = R_COH_REMED_014
+      receptor = R_COH_OBS_014
     }
 
     object "INT-COH-015\nTest Suite Report" as INT_COH_015 <<Interaction>> {
       name = "DefinitionTestSuiteReportDispatch"
       effector = EFF_COH_015
-      receptor = R_COH_REMED_015
+      receptor = R_COH_OBS_015
     }
 
     object "INT-COH-016\nAdmission Gate Decision" as INT_COH_016 <<Interaction>> {
       name = "AdmissionGateDecisionDispatch"
       effector = EFF_COH_016
-      receptor = R_COH_REMED_016
+      receptor = R_COH_OBS_016
     }
 
     object "INT-COH-017\nDecision Recorded" as INT_COH_017 <<Interaction>> {
       name = "GovernanceDecisionRecordedDispatch"
       effector = EFF_COH_017
-      receptor = R_COH_REMED_017
+      receptor = R_COH_OBS_017
     }
 
     object "INT-COH-018\nActivation Plan" as INT_COH_018 <<Interaction>> {
       name = "ControlledActivationPlanDispatch"
       effector = EFF_COH_018
-      receptor = R_COH_REMED_018
+      receptor = R_COH_OPS_018
     }
 
   }
@@ -2206,7 +2218,7 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
   BR_SUP_COH_001 --> VP_META_002 : applies
   BR_SUP_COH_001 --> SP_META_002 : applies
 
-  BR_SUP_COH_001 --> R_COH_REMED_003 : triggeringReceptor
+  BR_SUP_COH_001 --> R_COH_OBS_003 : triggeringReceptor
 
   FN_COH_001 --> PURP_COH_001 : serves
   MOD_COH_001 --> CAP_COH_001 : constitutes
@@ -2264,61 +2276,61 @@ frame "CD - SIE - Governance - Coherence Instances - v1" {
   INT_COH_TRG_001 --> R_COH_001 : receptor
 
   INT_COH_001 --> EFF_COH_001 : effector
-  INT_COH_001 --> R_COH_REMED_001 : receptor
+  INT_COH_001 --> R_COH_OBS_001 : receptor
 
   INT_COH_002 --> EFF_COH_002 : effector
-  INT_COH_002 --> R_COH_REMED_002 : receptor
+  INT_COH_002 --> R_COH_OBS_002 : receptor
 
   INT_COH_003 --> EFF_COH_003 : effector
-  INT_COH_003 --> R_COH_REMED_003 : receptor
+  INT_COH_003 --> R_COH_OBS_003 : receptor
 
   INT_COH_004 --> EFF_COH_004 : effector
-  INT_COH_004 --> R_COH_REMED_004 : receptor
+  INT_COH_004 --> R_COH_OBS_004 : receptor
 
   INT_COH_005 --> EFF_COH_005 : effector
-  INT_COH_005 --> R_COH_REMED_005 : receptor
+  INT_COH_005 --> R_COH_OBS_005 : receptor
 
   INT_COH_006 --> EFF_COH_006 : effector
-  INT_COH_006 --> R_COH_REMED_006 : receptor
+  INT_COH_006 --> R_COH_OBS_006 : receptor
 
   INT_COH_007 --> EFF_COH_007 : effector
-  INT_COH_007 --> R_COH_REMED_007 : receptor
+  INT_COH_007 --> R_COH_OBS_007 : receptor
 
   INT_COH_008 --> EFF_COH_008 : effector
-  INT_COH_008 --> R_COH_REMED_008 : receptor
+  INT_COH_008 --> R_COH_OPS_008 : receptor
 
   INT_COH_009 --> EFF_COH_009 : effector
-  INT_COH_009 --> R_COH_REMED_009 : receptor
+  INT_COH_009 --> R_COH_OPS_009 : receptor
 
   INT_COH_010 --> EFF_COH_010 : effector
-  INT_COH_010 --> R_COH_REMED_010 : receptor
+  INT_COH_010 --> R_COH_OBS_010 : receptor
 
   INT_COH_011 --> EFF_COH_011 : effector
-  INT_COH_011 --> R_COH_REMED_011 : receptor
+  INT_COH_011 --> R_COH_OBS_011 : receptor
 
   INT_COH_012 --> EFF_COH_012 : effector
-  INT_COH_012 --> R_COH_REMED_012 : receptor
+  INT_COH_012 --> R_COH_OBS_012 : receptor
 
   INT_COH_012A --> EFF_COH_003 : effector
-  INT_COH_012A --> R_COH_REMED_003 : receptor
+  INT_COH_012A --> R_COH_OBS_003 : receptor
 
   INT_COH_013 --> EFF_COH_013 : effector
-  INT_COH_013 --> R_COH_REMED_013 : receptor
+  INT_COH_013 --> R_COH_OBS_013 : receptor
 
   INT_COH_014 --> EFF_COH_014 : effector
-  INT_COH_014 --> R_COH_REMED_014 : receptor
+  INT_COH_014 --> R_COH_OBS_014 : receptor
 
   INT_COH_015 --> EFF_COH_015 : effector
-  INT_COH_015 --> R_COH_REMED_015 : receptor
+  INT_COH_015 --> R_COH_OBS_015 : receptor
 
   INT_COH_016 --> EFF_COH_016 : effector
-  INT_COH_016 --> R_COH_REMED_016 : receptor
+  INT_COH_016 --> R_COH_OBS_016 : receptor
 
   INT_COH_017 --> EFF_COH_017 : effector
-  INT_COH_017 --> R_COH_REMED_017 : receptor
+  INT_COH_017 --> R_COH_OBS_017 : receptor
 
   INT_COH_018 --> EFF_COH_018 : effector
-  INT_COH_018 --> R_COH_REMED_018 : receptor
+  INT_COH_018 --> R_COH_OPS_018 : receptor
 
 }
 

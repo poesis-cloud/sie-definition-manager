@@ -1,0 +1,112 @@
+@startuml sie-governance-interfaces-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE - Governance Interface Definition - v1
+
+package "Observations Plane (Truth)" {
+    class "ObsRuntime" as Obs <<System>>
+}
+
+package "Operations Plane (Change)" {
+    class "OpsRuntime" as Ops <<System>>
+}
+
+package "Governance Plane (Definition)" {
+    class "Governor" as Gov <<System>>
+    class "OperatorControllerMechanism" as OCM <<Primitive>>
+}
+
+' ============================================================
+' INTERFACE DEFINITIONS
+' ============================================================
+
+' 1. Gov -> Obs (Control)
+interface "IObservationControl" as I_Obs_Ctrl {
+    __ Mechanism Management __
+    + assignForObservation(o: OperatorControllerMechanism)
+    + unassignForObservation(o: OperatorControllerMechanism)
+    
+    __ Structural Query (Pull) __
+    + getDescription(selector: Selector) : SystemicDescription
+}
+
+' 2. Obs -> Gov (Signal)
+interface "IObservationSignal" as I_Obs_Sig {
+    __ Feedback Loop (Push) __
+    + pushObservationSignal(e: ObservationEvent)
+}
+
+' 3. Gov -> Ops (Control)
+interface "IOperationControl" as I_Ops_Ctrl {
+    __ Mechanism Management __
+    + assignForOperation(o: OperatorControllerMechanism)
+    + unassignForOperation(o: OperatorControllerMechanism)
+    
+    __ Validation Response __
+    + grantAuthorization(requestId: UUID, decision: AuthDecision)
+}
+
+' 4. Ops -> Gov (Feedback)
+interface "IOperationFeedback" as I_Ops_Feed {
+    __ Feedback Loop (Push) __
+    + pushOperationFeedback(e: OperationFeedback)
+    
+    __ Validation Request __
+    + requestAuthorization(e: AuthorizationRequest)
+}
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' Realization (Providers)
+Obs .up.|> I_Obs_Ctrl : provides
+Gov .up.|> I_Obs_Sig : provides
+Ops .up.|> I_Ops_Ctrl : provides
+Gov .up.|> I_Ops_Feed : provides
+
+' Consumption (Users)
+Gov .down.> I_Obs_Ctrl : uses
+Obs .down.> I_Obs_Sig : uses
+Gov .down.> I_Ops_Ctrl : uses
+Ops .down.> I_Ops_Feed : uses
+
+' Dependency for Types
+I_Obs_Ctrl ..> OCM : references
+I_Ops_Ctrl ..> OCM : references
+
+' ============================================================
+' NOTES
+' ============================================================
+
+note bottom of I_Ops_Ctrl
+  **Mechanism-Centric Interface**
+  Governance assigns fully defined **Operator Mechanisms**.
+end note
+
+note right of I_Obs_Ctrl
+  **getDescription()**
+  Gov queries Obs for "Descriptive Primitives".
+end note
+
+note left of OCM
+  **Atomic Unit of Control**
+  Encapsulates Rule + State + Rights
+end note
+
+@enduml

@@ -49,6 +49,18 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
 
   package "EventArchetypes" {
 
+    ' Interface Wrappers (Emergence)
+    object "EA-INF-EMG-001\nEmergenceTriggerEvent" as EA_EmergenceTrigger <<EventArchetype>> {
+      name = "EmergenceTriggerEvent"
+      description = "Signal indicating potential new structure needed"
+    }
+
+    object "EA-INF-EMG-002\nMechanismAssignmentEvent" as EA_MechanismAssignment <<EventArchetype>> {
+      name = "MechanismAssignmentEvent"
+      description = "Control Payload (Actuation/Config)"
+      properties = ["mechanismId", "definition", "assignmentMode"]
+    }
+
     object "EA-EMG-001\nEmergenceTriggerEvent" as EA_EmergenceTriggerEvent <<EventArchetype>> {
       name = "EmergenceTriggerEvent"
     }
@@ -390,7 +402,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       receivedEventArchetype = EA_DecisionResponseEvent
     }
 
-    object "R-EMG-REMED-001\nEmergence Case Intake Receptor" as R_EMG_REMED_001 <<Receptor>> {
+    object "R-EMG-OBS-001\nEmergence Case Intake Receptor" as R_EMG_OBS_001 <<Receptor>> {
       name = "EmergenceCaseIntakeReceptor"
       receivedEventArchetype = EA_EmergenceCaseOpenedEvent
     }
@@ -400,12 +412,12 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       receivedEventArchetype = EA_DecisionRequestEvent
     }
 
-    object "R-EMG-REMED-003\nDefinition Change Intake Receptor" as R_EMG_REMED_003 <<Receptor>> {
+    object "R-EMG-OPS-003\nDefinition Change Intake Receptor" as R_EMG_OPS_003 <<Receptor>> {
       name = "DefinitionChangeIntakeReceptor"
       receivedEventArchetype = EA_DefinitionChangedEvent
     }
 
-    object "R-EMG-REMED-004\nEmergence Approved Intake Receptor" as R_EMG_REMED_004 <<Receptor>> {
+    object "R-EMG-OBS-004\nEmergence Approved Intake Receptor" as R_EMG_OBS_004 <<Receptor>> {
       name = "EmergenceApprovedIntakeReceptor"
       receivedEventArchetype = EA_EmergenceApprovedEvent
     }
@@ -415,12 +427,12 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       receivedEventArchetype = EA_ApprovalRequiredEvent
     }
 
-    object "R-EMG-REMED-006\nPrimitive Change Intake Receptor" as R_EMG_REMED_006 <<Receptor>> {
+    object "R-EMG-OPS-006\nPrimitive Change Intake Receptor" as R_EMG_OPS_006 <<Receptor>> {
       name = "PrimitiveChangeIntakeReceptor"
       receivedEventArchetype = EA_PrimitiveDeprecateAndCreateEvent
     }
 
-    object "R-EMG-REMED-007\nEmergence Case Closed Intake Receptor" as R_EMG_REMED_007 <<Receptor>> {
+    object "R-EMG-OBS-007\nEmergence Case Closed Intake Receptor" as R_EMG_OBS_007 <<Receptor>> {
       name = "EmergenceCaseClosedIntakeReceptor"
       receivedEventArchetype = EA_EmergenceCaseClosedEvent
     }
@@ -618,6 +630,36 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
       "type": "LiteralExpression",
       "value": false
     }
+
+    effectorEventSourceMapping:
+    {
+      "type": "EventStructureSourceMapping",
+      "targetArchetype": "MechanismAssignmentEvent",
+      "mappings": [
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["mechanismId"],
+          "source": { "type": "LiteralExpression", "value": "ALL_TARGETS" } 
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["assignmentMode"],
+          "source": {
+            "type": "LiteralExpression",
+            "value": "UPDATE_DEFINITION"
+          }
+        },
+        {
+          "type": "PropertyMapping",
+          "targetPath": ["definition"],
+          "source": {
+            "type": "ContextVariableReferenceExpression",
+            "name": "EmergenceTriggerReceptor",
+            "propertyPath": ["proposal", "definitions"]
+          }
+        }
+      ]
+    }
     end note
 
     object "BRC-EMG-004\nAuto-Approve High Confidence" as BRC_EMG_004 <<BehavioralRuleControl>> {
@@ -802,7 +844,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     object "INT-EMG-001\nCase Opened" as INT_EMG_001 <<Interaction>> {
       name = "EmergenceCaseOpenedDispatch"
       effector = EFF_EMG_001
-      receptor = R_EMG_REMED_001
+      receptor = R_EMG_OBS_001
     }
 
     object "INT-EMG-002\nDecision Request" as INT_EMG_002 <<Interaction>> {
@@ -820,13 +862,13 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     object "INT-EMG-004\nDefinition Changed" as INT_EMG_004 <<Interaction>> {
       name = "DefinitionChangedDispatch"
       effector = EFF_EMG_003
-      receptor = R_EMG_REMED_003
+      receptor = R_EMG_OPS_003
     }
 
     object "INT-EMG-005\nEmergence Approved" as INT_EMG_005 <<Interaction>> {
       name = "EmergenceApprovedDispatch"
       effector = EFF_EMG_004
-      receptor = R_EMG_REMED_004
+      receptor = R_EMG_OBS_004
     }
 
     object "INT-EMG-006\nApproval Required" as INT_EMG_006 <<Interaction>> {
@@ -838,13 +880,13 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
     object "INT-EMG-007\nDeprecate+Create" as INT_EMG_007 <<Interaction>> {
       name = "PrimitiveDeprecateAndCreateDispatch"
       effector = EFF_EMG_006
-      receptor = R_EMG_REMED_006
+      receptor = R_EMG_OPS_006
     }
 
     object "INT-EMG-008\nCase Closed" as INT_EMG_008 <<Interaction>> {
       name = "EmergenceCaseClosedDispatch"
       effector = EFF_EMG_007
-      receptor = R_EMG_REMED_007
+      receptor = R_EMG_OBS_007
     }
 
   }
@@ -870,7 +912,7 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
   INT_EMG_TRG_001 --> R_EMG_001 : receptor
 
   INT_EMG_001 --> EFF_EMG_001 : effector
-  INT_EMG_001 --> R_EMG_REMED_001 : receptor
+  INT_EMG_001 --> R_EMG_OBS_001 : receptor
 
   INT_EMG_002 --> EFF_EMG_002 : effector
   INT_EMG_002 --> R_DO_001 : receptor
@@ -879,19 +921,19 @@ frame "CD - SIE - Governance - Emergence Instances - v1" {
   INT_EMG_003 --> R_EMG_002 : receptor
 
   INT_EMG_004 --> EFF_EMG_003 : effector
-  INT_EMG_004 --> R_EMG_REMED_003 : receptor
+  INT_EMG_004 --> R_EMG_OPS_003 : receptor
 
   INT_EMG_005 --> EFF_EMG_004 : effector
-  INT_EMG_005 --> R_EMG_REMED_004 : receptor
+  INT_EMG_005 --> R_EMG_OBS_004 : receptor
 
   INT_EMG_006 --> EFF_EMG_005 : effector
   INT_EMG_006 --> R_DO_002 : receptor
 
   INT_EMG_007 --> EFF_EMG_006 : effector
-  INT_EMG_007 --> R_EMG_REMED_006 : receptor
+  INT_EMG_007 --> R_EMG_OPS_006 : receptor
 
   INT_EMG_008 --> EFF_EMG_007 : effector
-  INT_EMG_008 --> R_EMG_REMED_007 : receptor
+  INT_EMG_008 --> R_EMG_OBS_007 : receptor
 
   BR_EMG_001 *-- BRC_EMG_008 : has
   BRC_EMG_008 --> EFF_EMG_008 : effector
