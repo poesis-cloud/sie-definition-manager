@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/csdm/v1/Adaptation.json",
   "title": "Adaptation (CSDM v1)",
-  "description": "Second-order regulation within the current definition envelope (updates BehavioralRules without changing Policies).",
+  "description": "Second-order regulation within the current definition envelope (updates Rules without changing Policies).",
   "allOf": [
     { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
   ],
@@ -12,7 +12,7 @@
     "id": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
     "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
     "inputPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "updatedBehavioralRules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "updatedRules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "triggerEventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to SupervisorControllerMechanism owning this process." }
   }

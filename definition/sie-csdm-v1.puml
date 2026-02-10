@@ -70,26 +70,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     is one key enabler of cross-domain, global systemic automatic reasoning.
 
     The autopoiesis (self-definition and self-maintenance) of systems is based
-    on a systemic architecture pattern involving three types of controller
-    mechanisms whose purpose is to define and own 4 types of constraints:
+    on a systemic architecture pattern involving five universal organizational
+    functions (GRS&CO) whose purpose is to define, enforce, and operate
+    governance artifacts:
 
-    - **Governor Controller Mechanisms**: Define and own high-level *policies*.
-    - **Supervisor Controller Mechanisms**: Translate *policies* into actionable
-      *rule definitions*.
-    - **Operator Controller Mechanisms**: Execute *behavioral rules*
-      (operationalized from rule definitions) to produce the system's behaviors.
+    - **Governor Controller Mechanisms**: Define and enforce *principles*.
+    - **Regulator Controller Mechanisms**: Interpret *principles* and define
+      *policies*, *rules*, and *controls*.
+    - **Supervisor Controller Mechanisms**: Enforce *policies*, *rules*, and
+      *controls*.
+    - **Coordinator Controller Mechanisms**: Stabilize interactions between
+      supervisors and operators (no artifact definition).
+    - **Operator Controller Mechanisms**: Operate *rules* and implement
+      *controls* in the state plane.
 
-    There are 4 types of constraints, each applying to distinct systemic
-    properties:
+    There are 4 universal governance artifacts (PPRC), each applying to a
+    distinct systemic layer:
 
-    - Functional Policies: Define constraints applying to the system's
-      functional properties.
-    - Viability Policies: Define constraints applying to the system's viability
-      properties.
-    - Structural Policies: Define constraints applying to the system's
-      structural properties.
-    - Behavioral Rules: Define constraints applying to the system's behavioral
-      properties.
+    - Principles: Identity-level, long-term normative constraints.
+    - Policies: Design-level constraints that operationalize principles.
+    - Rules: Logical constraints on behavior.
+    - Controls: Monitoring, detection, correction, escalation mechanisms.
 
     This systemic synergy can be formulated as follows:
 
@@ -223,11 +224,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
       name: RuleEnactmentControlEvent
       properties:
-        - behavioralRule: BehavioralRule
+        - rule: Rule
 
       name: RuleRevocationControlEvent
       properties:
-        - behavioralRule: BehavioralRule
+        - rule: Rule
     
     - *Supervision Feedback Event*:
 
@@ -243,11 +244,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
       name: RuleEnactmentFeedbackEvent
       properties:
-        - behavioralRule: BehavioralRule
+        - rule: Rule
 
       name: RuleRevocationFeedbackEvent
       properties:
-        - behavioralRule: BehavioralRule
+        - rule: Rule
 
     - *Systemic Feedback Signal Events* (Cybernetics-aligned):
 
@@ -314,9 +315,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       description: Feedback from mechanism attempting to integrate constraint
       properties:
         - constraintId: UUID
-        - constraintType: Enum [policy, behavioral_rule]
+        - constraintType: Enum [principle, policy, rule, control]
         - mechanismId: UUID
-        - mechanismType: Enum [governor, supervisor, operator]
+        - mechanismType: Enum [governor, regulator, supervisor, operator]
         - outcome: Enum [success, failure, partial]
         - failureReason: String (nullable)
         - incoherenceDetails: Object (nullable)
@@ -431,7 +432,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     - *Adaptation Events*:
 
-      name: BehavioralRuleCandidateEvent
+      name: RuleCandidateEvent
       description: Candidate behavioral rule synthesized from mismatch evidence.
       properties:
         - scope: Object
@@ -441,7 +442,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       name: OperatorProvisioningEvent
       description: Request to provision / replace an Operator realization.
       properties:
-        - boundBehavioralRuleId: UUID
+        - boundRuleId: UUID
         - provisionMode: Enum [ADD_OPERATOR, REPLACE_OPERATOR, UPDATE_OPERATOR, ROLLBACK_OPERATOR]
         - requestedAt: DateTime
 
@@ -508,7 +509,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - definitionBundleDigest: String (nullable)
 
       name: PolicyAndRuleStaticAnalysisReportEvent
-      description: Static analysis/lint report for policies and behavioral rules.
+      description: Static analysis/lint report for policies and rules.
       properties:
         - scope: Object
         - status: Enum [PASS, FAIL, WARN]
@@ -671,16 +672,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - sensorId: UUID
         - deprecatedAt: DateTime
 
-      name: BehavioralRulePublishedEvent
+      name: RulePublishedEvent
       description: Behavioral rule published into the Definition plane.
       properties:
-        - behavioralRuleId: UUID
+        - ruleId: UUID
         - publishedAt: DateTime
 
-      name: BehavioralRuleRealizationStatusEvent
+      name: RuleRealizationStatusEvent
       description: Runtime realization status for a behavioral rule.
       properties:
-        - behavioralRuleId: UUID
+        - ruleId: UUID
         - status: Enum [PENDING, REALIZED_IN_STATE, FAILED]
         - reportedAt: DateTime
         - details: Object (nullable)
@@ -849,11 +850,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     ' ============================================================
     
     +getGovernors(): GovernorControllerMechanism[]
+    +getRegulators(): RegulatorControllerMechanism[]
     +getSupervisors(): SupervisorControllerMechanism[]
+    +getCoordinators(): CoordinatorControllerMechanism[]
+    +getOperators(): OperatorControllerMechanism[]
+    +getPrinciples(): Principle[]
     +getFunctionalPolicies(): FunctionalPolicy[]
     +getViabilityPolicies(): ViabilityPolicy[]
     +getStructuralPolicies(): StructuralPolicy[]
-    +getBehavioralRules(): BehavioralRule[]
+    +getRules(): Rule[]
+    +getControls(): Control[]
 
     ' ============================================================
     ' SYSTEMIC STRUCTURAL PROPERTIES
@@ -1075,6 +1081,47 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
 
   ' ============================================================
+  ' PRINCIPLE
+  ' ============================================================
+
+  class Principle {
+    +getName(): String
+    +getStatus(): PrincipleStatus
+    +getStatement(): String
+  }
+
+  enum PrincipleStatus {
+    DRAFT
+    PROPOSED
+    APPROVED
+    REJECTED
+    PUBLISHED
+    INTEGRATED
+    SUSPENDED
+    DEPRECATED
+  }
+
+  note top of Principle
+    An identity-level, long-term normative constraint that defines what the
+    system fundamentally is and stands for.
+
+    **Systemic Semantics**:
+    - Principles are DEFINED and ENFORCED by Governor controller mechanisms.
+    - Principles are OPERATED by Regulator controller mechanisms when
+      designing and validating policies.
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier.
+    - "statement": The normative principle statement (may be non-measurable).
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all principles of the same system.
+  end note
+
+  SystemicPrimitive <|-- Principle : is
+
+  ' ============================================================
   ' POLICY
   ' ============================================================
 
@@ -1083,6 +1130,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getStatus(): PolicyStatus
     +getApplicabilityConditions(): String
     +getConstraint(): String
+    +getPrinciples(): Principle[]
   }
 
   enum PolicyStatus {
@@ -1105,9 +1153,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     If a constraint is not measurable, it is not a policy.
 
     **Systemic Semantics**:
-    - Policies are OWNED by Governor controller mechanisms.
-    - Policies are OPERATIONALIZED into BehavioralRules by Supervisor
-      controller mechanisms.
+    - Policies are DEFINED by Regulator controller mechanisms.
+    - Policies are ENFORCED and OPERATED by Supervisor controller mechanisms.
+    - Policies operationalize one or more Principles.
 
     **Homeostatic Auto-Definition Rule (Sensor)**:
     When a Policy constraint is measurable, the system SHOULD auto-define:
@@ -1191,6 +1239,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitive <|-- Policy : is
+  Policy "1" o--> "1..*" Principle : operationalizes
 
   ' ============================================================
   ' FUNCTIONAL POLICY
@@ -1272,9 +1321,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' BEHAVIORAL RULE
   ' ============================================================
   
-  class BehavioralRule {
+  class Rule {
     +getName(): String
-    +getStatus(): BehavioralRuleStatus
+    +getStatus(): RuleStatus
     +getApplyingFunctionalPolicies(): FunctionalPolicy[]
     +getApplyingViabilityPolicies(): ViabilityPolicy[]
     +getApplyingStructuralPolicies(): StructuralPolicy[]
@@ -1283,10 +1332,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getTriggeringReceptor(): Receptor
     +getApplicabilityConditions(): String
     +getIterationConditions(): String
-    +getControlSequence(): BehavioralRuleControl[]
+    +getControlSequence(): Control[]
   }
 
-  enum BehavioralRuleStatus {
+  enum RuleStatus {
     DRAFT
     PROPOSED
     APPROVED
@@ -1297,7 +1346,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     DEPRECATED
   }
 
-  note top of BehavioralRule
+  note top of Rule
     A behavioral rule is a constraint over the system's behavioral properties:
     how the system acts over time via mechanisms, sensors, and effectors.
 
@@ -1305,8 +1354,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Behavioral rules operationalize policies:
       "applyingPolicies" references the functional, viability, and/or
       structural policies whose constraints this rule enforces.
-    - Implemented by controller mechanisms and executed by operator controllers
-      and actuators.
+    - Rules are DEFINED by Regulator controller mechanisms.
+    - Rules are ENFORCED by Supervisor controller mechanisms via Controls.
+    - Rules are OPERATED by Operator controller mechanisms.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier.
@@ -1356,19 +1406,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       execution).
   end note
 
-  SystemicPrimitive <|-- BehavioralRule : is
-  BehavioralRule "1" o--> "1..*" FunctionalPolicy : applies
-  BehavioralRule "1" o--> "1..*" ViabilityPolicy : applies
-  BehavioralRule "1" o--> "1..*" StructuralPolicy : applies
-  BehavioralRule "1" *--> "1..*" BehavioralRuleControl : has
+  SystemicPrimitive <|-- Rule : is
+  Rule "1" o--> "1..*" FunctionalPolicy : applies
+  Rule "1" o--> "1..*" ViabilityPolicy : applies
+  Rule "1" o--> "1..*" StructuralPolicy : applies
+  Rule "1" *--> "1..*" Control : has
 
   ' ============================================================
   ' BEHAVIORAL RULE CONTROL
   ' ============================================================
 
-  class BehavioralRuleControl {
+  class Control {
     +getName(): String
-    +getApplyingRule(): BehavioralRule
+    +getApplyingRule(): Rule
     +getApplicabilityConditions(): String
     +getIterationConditions(): String
     +getEffectorEventSourceMapping(): String
@@ -1376,9 +1426,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getFeedbackReceptor(): Receptor
   }
 
-  note top of BehavioralRuleControl
+  note top of Control
     A behavioral rule control defines an action to be performed when its
     enclosing behavioral rule is triggered and applied.
+
+    **Systemic Semantics**:
+    - Controls are DEFINED by Regulator controller mechanisms.
+    - Controls are ENFORCED by Supervisor controller mechanisms.
+    - Controls are OPERATED by Supervisor (activation) and Operator (implementation).
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier.
@@ -1406,7 +1461,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - If the required source archetype does not match the behavioral rule's
       triggering event, the application SHOULD propose creating a new behavioral
       rule control behavioral rule triggered by that source archetype (chained
-      behavioral rules).
+      rules).
     - Behavioral rule control conditions SHOULD apply rule definitions owned by
       supervisors. Hence, a behavioral rule control SHOULD be associated to at
       least one rule definition, indirectly, via interactions of the controller
@@ -1458,39 +1513,39 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       being deleted.
   end note
 
-  SystemicPrimitive <|-- BehavioralRuleControl : is
-  BehavioralRuleControl "1" *--> "1" BehavioralRule : applies
-  BehavioralRuleControl "1" *--> "1" Effector : has
-  BehavioralRuleControl "0..1" o--> "1" Actuation : declares
+  SystemicPrimitive <|-- Control : is
+  Control "1" *--> "1" Rule : applies
+  Control "1" *--> "1" Effector : has
+  Control "0..1" o--> "1" Actuation : declares
 
-  class CreationActuationBehavioralRuleControl {
+  class CreationActuationControl {
     +getStateObjectArchetype(): StateObjectArchetype
     +getStateObjectSourceMapping(): String
   }
-  BehavioralRuleControl <|-- CreationActuationBehavioralRuleControl : is
-  CreationActuationBehavioralRuleControl "1" o--> "1" StateObjectArchetype : definesInitialStateOf
+  Control <|-- CreationActuationControl : is
+  CreationActuationControl "1" o--> "1" StateObjectArchetype : definesInitialStateOf
 
-  class ModificationActuationBehavioralRuleControl {
+  class ModificationActuationControl {
     +getStateObjectArchetype(): StateObjectArchetype
     +getStateObjectSourceMapping(): String
     +getStateObjectSelector(): String
   }
-  BehavioralRuleControl <|-- ModificationActuationBehavioralRuleControl : is
-  ModificationActuationBehavioralRuleControl "1" o--> "1" StateObjectArchetype : definesNewStateOf
+  Control <|-- ModificationActuationControl : is
+  ModificationActuationControl "1" o--> "1" StateObjectArchetype : definesNewStateOf
 
-  class DeletionActuationBehavioralRuleControl {
+  class DeletionActuationControl {
     +getStateObjectArchetype(): StateObjectArchetype
     +getStateObjectSelector(): String
   }
-  BehavioralRuleControl <|-- DeletionActuationBehavioralRuleControl : is
-  DeletionActuationBehavioralRuleControl "1" o--> "1" StateObjectArchetype : definesDeletedStateOf
+  Control <|-- DeletionActuationControl : is
+  DeletionActuationControl "1" o--> "1" StateObjectArchetype : definesDeletedStateOf
 
-  class AcquisitionActuationBehavioralRuleControl {
+  class AcquisitionActuationControl {
     +getStateObjectArchetype(): StateObjectArchetype
     +getStateObjectSelector(): String
   }
-  BehavioralRuleControl <|-- AcquisitionActuationBehavioralRuleControl : is
-  AcquisitionActuationBehavioralRuleControl "1" o--> "1" StateObjectArchetype : definesAcquiredStateOf
+  Control <|-- AcquisitionActuationControl : is
+  AcquisitionActuationControl "1" o--> "1" StateObjectArchetype : definesAcquiredStateOf
 
   ' ============================================================
   ' SOURCE MAPPING
@@ -1566,7 +1621,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     expressed as a behavioral rule control.
 
     **Systemic Semantics**:
-    - Actuation is declared by a BehavioralRuleControl.
+    - Actuation is declared by a Control.
     - An ActuatorMechanism is composed from this Actuation to execute the
       control's effect on the target state object.
 
@@ -1630,7 +1685,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Auto Definition Rules**:
     - A Sensing (and its SensorMechanism) MUST be auto-defined only if the
-      declaring BehavioralRuleControl defines a feedback receptor.
+      declaring Control defines a feedback receptor.
     - The sensor MUST have a receptor bound to the actuator effector's
       actuation event archetype.
     - The sensor MUST have an effector bound to the feedback receptor's event
@@ -1887,7 +1942,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   abstract class ControllerMechanism {
-    +getImplementedBehavioralRule(): BehavioralRule
+    +getImplementedRule(): Rule
   }
 
   note top of ControllerMechanism
@@ -1899,52 +1954,102 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   Mechanism <|-- ControllerMechanism : is
-  ControllerMechanism "1" o--> "1" BehavioralRule : implements
+  ControllerMechanism "1" o--> "1" Rule : implements
 
   ' ============================================================
   ' GOVERNOR CONTROLLER MECHANISM
   ' ============================================================
 
   class GovernorControllerMechanism {
-    +getOwnedPolicies(): Policy[]
+    +getOwnedPrinciples(): Principle[]
   }
 
   note top of GovernorControllerMechanism
-    A governor controller mechanism defines and owns policies that guide the
-    overall behavior of the system it governs, via supervisor mechanisms
-    receiving these policy events and operationalizing these policies as rules.
+    A governor controller mechanism defines and enforces principles that
+    express the identity of the system it governs.
 
     **Consistency Rules**:
-    - A governor controller mechanism MUST own at least one policy.
-    - Policies associated with a governor controller mechanism MUST be unique
+    - A governor controller mechanism MUST own at least one principle.
+    - Principles associated with a governor controller mechanism MUST be unique
       within the context of that mechanism.
   end note
 
   ControllerMechanism <|-- GovernorControllerMechanism : is
-  GovernorControllerMechanism "1" *--> "1..*" Policy : owns
+  GovernorControllerMechanism "1" *--> "1..*" Principle : owns
+
+  ' ============================================================
+  ' REGULATOR CONTROLLER MECHANISM
+  ' ============================================================
+
+  class RegulatorControllerMechanism {
+    +getOwnedPolicies(): Policy[]
+    +getOwnedRules(): Rule[]
+    +getOwnedControls(): Control[]
+  }
+
+  note top of RegulatorControllerMechanism
+    A regulator controller mechanism interprets principles and defines the
+    policies, rules, and controls that operationalize them.
+
+    **Consistency Rules**:
+    - A regulator controller mechanism MUST reference at least one principle.
+    - Policies, rules, and controls associated with a regulator controller
+      mechanism MUST be unique within the context of that mechanism.
+  end note
+
+  ControllerMechanism <|-- RegulatorControllerMechanism : is
+  RegulatorControllerMechanism "1" *--> "1..*" Policy : owns
+  RegulatorControllerMechanism "1" *--> "1..*" Rule : owns
+  RegulatorControllerMechanism "1" *--> "1..*" Control : owns
 
   ' ============================================================
   ' SUPERVISOR CONTROLLER MECHANISM
   ' ============================================================
 
   class SupervisorControllerMechanism {
-    +getOwnedRules(): BehavioralRule[]
+    +getEnforcedPolicies(): Policy[]
+    +getEnforcedRules(): Rule[]
+    +getEnforcedControls(): Control[]
   }
 
   note top of SupervisorControllerMechanism
-    A supervisor controller mechanism defines and owns rules operationalizing
-    policies, overseeing the operator controller mechanisms within the system
-    implementing these rules.
+    A supervisor controller mechanism enforces policies, rules, and controls
+    in real time, overseeing the operator controller mechanisms within the
+    system implementing these rules and controls.
 
     **Consistency Rules**:
-    - A supervisor controller mechanism MUST receive at least one governor event.
-    - A supervisor controller mechanism MUST have at least one associated rule.
-    - Rules associated with a supervisor mechanism MUST be unique within the
-      context of that mechanism.
+    - A supervisor controller mechanism MUST receive at least one regulator or
+      governor event.
+    - A supervisor controller mechanism MUST enforce at least one policy, rule,
+      or control.
   end note
 
   ControllerMechanism <|-- SupervisorControllerMechanism : is
-  SupervisorControllerMechanism "1" *--> "1..*" BehavioralRule : owns
+  SupervisorControllerMechanism "0..*" o--> "1..*" Policy : enforces
+  SupervisorControllerMechanism "0..*" o--> "1..*" Rule : enforces
+  SupervisorControllerMechanism "0..*" o--> "1..*" Control : enforces
+
+  ' ============================================================
+  ' COORDINATOR CONTROLLER MECHANISM
+  ' ============================================================
+
+  class CoordinatorControllerMechanism {
+    +getCoordinatedSupervisors(): SupervisorControllerMechanism[]
+    +getCoordinatedOperators(): OperatorControllerMechanism[]
+  }
+
+  note top of CoordinatorControllerMechanism
+    A coordinator controller mechanism stabilizes interactions between
+    supervisors and operators. It does not define governance artifacts.
+
+    **Consistency Rules**:
+    - A coordinator controller mechanism MUST coordinate at least two
+      supervisors and/or operators.
+  end note
+
+  ControllerMechanism <|-- CoordinatorControllerMechanism : is
+  CoordinatorControllerMechanism "0..*" o--> "0..*" SupervisorControllerMechanism : coordinates
+  CoordinatorControllerMechanism "0..*" o--> "0..*" OperatorControllerMechanism : coordinates
 
   ' ============================================================
   ' OPERATOR CONTROLLER MECHANISM
@@ -1958,6 +2063,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   note top of OperatorControllerMechanism
     An operator controller mechanism implements the rules defined by its
     supervisor controller, controlling other operator controllers and actuators.
+
+    **Systemic Semantics**:
+    - Operators implements/complies to controls in the state plane.
   end note
 
   ControllerMechanism <|-- OperatorControllerMechanism : is
@@ -2131,7 +2239,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   class Homeostasis {
     +getId(): UUID
     +getName(): String
-    +getOperationalRules(): BehavioralRule[]
+    +getOperationalRules(): Rule[]
     +getTriggerEventArchetypes(): EventArchetype[]
     +getOwner(): OperatorControllerMechanism
   }
@@ -2142,18 +2250,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Behavior (Conceptual)**:
     - Observe deviations (via receptor-bound event archetypes).
-    - Select applicable BehavioralRules.
+    - Select applicable Rules.
     - Execute controls that actuate mechanisms (create/modify/delete/acquire).
     - Emit feedback events for supervision and governance.
 
     **Systemic Semantics**:
     - Owned by Operator controller mechanisms.
     - Does not change the constraint envelope (Policies);
-      it enforces it via BehavioralRules.
+      it enforces it via Rules.
   end note
 
   SystemicPrimitive <|-- Homeostasis : is
-  Homeostasis "0..*" o--> "0..*" BehavioralRule : operationalRules
+  Homeostasis "0..*" o--> "0..*" Rule : operationalRules
   Homeostasis "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
   Homeostasis "1" o--> "1" OperatorControllerMechanism : owner
 
@@ -2161,7 +2269,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getId(): UUID
     +getName(): String
     +getInputPolicies(): Policy[]
-    +getUpdatedBehavioralRules(): BehavioralRule[]
+    +getUpdatedRules(): Rule[]
     +getTriggerEventArchetypes(): EventArchetype[]
     +getOwner(): SupervisorControllerMechanism
   }
@@ -2171,9 +2279,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Constraint envelope (definition boundary)**:
     - Policies + their meanings (intent, scope, rationale) define the envelope.
-    - BehavioralRules are operationalizations inside it.
+    - Rules are operationalizations inside it.
 
-    Adaptation changes operationalization (BehavioralRules)
+    Adaptation changes operationalization (Rules)
     WITHOUT changing the Policies that define the envelope.
 
     **Typical triggers**:
@@ -2188,7 +2296,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   SystemicPrimitive <|-- Adaptation : is
   Adaptation "0..*" o--> "0..*" Policy : inputPolicies
-  Adaptation "0..*" o--> "0..*" BehavioralRule : updatedBehavioralRules
+  Adaptation "0..*" o--> "0..*" Rule : updatedRules
   Adaptation "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
   Adaptation "1" o--> "1" SupervisorControllerMechanism : owner
 
@@ -2196,14 +2304,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getId(): UUID
     +getName(): String
     +getTriggerEventArchetypes(): EventArchetype[]
-    +getProducedPolicies(): Policy[]
+    +getProducedPrinciples(): Principle[]
     +getOwner(): GovernorControllerMechanism
   }
 
   note top of Emergence
     Second-order definitional change process: creates or revises constraints
-    at the definition level (Policies) and may require new or revised
-    BehavioralRules to operationalize the revised envelope.
+    at the definition level (Principles) and may require new or revised
+    Policies and Rules to operationalize the revised envelope.
 
     Emergence is invoked when the current constraint envelope is insufficient:
     adaptation cannot satisfy viability/functional/structural needs without
@@ -2217,12 +2325,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Systemic Semantics**:
     - Owned by Governor controller mechanisms (or meta-governors).
-    - Changes the definition plane; downstream supervision/operation follows.
+    - Changes the definition plane; downstream regulation/supervision/operation follows.
   end note
 
   SystemicPrimitive <|-- Emergence : is
   Emergence "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
-  Emergence "0..*" o--> "0..*" Policy : producedPolicies
+  Emergence "0..*" o--> "0..*" Principle : producedPrinciples
   Emergence "1" o--> "1" GovernorControllerMechanism : owner
 
   ' ============================================================
@@ -2239,7 +2347,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   note top of Coherence
     Meta-governance process: evaluates and maintains coherence of the system's
-    constraint stack (Policies → BehavioralRules) and their
+    constraint stack (Policies → Rules) and their
     structural implications.
 
     **Behavior (Conceptual)**:
@@ -2248,7 +2356,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Dispatch rule (Conceptual)**:
     - Route to Adaptation when coherence can be restored by changing
-      BehavioralRules while preserving policy intent.
+      Rules while preserving policy intent.
     - Route to Emergence when restoring coherence requires changing Policies
       (new policy, revised policy, applicability change) or creating new
       definition-level constraints.
@@ -2322,18 +2430,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   PolicyConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
   PolicyConsistencyChecking "1" o--> "1" GovernorControllerMechanism : owner
 
-  class BehavioralRuleConsistencyChecking {
+  class RuleConsistencyChecking {
     +getId(): UUID
-    +getAnalyzedRules(): BehavioralRule[]
+    +getAnalyzedRules(): Rule[]
     +getDetectedConflicts(): ConstraintConflict[]
     +getOwner(): SupervisorControllerMechanism
   }
 
-  note top of BehavioralRuleConsistencyChecking
+  note top of RuleConsistencyChecking
     **Purpose**: rule-to-rule coherence (interference, collisions, temporal loops).
 
     **Inputs**:
-    - BehavioralRules: triggers, selectors, guards, actions, cooldowns.
+    - Rules: triggers, selectors, guards, actions, cooldowns.
     - Policy provenance links (rule operationalizes policy).
     - Action semantics abstractions + capability inventory.
     - Execution traces/outcomes (for runtime interference detection).
@@ -2359,25 +2467,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Uses: Remediation plane execution telemetry (outcomes) and Description state.
   end note
 
-  SystemicPrimitive <|-- BehavioralRuleConsistencyChecking : is
-  BehavioralRuleConsistencyChecking "0..*" o--> "0..*" BehavioralRule : analyzedRules
-  BehavioralRuleConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
-  BehavioralRuleConsistencyChecking "1" o--> "1" SupervisorControllerMechanism : owner
+  SystemicPrimitive <|-- RuleConsistencyChecking : is
+  RuleConsistencyChecking "0..*" o--> "0..*" Rule : analyzedRules
+  RuleConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
+  RuleConsistencyChecking "1" o--> "1" SupervisorControllerMechanism : owner
 
-  class PolicyBehavioralRuleAlignmentChecking {
+  class PolicyRuleAlignmentChecking {
     +getId(): UUID
     +getAnalyzedPolicies(): Policy[]
-    +getAnalyzedRules(): BehavioralRule[]
+    +getAnalyzedRules(): Rule[]
     +getDetectedMisalignments(): ConstraintConflict[]
     +getOwner(): GovernorControllerMechanism
   }
 
-  note top of PolicyBehavioralRuleAlignmentChecking
+  note top of PolicyRuleAlignmentChecking
     **Purpose**: ensure rules operationalize policies and stay within envelope.
 
     **Inputs**:
     - Policies (constraints + evaluation criteria) + applicability.
-    - BehavioralRules (triggers/guards/actions) + provenance links.
+    - Rules (triggers/guards/actions) + provenance links.
     - Observed violations/drift and remediation outcomes.
 
     **Transforms / Operational Means**:
@@ -2400,11 +2508,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Uses: Description plane evaluation evidence + Remediation outcomes.
   end note
 
-  SystemicPrimitive <|-- PolicyBehavioralRuleAlignmentChecking : is
-  PolicyBehavioralRuleAlignmentChecking "0..*" o--> "0..*" Policy : analyzedPolicies
-  PolicyBehavioralRuleAlignmentChecking "0..*" o--> "0..*" BehavioralRule : analyzedRules
-  PolicyBehavioralRuleAlignmentChecking "0..*" o--> "0..*" ConstraintConflict : detectedMisalignments
-  PolicyBehavioralRuleAlignmentChecking "1" o--> "1" GovernorControllerMechanism : owner
+  SystemicPrimitive <|-- PolicyRuleAlignmentChecking : is
+  PolicyRuleAlignmentChecking "0..*" o--> "0..*" Policy : analyzedPolicies
+  PolicyRuleAlignmentChecking "0..*" o--> "0..*" Rule : analyzedRules
+  PolicyRuleAlignmentChecking "0..*" o--> "0..*" ConstraintConflict : detectedMisalignments
+  PolicyRuleAlignmentChecking "1" o--> "1" GovernorControllerMechanism : owner
 
   class PolicyConstraintSatisfiabilityChecking {
     +getId(): UUID
@@ -2442,18 +2550,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   PolicyConstraintSatisfiabilityChecking "0..*" o--> "0..*" Policy : analyzedPolicies
   PolicyConstraintSatisfiabilityChecking "1" o--> "1" GovernorControllerMechanism : owner
 
-  class BehavioralRuleConstraintSatisfiabilityChecking {
+  class RuleConstraintSatisfiabilityChecking {
     +getId(): UUID
-    +getAnalyzedRules(): BehavioralRule[]
+    +getAnalyzedRules(): Rule[]
     +getIsSatisfiable(): Boolean
     +getOwner(): SupervisorControllerMechanism
   }
 
-  note top of BehavioralRuleConstraintSatisfiabilityChecking
+  note top of RuleConstraintSatisfiabilityChecking
     **Purpose**: design-time existence check for a behavioral rule set.
 
     **Inputs**:
-    - BehavioralRules (triggers/guards/actions) + provenance to policies.
+    - Rules (triggers/guards/actions) + provenance to policies.
     - Action semantics abstractions (capabilities, preconditions, effects).
     - Optional solver projection artifacts for bounded checking.
 
@@ -2474,9 +2582,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Uses: Description plane state abstractions; Remediation outcomes when available.
   end note
 
-  SystemicPrimitive <|-- BehavioralRuleConstraintSatisfiabilityChecking : is
-  BehavioralRuleConstraintSatisfiabilityChecking "0..*" o--> "0..*" BehavioralRule : analyzedRules
-  BehavioralRuleConstraintSatisfiabilityChecking "1" o--> "1" SupervisorControllerMechanism : owner
+  SystemicPrimitive <|-- RuleConstraintSatisfiabilityChecking : is
+  RuleConstraintSatisfiabilityChecking "0..*" o--> "0..*" Rule : analyzedRules
+  RuleConstraintSatisfiabilityChecking "1" o--> "1" SupervisorControllerMechanism : owner
 
   class PolicyIntegrationFeasibilityAssessment {
     +getId(): UUID
@@ -2517,18 +2625,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   PolicyIntegrationFeasibilityAssessment "0..*" o--> "0..*" Policy : analyzedPolicies
   PolicyIntegrationFeasibilityAssessment "1" o--> "1" GovernorControllerMechanism : owner
 
-  class BehavioralRuleIntegrationFeasibilityAssessment {
+  class RuleIntegrationFeasibilityAssessment {
     +getId(): UUID
-    +getAnalyzedRules(): BehavioralRule[]
+    +getAnalyzedRules(): Rule[]
     +getIsFeasible(): Boolean
     +getOwner(): SupervisorControllerMechanism
   }
 
-  note top of BehavioralRuleIntegrationFeasibilityAssessment
+  note top of RuleIntegrationFeasibilityAssessment
     **Purpose**: operational realizability for a concrete behavioral rule.
 
     **Inputs**:
-    - BehavioralRule (triggers/selectors/guards/actions) + target scopes.
+    - Rule (triggers/selectors/guards/actions) + target scopes.
     - Actuation capabilities + permissions + guardrails/approval policy.
     - Execution outcomes of similar actions (history) when available.
 
@@ -2549,9 +2657,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Uses: Remediation plane telemetry + tenant actuation constraints.
   end note
 
-  SystemicPrimitive <|-- BehavioralRuleIntegrationFeasibilityAssessment : is
-  BehavioralRuleIntegrationFeasibilityAssessment "0..*" o--> "0..*" BehavioralRule : analyzedRules
-  BehavioralRuleIntegrationFeasibilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+  SystemicPrimitive <|-- RuleIntegrationFeasibilityAssessment : is
+  RuleIntegrationFeasibilityAssessment "0..*" o--> "0..*" Rule : analyzedRules
+  RuleIntegrationFeasibilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
 
   class SolverProjectionAdequacyAssessment {
     +getId(): UUID
@@ -2632,7 +2740,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   class ActuationCapabilityAssessment {
     +getId(): UUID
-    +getAnalyzedRules(): BehavioralRule[]
+    +getAnalyzedRules(): Rule[]
     +getRequiredEffectors(): Effector[]
     +getIsSufficient(): Boolean
     +getOwner(): SupervisorControllerMechanism
@@ -2642,7 +2750,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     **Purpose**: ensure actuation variety is sufficient for intended rules.
 
     **Inputs**:
-    - BehavioralRules (actions and target selectors).
+    - Rules (actions and target selectors).
     - Effectors/capabilities + permissions + guardrails.
     - Historical action outcomes and resource constraints.
 
@@ -2663,7 +2771,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitive <|-- ActuationCapabilityAssessment : is
-  ActuationCapabilityAssessment "0..*" o--> "0..*" BehavioralRule : analyzedRules
+  ActuationCapabilityAssessment "0..*" o--> "0..*" Rule : analyzedRules
   ActuationCapabilityAssessment "0..*" o--> "0..*" Effector : requiredEffectors
   ActuationCapabilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
 
@@ -2742,7 +2850,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   class ControlStabilityAssessment {
     +getId(): UUID
-    +getEvaluatedRules(): BehavioralRule[]
+    +getEvaluatedRules(): Rule[]
     +getIsStable(): Boolean
     +getOwner(): SupervisorControllerMechanism
   }
@@ -2751,7 +2859,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     **Purpose**: assess stability/performance of control loops and trigger adaptation.
 
     **Inputs**:
-    - BehavioralRules + parameterization (cooldowns, hysteresis).
+    - Rules + parameterization (cooldowns, hysteresis).
     - Execution traces + outcomes + drift signals.
 
     **Transforms / Operational Means**:
@@ -2771,17 +2879,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   SystemicPrimitive <|-- ControlStabilityAssessment : is
-  ControlStabilityAssessment "0..*" o--> "0..*" BehavioralRule : evaluatedRules
+  ControlStabilityAssessment "0..*" o--> "0..*" Rule : evaluatedRules
   ControlStabilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
 
   Coherence "0..*" o--> "0..*" PolicyConstraintSatisfiabilityChecking : uses
-  Coherence "0..*" o--> "0..*" BehavioralRuleConstraintSatisfiabilityChecking : uses
+  Coherence "0..*" o--> "0..*" RuleConstraintSatisfiabilityChecking : uses
   Coherence "0..*" o--> "0..*" PolicyIntegrationFeasibilityAssessment : uses
-  Coherence "0..*" o--> "0..*" BehavioralRuleIntegrationFeasibilityAssessment : uses
+  Coherence "0..*" o--> "0..*" RuleIntegrationFeasibilityAssessment : uses
 
   Coherence "0..*" o--> "0..*" PolicyConsistencyChecking : uses
-  Coherence "0..*" o--> "0..*" BehavioralRuleConsistencyChecking : uses
-  Coherence "0..*" o--> "0..*" PolicyBehavioralRuleAlignmentChecking : uses
+  Coherence "0..*" o--> "0..*" RuleConsistencyChecking : uses
+  Coherence "0..*" o--> "0..*" PolicyRuleAlignmentChecking : uses
   Coherence "0..*" o--> "0..*" SolverProjectionAdequacyAssessment : uses
   Coherence "0..*" o--> "0..*" ObservabilityCoverageAssessment : uses
   Coherence "0..*" o--> "0..*" ActuationCapabilityAssessment : uses
@@ -2890,7 +2998,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Definition "0..*" o--> "0..*" SystemicPrimitive : packages
   Definition "0..*" o--> "0..*" DefinitionRequest : derivedFromInputs
   Definition "0..*" o--> "0..*" Policy : derivedFromPolicies
-  Definition "0..*" o--> "0..*" BehavioralRule : derivedFromRules
+  Definition "0..*" o--> "0..*" Rule : derivedFromRules
   Definition "0..*" o--> "0..*" ConstraintConflict : derivedFromConflicts
   Definition "0..*" o--> "0..*" SystemicPrimitive : derivedFromAssessments
 

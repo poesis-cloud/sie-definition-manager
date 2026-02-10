@@ -28,7 +28,7 @@ package "Definition Plane" as DefPlane #E8F4E8 {
   package "Definition DB\n(primitive invariants + storage)" as SDM #E8F4E8 {
     [Compilation\n(CSDSL → CEL)] as Compiler
     [Governor\n(owns Policies)\n(Emergence + Decision)] as Governor
-    [Supervisor\n(owns BehavioralRules)\n(Adaptation)] as Supervisor
+    [Supervisor\n(owns Rules)\n(Adaptation)] as Supervisor
     [Coherence\n(coherence + feasibility)\n(owned by Governor)] as Coherence
     [Definition Population\n(Bootstrap + Sync)] as DefPop
   }
@@ -45,7 +45,7 @@ package "Description Plane" as DescPlane #E8F0FA {
 }
 
 package "Remediation Plane" as RemPlane #F4E8E8 {
-  [Operator\n(realizes BehavioralRules)\n(Homeostasis / Rule Execution)] as RuleEngine
+  [Operator\n(realizes Rules)\n(Homeostasis / Rule Execution)] as RuleEngine
   [Actuators\n(Executors)] as Actuators
 }
 
@@ -146,8 +146,8 @@ note bottom of Supervisor
     escalates to emergence.
 
   **Ownership (3-level hierarchy):**
-  - Operator REALIZES BehavioralRules (executes remediation)
-  - Supervisor OWNS BehavioralRules and orchestrates first-order control
+  - Operator REALIZES Rules (executes remediation)
+  - Supervisor OWNS Rules and orchestrates first-order control
   - Governor OWNS Policies and governs second-order definition change
 
   In other words:

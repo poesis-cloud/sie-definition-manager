@@ -2,16 +2,26 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/csdm/v1/SupervisorControllerMechanism.json",
   "title": "SupervisorControllerMechanism (CSDM v1)",
-  "description": "Controller mechanism owning rules operationalizing policies.",
+  "description": "Controller mechanism enforcing policies, rules, and controls in real time.",
   "allOf": [
     { "$ref": "sie://schemas/csdm/v1/ControllerMechanism.json" }
   ],
   "type": "object",
   "properties": {
-    "ownedRules": {
+    "enforcedPolicies": {
       "type": "array",
       "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
-      "description": "References to BehavioralRule primitives owned by this supervisor."
+      "description": "References to Policy primitives enforced by this supervisor."
+    },
+    "enforcedRules": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Rule primitives enforced by this supervisor."
+    },
+    "enforcedControls": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Control primitives enforced by this supervisor."
     }
   }
 }

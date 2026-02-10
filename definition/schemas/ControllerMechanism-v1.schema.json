@@ -2,16 +2,16 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/csdm/v1/ControllerMechanism.json",
   "title": "ControllerMechanism (CSDM v1)",
-  "description": "A mechanism that implements exactly one BehavioralRule.",
+  "description": "A mechanism that implements exactly one Rule.",
   "allOf": [
     { "$ref": "sie://schemas/csdm/v1/Mechanism.json" }
   ],
   "type": "object",
-  "required": ["implementedBehavioralRule"],
+  "required": ["implementedRule"],
   "properties": {
-    "implementedBehavioralRule": {
+    "implementedRule": {
       "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID",
-      "description": "Reference to BehavioralRule implemented by this controller mechanism."
+      "description": "Reference to Rule implemented by this controller mechanism."
     }
   }
 }

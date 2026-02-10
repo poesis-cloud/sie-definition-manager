@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/Principle.json",
+  "title": "Principle (CSDM v1)",
+  "description": "Identity-level, long-term normative constraint that defines system identity.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name", "status", "statement"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "status": { "$ref": "sie://schemas/csdm/v1/PrincipleStatus.json" },
+    "statement": { "type": "string", "description": "Normative principle statement (may be non-measurable)." }
+  }
+}

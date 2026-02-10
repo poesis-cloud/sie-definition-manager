@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/csdm/v1/Emergence.json",
   "title": "Emergence (CSDM v1)",
-  "description": "Second-order definitional change process: creates/revises Policies and triggers new operationalizations.",
+  "description": "Second-order definitional change process: creates/revises Principles and triggers new operationalizations.",
   "allOf": [
     { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
   ],
@@ -12,7 +12,7 @@
     "id": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
     "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
     "triggerEventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "producedPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "producedPrinciples": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to GovernorControllerMechanism owning this process." }
   }
 }

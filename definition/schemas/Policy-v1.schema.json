@@ -7,11 +7,17 @@
     { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
-  "required": ["name", "status", "applicabilityConditions", "constraint"],
+  "required": ["name", "status", "applicabilityConditions", "constraint", "principles"],
   "properties": {
     "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
     "status": { "$ref": "sie://schemas/csdm/v1/PolicyStatus.json" },
     "applicabilityConditions": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/LogicalExpression" },
-    "constraint": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/ConstraintExpression" }
+    "constraint": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/ConstraintExpression" },
+    "principles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "description": "References to Principle primitives this policy operationalizes."
+    }
   }
 }

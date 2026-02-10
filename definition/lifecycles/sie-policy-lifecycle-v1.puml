@@ -21,7 +21,7 @@ skinparam state {
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-title SIE - Constraint (Policy / BehavioralRule) Lifecycle State Machine - v1
+title SIE - Constraint (Policy / Rule) Lifecycle State Machine - v1
 
 ' ============================================================
 ' POLICY LIFECYCLE STATE MACHINE
@@ -71,7 +71,7 @@ state "Policy Lifecycle" as PolicyLifecycle {
   }
   note right of FEASIBILITY_ASSESSMENT
     **Pre-Integration Viability Check**
-    Supervisor (for Policy and BehavioralRule)
+    Supervisor (for Policy and Rule)
     assesses whether they CAN
     operationalize/implement the constraint.
 
@@ -139,7 +139,7 @@ state "Policy Lifecycle" as PolicyLifecycle {
   note right of PUBLISHED
     Visible to Supervisors.
     Awaiting operationalization
-    into BehavioralRules.
+    into Rules.
     Triggers supervision feedback.
   end note
 
@@ -151,7 +151,7 @@ state "Policy Lifecycle" as PolicyLifecycle {
   }
   note right of INTEGRATED
     Successfully operationalized.
-    At least one BehavioralRule
+    At least one Rule
     implements this policy.
     Actively governing the system.
   end note
@@ -219,13 +219,13 @@ note as PolicyTransitions
 
   **Feasibility Assessment Roles:**
   - **Policy → Supervisor** assesses "Can I OPERATIONALIZE this?"
-  - **BehavioralRule → Supervisor** assesses "Can this rule be realized safely?"
+  - **Rule → Supervisor** assesses "Can this rule be realized safely?"
     (Operators provide operational feedback evidence, but do not gate feasibility.)
 
   **Governance Hierarchy:**
   - Governor OWNS Policy
-  - Supervisor OPERATIONALIZES Policy → BehavioralRule (owns result)
-  - Operator REALIZES BehavioralRule (is defined by it)
+  - Supervisor OPERATIONALIZES Policy → Rule (owns result)
+  - Operator REALIZES Rule (is defined by it)
 
   **Immutability Rule:**
   Once a Policy leaves DRAFT, it cannot be modified.

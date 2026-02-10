@@ -19,11 +19,16 @@
     "stateObjectArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
 
     "governors": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "regulators": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "supervisors": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "coordinators": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "operators": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "principles": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "functionalPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "viabilityPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "structuralPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "behavioralRules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "rules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "controls": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
 
     "components": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "interfaces": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },

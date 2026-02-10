@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/csdm/v1/OperatorControllerMechanism.json",
   "title": "OperatorControllerMechanism (CSDM v1)",
-  "description": "Controller mechanism realizing behavioral rules over a scoped function/modality.",
+  "description": "Controller mechanism realizing rules over a scoped function/modality.",
   "allOf": [
     { "$ref": "sie://schemas/csdm/v1/ControllerMechanism.json" }
   ],
