@@ -14,6 +14,6 @@
     "inputPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "updatedRules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "triggerEventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to SupervisorControllerMechanism owning this process." }
+    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Supervisor owning this process." }
   }
 }

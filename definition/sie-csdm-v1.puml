@@ -74,15 +74,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     functions (GRS&CO) whose purpose is to define, enforce, and operate
     governance artifacts:
 
-    - **Governor Controller Mechanisms**: Define and enforce *principles*.
-    - **Regulator Controller Mechanisms**: Interpret *principles* and define
+    - **Governor Mechanisms**: Define and enforce *principles*.
+    - **Regulator Mechanisms**: Interpret *principles* and define
       *policies*, *rules*, and *controls*.
-    - **Supervisor Controller Mechanisms**: Enforce *policies*, *rules*, and
+    - **Supervisor Mechanisms**: Enforce *policies*, *rules*, and
       *controls*.
-    - **Coordinator Controller Mechanisms**: Stabilize interactions between
+    - **Coordinator Mechanisms**: Stabilize interactions between
       supervisors and operators (no artifact definition).
-    - **Operator Controller Mechanisms**: Operate *rules* and implement
+    - **Operator Mechanisms**: Operate *rules* and implement
       *controls* in the state plane.
+
+    These function labels are **positional** (relative to system scope),
+    not absolute: a Governor in one system may be an Operator from a
+    supersystem's perspective (heterarchy).
 
     There are 4 universal governance artifacts (PPRC), each applying to a
     distinct systemic layer:
@@ -849,11 +853,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     ' SYSTEMIC ORGANIZATIONAL PROPERTIES
     ' ============================================================
     
-    +getGovernors(): GovernorControllerMechanism[]
-    +getRegulators(): RegulatorControllerMechanism[]
-    +getSupervisors(): SupervisorControllerMechanism[]
-    +getCoordinators(): CoordinatorControllerMechanism[]
-    +getOperators(): OperatorControllerMechanism[]
+    +getGovernors(): Governor[]
+    +getRegulators(): Regulator[]
+    +getSupervisors(): Supervisor[]
+    +getCoordinators(): Coordinator[]
+    +getOperators(): Operator[]
     +getPrinciples(): Principle[]
     +getFunctionalPolicies(): FunctionalPolicy[]
     +getViabilityPolicies(): ViabilityPolicy[]
@@ -1153,13 +1157,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     If a constraint is not measurable, it is not a policy.
 
     **Systemic Semantics**:
-    - Policies are DEFINED by Regulator controller mechanisms.
-    - Policies are ENFORCED and OPERATED by Supervisor controller mechanisms.
+    - Policies are DEFINED by Regulator mechanisms.
+    - Policies are ENFORCED and OPERATED by Supervisor mechanisms.
     - Policies operationalize one or more Principles.
 
     **Homeostatic Auto-Definition Rule (Sensor)**:
     When a Policy constraint is measurable, the system SHOULD auto-define:
-    - A **SensorMechanism** that measures the criteria
+    - A **Sensor** that measures the criteria
     - An **EventArchetype** for the measurement (MeasurementEvent)
     - An **Interaction** from Sensor.Effector → Governor.Receptor
     This closes the homeostatic loop: Governor defines Policy → Sensor
@@ -1477,10 +1481,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       controls.
     - When a behavioral rule control declares an Actuation, the system MUST
       auto-define:
-      - An ActuatorMechanism composed by that Actuation, with:
+      - An Actuator composed by that Actuation, with:
         - A receptor bound to the control effector's event archetype.
         - An effector bound to an auto-defined ActuationEvent archetype.
-      - A Sensing (and SensorMechanism) only if a feedback receptor is defined
+      - A Sensing (and Sensor) only if a feedback receptor is defined
         on the control, with:
         - A receptor bound to the actuator effector's event archetype.
         - An effector bound to the feedback receptor's event archetype.
@@ -1622,12 +1626,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     **Systemic Semantics**:
     - Actuation is declared by a Control.
-    - An ActuatorMechanism is composed from this Actuation to execute the
+    - An Actuator is composed from this Actuation to execute the
       control's effect on the target state object.
 
     **Auto Definition Rules**:
     - When an Actuation is declared, the system MUST auto-define:
-      - An ActuatorMechanism composed by the Actuation.
+      - An Actuator composed by the Actuation.
       - A receptor on the actuator bound to the control effector's event
         archetype.
       - An effector on the actuator bound to an auto-defined ActuationEvent
@@ -1669,7 +1673,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   class Sensing {
     +getName(): String
     +getActuation(): Actuation
-    +getSensor(): SensorMechanism
+    +getSensor(): Sensor
     +getActuationEventArchetype(): EventArchetype
     +getFeedbackEventArchetype(): EventArchetype
     +getControlFeedbackReceptor(): Receptor
@@ -1684,7 +1688,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       to a control feedback receptor.
 
     **Auto Definition Rules**:
-    - A Sensing (and its SensorMechanism) MUST be auto-defined only if the
+    - A Sensing (and its Sensor) MUST be auto-defined only if the
       declaring Control defines a feedback receptor.
     - The sensor MUST have a receptor bound to the actuator effector's
       actuation event archetype.
@@ -1703,7 +1707,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   SystemicPrimitive <|-- Sensing : is
   Sensing "1" o--> "1" Actuation : observes
-  Sensing "1" *--> "1" SensorMechanism : composes
+  Sensing "1" *--> "1" Sensor : composes
   Sensing "1" o--> "1" EventArchetype : actuationEvent
   Sensing "1" o--> "1" EventArchetype : feedbackEvent
   Sensing "1" o--> "0..1" Receptor : controlFeedbackReceptor
@@ -1923,6 +1927,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     A mechanism represents an atomic causal unit of behavior within a system.
 
+    **Positional semantics (GRS&CO):**
+    The five mechanism subtypes (Governor, Regulator, Supervisor, Coordinator,
+    Operator) are **positional labels**, not absolute roles. A mechanism's label
+    is determined by its function relative to the system scope it governs.
+    A Governor in one system may be an Operator from a supersystem's perspective
+    (heterarchy; second-order observer dependence — von Foerster).
+    This is consistent with SubsystemIntegrationGovernance.
+
+    **Layer and plane placement:**
+    - Governor belongs to the **Governance plane** (Reflexive Layer).
+    - Regulator, Supervisor belong to the **Regulation plane** (Reflexive Layer).
+    - Coordinator belongs to the **Coordination plane** (Reflexive Layer).
+    - Operator belongs to the **Operation plane** (Ontic Layer).
+
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all mechanisms of the same system.
@@ -1938,158 +1956,141 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Mechanism "1" *--> "1..*" Effector : has
 
   ' ============================================================
-  ' CONTROLLER MECHANISM
+  ' GOVERNOR
   ' ============================================================
 
-  abstract class ControllerMechanism {
-    +getImplementedRule(): Rule
-  }
-
-  note top of ControllerMechanism
-    A controller mechanism is a mechanism that implements a behavioral rule
-    to control other mechanisms within the system.
-
-    **Consistency Rules**:
-    - A controller mechanism MUST implement exactly one behavioral rule.
-  end note
-
-  Mechanism <|-- ControllerMechanism : is
-  ControllerMechanism "1" o--> "1" Rule : implements
-
-  ' ============================================================
-  ' GOVERNOR CONTROLLER MECHANISM
-  ' ============================================================
-
-  class GovernorControllerMechanism {
+  class Governor {
     +getOwnedPrinciples(): Principle[]
   }
 
-  note top of GovernorControllerMechanism
-    A governor controller mechanism defines and enforces principles that
+  note top of Governor
+    A governor defines and enforces principles that
     express the identity of the system it governs.
 
     **Consistency Rules**:
-    - A governor controller mechanism MUST own at least one principle.
-    - Principles associated with a governor controller mechanism MUST be unique
+    - A governor MUST own at least one principle.
+    - Principles associated with a governor MUST be unique
       within the context of that mechanism.
   end note
 
-  ControllerMechanism <|-- GovernorControllerMechanism : is
-  GovernorControllerMechanism "1" *--> "1..*" Principle : owns
+  Mechanism <|-- Governor : is
+  Governor "1" *--> "1..*" Principle : owns
 
   ' ============================================================
-  ' REGULATOR CONTROLLER MECHANISM
+  ' REGULATOR
   ' ============================================================
 
-  class RegulatorControllerMechanism {
+  class Regulator {
     +getOwnedPolicies(): Policy[]
     +getOwnedRules(): Rule[]
     +getOwnedControls(): Control[]
   }
 
-  note top of RegulatorControllerMechanism
-    A regulator controller mechanism interprets principles and defines the
+  note top of Regulator
+    A regulator interprets principles and defines the
     policies, rules, and controls that operationalize them.
 
     **Consistency Rules**:
-    - A regulator controller mechanism MUST reference at least one principle.
-    - Policies, rules, and controls associated with a regulator controller
+    - A regulator MUST reference at least one principle.
+    - Policies, rules, and controls associated with a regulator
       mechanism MUST be unique within the context of that mechanism.
   end note
 
-  ControllerMechanism <|-- RegulatorControllerMechanism : is
-  RegulatorControllerMechanism "1" *--> "1..*" Policy : owns
-  RegulatorControllerMechanism "1" *--> "1..*" Rule : owns
-  RegulatorControllerMechanism "1" *--> "1..*" Control : owns
+  Mechanism <|-- Regulator : is
+  Regulator "1" *--> "1..*" Policy : owns
+  Regulator "1" *--> "1..*" Rule : owns
+  Regulator "1" *--> "1..*" Control : owns
 
   ' ============================================================
-  ' SUPERVISOR CONTROLLER MECHANISM
+  ' SUPERVISOR
   ' ============================================================
 
-  class SupervisorControllerMechanism {
-    +getEnforcedPolicies(): Policy[]
-    +getEnforcedRules(): Rule[]
-    +getEnforcedControls(): Control[]
+  class Supervisor {
+    +getEnforcingPolicies(): Policy[]
+    +getEnforcingRules(): Rule[]
+    +getEnforcingControls(): Control[]
   }
 
-  note top of SupervisorControllerMechanism
-    A supervisor controller mechanism enforces policies, rules, and controls
+  note top of Supervisor
+    A supervisor enforces policies, rules, and controls
     in real time, overseeing the operator controller mechanisms within the
     system implementing these rules and controls.
 
     **Consistency Rules**:
-    - A supervisor controller mechanism MUST receive at least one regulator or
+    - A supervisor MUST receive at least one regulator or
       governor event.
-    - A supervisor controller mechanism MUST enforce at least one policy, rule,
+    - A supervisor MUST enforce at least one policy, rule,
       or control.
   end note
 
-  ControllerMechanism <|-- SupervisorControllerMechanism : is
-  SupervisorControllerMechanism "0..*" o--> "1..*" Policy : enforces
-  SupervisorControllerMechanism "0..*" o--> "1..*" Rule : enforces
-  SupervisorControllerMechanism "0..*" o--> "1..*" Control : enforces
+  Mechanism <|-- Supervisor : is
+  Supervisor "0..*" o--> "1..*" Policy : enforces
+  Supervisor "0..*" o--> "1..*" Rule : enforces
+  Supervisor "0..*" o--> "1..*" Control : enforces
 
   ' ============================================================
-  ' COORDINATOR CONTROLLER MECHANISM
+  ' COORDINATOR
   ' ============================================================
 
-  class CoordinatorControllerMechanism {
-    +getCoordinatedSupervisors(): SupervisorControllerMechanism[]
-    +getCoordinatedOperators(): OperatorControllerMechanism[]
+  class Coordinator {
+    +getCoordinatedSupervisors(): Supervisor[]
+    +getCoordinatedOperators(): Operator[]
   }
 
-  note top of CoordinatorControllerMechanism
-    A coordinator controller mechanism stabilizes interactions between
+  note top of Coordinator
+    A coordinator stabilizes interactions between
     supervisors and operators. It does not define governance artifacts.
 
     **Consistency Rules**:
-    - A coordinator controller mechanism MUST coordinate at least two
+    - A coordinator MUST coordinate at least two
       supervisors and/or operators.
   end note
 
-  ControllerMechanism <|-- CoordinatorControllerMechanism : is
-  CoordinatorControllerMechanism "0..*" o--> "0..*" SupervisorControllerMechanism : coordinates
-  CoordinatorControllerMechanism "0..*" o--> "0..*" OperatorControllerMechanism : coordinates
+  Mechanism <|-- Coordinator : is
+  Coordinator "0..*" o--> "0..*" Supervisor : coordinates
+  Coordinator "0..*" o--> "0..*" Operator : coordinates
 
   ' ============================================================
-  ' OPERATOR CONTROLLER MECHANISM
+  ' OPERATOR
   ' ============================================================
 
-  class OperatorControllerMechanism {
+  class Operator {
     +getFunction(): Function
     +getModality(): Modality
+    +getComplianceRules(): Rule[]
   }
 
-  note top of OperatorControllerMechanism
-    An operator controller mechanism implements the rules defined by its
-    supervisor controller, controlling other operator controllers and actuators.
+  note top of Operator
+    An operator implements and enforces compliance rules, and operates controls
+    in the state plane.
 
     **Systemic Semantics**:
-    - Operators implements/complies to controls in the state plane.
+    - Operators implement/comply to controls in the state plane.
   end note
 
-  ControllerMechanism <|-- OperatorControllerMechanism : is
+  Mechanism <|-- Operator : is
+  Operator "0..*" o--> "1..*" Rule : compliesWith
 
   ' ============================================================
-  ' ACTUATOR MECHANISM
+  ' ACTUATOR
   ' ============================================================
 
-  class ActuatorMechanism {
+  class Actuator {
     +getActuation(): Actuation
   }
 
-  note top of ActuatorMechanism
-    An actuator mechanism is an execution mechanism acting on a state object.
+  note top of Actuator
+    An actuator is an execution mechanism acting on a state object.
 
-    Actuator mechanisms are typically auto-defined from an Actuation declared
+    Actuators are typically auto-defined from an Actuation declared
     by a behavioral rule control.
 
     **Attribute Semantics**:
-    - "actuation": The actuation declaration from which the actuator mechanism is
+    - "actuation": The actuation declaration from which the actuator is
       derived.
 
     **Auto Definition Rules**:
-    - The actuator mechanism MUST operate on a state object archetype owned by
+    - The actuator MUST operate on a state object archetype owned by
       the same System, or a subsystem that explicitly shares that state object
       resource with the actuator's System.
 
@@ -2097,31 +2098,31 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
   end note
 
-  Mechanism <|-- ActuatorMechanism : is
-  ActuatorMechanism "1" o--> "1" Actuation : implements
+  Mechanism <|-- Actuator : is
+  Actuator "1" o--> "1" Actuation : implements
 
   ' ============================================================
-  ' SENSOR MECHANISM
+  ' SENSOR
   ' ============================================================
 
-  class SensorMechanism
+  class Sensor
 
-  note top of SensorMechanism
-    A sensor mechanism is an observation mechanism on actuations.
+  note top of Sensor
+    A sensor is an observation mechanism on actuations.
 
-    Sensor mechanisms are typically auto-defined from a Sensing linked to an
+    Sensors are typically auto-defined from a Sensing linked to an
     Actuation, and only when a control feedback receptor exists.
 
     **Auto Definition Rules**:
     - For every event archetype E whose schema is a subtype of
-      ActuationEventSchema, the sensor mechanism MUST have (or derive) a
+      ActuationEventSchema, the sensor MUST have (or derive) a
       receptor bound to E.
-    - For every receptor bound to E, the sensor mechanism MUST have an
+    - For every receptor bound to E, the sensor MUST have an
       effector bound to event O whose schema is subtype of
       ActuationFeedbackEventSchema.
   end note
 
-  Mechanism <|-- SensorMechanism : is
+  Mechanism <|-- Sensor : is
 
   ' ============================================================
   ' RECEPTOR
@@ -2241,7 +2242,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getName(): String
     +getOperationalRules(): Rule[]
     +getTriggerEventArchetypes(): EventArchetype[]
-    +getOwner(): OperatorControllerMechanism
+    +getOwner(): Operator
   }
 
   note top of Homeostasis
@@ -2255,7 +2256,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Emit feedback events for supervision and governance.
 
     **Systemic Semantics**:
-    - Owned by Operator controller mechanisms.
+    - Owned by Operator mechanisms.
     - Does not change the constraint envelope (Policies);
       it enforces it via Rules.
   end note
@@ -2263,7 +2264,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   SystemicPrimitive <|-- Homeostasis : is
   Homeostasis "0..*" o--> "0..*" Rule : operationalRules
   Homeostasis "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
-  Homeostasis "1" o--> "1" OperatorControllerMechanism : owner
+  Homeostasis "1" o--> "1" Operator : owner
 
   class Adaptation {
     +getId(): UUID
@@ -2271,7 +2272,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getInputPolicies(): Policy[]
     +getUpdatedRules(): Rule[]
     +getTriggerEventArchetypes(): EventArchetype[]
-    +getOwner(): SupervisorControllerMechanism
+    +getOwner(): Supervisor
   }
 
   note top of Adaptation
@@ -2290,7 +2291,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Context change that can be handled by retuning/selecting rules.
 
     **Systemic Semantics**:
-    - Owned by Supervisor controller mechanisms.
+    - Owned by Supervisor mechanisms.
     - Produces rule updates that improve control performance and viability.
   end note
 
@@ -2298,14 +2299,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Adaptation "0..*" o--> "0..*" Policy : inputPolicies
   Adaptation "0..*" o--> "0..*" Rule : updatedRules
   Adaptation "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
-  Adaptation "1" o--> "1" SupervisorControllerMechanism : owner
+  Adaptation "1" o--> "1" Supervisor : owner
 
   class Emergence {
     +getId(): UUID
     +getName(): String
     +getTriggerEventArchetypes(): EventArchetype[]
     +getProducedPrinciples(): Principle[]
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of Emergence
@@ -2324,14 +2325,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Persistent incoherences that cannot be resolved inside the envelope.
 
     **Systemic Semantics**:
-    - Owned by Governor controller mechanisms (or meta-governors).
+    - Owned by Governor mechanisms (or meta-governors).
     - Changes the definition plane; downstream regulation/supervision/operation follows.
   end note
 
   SystemicPrimitive <|-- Emergence : is
   Emergence "0..*" o--> "0..*" EventArchetype : triggerEventArchetypes
   Emergence "0..*" o--> "0..*" Principle : producedPrinciples
-  Emergence "1" o--> "1" GovernorControllerMechanism : owner
+  Emergence "1" o--> "1" Governor : owner
 
   ' ============================================================
   ' COHERENCE (CANONICAL) + SUPPORTING PRIMITIVES
@@ -2342,7 +2343,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getName(): String
     +getAnalyzedConstraints(): Constraint[]
     +getDetectedIncoherences(): ConstraintConflict[]
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of Coherence
@@ -2362,14 +2363,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       definition-level constraints.
 
     **Systemic Semantics**:
-    - Owned by Governor controller mechanisms (often structural/viability or
+    - Owned by Governor mechanisms (often structural/viability or
       meta-governors).
   end note
 
   SystemicPrimitive <|-- Coherence : is
   Coherence "0..*" o--> "0..*" Constraint : analyzedConstraints
   Coherence "0..*" o--> "0..*" ConstraintConflict : detectedIncoherences
-  Coherence "1" o--> "1" GovernorControllerMechanism : owner
+  Coherence "1" o--> "1" Governor : owner
 
   ' ============================================================
   ' CHECKS / ASSESSMENTS (SYSTEMIC PRIMITIVES)
@@ -2395,7 +2396,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getId(): UUID
     +getAnalyzedPolicies(): Policy[]
     +getDetectedConflicts(): ConstraintConflict[]
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of PolicyConsistencyChecking
@@ -2421,20 +2422,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Explanation artifacts: counterexamples, unsat cores, ranked summaries.
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism via Coherence (Definition plane).
+    - Owner: Governor via Coherence (Definition plane).
     - Uses: Description plane topology/snapshots for impact and grounding.
   end note
 
   SystemicPrimitive <|-- PolicyConsistencyChecking : is
   PolicyConsistencyChecking "0..*" o--> "0..*" Policy : analyzedPolicies
   PolicyConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
-  PolicyConsistencyChecking "1" o--> "1" GovernorControllerMechanism : owner
+  PolicyConsistencyChecking "1" o--> "1" Governor : owner
 
   class RuleConsistencyChecking {
     +getId(): UUID
     +getAnalyzedRules(): Rule[]
     +getDetectedConflicts(): ConstraintConflict[]
-    +getOwner(): SupervisorControllerMechanism
+    +getOwner(): Supervisor
   }
 
   note top of RuleConsistencyChecking
@@ -2463,21 +2464,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Stability risk flags (likely oscillation) for Adaptation.
 
     **Owner + Plane**:
-    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Owner: Supervisor (Definition plane).
     - Uses: Remediation plane execution telemetry (outcomes) and Description state.
   end note
 
   SystemicPrimitive <|-- RuleConsistencyChecking : is
   RuleConsistencyChecking "0..*" o--> "0..*" Rule : analyzedRules
   RuleConsistencyChecking "0..*" o--> "0..*" ConstraintConflict : detectedConflicts
-  RuleConsistencyChecking "1" o--> "1" SupervisorControllerMechanism : owner
+  RuleConsistencyChecking "1" o--> "1" Supervisor : owner
 
   class PolicyRuleAlignmentChecking {
     +getId(): UUID
     +getAnalyzedPolicies(): Policy[]
     +getAnalyzedRules(): Rule[]
     +getDetectedMisalignments(): ConstraintConflict[]
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of PolicyRuleAlignmentChecking
@@ -2504,7 +2505,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Evidence bundle: violations, counterexamples, and execution outcomes.
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism via Coherence (Definition plane).
+    - Owner: Governor via Coherence (Definition plane).
     - Uses: Description plane evaluation evidence + Remediation outcomes.
   end note
 
@@ -2512,13 +2513,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   PolicyRuleAlignmentChecking "0..*" o--> "0..*" Policy : analyzedPolicies
   PolicyRuleAlignmentChecking "0..*" o--> "0..*" Rule : analyzedRules
   PolicyRuleAlignmentChecking "0..*" o--> "0..*" ConstraintConflict : detectedMisalignments
-  PolicyRuleAlignmentChecking "1" o--> "1" GovernorControllerMechanism : owner
+  PolicyRuleAlignmentChecking "1" o--> "1" Governor : owner
 
   class PolicyConstraintSatisfiabilityChecking {
     +getId(): UUID
     +getAnalyzedPolicies(): Policy[]
     +getIsSatisfiable(): Boolean
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of PolicyConstraintSatisfiabilityChecking
@@ -2542,19 +2543,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Suggested resolution directions (scope/precedence/refinement) if UNSAT.
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism (Definition plane).
+    - Owner: Governor (Definition plane).
     - Uses: Description plane solver projection (snapshots/bounds).
   end note
 
   SystemicPrimitive <|-- PolicyConstraintSatisfiabilityChecking : is
   PolicyConstraintSatisfiabilityChecking "0..*" o--> "0..*" Policy : analyzedPolicies
-  PolicyConstraintSatisfiabilityChecking "1" o--> "1" GovernorControllerMechanism : owner
+  PolicyConstraintSatisfiabilityChecking "1" o--> "1" Governor : owner
 
   class RuleConstraintSatisfiabilityChecking {
     +getId(): UUID
     +getAnalyzedRules(): Rule[]
     +getIsSatisfiable(): Boolean
-    +getOwner(): SupervisorControllerMechanism
+    +getOwner(): Supervisor
   }
 
   note top of RuleConstraintSatisfiabilityChecking
@@ -2578,19 +2579,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Fix suggestions: guard changes, scoping, mutual exclusions, ordering.
 
     **Owner + Plane**:
-    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Owner: Supervisor (Definition plane).
     - Uses: Description plane state abstractions; Remediation outcomes when available.
   end note
 
   SystemicPrimitive <|-- RuleConstraintSatisfiabilityChecking : is
   RuleConstraintSatisfiabilityChecking "0..*" o--> "0..*" Rule : analyzedRules
-  RuleConstraintSatisfiabilityChecking "1" o--> "1" SupervisorControllerMechanism : owner
+  RuleConstraintSatisfiabilityChecking "1" o--> "1" Supervisor : owner
 
   class PolicyIntegrationFeasibilityAssessment {
     +getId(): UUID
     +getAnalyzedPolicies(): Policy[]
     +getIsFeasible(): Boolean
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of PolicyIntegrationFeasibilityAssessment
@@ -2617,19 +2618,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Recommended enablement plan (instrumentation, adapter improvements, guardrails).
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism (Definition plane).
+    - Owner: Governor (Definition plane).
     - Uses: Description plane coverage metrics + Remediation plane actuation history.
   end note
 
   SystemicPrimitive <|-- PolicyIntegrationFeasibilityAssessment : is
   PolicyIntegrationFeasibilityAssessment "0..*" o--> "0..*" Policy : analyzedPolicies
-  PolicyIntegrationFeasibilityAssessment "1" o--> "1" GovernorControllerMechanism : owner
+  PolicyIntegrationFeasibilityAssessment "1" o--> "1" Governor : owner
 
   class RuleIntegrationFeasibilityAssessment {
     +getId(): UUID
     +getAnalyzedRules(): Rule[]
     +getIsFeasible(): Boolean
-    +getOwner(): SupervisorControllerMechanism
+    +getOwner(): Supervisor
   }
 
   note top of RuleIntegrationFeasibilityAssessment
@@ -2653,19 +2654,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Recommended rollout/canary scope + monitoring requirements.
 
     **Owner + Plane**:
-    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Owner: Supervisor (Definition plane).
     - Uses: Remediation plane telemetry + tenant actuation constraints.
   end note
 
   SystemicPrimitive <|-- RuleIntegrationFeasibilityAssessment : is
   RuleIntegrationFeasibilityAssessment "0..*" o--> "0..*" Rule : analyzedRules
-  RuleIntegrationFeasibilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+  RuleIntegrationFeasibilityAssessment "1" o--> "1" Supervisor : owner
 
   class SolverProjectionAdequacyAssessment {
     +getId(): UUID
     +getAnalyzedConstraints(): Constraint[]
     +getIsAdequate(): Boolean
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of SolverProjectionAdequacyAssessment
@@ -2690,13 +2691,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Recommended bounds/scopes and projection fixes.
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism via Coherence (Definition plane).
+    - Owner: Governor via Coherence (Definition plane).
     - Implemented in: Description plane (projection/snapshot services).
   end note
 
   SystemicPrimitive <|-- SolverProjectionAdequacyAssessment : is
   SolverProjectionAdequacyAssessment "0..*" o--> "0..*" Constraint : analyzedConstraints
-  SolverProjectionAdequacyAssessment "1" o--> "1" GovernorControllerMechanism : owner
+  SolverProjectionAdequacyAssessment "1" o--> "1" Governor : owner
 
   class ObservabilityCoverageAssessment {
     +getId(): UUID
@@ -2704,7 +2705,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getRequiredStateObjectArchetypes(): StateObjectArchetype[]
     +getRequiredEventArchetypes(): EventArchetype[]
     +getIsSufficient(): Boolean
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of ObservabilityCoverageAssessment
@@ -2728,7 +2729,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Required remediation: instrumentation, adapter changes, mapping fixes.
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism (Definition plane).
+    - Owner: Governor (Definition plane).
     - Implemented in: Description plane (sourcing + mapping + persistence).
   end note
 
@@ -2736,14 +2737,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ObservabilityCoverageAssessment "0..*" o--> "0..*" Policy : analyzedPolicies
   ObservabilityCoverageAssessment "0..*" o--> "0..*" StateObjectArchetype : requiredStateObjects
   ObservabilityCoverageAssessment "0..*" o--> "0..*" EventArchetype : requiredEvents
-  ObservabilityCoverageAssessment "1" o--> "1" GovernorControllerMechanism : owner
+  ObservabilityCoverageAssessment "1" o--> "1" Governor : owner
 
   class ActuationCapabilityAssessment {
     +getId(): UUID
     +getAnalyzedRules(): Rule[]
     +getRequiredEffectors(): Effector[]
     +getIsSufficient(): Boolean
-    +getOwner(): SupervisorControllerMechanism
+    +getOwner(): Supervisor
   }
 
   note top of ActuationCapabilityAssessment
@@ -2766,20 +2767,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Suggested rollout strategy (scope, pacing, monitoring).
 
     **Owner + Plane**:
-    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Owner: Supervisor (Definition plane).
     - Uses: Remediation plane guardrails and actuation telemetry.
   end note
 
   SystemicPrimitive <|-- ActuationCapabilityAssessment : is
   ActuationCapabilityAssessment "0..*" o--> "0..*" Rule : analyzedRules
   ActuationCapabilityAssessment "0..*" o--> "0..*" Effector : requiredEffectors
-  ActuationCapabilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+  ActuationCapabilityAssessment "1" o--> "1" Supervisor : owner
 
   class TopologyIntegrityChecking {
     +getId(): UUID
     +getAnalyzedStateObjects(): StateObjectArchetype[]
     +getDetectedIssues(): ConstraintConflict[]
-    +getOwner(): GovernorControllerMechanism
+    +getOwner(): Governor
   }
 
   note top of TopologyIntegrityChecking
@@ -2802,20 +2803,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Repair suggestions (mapping fixes, evidence acquisition priorities).
 
     **Owner + Plane**:
-    - Owner: GovernorControllerMechanism (Definition plane).
+    - Owner: Governor (Definition plane).
     - Implemented in: Description plane (graph persistence and analytics).
   end note
 
   SystemicPrimitive <|-- TopologyIntegrityChecking : is
   TopologyIntegrityChecking "0..*" o--> "0..*" StateObjectArchetype : analyzedStateObjects
   TopologyIntegrityChecking "0..*" o--> "0..*" ConstraintConflict : detectedIssues
-  TopologyIntegrityChecking "1" o--> "1" GovernorControllerMechanism : owner
+  TopologyIntegrityChecking "1" o--> "1" Governor : owner
 
   class DriftAssessment {
     +getId(): UUID
     +getEvaluatedPolicies(): Policy[]
     +getDeviationEventArchetypes(): EventArchetype[]
-    +getOwner(): OperatorControllerMechanism
+    +getOwner(): Operator
   }
 
   note top of DriftAssessment
@@ -2839,20 +2840,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Candidate causes + evidence bundle for Decisioning/Homeostasis.
 
     **Owner + Plane**:
-    - Owner: OperatorControllerMechanism (runtime regulation; Remediation plane).
+    - Owner: Operator (runtime regulation; Remediation plane).
     - Uses: Description plane state + Definition plane criteria.
   end note
 
   SystemicPrimitive <|-- DriftAssessment : is
   DriftAssessment "0..*" o--> "0..*" Policy : evaluatedPolicies
   DriftAssessment "0..*" o--> "0..*" EventArchetype : deviationEvents
-  DriftAssessment "1" o--> "1" OperatorControllerMechanism : owner
+  DriftAssessment "1" o--> "1" Operator : owner
 
   class ControlStabilityAssessment {
     +getId(): UUID
     +getEvaluatedRules(): Rule[]
     +getIsStable(): Boolean
-    +getOwner(): SupervisorControllerMechanism
+    +getOwner(): Supervisor
   }
 
   note top of ControlStabilityAssessment
@@ -2874,13 +2875,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - Adaptation recommendations (retune, add hysteresis, change selection).
 
     **Owner + Plane**:
-    - Owner: SupervisorControllerMechanism (Definition plane).
+    - Owner: Supervisor (Definition plane).
     - Uses: Remediation plane telemetry and Description plane state context.
   end note
 
   SystemicPrimitive <|-- ControlStabilityAssessment : is
   ControlStabilityAssessment "0..*" o--> "0..*" Rule : evaluatedRules
-  ControlStabilityAssessment "1" o--> "1" SupervisorControllerMechanism : owner
+  ControlStabilityAssessment "1" o--> "1" Supervisor : owner
 
   Coherence "0..*" o--> "0..*" PolicyConstraintSatisfiabilityChecking : uses
   Coherence "0..*" o--> "0..*" RuleConstraintSatisfiabilityChecking : uses

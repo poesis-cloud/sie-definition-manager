@@ -13,6 +13,6 @@
     "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
     "operationalRules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "triggerEventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to OperatorControllerMechanism owning this process." }
+    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Operator owning this process." }
   }
 }

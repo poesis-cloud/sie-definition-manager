@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/csdm/v1/Operator.json",
+  "title": "Operator (CSDM v1)",
+  "description": "Mechanism operating controls in the state plane and complying with rules.",
+  "allOf": [
+    { "$ref": "sie://schemas/csdm/v1/Mechanism.json" }
+  ],
+  "type": "object",
+  "required": ["complianceRules"],
+  "properties": {
+    "function": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Function primitive." },
+    "modality": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Modality primitive." }
+    ,
+    "complianceRules": {
+      "type": "array",
+      "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "minItems": 1,
+      "description": "References to Rule primitives complied with by this operator."
+    }
+  }
+}

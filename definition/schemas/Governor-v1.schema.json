@@ -1,16 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/GovernorControllerMechanism.json",
-  "title": "GovernorControllerMechanism (CSDM v1)",
-  "description": "Controller mechanism owning principles (identity-level constraints).",
+  "$id": "sie://schemas/csdm/v1/Governor.json",
+  "title": "Governor (CSDM v1)",
+  "description": "Mechanism owning principles (identity-level constraints).",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/ControllerMechanism.json" }
+    { "$ref": "sie://schemas/csdm/v1/Mechanism.json" }
   ],
   "type": "object",
+  "required": ["ownedPrinciples"],
   "properties": {
     "ownedPrinciples": {
       "type": "array",
       "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+      "minItems": 1,
       "description": "References to Principle primitives owned by this governor."
     }
   }

@@ -13,6 +13,6 @@
     "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
     "analyzedConstraints": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
     "detectedIncoherences": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/ConstraintConflict.json" } },
-    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to GovernorControllerMechanism owning this process." }
+    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Governor owning this process." }
   }
 }
