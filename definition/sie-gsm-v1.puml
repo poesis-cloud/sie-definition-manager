@@ -1,4 +1,4 @@
-@startuml sie-csdm-v1
+@startuml sie-gsm-v1
 
 ' ============================================================
 ' VISUAL THEME
@@ -38,7 +38,7 @@ skinparam noteBorderColor #57606A
 ' - Extract all notes into a separate puml.
 ' ============================================================
 
-frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Definition Model) - v1" {
+frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) - v1" {
 
   note as CsdmNote
     This model defines a reference set of notions for defining systems, with the
@@ -56,16 +56,54 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     systems. That is why this model is said to be *systemic*.
 
     For IT profiles, a useful (but imperfect) analogy is Kubernetes' *control
-    plane*: just like CSDM, it defines governance constraints over a desired
+    plane*: just like GSM, it defines governance constraints over a desired
     state, and it continuously acts to reach and maintain that desired state for
     the *data plane*. The Kubernetes *data plane*, like systems described with
-    CSDM, corresponds to *first-order* elements in systemics theory terms.
+    GSM, corresponds to *first-order* elements in systemics theory terms.
 
     The key conceptual difference is scope: Kubernetes targets one class of
-    systems (container orchestration), whereas CSDM is designed as a
+    systems (container orchestration), whereas GSM is designed as a
     general-purpose definition model for systems of any kind.
 
-    Even though CSDM (the system definition informations structure) is
+    **GSM is the Generative System Model.**
+
+    This is a fundamental departure from classical systemic models such as
+    Beer's Viable System Model (VSM) or von Bertalanffy's General System
+    Theory (GST). Those models are *descriptive*: they provide analytical
+    frameworks for observing, classifying, and reasoning about systems that
+    already exist. They answer "what does this system look like?" and "is
+    this system viable?", but they do not, by themselves, produce the
+    artifacts that make a system behave, adapt, or govern itself.
+
+    GSM, by contrast, is *generative* (equivalently: *definitional*). Its
+    primitives are not passive descriptions of an observed reality; they are
+    **active definitions** from which system structure, behavior, governance,
+    and viability are *derived and produced*:
+
+    - A declared **Purpose** and **Capacity** set generates the functional
+      and viability envelope; the architecture function
+      Structure = Arch(Functional, Viability) synthesizes structural
+      primitives from them.
+    - A declared **Principle** generates the identity constraints that
+      Governors enforce; Regulators interpret those Principles to produce
+      Policies, Rules, and Controls — executable governance artifacts.
+    - A declared **Policy** constraint automatically derives its own
+      evaluation semantics (sensor, metric, feedback loop), closing the
+      homeostatic cycle without additional specification.
+    - A declared **Actuation** on a Control auto-defines the Actuator and
+      Sensor mechanisms needed to realize and observe the effect.
+
+    In short: classical models *describe* systems; GSM *defines* them.
+    Description tells you what a system is; definition tells the system what
+    it must become — and provides the governance machinery to get there.
+
+    This generative nature is what makes GSM actionable for automatic
+    systemic governance: because every primitive carries definitional
+    semantics (not merely descriptive metadata), the engine (SIE) can
+    reason over definitions, detect definition–reality mismatch, and
+    produce remediation or evolutionary change — autonomously.
+
+    Even though GSM (the system definition informations structure) is
     general-purpose, it supports extensible information attributes and
     semantics. Structural constancy with semantic variation of informations
     is one key enabler of cross-domain, global systemic automatic reasoning.
@@ -118,7 +156,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     A system without PPRC has components but no behavior. A system with PPRC
     has structure, behavior, supervision, and purpose.
 
-    This version 1.0.0 of the CSDM focuses on core concepts and relationships,
+    This version 1.0.0 of the GSM focuses on core concepts and relationships,
     laying the foundation for future extensions and refinements.
 
     PPRC is the anchor of system's properties relations.
@@ -763,7 +801,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     measures → Governor receives feedback → Governor adjusts Policy.
 
     **Multi-Dimensional Application**:
-    - META (CSDM): Defines the pattern (how governance SHOULD work)
+    - META (GSM): Defines the pattern (how governance SHOULD work)
     - OPERATIONAL (SIE): SIE's processes realize this pattern
       (Kafka consumers = Sensors, CoherenceCheck = Governor feedback)
     - CONTROL (Actuators): Execute actions on State Plane
@@ -788,9 +826,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     divergence and non-reproducible evaluation.
 
     **Validation Rules**:
-    - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
+    - *applicability conditions* MUST be a valid logical operator GSM-DSL JSON AST
       node.
-    - *constraint* MUST be a valid constraint format CSDSL JSON AST node.
+    - *constraint* MUST be a valid constraint format GSM-DSL JSON AST node.
 
     **Guard × Constraint Compatibility Rules**:
     A Policy is only well-defined if its applicability guard and constraint can
@@ -811,7 +849,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - **Optional (quality):** The system MAY warn when `applicabilityConditions`
       is satisfiable but makes the constraint always trivially true/false.
 
-    **Constraint → Evaluation Derivation Rules (CSDSL v1):**
+    **Constraint → Evaluation Derivation Rules (GSM-DSL v1):**
     The following derivations are mandatory and deterministic:
 
     1) ThresholdConstraint
@@ -978,9 +1016,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       effectors when the behavioral rule is applied.
 
     **Validation Rules**:
-    - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
+    - *applicability conditions* MUST be a valid logical operator GSM-DSL JSON AST
       node.
-    - *iteration conditions* MUST be a valid logical operator CSDSL JSON AST
+    - *iteration conditions* MUST be a valid logical operator GSM-DSL JSON AST
       node.
     - The conditions operands referencing event properties MUST exist in the
       corresponding event archetype schemas beared by the mechanism receptor.
@@ -1083,9 +1121,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
         - An effector bound to the feedback receptor's event archetype.
 
     **Validation Rules**:
-    - *applicability conditions* MUST be a valid logical operator CSDSL JSON AST
+    - *applicability conditions* MUST be a valid logical operator GSM-DSL JSON AST
       node.
-    - *iteration conditions* MUST be a valid logical operator CSDSL JSON AST
+    - *iteration conditions* MUST be a valid logical operator GSM-DSL JSON AST
       node.
     - The conditions operands referencing event properties MUST exist in the
       corresponding event archetype schemas beared by the mechanism receptor.
@@ -1887,7 +1925,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
   ' SYSTEMIC PROCESSES
   '
-  ' CSDM defines exactly 3 systemic processes as primitives:
+  ' GSM defines exactly 3 systemic processes as primitives:
   ' - Appraisal: second-order evaluation of the adequacy, coherence, and 
   '   viability of the system's properties.
   '   - Governance appraisal: coherence of constitutive properties.

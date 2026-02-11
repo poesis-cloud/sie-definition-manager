@@ -1,18 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Actuation.json",
-  "title": "Actuation (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Actuation.json",
+  "title": "Actuation (GSM v1)",
   "description": "Operational intent to change a state object, declared by a Control.",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
   "required": ["name", "type", "stateObjectArchetype"],
   "properties": {
-    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
-    "type": { "$ref": "sie://schemas/csdm/v1/ActuationType.json" },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
+    "type": { "$ref": "sie://schemas/gsm/v1/ActuationType.json" },
     "stateObjectArchetype": {
-      "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID",
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
       "description": "Reference to StateObjectArchetype actuated by this actuation."
     }
   }

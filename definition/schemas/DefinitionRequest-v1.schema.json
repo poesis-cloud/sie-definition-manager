@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/DefinitionRequest.json",
-  "title": "DefinitionRequest (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/DefinitionRequest.json",
+  "title": "DefinitionRequest (GSM v1)",
   "description": "Definition-plane input instance produced by either a human or a machine.",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
   "required": ["id", "producerType"],
   "properties": {
-    "id": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
-    "producerType": { "$ref": "sie://schemas/csdm/v1/DefinitionInputProducerType.json" },
+    "id": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
+    "producerType": { "$ref": "sie://schemas/gsm/v1/DefinitionInputProducerType.json" },
     "producerRef": { "type": "string", "description": "Opaque reference to the producer (user id, agent id, service name, etc)." },
     "rationale": { "type": "string" },
-    "requestedAddedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "requestedUpdatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "requestedDeprecatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } }
+    "requestedAddedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "requestedUpdatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "requestedDeprecatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } }
   }
 }

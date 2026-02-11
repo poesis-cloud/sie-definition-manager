@@ -1,18 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Coherence.json",
-  "title": "Coherence (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Coherence.json",
+  "title": "Coherence (GSM v1)",
   "description": "Meta-governance process: evaluates and maintains coherence of the constraint stack (Policies → Rules).",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
   "required": ["id", "name", "owner"],
   "properties": {
-    "id": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
-    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
-    "analyzedConstraints": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "detectedIncoherences": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/ConstraintConflict.json" } },
-    "owner": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Governor owning this process." }
+    "id": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
+    "analyzedConstraints": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "detectedIncoherences": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/ConstraintConflict.json" } },
+    "owner": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID", "description": "Reference to Governor owning this process." }
   }
 }

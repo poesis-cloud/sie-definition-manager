@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/PolicyStatus.json",
-  "title": "PolicyStatus (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/PolicyStatus.json",
+  "title": "PolicyStatus (GSM v1)",
   "type": "string",
   "enum": [
     "DRAFT",

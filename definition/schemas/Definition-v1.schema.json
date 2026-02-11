@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Definition.json",
-  "title": "Definition (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Definition.json",
+  "title": "Definition (GSM v1)",
   "description": "Single Definition-plane output artifact packaging new/updated/deprecated systemic primitives plus machine payload and human renderings.",
   "type": "object",
   "required": ["id", "name", "targetSystem"],
   "properties": {
-    "id": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
-    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "id": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
     "targetStandardOrFramework": { "type": "string" },
 
     "machineActionSpec": { "type": "string", "description": "Machine-actionable action specification (e.g., orchestration plan spec)." },
@@ -16,19 +16,19 @@
     "humanRenderings": { "type": "array", "items": { "type": "string" } },
     "humanInstructions": { "type": "string" },
 
-    "targetSystem": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to System primitive targeted by this definition." },
+    "targetSystem": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID", "description": "Reference to System primitive targeted by this definition." },
 
-    "addedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "updatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "deprecatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
+    "addedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "updatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "deprecatedPrimitives": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
 
     "changeRationale": { "type": "string" },
     "usageProfiles": { "type": "array", "items": { "type": "string" } },
 
-    "derivedFromInputs": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "derivedFromPolicies": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "derivedFromRules": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "derivedFromConflicts": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "derivedFromAssessments": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } }
+    "derivedFromInputs": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "derivedFromPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "derivedFromRules": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "derivedFromConflicts": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "derivedFromAssessments": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } }
   }
 }

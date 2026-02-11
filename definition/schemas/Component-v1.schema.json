@@ -1,19 +1,19 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Component.json",
-  "title": "Component (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Component.json",
+  "title": "Component (GSM v1)",
   "description": "Structural grouping primitive used to present/manage internal architecture.",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
   "required": ["name"],
   "properties": {
-    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
-    "functions": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "modalities": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "mechanisms": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "interactions": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } },
-    "interfaces": { "type": "array", "items": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" } }
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
+    "functions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "modalities": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "mechanisms": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "interactions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
+    "interfaces": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } }
   }
 }

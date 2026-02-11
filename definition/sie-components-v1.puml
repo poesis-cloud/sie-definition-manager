@@ -17,6 +17,20 @@ skinparam noteBorderColor #57606A
 
 title CD - SIE Emergence & Homeostasis on Definition–Description Alignment - v1
 
+note as GenerativeModelNote
+  **GSM: Generative (Definitional) Model**
+
+  Unlike classical descriptive models (VSM, GST), GSM primitives are
+  **active definitions** that generate system structure, governance, and
+  viability. SIE realizes this generative nature by continuously
+  comparing definitions against described reality (Description plane),
+  detecting mismatch, and driving remediation or emergence.
+
+  This diagram illustrates the closed-loop through which generative
+  definitions flow: Definition → Description → (mismatch) → Remediation
+  → State → Description (re-observation).
+end note
+
 ' ============================================================
 ' COMPONENT VIEW
 '
@@ -26,7 +40,7 @@ title CD - SIE Emergence & Homeostasis on Definition–Description Alignment - v
 
 package "Definition Plane" as DefPlane #E8F4E8 {
   package "Definition DB\n(primitive invariants + storage)" as SDM #E8F4E8 {
-    [Compilation\n(CSDSL → CEL)] as Compiler
+    [Compilation\n(GSM-DSL → CEL)] as Compiler
     [Governor\n(owns Policies)\n(Emergence + Decision)] as Governor
     [Supervisor\n(owns Rules)\n(Adaptation)] as Supervisor
     [Coherence\n(coherence + feasibility)\n(owned by Governor)] as Coherence

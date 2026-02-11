@@ -1,34 +1,34 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Control.json",
-  "title": "Control (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Control.json",
+  "title": "Control (GSM v1)",
   "description": "Defines an action to be performed when the enclosing rule is applied.",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
   "required": ["name", "applyingRule", "applicabilityConditions", "iterationConditions", "effector", "effectorEventSourceMapping"],
   "properties": {
-    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
-    "applyingRule": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
+    "applyingRule": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
 
-    "applicabilityConditions": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/LogicalExpression" },
-    "iterationConditions": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/LogicalExpression" },
+    "applicabilityConditions": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/LogicalExpression" },
+    "iterationConditions": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/LogicalExpression" },
 
-    "effectorEventSourceMapping": { "$ref": "sie://schemas/csdsl/v1/Expression.json#/definitions/SourceMappingExpression" },
+    "effectorEventSourceMapping": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/SourceMappingExpression" },
 
-    "effector": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+    "effector": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
 
     "feedbackReceptor": {
       "anyOf": [
-        { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+        { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
         { "type": "null" }
       ]
     },
 
     "actuation": {
       "anyOf": [
-        { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID" },
+        { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
         { "type": "null" }
       ],
       "description": "Optional reference to an Actuation declared by this control."

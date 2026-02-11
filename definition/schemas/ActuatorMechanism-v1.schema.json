@@ -1,14 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Actuator.json",
-  "title": "Actuator (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Actuator.json",
+  "title": "Actuator (GSM v1)",
   "description": "Execution mechanism acting on a state object; typically auto-defined from an Actuation.",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/Mechanism.json" }
+    { "$ref": "sie://schemas/gsm/v1/Mechanism.json" }
   ],
   "type": "object",
   "required": ["actuation"],
   "properties": {
-    "actuation": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID", "description": "Reference to Actuation implemented by this actuator." }
+    "actuation": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID", "description": "Reference to Actuation implemented by this actuator." }
   }
 }

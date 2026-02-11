@@ -1,17 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/csdm/v1/Modality.json",
-  "title": "Modality (CSDM v1)",
+  "$id": "sie://schemas/gsm/v1/Modality.json",
+  "title": "Modality (GSM v1)",
   "description": "A modality constitutes a capacity and represents a viability mode/state.",
   "allOf": [
-    { "$ref": "sie://schemas/csdm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
   "required": ["name", "capacity"],
   "properties": {
-    "name": { "$ref": "sie://schemas/csdm/v1/common.json#/definitions/Name80" },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
     "capacity": {
-      "$ref": "sie://schemas/csdm/v1/common.json#/definitions/UUID",
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
       "description": "Reference to Capacity primitive."
     }
   }
