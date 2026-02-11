@@ -25,11 +25,10 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Add / update relationships between primitives, and handle missing
-'   many-to-many definitions and handlings.
+' - Add / update relationships between primitives.
 ' - Refer to DSL constructs for model attributes integrating them.
 ' - Review notes coherence and content (especially the rules they integrate).
-' - Improve InterSystemGovernance to make its attributes correlate with
+' - Improve SystemIntegrationGovernance to make its attributes correlate with
 '   systemic primitives.
 ' - Add status/lifecycle to entities.
 ' - Generate JSON schema for each systemic primitive archetype, and for generic
@@ -102,26 +101,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     Structure = Arch(Functional,Viability)
     Behavior  = Rule(Structure,Functional,Viability)
 
-    In this systemic grammar, the structure of a system is not limited to its
-    static components (Functions, Capacities, Modalities, Mechanisms).
-
-    The system's true structure is the set of Rules, Controls, Policies, and
-    Principles (PPRC) that articulate how these primitives behave, interact,
-    and are supervised. Therefore, PPRC is part of the system's definitional
-    structure:
-
-    - Rule — the system's dynamic structure (behavioral logic).
-    - Control — the system's meta-structure (behavioral & supervisory logic).
-    - Policy and Principle — the system's teleological structure
-      (governance logic).
-
-    A system without PPRC has components but no behavior. A system with PPRC
-    has structure, behavior, supervision, and purpose.
-
     This version 1.0.0 of the CSDM focuses on core concepts and relationships,
     laying the foundation for future extensions and refinements.
-
-    PPRC is the anchor of system's properties relations.
   end note
 
   ' ============================================================
@@ -150,6 +131,571 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     - "uri" MUST be unique among all archetype schemas.
     - An archetype schema instance MUST NOT be deleted if it is referenced by any
       archetype instance.
+
+    **Generic schema definitions**:
+    - *Actuation Control Event*:
+
+      name: CreationActuationControlEvent
+      properties:
+        - operation: "create"
+        - objectArchetypeName: String
+        - valueMapping: Map
+
+      name: ModificationActuationControlEvent
+      properties:
+        - operation: "modify"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+        - valueMapping: Map
+
+      name: DeletionActuationControlEvent
+      properties:
+        - operation: "delete"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+
+      name: AcquisitionActuationControlEvent
+      properties:
+        - operation: "acquire"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+
+    - *Actuation Event*:
+
+      name: CreationActuationEvent
+      properties:
+        - operation: "create"
+        - objectArchetypeName: String
+        - valueMapping: Map
+
+      name: ModificationActuationEvent
+      properties:
+        - operation: "modify"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+        - valueMapping: Map
+
+      name: DeletionActuationEvent
+      properties:
+        - operation: "delete"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+
+      name: AcquisitionActuationEvent
+      properties:
+        - operation: "acquire"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+
+    - *Actuation Feedback Event*:
+
+      name: CreationActuationFeedbackEvent
+      properties:
+        - operation: "create"
+        - objectArchetypeName: String
+        - valueMapping: Map
+
+      name: ModificationActuationFeedbackEvent
+      properties:
+        - operation: "modify"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+        - valueMapping: Map
+
+      name: DeletionActuationFeedbackEvent
+      properties:
+        - operation: "delete"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+
+      name: AcquisitionActuationFeedbackEvent
+      properties:
+        - operation: "acquire"
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode
+
+    - *Governance Control Event*:
+
+      name: PolicyEnactmentControlEvent
+      properties:
+        - policy: Policy
+
+      name: PolicyRevocationControlEvent
+      properties:
+        - policy: Policy
+
+    - *Supervision Control Event*:
+
+      name: RuleEnactmentControlEvent
+      properties:
+        - rule: Rule
+
+      name: RuleRevocationControlEvent
+      properties:
+        - rule: Rule
+    
+    - *Supervision Feedback Event*:
+
+      name: PolicyEnactmentFeedbackEvent
+      properties:
+        - policy: Policy
+
+      name: PolicyRevocationFeedbackEvent
+      properties:
+        - policy: Policy
+
+    - *Operation Feedback Event*:
+
+      name: RuleEnactmentFeedbackEvent
+      properties:
+        - rule: Rule
+
+      name: RuleRevocationFeedbackEvent
+      properties:
+        - rule: Rule
+
+    - *Systemic Feedback Signal Events* (Cybernetics-aligned):
+
+      name: DeviationDetectedEvent
+      description: System state deviates from desired state
+      properties:
+        - observedState: Object (current state snapshot)
+        - desiredState: Object (expected state)
+        - deviationType: Enum [threshold_breach, invariant_violation, drift]
+        - magnitude: Number
+        - affectedPrimitives: UUID[]
+
+      name: PerturbationReceivedEvent
+      description: External disturbance impacts system
+      properties:
+        - perturbationType: Enum [environmental, regulatory, dependency, user_action]
+        - source: String (external source identifier)
+        - impact: Enum [structural, functional, viability, behavioral]
+        - affectedPrimitives: UUID[]
+
+      name: AmplificationDetectedEvent
+      description: Positive feedback detected (deviation grows)
+      properties:
+        - feedbackLoopId: UUID
+        - amplificationRate: Number
+        - involvedMechanisms: UUID[]
+        - projectedImpact: Object
+
+      name: DampeningDetectedEvent
+      description: Negative feedback detected (deviation shrinks)
+      properties:
+        - feedbackLoopId: UUID
+        - dampeningRate: Number
+        - involvedMechanisms: UUID[]
+        - stabilizationEstimate: Object
+
+      name: VarietyExpansionEvent
+      description: New distinctions/options emerge in system
+      properties:
+        - expansionType: Enum [new_capability, new_interface, new_interaction]
+        - proposedPrimitives: Object[]
+        - triggeringObservation: String (URI reference)
+        - confidence: Number (0-1)
+
+      name: ConstraintEmergenceEvent
+      description: New constraint detected or proposed
+      properties:
+        - constraintType: Enum [functional, viability, structural, behavioral]
+        - source: Enum [design_rationale, operational_signal, coherence_check, llm_proposal]
+        - proposedConstraint: Object
+        - triggeringObservation: String (URI reference)
+        - confidence: Number (0-1)
+
+      name: CoherenceAssessmentEvent
+      description: Alignment/misalignment detected between constraints
+      properties:
+        - assessmentType: Enum [conflict, orphan, cycle, drift, staleness, semantic_drift, scope_overlap]
+        - involvedPrimitives: UUID[]
+        - severity: Enum [info, warning, critical]
+        - description: String
+        - proposedResolution: Object (nullable)
+
+      name: IntegrationFeedbackEvent
+      description: Feedback from mechanism attempting to integrate constraint
+      properties:
+        - constraintId: UUID
+        - constraintType: Enum [principle, policy, rule, control]
+        - mechanismId: UUID
+        - mechanismType: Enum [governor, regulator, supervisor, operator]
+        - outcome: Enum [success, failure, partial]
+        - failureReason: String (nullable)
+        - incoherenceDetails: Object (nullable)
+
+      name: EmergenceRequestEvent
+      description: Request for emergence process to create new primitives
+      properties:
+        - requestType: Enum [constraint, structural, behavioral]
+        - triggeringObservations: String[] (URI references)
+        - requestedBy: Enum [user, llm, coherence_process, feedback_loop]
+        - context: Object
+        - priority: Enum [low, medium, high, critical]
+
+      name: ResolutionProposedEvent
+      description: Resolution proposed for detected incoherence
+      properties:
+        - incoherenceId: UUID
+        - resolutionStrategy: Enum [create_constraint, deprecate_constraint, modify_scope, priority_override]
+        - resolutionType: Enum [create_constraint, deprecate_constraint, modify_scope, priority_override]
+        - scope: Object
+        - proposedChanges: Object[]
+        - proposedAt: DateTime
+        - proposedBy: Enum [user, llm, automated]
+        - confidence: Number (0-1)
+        - requiresApproval: Boolean
+
+    - *SIE Governance / Closed-loop Workflow Events*:
+
+      name: ControlIntentEvent
+      description: Systemic intent driving a Homeostasis cycle.
+      properties:
+        - phase: Enum [ASSESS, ACTUATE, RETENTION]
+        - intentId: UUID
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: RuleExecutionRequestEvent
+      description: Request to execute a rule set to assess drift/mismatch.
+      properties:
+        - intentId: UUID
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: RetentionAppliedEvent
+      description: Evidence retention policy applied on Description artifacts.
+      properties:
+        - rawWindow: String (ISO-8601 duration)
+        - derivedWindow: String (ISO-8601 duration)
+        - appliedAt: DateTime
+
+      name: ActuationControlEvent
+      description: Request to perform an actuation against the State plane.
+      properties:
+        - actuationType: Enum [create, modify, delete, acquire]
+        - resourceId: String
+        - desiredState: Object
+
+      name: ActuationFeedbackEvent
+      description: Feedback emitted from actuation execution.
+      properties:
+        - operation: Enum [create, modify, delete, acquire]
+        - objectArchetypeName: String
+        - criteria: LogicalOperatorNode (nullable)
+        - valueMapping: Map (nullable)
+
+      name: ActuationResultEvent
+      description: State-sourced actuation outcome (ground truth).
+      properties:
+        - resourceId: String
+        - status: Enum [SUCCESS, FAILURE, PARTIAL]
+        - details: Object (nullable)
+        - occurredAt: DateTime
+
+      name: StateChangeEvent
+      description: State-sourced change notification for replay/observability.
+      properties:
+        - resourceId: String
+        - changeType: String
+        - before: Object (nullable)
+        - after: Object (nullable)
+        - occurredAt: DateTime
+
+    - *Description-derived Evidence Events*:
+
+      name: MismatchDetectedEvent
+      description: A definition/description mismatch has been detected.
+      properties:
+        - mismatchId: UUID
+        - mismatchType: Enum [VALUE_DEVIATION, COVERAGE_GAP, SCHEMA_DRIFT, REFERENCE_GAP, VARIETY_DEFICIT, SEMANTIC_DRIFT]
+        - severity: Enum [INFO, WARNING, ERROR, CRITICAL]
+        - definitionRefs: UUID[]
+        - descriptionRefs: String[]
+        - evidencePointers: String[] (URI references)
+        - detectedAt: DateTime
+
+      name: OperationalFeedbackEvidenceEvent
+      description: Derived operational feedback evidence emitted for governance.
+      properties:
+        - feedbackId: UUID
+        - scope: Object
+        - evidencePointers: String[] (URI references)
+        - derivedAt: DateTime
+
+      name: MismatchAssessmentEvent
+      description: Structured assessment produced from mismatches + feedback.
+      properties:
+        - assessmentId: UUID
+        - scope: Object
+        - diagnosisSummary: String
+        - candidateRuleId: UUID (nullable)
+        - assessedAt: DateTime
+
+    - *Adaptation Events*:
+
+      name: RuleCandidateEvent
+      description: Candidate behavioral rule synthesized from mismatch evidence.
+      properties:
+        - scope: Object
+        - rationale: String
+        - createdAt: DateTime
+
+      name: OperatorProvisioningEvent
+      description: Request to provision / replace an Operator realization.
+      properties:
+        - boundRuleId: UUID
+        - provisionMode: Enum [ADD_OPERATOR, REPLACE_OPERATOR, UPDATE_OPERATOR, ROLLBACK_OPERATOR]
+        - requestedAt: DateTime
+
+    - *Coherence Events*:
+
+      name: CoherenceRequestEvent
+      description: Request to run coherence workflows.
+      properties:
+        - phase: Enum [CHECK, FEASIBILITY, ADMISSION]
+        - scope: Object
+        - definitionBundle: Object (nullable)
+        - requestedAt: DateTime
+
+      name: CoherenceCheckPlanEvent
+      description: Coherence check plan emitted for execution.
+      properties:
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: EvidenceGroundingRequestEvent
+      description: Request to ground evidence for a coherence assessment.
+      properties:
+        - evidenceSelectors: Object
+        - requestedAt: DateTime
+
+      name: SupervisorCheckRequestEvent
+      description: Request supervisor-level checks.
+      properties:
+        - checkSet: String[]
+        - requestedAt: DateTime
+
+      name: CoherenceReportEvent
+      description: Coherence assessment report.
+      properties:
+        - report: Object
+        - publishedAt: DateTime
+
+      name: FeasibilityAssessmentRequestedEvent
+      description: Request feasibility evaluation of proposed definitions.
+      properties:
+        - scope: Object
+        - requestedAt: DateTime
+
+      name: FeasibilityAggregatedEvent
+      description: Aggregated feasibility result.
+      properties:
+        - scope: Object
+        - aggregatedAt: DateTime
+
+      name: IncoherenceDetectedEvent
+      description: A coherence workflow detected incoherence.
+      properties:
+        - incoherenceType: String
+        - scope: Object
+        - detectedAt: DateTime
+
+      name: DefinitionBundleValidationReportEvent
+      description: Report after validating a candidate definition bundle (integrity/schema/invariants).
+      properties:
+        - scope: Object
+        - validationStatus: Enum [PASS, FAIL]
+        - issues: Object[]
+        - validatedAt: DateTime
+        - definitionBundleDigest: String (nullable)
+
+      name: PolicyAndRuleStaticAnalysisReportEvent
+      description: Static analysis/lint report for policies and rules.
+      properties:
+        - scope: Object
+        - status: Enum [PASS, FAIL, WARN]
+        - findings: Object[]
+        - analyzedAt: DateTime
+
+      name: ConstraintSatisfiabilityReportEvent
+      description: Report for satisfiability/consistency checking of constraint sets.
+      properties:
+        - scope: Object
+        - satisfiable: Boolean
+        - unsatCore: Object (nullable)
+        - checkedAt: DateTime
+
+      name: DefinitionTestSuiteReportEvent
+      description: Report for definition/rule regression tests executed prior to publication.
+      properties:
+        - scope: Object
+        - status: Enum [PASS, FAIL]
+        - failingCases: String[]
+        - executedAt: DateTime
+
+      name: AdmissionGateDecisionEvent
+      description: Coherence admission gate decision for a candidate definition bundle (governance gate, not authorization).
+      properties:
+        - decisionType: String
+        - scope: Object
+        - outcome: Enum [PASS, FAIL, NEEDS_REVIEW]
+        - reasons: String[]
+        - references: Object (nullable)
+        - decidedAt: DateTime
+
+      name: GovernanceDecisionRecordedEvent
+      description: Record that a governance decision record was produced (decision log with optional explain/trace).
+      properties:
+        - decisionType: String
+        - scope: Object
+        - outcome: Enum [PASS, FAIL, NEEDS_REVIEW]
+        - recordRef: String (nullable)
+        - traceDigest: String (nullable)
+        - recordedAt: DateTime
+
+      name: ControlledActivationPlanEvent
+      description: Controlled activation plan produced by Coherence for safely activating a Definition.
+      properties:
+        - scope: Object
+        - activationMode: Enum [MANUAL, AUTOMATED, MIXED]
+        - plan: Object
+        - createdAt: DateTime
+
+    - *Emergence Events*:
+
+      name: EmergenceTriggerEvent
+      description: Trigger to open an emergence case (new primitives/constraints).
+      properties:
+        - triggerType: String
+        - scope: Object
+        - proposal: Object
+        - evidencePointers: String[] (URI references)
+        - definitionBundle: Object (nullable)
+        - targetId: UUID (nullable)
+
+      name: EmergenceCaseOpenedEvent
+      description: Emitted when an emergence case is opened.
+      properties:
+        - triggerType: String
+        - scope: Object
+        - openedAt: DateTime
+
+      name: DecisionRequestEvent
+      description: Request decision/approval from external Decision Owner.
+      properties:
+        - proposal: Object
+        - evidencePointers: String[] (URI references)
+        - requestedAt: DateTime
+
+      name: DecisionResponseEvent
+      description: Decision Owner response consumed by governance.
+      properties:
+        - decision: Enum [APPROVED, REJECTED, REQUEST_CHANGES]
+        - rationale: String (nullable)
+        - respondedAt: DateTime
+        - decisionPayload: Object (nullable)
+
+      name: ApprovalRequiredEvent
+      description: Emitted when automated approval is not possible.
+      properties:
+        - proposal: Object
+        - requestedAt: DateTime
+
+      name: EscalationEvent
+      description: Escalation due to timeout or risk threshold.
+      properties:
+        - reason: String
+        - escalatedAt: DateTime
+        - target: String
+
+      name: EmergenceApprovedEvent
+      description: Emergence approval completed.
+      properties:
+        - scope: Object
+        - approvedAt: DateTime
+
+      name: EmergenceCaseClosedEvent
+      description: Emitted when an emergence case is closed (terminal state).
+      properties:
+        - scope: Object
+        - outcome: Enum [APPROVED, REJECTED, ABORTED]
+        - closedAt: DateTime
+        - reason: String (nullable)
+
+      name: DefinitionChangedEvent
+      description: Published change to Definition-plane deliverables.
+      properties:
+        - definitionBundle: Object
+        - publishedAt: DateTime
+
+      name: ResolutionRequiresEmergenceEvent
+      description: A resolution path requires Emergence.
+      properties:
+        - scope: Object
+        - incoherenceId: UUID (nullable)
+        - raisedAt: DateTime
+
+      name: PrimitiveDeprecateAndCreateEvent
+      description: Instruction to deprecate a primitive and create a replacement.
+      properties:
+        - targetId: UUID
+        - createdAt: DateTime
+
+      name: PrimitiveDeprecatedEvent
+      description: Primitive deprecation completed.
+      properties:
+        - primitiveId: UUID
+        - deprecatedAt: DateTime
+
+      name: PrimitiveCreatedEvent
+      description: Primitive creation completed.
+      properties:
+        - primitiveId: UUID
+        - createdAt: DateTime
+
+    - *Synchronization / Observability Events*:
+
+      name: GraphSyncAppliedEvent
+      description: Mutation successfully applied to the systemic knowledge graph.
+      properties:
+        - mutation: Object
+        - appliedAt: DateTime
+
+      name: SensorAutoDefinedEvent
+      description: Auto-definition created a new sensor binding.
+      properties:
+        - policyId: UUID
+        - createdAt: DateTime
+
+      name: SensorDeprecatedEvent
+      description: Sensor binding deprecated.
+      properties:
+        - sensorId: UUID
+        - deprecatedAt: DateTime
+
+      name: RulePublishedEvent
+      description: Behavioral rule published into the Definition plane.
+      properties:
+        - ruleId: UUID
+        - publishedAt: DateTime
+
+      name: RuleRealizationStatusEvent
+      description: Runtime realization status for a behavioral rule.
+      properties:
+        - ruleId: UUID
+        - status: Enum [PENDING, REALIZED_IN_STATE, FAILED]
+        - reportedAt: DateTime
+        - details: Object (nullable)
+
+      name: SyncLagAlertEvent
+      description: Alert emitted when sync lag exceeds threshold.
+      properties:
+        - stream: String
+        - lagSeconds: Number
+        - detectedAt: DateTime
   end note
 
   ' ============================================================
@@ -299,10 +845,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getName(): String
     +getType(): Type
     +getBoundary(): Boundary
-    +getRoles(): Role[]
     +getPurposes(): Purpose[]
     +getCapacities(): Capacity[]
-    +getQualities(): Quality[]
     +getPrinciples(): Principle[]
 
     ' ============================================================
@@ -349,23 +893,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
 
     +getModalities(): Modality[]
   }
-
-  note top of System
-    A system is a set of interacting or interdependent components forming an
-    integrated whole that serves a particular purpose within an environment.
-
-    **Systemic Semantics**:
-    - A system is defined by its systemic primitives: its type, boundary,
-      roles, purposes, capacities, qualities, principles, and governance
-      relationships.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the system.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-  end note
-
   SystemicPrimitive <|-- System : is
 
   ' ============================================================
@@ -376,22 +903,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getName(): String
     +getDescription(): String
   }
-  
-  note top of Type
-    A type is a semantic label that classifies a system based on shared
-    characteristics, behaviors, or purposes. Types enable categorization and
-    generalization across systems.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the type.
-    - "description": A detailed explanation of the type's characteristics,
-      typical behaviors, and examples.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 500 characters long.
-  end note
-
   SystemicPrimitive <|-- Type : is
 
   ' ============================================================
@@ -399,214 +910,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Boundary {
-    +getName(): String
-    +getDescription(): String
-    +getInterfaces(): Interface[]
-    +getSystemGovernances(): SystemGovernance[]
+    +getExternalInterfaces(): Interface[]
+    +getInternalInterfaces(): Interface[]
+    +getSubsystems(): System[]
   }
-
-  note top of Boundary
-    A boundary defines the limits of a system, distinguishing what is inside the
-    system from what is outside. It encapsulates the system's internal
-    components and interactions while exposing specific interfaces for interaction
-    with the external environment.
-
-    **Systemic Semantics**:
-    - The boundary is a fundamental systemic primitive that defines the system's
-      identity and scope.
-    - It determines the system's interactions with its environment and other
-      systems, as well as the applicability of governance artifacts.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the boundary.
-    - "description": A detailed explanation of the boundary's characteristics,
-      typical interactions, and examples.
-    - "interfaces": The set of interfaces through which the system interacts with
-      external entities.
-    - "systemGovernances": The set of governance relationships that define how
-      this system is governed by or governs other systems at its boundary.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 500 characters long.
-    - A boundary MUST have at least one interface if the system has any external interactions.
-  end note
-
   SystemicPrimitive <|-- Boundary : is
-  Boundary "1" o--> "0..*" Interface : delimitedBy
-  Boundary "1" o--> "0..*" SystemGovernance : governs
 
   ' ============================================================
-  ' ROLE
+  ' SUBSYSTEM INTEGRATION GOVERNANCE
   ' ============================================================
 
-  class Role {
-    +getName(): String
-    +getDescription(): String
-  }
-
-  note top of Role
-    A role is a defined function or position that a system can assume within a
-    larger context, often in relation to other systems. Roles help to clarify
-    the system's purpose and interactions based on its position in a network of
-    systems.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the role.
-    - "description": A detailed explanation of the role's responsibilities,
-      typical behaviors, and examples.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 500 characters long.
-  end note
-
-  SystemicPrimitive <|-- Role : is
-
-  ' ============================================================
-  ' PURPOSE
-  ' ============================================================
-
-  class Purpose {
-    +getName(): String
-    +getDescription(): String
-    +getServingFunctions(): Function[]
-    +getConstrainedQualities(): Quality[]
-  }
-
-  note top of Purpose
-    A purpose is a reason for the system's existence, an intended outcome or
-    objective that the system is designed to achieve.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the purpose.
-    - "description": Human-readable description of the purpose.
-    - "servingFunctions": The set of functions that serve this purpose.
-    - "constrainedQualities": The set of qualities that this purpose constrains.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 200 characters long.
-  end note
-
-  SystemicPrimitive <|-- Purpose : is
-  Purpose "1" o--> "0..*" Function : servedBy
-  Purpose "1" o--> "0..*" Quality : constrains
-
-  ' ============================================================
-  ' CAPACITY
-  ' ============================================================
-
-  class Capacity {
-    +getName(): String
-    +getDescription(): String
-    +getEnablingModalities(): Modality[]
-    +getRealizedPurposes(): Purpose[]
-    +getInfluencedQualities(): Quality[]
-  }
-
-  note top of Capacity
-    A capacity is a property of the system that enables it to fulfill its purposes.
-    Capacities are typically associated with viability properties, defining what
-    the system MUST be able to withstand or maintain to remain viable.
-
-    **Systemic Semantics**:
-    - Capacities are often associated with viability policies, which constrain
-      the system's viability envelope.
-    - Capacities can be enabled by modalities, which represent the system's current
-      state or configuration that affects its viability.
-    - Capacities are abilities the system possesses. Abilities do not directly
-      act on qualities, but they shape the system’s ability to affect them. Thus
-      a capacity influences qualities
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the capacity.
-    - "description": Human-readable description of the capacity.
-    - "enablingModalities": The set of modalities that enable this capacity.
-    - "realizedPurposes": The set of purposes that this capacity helps to realize.
-    - "influencedQualities": The set of qualities that this capacity influences.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 200 characters long.
-  end note
-
-  SystemicPrimitive <|-- Capacity : is
-  Capacity "1" o--> "0..*" Modality : enabledBy
-  Capacity "1" o--> "0..*" Purpose : realizes
-  Capacity "1" o--> "0..*" Quality : influences
-
-  ' ============================================================
-  ' QUALITY
-  ' ============================================================
-
-  class Quality {
-    +getName(): String
-    +getDescription(): String
-  }
-
-  note top of Quality
-    A quality is a property of the system that characterizes its nature or state,
-    often associated with identity or structural properties. Qualities are
-    typically non-functional attributes that describe what the system is like.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the quality.
-    - "description": Human-readable description of the quality.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 200 characters long.
-  end note
-
-  SystemicPrimitive <|-- Quality : is
-
-  ' ============================================================
-  ' PRINCIPLE
-  ' ============================================================
-
-  class Principle {
-    +getName(): String
-    +getStatus(): PrincipleStatus
-    +getStatement(): String
-  }
-
-  enum PrincipleStatus {
-    DRAFT
-    PROPOSED
-    APPROVED
-    REJECTED
-    PUBLISHED
-    INTEGRATED
-    SUSPENDED
-    DEPRECATED
-  }
-
-  note top of Principle
-    An identity-level, long-term normative constraint that defines what the
-    system fundamentally is and stands for.
-
-    **Systemic Semantics**:
-    - Principles are DEFINED and ENFORCED by Governor controller mechanisms.
-    - Principles are OPERATED by Regulator controller mechanisms when
-      designing and validating policies.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier.
-    - "statement": The normative principle statement (may be non-measurable).
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all principles of the same system.
-  end note
-
-  SystemicPrimitive <|-- Principle : is
-
-  ' ============================================================
-  ' SYSTEM GOVERNANCE
-  ' ============================================================
-
-  class SystemGovernance {
+  class SubsystemIntegrationGovernance {
     +getName(): String
     +getSupersystem(): System
     +getSubsystem(): System
@@ -620,7 +934,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     +getPurposeContribution(): Purpose[]
   }
 
-  note top of SystemGovernance
+  note top of SubsystemIntegrationGovernance
     Captures the explicit governance relationship between a supersystem and a
     subsystem. "Subsystem" is not an intrinsic property—it is a relational role
     defined by governable integration, not by internal control.
@@ -629,11 +943,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
     relationship* with S — not necessarily S's internals.
 
     **Systemic Semantics**:
-    - A SystemGovernance makes explicit *why* a system is
+    - A SubsystemIntegrationGovernance makes explicit *why* a system is
       considered a subsystem of another, capturing which governance levers the
       supersystem holds over the relationship.
     - Heterarchy is natural: a system may be a subsystem of multiple
-      supersystems via distinct SystemGovernance instances, each
+      supersystems via distinct SubsystemIntegrationGovernance instances, each
       governing different aspects.
     - The subsystem retains its own identity, boundary, and potentially its own
       governance — what makes it "sub" is the supersystem's authority over the
@@ -707,16 +1021,77 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
       configurationAuthority, substitutionAuthority, viabilityAccountability,
       resourceAllocation, boundaryInclusion) MUST be true, OR
       purposeContribution MUST NOT be empty.
-    - A system MUST NOT have an SystemGovernance where it is both
+    - A system MUST NOT have a SubsystemIntegrationGovernance where it is both
       supersystem and subsystem (no direct self-loops).
-    - Cycles in SystemGovernance chains are allowed (heterarchy),
+    - Cycles in SubsystemIntegrationGovernance chains are allowed (heterarchy),
       but SHOULD be flagged for review if they form tight loops.
   end note
 
-  SystemicPrimitive <|-- SystemGovernance : is
-  SystemGovernance "0..*" o--> "1" System : supersystem
-  SystemGovernance "0..*" o--> "1" System : subsystem
-  SystemGovernance "0..*" o--> "0..*" Purpose : contributesTo
+  SystemicPrimitive <|-- SubsystemIntegrationGovernance : is
+  SubsystemIntegrationGovernance "0..*" o--> "1" System : supersystem
+  SubsystemIntegrationGovernance "0..*" o--> "1" System : subsystem
+  SubsystemIntegrationGovernance "0..*" o--> "0..*" Purpose : contributesTo
+
+  ' ============================================================
+  ' PURPOSE
+  ' ============================================================
+
+  class Purpose {
+    +getDescription(): String
+    +getFunctions(): Function[]
+  }
+  SystemicPrimitive <|-- Purpose : is
+
+  ' ============================================================
+  ' CAPACITY
+  ' ============================================================
+
+  class Capacity {
+    +getDescription(): String
+    +getModalities(): Modality[]
+  }
+  SystemicPrimitive <|-- Capacity : is
+
+  ' ============================================================
+  ' PRINCIPLE
+  ' ============================================================
+
+  class Principle {
+    +getName(): String
+    +getStatus(): PrincipleStatus
+    +getStatement(): String
+  }
+
+  enum PrincipleStatus {
+    DRAFT
+    PROPOSED
+    APPROVED
+    REJECTED
+    PUBLISHED
+    INTEGRATED
+    SUSPENDED
+    DEPRECATED
+  }
+
+  note top of Principle
+    An identity-level, long-term normative constraint that defines what the
+    system fundamentally is and stands for.
+
+    **Systemic Semantics**:
+    - Principles are DEFINED and ENFORCED by Governor controller mechanisms.
+    - Principles are OPERATED by Regulator controller mechanisms when
+      designing and validating policies.
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier.
+    - "statement": The normative principle statement (may be non-measurable).
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all principles of the same system.
+  end note
+
+  SystemicPrimitive <|-- Principle : is
 
   ' ============================================================
   ' POLICY
@@ -915,7 +1290,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   StructuralPolicy "1" o--> "1..*" Component : constrainsInteractionsWith
 
   ' ============================================================
-  ' RULE
+  ' BEHAVIORAL RULE
   ' ============================================================
   
   class Rule {
@@ -1010,7 +1385,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Rule "1" *--> "1..*" Control : has
 
   ' ============================================================
-  ' CONTROL
+  ' BEHAVIORAL RULE CONTROL
   ' ============================================================
 
   class Control {
@@ -1494,72 +1869,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Interaction "1" o--> "1" Receptor :  has
 
   ' ============================================================
-  ' RECEPTOR
+  ' FUNCTION
   ' ============================================================
 
-  class Receptor {
+  class Function {
     +getName(): String
-    +getReceivedEventArchetype(): EventArchetype
+    +getPurpose(): Purpose
   }
-
-  note top of Receptor
-    A receptor represents a mechanism's capability to receive events produced by
-    mechanism's effectors. Such received event represent a cause for the
-    mechanism to operate.
-
-    **Systemic Semantics**:
-    Multiple receptors can listen to the same EventArchetype. This enables:
-    - Multiple mechanisms to react to the same event type
-    - Fan-out patterns where one event triggers many behaviors
-    - Cross-component coordination via shared event contracts
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all receptors of the same system.
-    - A receptor MUST be bound to exactly one event archetype.
-    - An event archetype MAY be bound to multiple receptors (sharing allowed).
-    - If the bound event archetype is deleted, all receptors bound to it MUST
-      be deleted.
-    - If a receptor is deleted, the bound event archetype MUST NOT be deleted
-      (other receptors may still reference it).
-  end note
-
-  SystemicPrimitive <|-- Receptor : is
-  Receptor "0..*" o--> "1" EventArchetype : receives
-
-  ' ============================================================
-  ' EFFECTOR
-  ' ============================================================
-
-  class Effector {
-    +getName(): String
-    +getProducedEventArchetype(): EventArchetype
-  }
-
-  note top of Effector
-    An effector represents a mechanism's capability to produce events. Such
-    produced events represent the effect of a mechanism's operation on the
-    system.
-
-    **Systemic Semantics**:
-    Multiple effectors can produce the same EventArchetype. This enables:
-    - Multiple mechanisms to emit the same event type
-    - Distributed event production (e.g., OrderCreatedEvent from different services)
-    - Consistent event contracts across system components
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all effectors of the same system.
-    - An effector MUST be bound to exactly one event archetype.
-    - An event archetype MAY be bound to multiple effectors (sharing allowed).
-    - If the bound event archetype is deleted, all effectors bound to it MUST
-      be deleted.
-    - If an effector is deleted, the bound event archetype MUST NOT be deleted
-      (other effectors may still reference it).
-  end note
-
-  SystemicPrimitive <|-- Effector : is
-  Effector "0..*" o--> "1" EventArchetype : produces
+  SystemicPrimitive <|-- Function : is
+  Function "0..*" o--> "1" Purpose : serves
 
   ' ============================================================
   ' MECHANISM
@@ -1705,9 +2023,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   ' ============================================================
 
   class Operator {
-    +getFunctions(): Function[]
-    +getModalities(): Modality[]
-    +getRules(): Rule[]
+    +getFunction(): Function
+    +getModality(): Modality
+    +getComplianceRules(): Rule[]
   }
 
   note top of Operator
@@ -1719,9 +2037,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   end note
 
   Mechanism <|-- Operator : is
-  Operator "0..*" o--> "0..*" Function : realizes
-  Operator "0..*" o--> "0..*" Modality : operates
-  Operator "0..*" o--> "0..*" Rule : implements
+  Operator "0..*" o--> "1..*" Rule : compliesWith
 
   ' ============================================================
   ' ACTUATOR
@@ -1777,6 +2093,74 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   Mechanism <|-- Sensor : is
 
   ' ============================================================
+  ' RECEPTOR
+  ' ============================================================
+
+  class Receptor {
+    +getName(): String
+    +getReceivedEventArchetype(): EventArchetype
+  }
+
+  note top of Receptor
+    A receptor represents a mechanism's capability to receive events produced by
+    mechanism's effectors. Such received event represent a cause for the
+    mechanism to operate.
+
+    **Systemic Semantics**:
+    Multiple receptors can listen to the same EventArchetype. This enables:
+    - Multiple mechanisms to react to the same event type
+    - Fan-out patterns where one event triggers many behaviors
+    - Cross-component coordination via shared event contracts
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all receptors of the same system.
+    - A receptor MUST be bound to exactly one event archetype.
+    - An event archetype MAY be bound to multiple receptors (sharing allowed).
+    - If the bound event archetype is deleted, all receptors bound to it MUST
+      be deleted.
+    - If a receptor is deleted, the bound event archetype MUST NOT be deleted
+      (other receptors may still reference it).
+  end note
+
+  SystemicPrimitive <|-- Receptor : is
+  Receptor "0..*" o--> "1" EventArchetype : receives
+
+  ' ============================================================
+  ' EFFECTOR
+  ' ============================================================
+
+  class Effector {
+    +getName(): String
+    +getProducedEventArchetype(): EventArchetype
+  }
+
+  note top of Effector
+    An effector represents a mechanism's capability to produce events. Such
+    produced events represent the effect of a mechanism's operation on the
+    system.
+
+    **Systemic Semantics**:
+    Multiple effectors can produce the same EventArchetype. This enables:
+    - Multiple mechanisms to emit the same event type
+    - Distributed event production (e.g., OrderCreatedEvent from different services)
+    - Consistent event contracts across system components
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all effectors of the same system.
+    - An effector MUST be bound to exactly one event archetype.
+    - An event archetype MAY be bound to multiple effectors (sharing allowed).
+    - If the bound event archetype is deleted, all effectors bound to it MUST
+      be deleted.
+    - If an effector is deleted, the bound event archetype MUST NOT be deleted
+      (other effectors may still reference it).
+  end note
+
+  SystemicPrimitive <|-- Effector : is
+  Effector "0..*" o--> "1" EventArchetype : produces
+
+  ' ============================================================
   ' EVENT ARCHETYPE
   ' ============================================================
 
@@ -1826,63 +2210,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - CSDM (Canonical Systemic Defini
   StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
 
   ' ============================================================
-  ' FUNCTION
-  ' ============================================================
-
-  class Function {
-    +getName(): String
-    +getPurposes(): Purpose[]
-    +getQualities(): Quality[]
-  }
-
-  note top of Function
-    A function serves a purpose of the system.
-
-    **Systemic Semantics**:
-    - Functions are realized by mechanisms, and their realization is what
-      produces negative effects on qualities.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all functions of the same system.
-  end note
-
-  SystemicPrimitive <|-- Function : is
-  Function "0..*" o--> "1..*" Purpose : serves
-  Function "0..*" o--> "0..*" Quality : affects
-
-  ' ============================================================
   ' MODALITY
   ' ============================================================
 
   class Modality {
     +getName(): String
-    +getCapacities(): Capacity[]
-    +getQualities(): Quality[]
+    +getCapacity(): Capacity
   }
-
-  note top of Modality
-    A modality represents a mode of operation or a dimension of variability in
-    the system's behavior.
-
-    **Systemic Semantics**:
-    - Modalities represent dimensions of variability or modes of operation in 
-      the system's behavior.
-    - Modalities enable capacities, which represent the system's ability to
-     operate in a certain way or under certain conditions.
-    - Modalities can be used to model different operational contexts, modes, or
-      configurations of the system.
-    - Modalities stabilize qualities by ensuring they remain within viable
-      bounds.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all modalities of the same system.
-  end note
-
   SystemicPrimitive <|-- Modality : is
-  Modality "1..*" o--> "0..*" Capacity : enables
-  Modality "0..*" o--> "0..*" Quality : stabilizes
+  Modality "1" o--> "1" Capacity : constitutes
 
   ' ============================================================
   ' SYSTEMIC PROCESSES
