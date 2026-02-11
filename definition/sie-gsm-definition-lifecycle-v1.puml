@@ -1,0 +1,97 @@
+@startuml sie-gsm-definition-lifecycle-v1
+
+' ============================================================
+' VISUAL THEME
+' ============================================================
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam ArrowColor #57606A
+skinparam DefaultFontName "SansSerif"
+skinparam backgroundColor #FFFFFF
+
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F6F8FA
+skinparam packageBorderColor #57606A
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #57606A
+skinparam classFontColor #24292F
+
+skinparam noteBackgroundColor #FFF8C5
+skinparam noteBorderColor #57606A
+
+title SIE GSM — SystemicPrimitiveDefinitionStatus lifecycle (v1)
+
+note as Legend
+  This diagram is the lifecycle state machine for the GSM primitive attribute
+  `SystemicPrimitiveDefinitionStatus`.
+
+  It is a definitional lifecycle for *definition artifacts* (GSM primitives):
+  the status governs whether the artifact is binding, enforceable, and
+  considered in appraisal.
+end note
+
+state "Authoring" as Authoring {
+  state DRAFT
+  state REJECTED
+}
+
+state "Review" as Review {
+  state PROPOSED
+  state APPROVED
+}
+
+state "Binding / Evolution" as Binding {
+  state ACTIVE
+  state SUSPENDED
+  state DEPRECATED
+}
+
+state "Terminal" as Terminal {
+  state RETIRED
+}
+
+' ------------------------------------------------------------
+' Primary (happy-path) flow
+' ------------------------------------------------------------
+
+[*] -right-> DRAFT
+DRAFT -right-> PROPOSED
+PROPOSED -right-> APPROVED
+APPROVED -right-> ACTIVE
+ACTIVE -right-> DEPRECATED
+DEPRECATED -right-> RETIRED
+RETIRED --> [*]
+
+' ------------------------------------------------------------
+' Exceptional / corrective flows
+' ------------------------------------------------------------
+
+DRAFT -down-> REJECTED
+REJECTED -up-> DRAFT : reworked
+
+PROPOSED -down-> DRAFT : sent back for revision
+PROPOSED -down-> REJECTED
+
+APPROVED -down-> DEPRECATED
+
+ACTIVE -down-> SUSPENDED
+SUSPENDED -up-> ACTIVE
+SUSPENDED -right-> DEPRECATED
+
+' ------------------------------------------------------------
+' Retirement can occur from multiple statuses
+' ------------------------------------------------------------
+
+DRAFT -down-> RETIRED : abandoned
+PROPOSED -down-> RETIRED
+APPROVED -down-> RETIRED
+ACTIVE -down-> RETIRED
+SUSPENDED -down-> RETIRED
+
+DEPRECATED -up-> ACTIVE : rare
+
+@enduml

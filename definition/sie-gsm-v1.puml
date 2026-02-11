@@ -34,6 +34,7 @@ skinparam noteBorderColor #57606A
 ' - Add status/lifecycle to entities.
 ' - Generate JSON schema for each systemic primitive archetype, and for generic
 '   events archetypes.
+' - Improve Boundary.
 ' - Challenge meta model, technically.
 ' - Extract all notes into a separate puml.
 ' ============================================================
@@ -71,8 +72,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     Beer's Viable System Model (VSM) or von Bertalanffy's General System
     Theory (GST). Those models are *descriptive*: they provide analytical
     frameworks for observing, classifying, and reasoning about systems that
-    already exist. They answer "what does this system look like?" and "is
-    this system viable?", but they do not, by themselves, produce the
+    already exist. They answer *what does this system look like?* and *is
+    this system viable?*, but they do not, by themselves, produce the
     artifacts that make a system behave, adapt, or govern itself.
 
     GSM, by contrast, is *generative* (equivalently: *definitional*). Its
@@ -102,6 +103,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     semantics (not merely descriptive metadata), the engine (SIE) can
     reason over definitions, detect definition–reality mismatch, and
     produce remediation or evolutionary change — autonomously.
+
+    **Specification: no free-form description fields**
+
+    GSM primitives MUST NOT define free-form `description` fields as semantic
+    inputs.
+
+    **Justification:** free-form descriptions are ontologically underconstrained
+    and observer-dependent; treating them as model semantics tends to induce
+    semantic drift, ambiguity, and reasoning errors.
+
+    Instead, human/system user-facing descriptions MUST be inferred from:
+    - The primitive's typed relations to other primitives (including PPRC and
+      GRS&CO ownership/enforcement links).
+    - The primitive's archetype schema (structure and types).
+    - The primitive's qualifiers (structured, schema-bound extensions).
 
     Even though GSM (the system definition informations structure) is
     general-purpose, it supports extensible information attributes and
@@ -134,11 +150,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Policies: Design-level constraints that operationalize principles.
     - Rules: Logical constraints on behavior.
     - Controls: Monitoring, detection, correction, escalation mechanisms.
-
-    This systemic synergy can be formulated as follows:
-
-    Structure = Arch(Functional,Viability)
-    Behavior  = Rule(Structure,Functional,Viability)
 
     In this systemic grammar, the structure of a system is not limited to its
     static components (Functions, Capacities, Modalities, Mechanisms).
@@ -199,6 +210,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getArchetype(): SystemicPrimitiveArchetype
     +getQualifierArchetypes(): SystemicPrimitiveQualifierArchetype[]
     +getQualifiers(): Qualifier[]
+    +getDefinitionStatus(): SystemicPrimitiveDefinitionStatus
   }
 
   note top of SystemicPrimitive
@@ -209,6 +221,99 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Extention Rules**:
     - The systemic primitive subtype MUST conform to the structure and semantics
       defined in the schema (or vice-versa) held by its archetype.
+  end note
+
+  enum SystemicPrimitiveDefinitionStatus {
+    DRAFT
+    PROPOSED
+    APPROVED
+    ACTIVE
+    SUSPENDED
+    DEPRECATED
+    RETIRED
+    REJECTED
+  }
+
+  note top of SystemicPrimitiveDefinitionStatus
+    The definitional status of a systemic primitive instance, reflecting its
+    lifecycle stage and readiness for use in system definitions.
+
+    **Stage Semantics**:
+    - DRAFT: The artifact exists but is incomplete and not yet submitted for
+      governance review.
+    - PROPOSED: The artifact has been submitted for governance evaluation.
+    - APPROVED: The artifact has passed governance validation but is not yet
+      activated.
+    - ACTIVE: The artifact is fully integrated into the system definition and is
+      currently binding.
+    - SUSPENDED: The artifact is temporarily inactive but not deprecated or
+      retired.
+    - DEPRECATED: The artifact is being phased out and should not be used for
+      new design or behavior.
+    - RETIRED: The artifact is no longer part of the system definition.
+    - REJECTED: The artifact was reviewed and explicitly not accepted.
+
+    **Systemic Semantics**:
+    - DRAFT:
+      - Not part of the system definition
+      - Not visible to appraisal
+      - Not binding
+      - Editable without restriction
+    - PROPOSED:
+      - Not yet binding
+      - Not yet part of the system definition
+      - Under review for correctness, coherence, and alignment with Principles
+    - APPROVED:
+      - Valid and correct
+      - Ready for integration
+      - Not yet constraining or executable
+    - ACTIVE:
+      - Principles constrain quality profiles
+      - Policies constrain mechanisms
+      - Rules articulate behavior
+      - Controls supervise rules
+      - Included in appraisal
+      - Violations are meaningful
+    - SUSPENDED:
+      - Not currently binding
+      - Not executed or enforced
+      - Still valid and may be reactivated
+      - Appraisal ignores it
+    - DEPRECATED:
+      - Still part of the system definition
+      - Still binding unless also suspended
+      - Marked for replacement
+      - Appraisal still considers it unless suspended
+    - RETIRED:
+      - Not binding
+      - Not executed
+      - Not considered in appraisal
+      - Preserved only for historical traceability
+    - REJECTED:
+      - Not part of the system definition
+      - Not binding
+      - Not considered in appraisal
+      - May be revised and resubmitted
+
+    **State Transitions**:
+    - DRAFT → PROPOSED
+    - DRAFT → REJECTED
+    - DRAFT → RETIRED (if abandoned)
+    - PROPOSED → APPROVED
+    - PROPOSED → REJECTED
+    - PROPOSED → DRAFT (if sent back for revision)
+    - APPROVED → ACTIVE
+    - APPROVED → DEPRECATED
+    - APPROVED → RETIRED
+    - ACTIVE → SUSPENDED
+    - ACTIVE → DEPRECATED
+    - ACTIVE → RETIRED
+    - SUSPENDED → ACTIVE
+    - SUSPENDED → DEPRECATED
+    - SUSPENDED → RETIRED
+    - DEPRECATED → RETIRED
+    - DEPRECATED → ACTIVE (rare but possible)
+    - REJECTED → DRAFT (if reworked)
   end note
 
   SystemicPrimitive "1" o--> "1" SystemicPrimitiveArchetype : has
@@ -352,15 +457,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getSupervisors(): Supervisor[]
     +getCoordinators(): Coordinator[]
     +getOperators(): Operator[]
-    +getFunctionalPolicies(): FunctionalPolicy[]
-    +getViabilityPolicies(): ViabilityPolicy[]
-    +getStructuralPolicies(): StructuralPolicy[]
+    +getPolicies(): Policy[]
     +getRules(): Rule[]
     +getControls(): Control[]
 
     ' ============================================================
     ' SYSTEMIC STRUCTURAL PROPERTIES
-    ' (derive from purposes, capacities, boundaries)
     ' ============================================================
     
     +getComponents(): Component[]
@@ -375,14 +477,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     ' ============================================================
     ' SYSTEMIC FUNCTIONAL PROPERTIES
-    ' (derive from purposes)
     ' ============================================================
 
     +getFunctions(): Function[]
 
     ' ============================================================
     ' SYSTEMIC VIABILITY PROPERTIES
-    ' (derive from capacities)
     ' ============================================================
 
     +getModalities(): Modality[]
@@ -412,7 +512,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Type {
     +getName(): String
-    +getDescription(): String
   }
   
   note top of Type
@@ -422,12 +521,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the type.
-    - "description": A detailed explanation of the type's characteristics,
-      typical behaviors, and examples.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 500 characters long.
   end note
 
   SystemicPrimitive <|-- Type : is
@@ -438,7 +534,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Boundary {
     +getName(): String
-    +getDescription(): String
     +getInterfaces(): Interface[]
     +getSystemGovernances(): SystemGovernance[]
   }
@@ -457,8 +552,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the boundary.
-    - "description": A detailed explanation of the boundary's characteristics,
-      typical interactions, and examples.
     - "interfaces": The set of interfaces through which the system interacts with
       external entities.
     - "systemGovernances": The set of governance relationships that define how
@@ -466,7 +559,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 500 characters long.
     - A boundary MUST have at least one interface if the system has any external interactions.
   end note
 
@@ -480,7 +572,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Role {
     +getName(): String
-    +getDescription(): String
   }
 
   note top of Role
@@ -491,12 +582,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the role.
-    - "description": A detailed explanation of the role's responsibilities,
-      typical behaviors, and examples.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 500 characters long.
   end note
 
   SystemicPrimitive <|-- Role : is
@@ -507,9 +595,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Purpose {
     +getName(): String
-    +getDescription(): String
-    +getServingFunctions(): Function[]
-    +getConstrainedQualities(): Quality[]
   }
 
   note top of Purpose
@@ -518,18 +603,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the purpose.
-    - "description": Human-readable description of the purpose.
-    - "servingFunctions": The set of functions that serve this purpose.
-    - "constrainedQualities": The set of qualities that this purpose constrains.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 200 characters long.
   end note
 
   SystemicPrimitive <|-- Purpose : is
-  Purpose "1" o--> "0..*" Function : servedBy
-  Purpose "1" o--> "0..*" Quality : constrains
 
   ' ============================================================
   ' CAPACITY
@@ -537,10 +616,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Capacity {
     +getName(): String
-    +getDescription(): String
-    +getEnablingModalities(): Modality[]
-    +getRealizedPurposes(): Purpose[]
-    +getInfluencedQualities(): Quality[]
   }
 
   note top of Capacity
@@ -559,20 +634,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the capacity.
-    - "description": Human-readable description of the capacity.
-    - "enablingModalities": The set of modalities that enable this capacity.
-    - "realizedPurposes": The set of purposes that this capacity helps to realize.
-    - "influencedQualities": The set of qualities that this capacity influences.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 200 characters long.
   end note
 
   SystemicPrimitive <|-- Capacity : is
-  Capacity "1" o--> "0..*" Modality : enabledBy
-  Capacity "1" o--> "0..*" Purpose : realizes
-  Capacity "1" o--> "0..*" Quality : influences
 
   ' ============================================================
   ' QUALITY
@@ -580,7 +647,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Quality {
     +getName(): String
-    +getDescription(): String
   }
 
   note top of Quality
@@ -590,11 +656,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the quality.
-    - "description": Human-readable description of the quality.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "description" MUST be maximum 200 characters long.
   end note
 
   SystemicPrimitive <|-- Quality : is
@@ -604,22 +668,35 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Principle {
-    +getName(): String
-    +getStatus(): PrincipleStatus
-    +getStatement(): String
+    +getSubject(): PrincipleSubject
+    +getModal(): PrincipleModal
+    +getVerb(): PrincipleVerb
+    +getDirectObject(): Quality
+    +getIndirectObject(): Scope
+    +getPriorityLevel(): Integer
   }
 
-  enum PrincipleStatus {
-    DRAFT
-    PROPOSED
-    APPROVED
-    REJECTED
-    PUBLISHED
-    INTEGRATED
-    SUSPENDED
-    DEPRECATED
+  PrincipleSubject <|-- System : is
+  PrincipleSubject <|-- Role : is
+
+  enum PrincipleModal {
+    MUST
+    MUST_NOT
+    SHOULD
+    SHOULD_NOT
+    MAY
   }
 
+  enum PrincipleVerb {
+    MAXIMIZE
+    MINIMIZE
+    PRESERVE
+    BALANCE
+    ENSURE
+    PROMOTE
+    REDUCE
+  }
+  
   note top of Principle
     An identity-level, long-term normative constraint that defines what the
     system fundamentally is and stands for.
@@ -639,6 +716,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   SystemicPrimitive <|-- Principle : is
+  Capacity "1" o--> "0..*" Modality : enabledBy
+  Capacity "1" o--> "0..*" Purpose : realizes
+  Capacity "1" o--> "0..*" Quality : influences
+  Purpose "1" o--> "0..*" Function : servedBy
+  Purpose "1" o--> "0..*" Quality : constrains
 
   ' ============================================================
   ' SYSTEM GOVERNANCE

@@ -7,9 +7,7 @@
     { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
-  "required": ["description"],
   "properties": {
-    "description": { "type": "string" },
     "functions": {
       "type": "array",
       "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
