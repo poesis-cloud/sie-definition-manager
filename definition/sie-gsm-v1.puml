@@ -650,18 +650,148 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   }
 
   note top of Quality
-    A quality is a property of the system that characterizes its nature or state,
-    often associated with identity or structural properties. Qualities are
-    typically non-functional attributes that describe what the system is like.
+    A quality is a property of the system that characterizes its nature or
+    state. Qualities are the **direct objects** of Principles: they are what
+    governance verbs act upon (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, etc.).
+
+    Qualities are typically non-functional attributes that describe what the
+    system is like, not what it does.
+
+    **Positive vs. negative framing:**
+    Qualities SHOULD be framed as **positive properties** when possible
+    (e.g., "data integrity" rather than "data loss"). This simplifies
+    appraisal because most verbs have positive direction semantics.
+    However, negatively-framed qualities are valid and supported —
+    the AVOID verb exists precisely for this purpose:
+    - "System MUST ENSURE data integrity" (positive quality + ENSURE)
+    - "System MUST AVOID data loss" (negative quality + AVOID)
+    Both are valid; choose whichever best expresses the governance intent.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the quality.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all qualities of the same system.
   end note
 
   SystemicPrimitive <|-- Quality : is
+
+  ' ============================================================
+  ' SCOPE DIMENSION
+  ' ============================================================
+
+  class ScopeDimension {
+    +getId(): UUID
+    +getName(): String
+    +getAllowedValues(): String[]
+  }
+
+  note top of ScopeDimension
+    A scope dimension is a system-declared axis of applicability for
+    governance artifacts (Principles, Policies).
+
+    Scope dimensions are NOT systemic primitives — they are a shared
+    vocabulary declared at System level to enable **deterministic scope
+    overlap detection** for governance appraisal.
+
+    **Design rationale (ABAC-inspired):**
+    Principles may apply to different subsets of the system's operational
+    context. Without structured scope, two principles with opposing verbs
+    on the same Quality cannot be deterministically classified as
+    conflicting vs. non-conflicting:
+    - P1: "MUST MAXIMIZE throughput **in production**"
+    - P2: "MUST MINIMIZE throughput **in staging**"
+    → NOT a conflict (disjoint scopes)
+    - P1: "MUST MAXIMIZE throughput **in production**"
+    - P2: "MUST MINIMIZE throughput **in all environments**"
+    → CONFLICT (P2's scope includes P1's scope)
+
+    This is the same pattern used by ABAC/RBAC policy engines
+    (AWS IAM Conditions, Azure RBAC, OPA/Rego) for deterministic
+    policy conflict detection.
+
+    **Attribute Semantics:**
+    - "name": The dimension axis (e.g., "environment", "region",
+      "data_classification", "tenant_tier").
+    - "allowedValues": Finite, enumerable set of valid values for
+      this dimension (e.g., ["production", "staging", "development"]).
+      Values are strings; the set MUST be exhaustive for the system.
+
+    **Examples of common dimensions:**
+
+    | Dimension            | Typical Values                           |
+    |----------------------|------------------------------------------|
+    | environment          | production, staging, development, test   |
+    | region               | eu-west-1, us-east-1, ap-southeast-1     |
+    | data_classification  | public, internal, confidential, secret   |
+    | tenant_tier          | free, standard, premium, enterprise      |
+    | criticality          | low, medium, high, critical              |
+
+    Domains add their own dimensions; the set is extensible per system.
+
+    **Consistency Rules:**
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all scope dimensions of the same system.
+    - "allowedValues" MUST have at least one value.
+    - Each value in "allowedValues" MUST be unique within the dimension.
+  end note
+
+  ' ============================================================
+  ' SCOPE
+  ' ============================================================
+
+  class Scope {
+    +getId(): UUID
+    +getBindings(): ScopeBinding[]
+  }
+
+  class ScopeBinding {
+    +getDimension(): ScopeDimension
+    +getValues(): String[]
+  }
+
+  note top of Scope
+    A scope defines the applicability boundary of a governance artifact
+    (Principle or Policy) using structured dimension bindings.
+
+    **Overlap detection (deterministic):**
+    Two scopes S1, S2 overlap iff for **every** dimension D:
+    - If D is bound in both S1 and S2:
+      S1.binding(D).values ∩ S2.binding(D).values ≠ ∅
+    - If D is bound in only one:
+      overlap (absent binding = universal / all values)
+    - If D is absent from both:
+      overlap (both universal on that dimension)
+
+    **Containment detection:**
+    S1 ⊆ S2 (S2 contains S1) iff for every dimension D:
+    - If D is bound in S2 but not S1: false (S1 is universal, S2 is not)
+    - If D is bound in S1 but not S2: true (S2 is universal)
+    - If D is bound in both: S1.values(D) ⊆ S2.values(D)
+    - If D is absent from both: true
+
+    **Disjointness:**
+    S1 and S2 are disjoint iff ∃ dimension D where:
+    - D is bound in both AND S1.values(D) ∩ S2.values(D) = ∅
+
+    **Empty scope (no bindings) = universal scope:**
+    A scope with no bindings applies everywhere. This is the default
+    when a Principle has no indirectObject.
+
+    **Attribute Semantics:**
+    - "bindings": Set of dimension → values pairs. Each binding
+      restricts applicability on one dimension.
+
+    **Consistency Rules:**
+    - Each binding MUST reference a ScopeDimension owned by the same system.
+    - Each binding's values MUST be a subset of the dimension's allowedValues.
+    - A scope MUST NOT have two bindings for the same dimension.
+    - Bindings values MUST have at least one value.
+  end note
+
+  Scope "1" *--> "0..*" ScopeBinding : has
+  ScopeBinding "1" o--> "1" ScopeDimension : on
 
   ' ============================================================
   ' PRINCIPLE
@@ -693,26 +823,162 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     PRESERVE
     BALANCE
     ENSURE
+    AVOID
     PROMOTE
     REDUCE
   }
+
+  note top of PrincipleVerb
+    **Constrained verb set for deterministic principle appraisal.**
+
+    PrincipleVerb is intentionally constrained to a finite, semantically
+    partitioned set. This enables the governance engine to deterministically
+    appraise principles against each other — detecting conflicts, redundancies,
+    and priority inversions — without free-form NLP interpretation.
+
+    **Design Rationale:**
+    The expressiveness of a Principle is the product of four dimensions:
+    Subject × Modal × Verb × DirectObject(Quality). Any governance intent
+    expressible as "<subject> <obligation> <direction> <quality>" is covered.
+    The verb carries *direction and commitment semantics* on the quality; it
+    does NOT carry the full intent alone.
+
+    **Semantic Partition:**
+
+    | Category       | Absolute (hard)  | Relative (best-effort) |
+    |----------------|------------------|------------------------|
+    | Push upward    | MAXIMIZE         | PROMOTE                |
+    | Push downward  | MINIMIZE         | REDUCE                 |
+    | Stability      | PRESERVE         | BALANCE                |
+    | Positive guar. | ENSURE           | —                      |
+    | Negative guar. | AVOID            | —                      |
+
+    **Direction semantics** (for appraisal):
+    - MAXIMIZE, PROMOTE, ENSURE: **positive** — increase/maintain the quality.
+    - MINIMIZE, REDUCE, AVOID:  **negative** — decrease/prevent the quality.
+    - PRESERVE, BALANCE:        **neutral** — stabilize (resist deviation).
+
+    **Commitment semantics** (absolute vs. relative):
+    - Absolute verbs (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, AVOID) express
+      unconditional direction. Appraisal treats them as hard constraints.
+    - Relative verbs (PROMOTE, REDUCE, BALANCE) express best-effort
+      directional intent. Appraisal treats them as soft constraints
+      (satisficed, not optimized).
+
+    **Verb Definitions:**
+    - MAXIMIZE: Drive the quality to its highest feasible level.
+      *e.g., "System MUST MAXIMIZE throughput"*
+    - MINIMIZE: Drive the quality to its lowest feasible level.
+      *e.g., "System MUST MINIMIZE latency"*
+    - PRESERVE: Maintain the quality at its current level; resist change.
+      *e.g., "System MUST PRESERVE backward compatibility"*
+    - BALANCE: Maintain the quality within an acceptable range relative
+      to competing concerns; tolerate bounded deviation.
+      *e.g., "System SHOULD BALANCE cost-efficiency"*
+    - ENSURE: Guarantee the quality is present, satisfied, or holds true.
+      Positive existential guarantee.
+      *e.g., "System MUST ENSURE data integrity"*
+    - AVOID: Guarantee the quality (framed as a negative property) does
+      not manifest. Negative existential guarantee.
+      *e.g., "System MUST AVOID vendor lock-in"*
+      *e.g., "System MUST AVOID data loss"*
+    - PROMOTE: Actively contribute toward increasing the quality, without
+      requiring maximization. Best-effort positive direction.
+      *e.g., "System SHOULD PROMOTE observability"*
+    - REDUCE: Actively contribute toward decreasing the quality, without
+      requiring minimization. Best-effort negative direction.
+      *e.g., "System SHOULD REDUCE operational complexity"*
+
+    **ENSURE vs. AVOID (guarantee pair):**
+    ENSURE and AVOID are logical complements expressing existential
+    guarantees. They differ from directional verbs (MAXIMIZE/MINIMIZE)
+    in that they target a **boolean property** (holds / does not hold)
+    rather than a **scalar magnitude**.
+    - ENSURE(Q) ≡ "Q must hold" (Achieve + Maintain in KAOS terms).
+    - AVOID(Q)  ≡ "Q must not hold" (Avoid in KAOS terms).
+    Some principles are more naturally expressed with AVOID than by
+    reframing the quality positively. Both are valid; AVOID prevents
+    forced quality reframing that can obscure intent.
+
+    **Appraisal Conflict Detection Rules:**
+    Two principles P1, P2 on the same Quality Q conflict when:
+    1) Their **scopes overlap** (see Scope overlap detection), AND
+    2) Their verbs are directionally incompatible:
+       - P1.verb ∈ {MAXIMIZE, PROMOTE, ENSURE} and
+         P2.verb ∈ {MINIMIZE, REDUCE, AVOID} (opposing directions).
+       - P1.verb = ENSURE and P2.verb = AVOID on the same Q
+         (logical contradiction).
+       - P1.verb = PRESERVE and P2.verb ∈ {MAXIMIZE, MINIMIZE}
+         (stability vs. extremization).
+
+    If scopes are **disjoint**, opposing verbs on the same Quality
+    are NOT a conflict — they govern different applicability contexts.
+
+    If one scope **contains** the other (S1 ⊆ S2), the narrower
+    principle specializes the broader one within its scope. This is
+    valid but SHOULD be flagged for review.
+
+    Conflicts are resolved by PrincipleModal (MUST > SHOULD > MAY)
+    and priorityLevel (lower number = higher priority).
+
+    **Theoretical Grounding:**
+    - **KAOS** (van Lamsweerde): {Achieve, Maintain, Avoid, Cease} — 4
+      canonical goal types proven sufficient for formal goal reasoning.
+      GSM's 8 verbs are a strict superset with finer granularity.
+    - **GRL/URN** (ITU-T Z.151): contribution types {Make, Help,
+      SomePositive, Unknown, SomeNegative, Hurt, Break} — comparable
+      gradient from absolute to relative direction.
+    - **NFR Framework** (Chung et al.): {++, +, -, --} softgoal
+      contributions — enables automated conflict detection.
+    - **Deontic logic**: {Obligatory, Permitted, Forbidden} — mapped
+      to PrincipleModal, complementing constrained verbs.
+
+    **Completeness Argument:**
+    Any governance principle expressible in natural language as
+    "<subject> <modal> <verb> <quality>" falls into one of:
+    (a) directional scalar intent → MAXIMIZE/MINIMIZE/PROMOTE/REDUCE,
+    (b) stability intent → PRESERVE/BALANCE,
+    (c) existential guarantee → ENSURE/AVOID.
+    No fourth semantic category exists for quality-directed normative
+    statements. The set is therefore complete.
+  end note
   
   note top of Principle
     An identity-level, long-term normative constraint that defines what the
     system fundamentally is and stands for.
 
+    A Principle is a structured normative sentence:
+      **Subject  Modal  Verb  DirectObject  [IndirectObject]**
+      e.g., "System  MUST  ENSURE  data integrity  across all regions"
+
     **Systemic Semantics**:
     - Principles are DEFINED and ENFORCED by Governor controller mechanisms.
     - Principles are OPERATED by Regulator controller mechanisms when
       designing and validating policies.
+    - The constrained verb (PrincipleVerb) governs the *direction* of the
+      principle on its target Quality, enabling deterministic appraisal
+      (conflict detection, redundancy, priority inversion) across all
+      principles of the system without free-form NLP interpretation.
 
     **Attribute Semantics**:
-    - "name": Human-readable semantic identifier.
-    - "statement": The normative principle statement (may be non-measurable).
+    - "subject": The system or role to which the principle applies.
+    - "modal": Deontic obligation strength (MUST > SHOULD > MAY).
+    - "verb": Constrained governance verb (see PrincipleVerb).
+    - "directObject": The Quality the principle targets.
+    - "indirectObject": Optional Scope defining where/when the principle
+      applies. Null = universal scope (applies everywhere).
+    - "priorityLevel": Conflict-resolution rank (lower = higher priority).
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all principles of the same system.
+    - "directObject" MUST reference a Quality owned by the same system.
+    - "indirectObject", if set, MUST reference scope dimensions owned by
+      the same system, with values from each dimension's allowedValues.
+    - Two principles with ENSURE and AVOID on the same Quality with
+      overlapping scopes MUST be flagged as a contradiction.
+    - Two principles with opposing verb directions on the same Quality
+      with overlapping scopes MUST be flagged as a conflict.
   end note
 
   SystemicPrimitive <|-- Principle : is
@@ -844,21 +1110,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   abstract class Policy {
     +getName(): String
-    +getStatus(): PolicyStatus
     +getApplicabilityConditions(): String
     +getConstraint(): String
     +getPrinciples(): Principle[]
-  }
-
-  enum PolicyStatus {
-    DRAFT
-    PROPOSED
-    APPROVED
-    REJECTED
-    PUBLISHED
-    INTEGRATED
-    SUSPENDED
-    DEPRECATED
   }
 
   note top of Policy
@@ -953,6 +1207,160 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all policies of the same system.
     - A policy MUST have at least one principle.
+
+    **Policy → Principle Direction Coherence Rules:**
+    A Policy's constraint operator direction MUST be compatible with the
+    verb direction of the Principle(s) it operationalizes. The engine
+    checks this deterministically using the constraint type.
+
+    *ThresholdConstraint direction coherence:*
+
+    | PrincipleVerb | Direction | Compatible operator(s)                | Incoherent operator(s)                  |
+    |---------------|-----------|---------------------------------------|-----------------------------------------|
+    | MAXIMIZE      | ↑         | GREATER_THAN, GREATER_OR_EQUAL        | LESS_THAN, LESS_OR_EQUAL (caps upward)  |
+    | MINIMIZE      | ↓         | LESS_THAN, LESS_OR_EQUAL              | GREATER_THAN, GREATER_OR_EQUAL (floors) |
+    | PRESERVE      | ↔         | Requires BOTH upper AND lower bound   | Single bound (allows drift)             |
+    | BALANCE       | ↔ soft    | Any bound (best-effort)               | —                                       |
+    | ENSURE        | ✓         | GREATER_OR_EQUAL (minimum guarantee)  | —                                       |
+    | AVOID         | ✗         | LESS_OR_EQUAL with threshold 0 or cap | —                                       |
+    | PROMOTE       | ↑ soft    | GREATER_THAN, GREATER_OR_EQUAL        | — (soft, warn only)                     |
+    | REDUCE        | ↓ soft    | LESS_THAN, LESS_OR_EQUAL              | — (soft, warn only)                     |
+
+    *InvariantConstraint direction coherence:*
+    - ENSURE → condition MUST assert the quality holds (positive form).
+    - AVOID  → condition MUST assert the quality does NOT hold (negated).
+    - MAXIMIZE/MINIMIZE → invariant is unusual; warn as potentially
+      misclassified (invariants are boolean, not scalar).
+
+    *CardinalityConstraint direction coherence:*
+    - MAXIMIZE → minimum set, maximum null or high.
+    - MINIMIZE → maximum set, minimum null or 0.
+    - PRESERVE → both minimum and maximum set (tight range).
+    - ENSURE   → minimum ≥ 1 (at least one must exist).
+    - AVOID    → maximum = 0 (none must exist).
+
+    *DependencyConstraint direction coherence:*
+    - ENSURE → dependencyType = REQUIRES (must exist).
+    - AVOID  → dependencyType = EXCLUDES (must not exist).
+    - Other verb/dependencyType combinations are valid but SHOULD be
+      reviewed for semantic alignment.
+
+    **Policy ↔ Policy Conflict Detection Rules:**
+    Two policies P1, P2 conflict when they impose incompatible
+    constraints. The engine detects this deterministically:
+
+    *ThresholdConstraint conflicts (same metric):*
+    - P1 upper bound < P2 lower bound → infeasible range
+      (e.g., "latency < 50ms" AND "latency > 100ms").
+    - P1 and P2 set equal bounds with incompatible operators
+      (e.g., "latency < 100ms" AND "latency > 100ms").
+
+    *InvariantConstraint conflicts:*
+    - P1.condition and P2.condition are logical contradictions
+      (e.g., "replicas >= 2" AND "replicas < 1").
+    - Detection: check if P1.condition AND P2.condition is
+      unsatisfiable (SAT/SMT solver or syntactic negation check).
+
+    *CardinalityConstraint conflicts (same target selector):*
+    - P1.minimum > P2.maximum → infeasible count range.
+    - P1.maximum < P2.minimum → infeasible count range.
+
+    *DependencyConstraint conflicts (same dependent/dependency):*
+    - P1.dependencyType = REQUIRES AND P2.dependencyType = EXCLUDES
+      → logical contradiction.
+
+    *Cross-type conflicts:*
+    - ThresholdConstraint on metric M with upper bound, AND
+      CardinalityConstraint requiring minimum N instances that each
+      contribute to M → may be infeasible (flag for review).
+
+    Conflict severity follows the operationalized Principles' modals:
+    - MUST vs MUST → hard conflict (error).
+    - MUST vs SHOULD → soft conflict (warning, MUST wins).
+    - SHOULD vs SHOULD → advisory (review recommended).
+    - MAY vs anything → no conflict (MAY is permissive).
+
+    **Operationalizes Link Validation Rules:**
+    The `operationalizes` link between a Policy and its Principle(s) is
+    subject to three deterministic validation checks at persistence time.
+
+    *Check 1 — Direction coherence (verb × constraint operator):*
+    Already documented above in "Policy → Principle Direction Coherence
+    Rules". The constraint's operator direction MUST be compatible with
+    the Principle's verb direction. This check is fully deterministic
+    using the constraint type × verb matrices defined above.
+    - Severity: error for MUST/MUST_NOT modals, warning for SHOULD/SHOULD_NOT.
+
+    *Check 2 — Metric → Quality path tracing:*
+    The Policy's constraint MUST reference a metric or property that is
+    reachable to the Principle's direct object (Quality) via the GSM
+    quality-influence graph. The engine walks the following typed edges:
+
+    1) Resolve the constraint's metric reference to a SystemicPrimitive
+       or StateObjectArchetype property.
+    2) Walk the GSM quality-influence graph:
+       - Function → affects → Quality
+       - Modality → stabilizes → Quality
+       - Capacity → influences → Quality
+       - Purpose → constrains → Quality
+    3) The walk succeeds if there exists at least one path from the
+       resolved metric's owning primitive to the Principle's Quality
+       through the edges above.
+
+    **Path resolution per constraint type:**
+    - ThresholdConstraint: metric reference → resolve to property of
+      a Function, Modality, Capacity, Component, or StateObjectArchetype
+      → walk quality-influence edges → must reach Principle.directObject.
+    - InvariantConstraint: extract all ReferenceExpressions from condition
+      → resolve each to a primitive → walk as above.
+    - CardinalityConstraint: target selector archetype → resolve to
+      primitive type → walk as above.
+    - DependencyConstraint: dependent/dependency selector archetypes →
+      resolve to primitive types → walk as above.
+
+    **Behavior:**
+    - Path found → pass (link is semantically grounded).
+    - No path found → warning (the policy may not actually constrain the
+      quality it claims to operationalize). Not an error because the
+      quality-influence graph may be incomplete at definition time.
+    - Multiple paths found → pass (redundancy is acceptable).
+
+    *Check 3 — Scope containment:*
+    When the operationalized Principle has an indirectObject (Scope),
+    the Policy's applicabilityConditions MUST be satisfiable only
+    within the Principle's scope. Formally:
+
+    For every ScopeBinding B in Principle.indirectObject.bindings:
+      If the Policy.applicabilityConditions references the same dimension
+      (directly or via a mapped attribute), then the set of values
+      allowed by the Policy guard MUST be a subset of B.values.
+
+    If the Policy guard allows evaluation contexts OUTSIDE the
+    Principle's scope, the Policy cannot fully operationalize that
+    Principle — it would enforce a constraint in contexts where the
+    Principle does not apply.
+
+    **Detection levels:**
+    - **Structural (deterministic):** When applicabilityConditions
+      contains ComparisonExpressions on attributes that map to
+      ScopeDimensions (e.g., `environment == "production"`), the engine
+      extracts the allowed values and checks containment against the
+      Principle's scope bindings. Subset → pass. Superset → warning.
+      Disjoint → error (Policy cannot operationalize this Principle
+      in any context where the Principle applies).
+    - **Undecidable cases:** When the guard uses complex expressions
+      (arithmetic, function calls, cross-references) that cannot be
+      statically resolved to scope dimension values, the engine emits
+      an advisory: "scope containment could not be verified
+      statically".
+
+    **Severity summary for all three checks:**
+    | Check | Pass | Fail (MUST/MUST_NOT) | Fail (SHOULD) | Undecidable |
+    |-------|------|----------------------|---------------|-------------|
+    | Direction coherence | silent | error (blocks) | warning | n/a |
+    | Metric→Quality path | silent | warning | warning | advisory |
+    | Scope containment | silent | error (disjoint) / warning (superset) | warning | advisory |
+
   end note
 
   SystemicPrimitive <|-- Policy : is
