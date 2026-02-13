@@ -98,6 +98,73 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     Description tells you what a system is; definition tells the system what
     it must become — and provides the governance machinery to get there.
 
+    **DSM — the Descriptive System Model (planned, under
+    sie-description-manager)**
+
+    However, definition without observation is blind. SIE therefore
+    requires a complementary model that captures *what the system
+    currently is*: the **Descriptive System Model (DSM)**.
+
+    DSM is the explicit heir of classical descriptive systemic models,
+    inheriting their observation, classification, and diagnostic
+    semantics:
+
+    - **GST** (von Bertalanffy): open-system observation, environment
+      exchange, equifinality — DSM inherits the framework for
+      observing system state and its interactions with the
+      environment.
+    - **VSM** (Beer): specifically the algedonic/monitoring channels
+      (System 3* audit, System 4 environment scanning) — DSM
+      inherits the real-time observation and diagnostic semantics
+      that feed governance loops.
+    - **Cybernetics** (Wiener, Ashby): feedback, homeostasis, requisite
+      variety, sensor/comparator functions — DSM inherits the
+      observation-side semantics that close the regulatory cycle:
+      sense, compare, report deviation.
+
+    Where those classical models stop at description, DSM feeds its
+    observations into GSM's generative machinery. Where GSM stops at
+    definition, DSM provides the evidence that triggers adaptation and
+    validates governance effectiveness. Neither model is self-sufficient.
+
+    **GSM ↔ DSM in the Six Planes closed loop:**
+
+    The two models map onto the Reflexive Layer as complementary halves
+    of the governance loop:
+
+    - **Governance + Regulation planes** (GSM): define principles,
+      policies, rules, controls — the system's identity, constraints,
+      and behavioral structure. These are the *controller* semantics
+      of the loop.
+    - **Supervision plane** (DSM): observe state objects, produce
+      evidence (signals, evaluations, mismatch assessments), detect
+      drift — the system's self-awareness. These are the *sensor +
+      comparator* semantics of the loop.
+    - **Coordination plane**: stabilize the pacing and sequencing
+      between GSM-driven definition changes and DSM-driven
+      observations, preventing oscillation and ensuring convergence.
+
+    In the Ontic Layer:
+    - **Operation plane**: realizes GSM definitions as executable
+      actuations, producing effects on the state plane. These are
+      the *actuator* semantics.
+    - **State plane**: ground truth — the real world from which DSM
+      draws its observations.
+
+    The closed-loop flow:
+      State → DSM (observe) → GSM (define/adjust) →
+      Operation (actuate) → State — continuously.
+
+    This duality is not symmetric: GSM has *definitional primacy*
+    (it determines what counts as deviation, what counts as viable),
+    while DSM has *evidential primacy* (it determines what is actually
+    happening, providing the only empirical basis for governance
+    decisions). Definition without description is dogma; description
+    without definition is noise.
+
+    Together, GSM and DSM form the **definition–description duality**
+    at the core of SIE's closed-loop systemic governance.
+
     This generative nature is what makes GSM actionable for automatic
     systemic governance: because every primitive carries definitional
     semantics (not merely descriptive metadata), the engine (SIE) can
@@ -1448,7 +1515,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   
   class Rule {
     +getName(): String
-    +getStatus(): RuleStatus
     +getApplyingFunctionalPolicies(): FunctionalPolicy[]
     +getApplyingViabilityPolicies(): ViabilityPolicy[]
     +getApplyingStructuralPolicies(): StructuralPolicy[]
@@ -1522,9 +1588,38 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - If a behavioral rule is deleted, its behavioral rule effects MUST be
       deleted, and vice-versa IF it is the last behavioral rule effect the
       behavioral rule owns.
-    - MUST reference at least one policy in "applyingPolicies".
+    - A Rule MUST apply at least one Policy (of any type: FunctionalPolicy,
+      ViabilityPolicy, or StructuralPolicy). Each subtype is optional (0..*),
+      but the union MUST NOT be empty.
     - "scope" MUST be compatible with the policies' scope.
     - "trigger" MUST reference an event archetype defined in the same system.
+
+    **Scope Coherence Rules (Regulation coherence appraisal)**:
+    - Rule.scopedFunctions[*].serves MUST be a subset of
+      Rule.applyingFunctionalPolicies[*].scopedPurposes.
+      (A Rule MUST NOT scope Functions that serve Purposes outside
+      its applied FunctionalPolicies' scope.)
+    - Rule.scopedModalities[*].enables MUST be a subset of
+      Rule.applyingViabilityPolicies[*].scopedCapacities.
+      (A Rule MUST NOT scope Modalities that enable Capacities outside
+      its applied ViabilityPolicies' scope.)
+    - Violations are coherence appraisal findings in the Regulation plane.
+
+    **Mechanism Auto-Definition Rule (Definition Manager)**:
+    When a Rule is persisted or modified, the Definition Manager SHOULD
+    auto-define an Operator Mechanism from the Rule's structural signature:
+    - Mechanism.receptors = {Rule.triggeringReceptor} ∪
+      {Rule.controlSequence[*].feedbackReceptor | where defined}
+    - Mechanism.effectors = {Rule.controlSequence[*].effector}
+    - The auto-defined Mechanism IMPLEMENTS the Rule.
+    - If Controls declare Actuations, Actuator and Sensor Mechanisms are
+      additionally auto-defined per the Actuation/Sensing auto-definition
+      rules.
+    This is a deterministic derivation within the Definition Manager, not
+    a conceptual governance process. The resulting Mechanism is the
+    **PPRC ↔ behavior anchor**: it bridges governance definitions (what
+    should happen) and observable behavior (what DSM watches and what
+    conformance appraisal checks against).
 
     **Todo**:
     - Implement join/fork of effect sequences (which may define parallel
@@ -1532,9 +1627,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   SystemicPrimitive <|-- Rule : is
-  Rule "1" o--> "1..*" FunctionalPolicy : applies
-  Rule "1" o--> "1..*" ViabilityPolicy : applies
-  Rule "1" o--> "1..*" StructuralPolicy : applies
+  Rule "0..*" o--> "0..*" FunctionalPolicy : applies
+  Rule "0..*" o--> "0..*" ViabilityPolicy : applies
+  Rule "0..*" o--> "0..*" StructuralPolicy : applies
   Rule "1" *--> "1..*" Control : has
 
   ' ============================================================
@@ -1639,7 +1734,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   SystemicPrimitive <|-- Control : is
-  Control "1" *--> "1" Rule : applies
+  Control "1" o--> "1" Rule : belongsTo
   Control "1" *--> "1" Effector : has
   Control "0..1" o--> "1" Actuation : declares
 
@@ -2105,19 +2200,148 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     A mechanism represents an atomic causal unit of behavior within a system.
 
+    **PPRC ↔ Behavior Anchor:**
+    The Mechanism is the **correlation point** between governance definitions
+    (PPRC) and observable behavior:
+    - **Definition side**: a Mechanism is bound by the Receptors and
+      Effectors of the Rules/Controls it implements. Its structure is
+      deterministically derived from PPRC (see Rule: Mechanism
+      Auto-Definition Rule).
+    - **Observation side**: DSM observes Mechanism behavior (events
+      received/emitted, sequences, timing). Conformance appraisal compares
+      observed Mechanism behavior against the Rules/Controls that defined it.
+    - The Mechanism is therefore the unit of both **Realization** (executing
+      definitions) and **Observation** (what DSM watches).
+
     **Positional semantics (GRS&CO):**
-    The five mechanism subtypes (Governor, Regulator, Supervisor, Coordinator,
-    Operator) are **positional labels**, not absolute roles. A mechanism's label
-    is determined by its function relative to the system scope it governs.
-    A Governor in one system may be an Operator from a supersystem's perspective
-    (heterarchy; second-order observer dependence — von Foerster).
-    This is consistent with SubsystemIntegrationGovernance.
+    The mechanism subtypes (Governor, Regulator, Supervisor, Coordinator,
+    Operator, Actuator, Sensor) are **positional labels**, not absolute roles.
+    A mechanism's label is determined by its function relative to the system
+    scope it governs. A Governor in one system may be an Operator from a
+    supersystem's perspective (heterarchy; second-order observer dependence
+    — von Foerster). This is consistent with SystemGovernance.
 
     **Layer and plane placement:**
     - Governor belongs to the **Governance plane** (Reflexive Layer).
-    - Regulator, Supervisor belong to the **Regulation plane** (Reflexive Layer).
+    - Regulator belongs to the **Regulation plane** (Reflexive Layer).
+    - Supervisor belongs to the **Supervision plane** (Reflexive Layer).
     - Coordinator belongs to the **Coordination plane** (Reflexive Layer).
     - Operator belongs to the **Operation plane** (Ontic Layer).
+    - Actuator belongs to the **Operation plane** (Ontic Layer).
+    - Sensor belongs to the **Operation plane** (Ontic Layer).
+
+    **Definition instance vs. operational instance:**
+    GSM readers must distinguish two instance levels for every Mechanism:
+    - **Definition instance**: a GSM primitive stored in the Definition
+      Manager. It describes the mechanism's receptors, effectors, the
+      Rules/Controls it implements, and its governance authority. This is
+      a model artifact — it does not execute anything by itself.
+    - **Operational instance**: a runtime process in a SIE plane (for
+      Reflexive mechanisms) or in the tenant's state plane (for some
+      Ontic mechanisms). The operational instance is instantiated FROM
+      the definition instance and executes its behavior.
+
+    The same definition instance may have zero or more operational
+    instances (e.g., no instance if the Rule is DRAFT; multiple
+    instances if deployed across environments). The definition instance
+    is the governance anchor; the operational instance is the execution
+    artifact.
+
+    Example: "the Governor mechanism of system S" is a definition
+    instance in the Definition Manager. It does NOT run inside system S.
+    Its operational instance runs inside SIE's Governance plane.
+
+    **Operational ownership (SIE architecture):**
+    Reflexive Layer mechanisms (Governor, Regulator, Supervisor, Coordinator)
+    are operationally realized by SIE's corresponding planes. Their
+    definitions are GSM primitives; their runtime instances are SIE
+    processes. SIE's purpose is to automate the Reflexive Layer of any
+    system it governs.
+
+    Ontic Layer mechanisms (Operator, Actuator, Sensor) have two possible
+    definition semantics:
+    - **SIE Operator definition**: defines a mechanism that SIE's
+      Operation plane instantiates and executes. The SIE Operator
+      operates the state plane by applying definitions of other
+      PPRC primitives (executing Rules, sequencing Controls,
+      commanding Actuators). Agency: SIE acts.
+    - **Domain Operator definition**: defines a pre-existing domain
+      mechanism (software function, infrastructure component, human
+      procedure) in the tenant's state plane. The domain Operator
+      already exists and acts; SIE Supervises its behavior and may
+      command it through SIE Operators and Actuators. Agency: tenant
+      acts, SIE oversees.
+    - **Actuators and Sensors** follow the same dual definition
+      semantics: either SIE-owned (SIE connector/adapter) or
+      domain-owned (tenant-side component that SIE commands or
+      receives events from). See Actuator and Sensor notes.
+
+    Both definition semantics share the same GSM structure (receptors,
+    effectors, PPRC chain, governance authority). The distinction appears
+    at realization time: who instantiates and runs the operational
+    instance.
+
+    **Generative semantics (GSM is prescriptive, not descriptive):**
+    In both cases, the GSM definition is a **to-be prescription** — it
+    defines what the mechanism MUST be and do. Whether a domain
+    mechanism already exists in the state plane is a DSM observation
+    (as-is), not a GSM concern.
+    - In **normal mode**: the user or Determination process defines
+      Domain Operator/Actuator/Sensor definitions as governance
+      targets. Conformance Appraisal then measures the gap between
+      the definition (to-be) and the DSM observation (as-is).
+    - In **discovery mode**: DSM observes domain mechanisms that have
+      no corresponding GSM definition. Emergence (Determination
+      sub-type) proposes new GSM definitions from those observations.
+    The definition itself remains prescriptive in both modes.
+
+    **Sensor vs. Supervisor / Actuator vs. Operator (scope distinction):**
+    Sensors and Actuators are NOT redundant with the Supervision and
+    Operation planes. The distinction is abstraction level:
+    - **Sensor**: microscopic observation — observes a specific
+      Actuation's effect and produces a feedback event. Scope:
+      one Actuation feedback loop. Analogy: the thermometer.
+    - **Supervisor**: macroscopic evaluation — evaluates policy/rule
+      compliance using inputs from many sources (Sensor feedback,
+      monitoring telemetry, CMDB data, etc.). Scope: the full
+      governance PPRC chain. Analogy: the thermostat logic.
+    - **Actuator**: microscopic execution — performs a specific CRUD
+      operation on a state object. Scope: one Actuation. Analogy:
+      the relay switching the heater.
+    - **Operator**: macroscopic execution — implements complete Rules,
+      sequences Controls, commands Actuators. Scope: the full
+      behavioral rule chain. Analogy: the HVAC controller.
+
+    Closed-loop flow using all four:
+      State → **Sensor** (observe actuation) → **Supervisor** (evaluate
+      compliance) → Regulator (adjust definitions) → **Operator**
+      (implement rule) → **Actuator** (change state) → State
+
+    **SIE availability invariant (architectural):**
+    SIE automates the Reflexive Layer but does NOT replace governance
+    itself. SIE is designed to be pluggable and synchronized with
+    tenant tools (Jira, Confluence, CMDB, monitoring platforms, etc.),
+    delivering governance definitions and specifications to those
+    systems. SIE's integrations are Capacities of the SIE system;
+    tenants are responsible for connecting their tools to SIE.
+
+    If SIE becomes unavailable, governance artifacts already delivered
+    to tenant tools remain accessible and actionable by human
+    governance. SIE makes governance infinitely better — it does not
+    make governance impossible without it.
+
+    This is an architectural invariant, not a discovered property:
+    SIE availability enhances tenant governance capability, but is not
+    a precondition for tenant governance existence.
+
+    **Governance authority (not composition):**
+    GRS&CO mechanisms have governance authority over PPRC artifacts
+    (Governor governs Principles, Regulator governs Policies/Rules/Controls,
+    Supervisor enforces them). But PPRC artifacts are NOT structurally
+    composed by Mechanisms — the relationship is governance authority
+    (association, o-->), not UML composition (*-->). The generative direction
+    is the reverse: PPRC definitions → auto-define Mechanism definitions
+    (via Rule: Mechanism Auto-Definition Rule).
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
@@ -2138,46 +2362,62 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Governor {
-    +getOwnedPrinciples(): Principle[]
+    +getGovernedPrinciples(): Principle[]
   }
 
   note top of Governor
     A governor defines and enforces principles that
     express the identity of the system it governs.
 
+    **Governance Authority (not composition)**:
+    The Governor has governance authority over Principles — it validates,
+    maintains coherence, and manages their lifecycle. This is authority,
+    not structural composition: Principles are not destroyed when the
+    Governor mechanism definition changes. The generative direction is
+    Principles → (through PPRC chain) → Mechanism auto-definition.
+
     **Consistency Rules**:
-    - A governor MUST own at least one principle.
-    - Principles associated with a governor MUST be unique
+    - A governor MUST govern at least one principle.
+    - Principles governed by a governor MUST be unique
       within the context of that mechanism.
   end note
 
   Mechanism <|-- Governor : is
-  Governor "1" *--> "1..*" Principle : owns
+  Governor "1" o--> "1..*" Principle : governs
 
   ' ============================================================
   ' REGULATOR
   ' ============================================================
 
   class Regulator {
-    +getOwnedPolicies(): Policy[]
-    +getOwnedRules(): Rule[]
-    +getOwnedControls(): Control[]
+    +getGovernedPolicies(): Policy[]
+    +getGovernedRules(): Rule[]
+    +getGovernedControls(): Control[]
   }
 
   note top of Regulator
     A regulator interprets principles and defines the
     policies, rules, and controls that operationalize them.
 
+    **Governance Authority (not composition)**:
+    The Regulator has governance authority over Policies, Rules, and
+    Controls — it designs, validates coherence, and manages their
+    lifecycle. This is authority, not structural composition: PPRC
+    artifacts are not destroyed when the Regulator mechanism definition
+    changes. The generative direction is the reverse: PPRC definitions
+    → auto-define Mechanism definitions (via the Definition Manager's
+    auto-definition rule), not Mechanism → PPRC.
+
     **Consistency Rules**:
     - A regulator MUST reference at least one principle.
-    - Policies, rules, and controls associated with a regulator
+    - Policies, rules, and controls governed by a regulator
       mechanism MUST be unique within the context of that mechanism.
   end note
 
   Mechanism <|-- Regulator : is
-  Regulator "1" *--> "1..*" Policy : owns
-  Regulator "1" *--> "1..*" Rule : owns
-  Regulator "1" *--> "1..*" Control : owns
+  Regulator "1" o--> "1..*" Policy : governs
+  Regulator "1" o--> "1..*" Rule : governs
+  Regulator "1" o--> "1..*" Control : governs
 
   ' ============================================================
   ' SUPERVISOR
@@ -2202,9 +2442,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   Mechanism <|-- Supervisor : is
-  Supervisor "0..*" o--> "1..*" Policy : enforces
-  Supervisor "0..*" o--> "1..*" Rule : enforces
-  Supervisor "0..*" o--> "1..*" Control : enforces
+  Supervisor "0..*" o--> "0..*" Policy : enforces
+  Supervisor "0..*" o--> "0..*" Rule : enforces
+  Supervisor "0..*" o--> "0..*" Control : enforces
 
   ' ============================================================
   ' COORDINATOR
@@ -2239,11 +2479,44 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   }
 
   note top of Operator
-    An operator implements and enforces compliance rules, and operates controls
-    in the state plane.
+    An operator implements rules and operates controls, executing
+    behavioral definitions in or on the state plane.
 
     **Systemic Semantics**:
-    - Operators implement/comply to controls in the state plane.
+    - Operators implement Rules and execute their Control sequences.
+    - An Operator Mechanism is auto-defined from the Rules it implements
+      (see Rule: Mechanism Auto-Definition Rule).
+
+    **Dual Definition Semantics:**
+    An Operator definition in GSM can describe two distinct realities:
+    - **SIE Operator**: a mechanism that SIE's Operation plane
+      instantiates and executes. The SIE Operator operates the state
+      plane by applying PPRC definitions: executing Rules, sequencing
+      Controls, commanding Actuators. Agency: SIE acts
+      (full loop: Observe → Decide → Act).
+    - **Domain Operator**: a prescriptive definition of what a domain
+      mechanism (software function, infrastructure service, human
+      procedure) in the tenant's state plane MUST be and do. GSM
+      defines the to-be; DSM observes the as-is. SIE Supervises
+      conformance between the two (Observe → Decide → Recommend)
+      and may command the domain mechanism through SIE Operators
+      and Actuators. Agency: Tenant acts, SIE oversees.
+
+    Both are Operator DEFINITIONS in GSM — they share the same PPRC
+    chain, the same receptors/effectors structure, and the same
+    governance semantics. The distinction appears at realization time:
+    who instantiates and runs the operational instance.
+
+    **Autonomy delegation (planned extension):**
+    When SIE Operators execute Rules autonomously, the delegation scope
+    must be bounded by a measured impact classification (output of
+    deterministic Appraisal/Determination processes). Human governance
+    always remains in the loop for decision authority; delegation of
+    execution to SIE is itself a human governance decision constrained
+    by impact level. This mechanism is planned for modeling as:
+    - An impact classification dimension on Actuation/Control.
+    - A delegation Policy constraining autonomous execution by impact.
+    (TODO: model autonomy delegation mechanism in future iteration.)
   end note
 
   Mechanism <|-- Operator : is
@@ -2260,22 +2533,32 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   }
 
   note top of Actuator
-    An actuator is an execution mechanism acting on a state object.
+    An actuator is a microscopic execution mechanism that performs a
+    specific state object mutation (CRUD) as declared by an Actuation.
 
-    Actuators are typically auto-defined from an Actuation declared
-    by a behavioral rule control.
+    Actuators are auto-defined from an Actuation declared by a
+    behavioral rule control. They are NOT redundant with Operators:
+    an Operator implements a complete Rule and sequences Controls;
+    an Actuator executes one specific Actuation within that sequence.
+    Analogy: Operator = HVAC controller; Actuator = relay switching
+    the heater.
 
     **Attribute Semantics**:
     - "actuation": The actuation declaration from which the actuator is
       derived.
 
+    **Dual Definition Semantics (same pattern as Operator):**
+    - **SIE Actuator**: SIE connector/adapter that calls tenant APIs
+      or infrastructure to effect the state change.
+    - **Domain Actuator**: prescriptive definition of what a
+      tenant-side actuation component MUST do. SIE commands it
+      through SIE Operators; conformance between this definition
+      and the actual component is measured by Conformance Appraisal.
+
     **Auto Definition Rules**:
     - The actuator MUST operate on a state object archetype owned by
       the same System, or a subsystem that explicitly shares that state object
       resource with the actuator's System.
-
-    **Coherence Rules**:
-
   end note
 
   Mechanism <|-- Actuator : is
@@ -2288,10 +2571,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   class Sensor
 
   note top of Sensor
-    A sensor is an observation mechanism on actuations.
+    A sensor is a microscopic observation mechanism that captures the
+    effect of a specific Actuation and produces feedback events.
 
-    Sensors are typically auto-defined from a Sensing linked to an
-    Actuation, and only when a control feedback receptor exists.
+    Sensors are auto-defined from a Sensing linked to an Actuation,
+    and only when a control feedback receptor exists. They are NOT
+    redundant with Supervisors: a Supervisor macroscopically evaluates
+    policy/rule compliance using many input sources; a Sensor
+    microscopically observes one Actuation's outcome.
+    Analogy: Sensor = thermometer; Supervisor = thermostat logic.
+
+    **Dual Definition Semantics (same pattern as Operator):**
+    - **SIE Sensor**: SIE polls/subscribes to tenant telemetry or
+      state-plane events to observe actuation effects.
+    - **Domain Sensor**: prescriptive definition of what a tenant
+      monitoring component MUST produce (actuation feedback events).
+      Conformance between this definition and the actual component
+      is measured by Conformance Appraisal.
 
     **Auto Definition Rules**:
     - For every event archetype E whose schema is a subtype of
@@ -2415,15 +2711,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
   ' SYSTEMIC PROCESSES
   '
-  ' GSM defines exactly 3 systemic processes as primitives:
-  ' - Appraisal: second-order evaluation of the adequacy, coherence, and 
-  '   viability of the system's properties.
-  '   - Governance appraisal: coherence of constitutive properties.
-  '   - Regulation appraisal: coherence of organizational, structural, and
-  '     viability properties.
-  '   - Coordination appraisal: coherence between properties of inter-governed
-  '     systems.
-  ' - Morphogenesis: second-order change of the system's properties.
+  ' GSM recognizes five canonical governance processes:
+  '
+  ' 1. Observation:  State → DSM (sense, describe)
+  ' 2. Appraisal:    Evaluate (3 sub-types):
+  '    - Conformance appraisal: DSM ↔ GSM (observed vs. defined)
+  '    - Coherence appraisal: GSM ↔ GSM (intra-definitional consistency)
+  '    - Coverage appraisal: completeness meta-check
+  ' 3. Determination: Generative (3 sub-types):
+  '    - Emergence: inductive (descriptions without definitions → proposals)
+  '    - Adaptation: abductive (deviation evidence → rule adjustment)
+  '    - Coherence restoration: corrective (contradiction → fix)
+  ' 4. Realization:   GSM → State (actuate via Operator/Actuator mechanisms)
+  ' 5. Stabilization: Cross-loop dampening (Coordination plane)
+  '
+  ' Emergent properties (NOT processes):
+  ' - Homeostasis: operational loop stability
+  ' - Autopoiesis: self-definition (system defines its own governance)
+  ' - Viability: continued existence in environment
   ' ============================================================
 
 }
