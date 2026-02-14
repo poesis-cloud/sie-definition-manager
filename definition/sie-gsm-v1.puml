@@ -525,22 +525,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getCoordinators(): Coordinator[]
     +getOperators(): Operator[]
     +getPolicies(): Policy[]
-    +getRules(): Rule[]
-    +getControls(): Control[]
-
-    ' ============================================================
-    ' SYSTEMIC STRUCTURAL PROPERTIES
-    ' ============================================================
-    
-    +getComponents(): Component[]
-    +getInterfaces(): Interface[]
-    +getChannels(): Channel[]
-    +getInteractions(): Interaction[]
-    +getMechanisms(): Mechanism[]
-    +getReceptors(): Receptor[]
-    +getEffectors(): Effector[]
-    +getEventArchetypes(): EventArchetype[]
-    +getStateObjectArchetypes(): StateObjectArchetype[]
 
     ' ============================================================
     ' SYSTEMIC FUNCTIONAL PROPERTIES
@@ -553,6 +537,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     ' ============================================================
 
     +getModalities(): Modality[]
+
+    ' ============================================================
+    ' SYSTEMIC STRUCTURAL PROPERTIES
+    ' ============================================================
+    
+    +getRules(): Rule[]
+    +getControls(): Control[]
+    +getComponents(): Component[]
+    +getInterfaces(): Interface[]
+    +getChannels(): Channel[]
+    +getInteractions(): Interaction[]
+    +getMechanisms(): Mechanism[]
+    +getReceptors(): Receptor[]
+    +getEffectors(): Effector[]
+    +getEventArchetypes(): EventArchetype[]
+    +getStateObjectArchetypes(): StateObjectArchetype[]
   }
 
   note top of System
@@ -1172,6 +1172,173 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   SystemGovernance "0..*" o--> "0..*" Purpose : contributesTo
 
   ' ============================================================
+  ' GOVERNOR
+  ' ============================================================
+
+  class Governor {
+    +getGovernedPrinciples(): Principle[]
+  }
+
+  note top of Governor
+    A governor defines and enforces principles that
+    express the identity of the system it governs.
+
+    **Governance Authority (not composition)**:
+    The Governor has governance authority over Principles — it validates,
+    maintains coherence, and manages their lifecycle. This is authority,
+    not structural composition: Principles are not destroyed when the
+    Governor mechanism definition changes. The generative direction is
+    Principles → (through PPRC chain) → Mechanism auto-definition.
+
+    **Consistency Rules**:
+    - A governor MUST govern at least one principle.
+    - Principles governed by a governor MUST be unique
+      within the context of that mechanism.
+  end note
+
+  Mechanism <|-- Governor : is
+  Governor "1" o--> "1..*" Principle : governs
+
+  ' ============================================================
+  ' REGULATOR
+  ' ============================================================
+
+  class Regulator {
+    +getGovernedPolicies(): Policy[]
+    +getGovernedRules(): Rule[]
+    +getGovernedControls(): Control[]
+  }
+
+  note top of Regulator
+    A regulator interprets principles and defines the
+    policies, rules, and controls that operationalize them.
+
+    **Governance Authority (not composition)**:
+    The Regulator has governance authority over Policies, Rules, and
+    Controls — it designs, validates coherence, and manages their
+    lifecycle. This is authority, not structural composition: PPRC
+    artifacts are not destroyed when the Regulator mechanism definition
+    changes. The generative direction is the reverse: PPRC definitions
+    → auto-define Mechanism definitions (via the Definition Manager's
+    auto-definition rule), not Mechanism → PPRC.
+
+    **Consistency Rules**:
+    - A regulator MUST reference at least one principle.
+    - Policies, rules, and controls governed by a regulator
+      mechanism MUST be unique within the context of that mechanism.
+  end note
+
+  Mechanism <|-- Regulator : is
+  Regulator "1" o--> "1..*" Policy : governs
+  Regulator "1" o--> "1..*" Rule : governs
+  Regulator "1" o--> "1..*" Control : governs
+
+  ' ============================================================
+  ' SUPERVISOR
+  ' ============================================================
+
+  class Supervisor {
+    +getEnforcingPolicies(): Policy[]
+    +getEnforcingRules(): Rule[]
+    +getEnforcingControls(): Control[]
+  }
+
+  note top of Supervisor
+    A supervisor enforces policies, rules, and controls
+    in real time, overseeing the operator controller mechanisms within the
+    system implementing these rules and controls.
+
+    **Consistency Rules**:
+    - A supervisor MUST receive at least one regulator or
+      governor event.
+    - A supervisor MUST enforce at least one policy, rule,
+      or control.
+  end note
+
+  Mechanism <|-- Supervisor : is
+  Supervisor "0..*" o--> "0..*" Policy : enforces
+  Supervisor "0..*" o--> "0..*" Rule : enforces
+  Supervisor "0..*" o--> "0..*" Control : enforces
+
+  ' ============================================================
+  ' COORDINATOR
+  ' ============================================================
+
+  class Coordinator {
+    +getCoordinatedSupervisors(): Supervisor[]
+    +getCoordinatedOperators(): Operator[]
+  }
+
+  note top of Coordinator
+    A coordinator stabilizes interactions between
+    supervisors and operators. It does not define governance artifacts.
+
+    **Consistency Rules**:
+    - A coordinator MUST coordinate at least two
+      supervisors and/or operators.
+  end note
+
+  Mechanism <|-- Coordinator : is
+  Coordinator "0..*" o--> "0..*" Supervisor : coordinates
+  Coordinator "0..*" o--> "0..*" Operator : coordinates
+
+  ' ============================================================
+  ' OPERATOR
+  ' ============================================================
+
+  class Operator {
+    +getFunctions(): Function[]
+    +getModalities(): Modality[]
+    +getRules(): Rule[]
+  }
+
+  note top of Operator
+    An operator implements rules and operates controls, executing
+    behavioral definitions in or on the state plane.
+
+    **Systemic Semantics**:
+    - Operators implement Rules and execute their Control sequences.
+    - An Operator Mechanism is auto-defined from the Rules it implements
+      (see Rule: Mechanism Auto-Definition Rule).
+
+    **Dual Definition Semantics:**
+    An Operator definition in GSM can describe two distinct realities:
+    - **SIE Operator**: a mechanism that SIE's Operation plane
+      instantiates and executes. The SIE Operator operates the state
+      plane by applying PPRC definitions: executing Rules, sequencing
+      Controls, commanding Actuators. Agency: SIE acts
+      (full loop: Observe → Decide → Act).
+    - **Domain Operator**: a prescriptive definition of what a domain
+      mechanism (software function, infrastructure service, human
+      procedure) in the tenant's state plane MUST be and do. GSM
+      defines the to-be; DSM observes the as-is. SIE Supervises
+      conformance between the two (Observe → Decide → Recommend)
+      and may command the domain mechanism through SIE Operators
+      and Actuators. Agency: Tenant acts, SIE oversees.
+
+    Both are Operator DEFINITIONS in GSM — they share the same PPRC
+    chain, the same receptors/effectors structure, and the same
+    governance semantics. The distinction appears at realization time:
+    who instantiates and runs the operational instance.
+
+    **Autonomy delegation (planned extension):**
+    When SIE Operators execute Rules autonomously, the delegation scope
+    must be bounded by a measured impact classification (output of
+    deterministic Appraisal/Determination processes). Human governance
+    always remains in the loop for decision authority; delegation of
+    execution to SIE is itself a human governance decision constrained
+    by impact level. This mechanism is planned for modeling as:
+    - An impact classification dimension on Actuation/Control.
+    - A delegation Policy constraining autonomous execution by impact.
+    (TODO: model autonomy delegation mechanism in future iteration.)
+  end note
+
+  Mechanism <|-- Operator : is
+  Operator "0..*" o--> "0..*" Function : realizes
+  Operator "0..*" o--> "0..*" Modality : operates
+  Operator "0..*" o--> "0..*" Rule : implements
+
+  ' ============================================================
   ' POLICY
   ' ============================================================
 
@@ -1508,6 +1675,65 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   Policy <|-- StructuralPolicy : is
   StructuralPolicy "1" o--> "1..*" Component : constrainsInteractionsWith
+
+  ' ============================================================
+  ' FUNCTION
+  ' ============================================================
+
+  class Function {
+    +getName(): String
+    +getPurposes(): Purpose[]
+    +getQualities(): Quality[]
+  }
+
+  note top of Function
+    A function serves a purpose of the system.
+
+    **Systemic Semantics**:
+    - Functions are realized by mechanisms, and their realization is what
+      produces negative effects on qualities.
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all functions of the same system.
+  end note
+
+  SystemicPrimitive <|-- Function : is
+  Function "0..*" o--> "1..*" Purpose : serves
+  Function "0..*" o--> "0..*" Quality : affects
+
+  ' ============================================================
+  ' MODALITY
+  ' ============================================================
+
+  class Modality {
+    +getName(): String
+    +getCapacities(): Capacity[]
+    +getQualities(): Quality[]
+  }
+
+  note top of Modality
+    A modality represents a mode of operation or a dimension of variability in
+    the system's behavior.
+
+    **Systemic Semantics**:
+    - Modalities represent dimensions of variability or modes of operation in 
+      the system's behavior.
+    - Modalities enable capacities, which represent the system's ability to
+     operate in a certain way or under certain conditions.
+    - Modalities can be used to model different operational contexts, modes, or
+      configurations of the system.
+    - Modalities stabilize qualities by ensuring they remain within viable
+      bounds.
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all modalities of the same system.
+  end note
+
+  SystemicPrimitive <|-- Modality : is
+  Modality "1..*" o--> "0..*" Capacity : enables
+  Modality "0..*" o--> "0..*" Quality : stabilizes
 
   ' ============================================================
   ' RULE
@@ -2117,74 +2343,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Interaction "1" o--> "1" Receptor :  has
 
   ' ============================================================
-  ' RECEPTOR
-  ' ============================================================
-
-  class Receptor {
-    +getName(): String
-    +getReceivedEventArchetype(): EventArchetype
-  }
-
-  note top of Receptor
-    A receptor represents a mechanism's capability to receive events produced by
-    mechanism's effectors. Such received event represent a cause for the
-    mechanism to operate.
-
-    **Systemic Semantics**:
-    Multiple receptors can listen to the same EventArchetype. This enables:
-    - Multiple mechanisms to react to the same event type
-    - Fan-out patterns where one event triggers many behaviors
-    - Cross-component coordination via shared event contracts
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all receptors of the same system.
-    - A receptor MUST be bound to exactly one event archetype.
-    - An event archetype MAY be bound to multiple receptors (sharing allowed).
-    - If the bound event archetype is deleted, all receptors bound to it MUST
-      be deleted.
-    - If a receptor is deleted, the bound event archetype MUST NOT be deleted
-      (other receptors may still reference it).
-  end note
-
-  SystemicPrimitive <|-- Receptor : is
-  Receptor "0..*" o--> "1" EventArchetype : receives
-
-  ' ============================================================
-  ' EFFECTOR
-  ' ============================================================
-
-  class Effector {
-    +getName(): String
-    +getProducedEventArchetype(): EventArchetype
-  }
-
-  note top of Effector
-    An effector represents a mechanism's capability to produce events. Such
-    produced events represent the effect of a mechanism's operation on the
-    system.
-
-    **Systemic Semantics**:
-    Multiple effectors can produce the same EventArchetype. This enables:
-    - Multiple mechanisms to emit the same event type
-    - Distributed event production (e.g., OrderCreatedEvent from different services)
-    - Consistent event contracts across system components
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all effectors of the same system.
-    - An effector MUST be bound to exactly one event archetype.
-    - An event archetype MAY be bound to multiple effectors (sharing allowed).
-    - If the bound event archetype is deleted, all effectors bound to it MUST
-      be deleted.
-    - If an effector is deleted, the bound event archetype MUST NOT be deleted
-      (other effectors may still reference it).
-  end note
-
-  SystemicPrimitive <|-- Effector : is
-  Effector "0..*" o--> "1" EventArchetype : produces
-
-  ' ============================================================
   ' MECHANISM
   ' ============================================================
 
@@ -2358,173 +2516,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Mechanism "1" *--> "1..*" Effector : has
 
   ' ============================================================
-  ' GOVERNOR
-  ' ============================================================
-
-  class Governor {
-    +getGovernedPrinciples(): Principle[]
-  }
-
-  note top of Governor
-    A governor defines and enforces principles that
-    express the identity of the system it governs.
-
-    **Governance Authority (not composition)**:
-    The Governor has governance authority over Principles — it validates,
-    maintains coherence, and manages their lifecycle. This is authority,
-    not structural composition: Principles are not destroyed when the
-    Governor mechanism definition changes. The generative direction is
-    Principles → (through PPRC chain) → Mechanism auto-definition.
-
-    **Consistency Rules**:
-    - A governor MUST govern at least one principle.
-    - Principles governed by a governor MUST be unique
-      within the context of that mechanism.
-  end note
-
-  Mechanism <|-- Governor : is
-  Governor "1" o--> "1..*" Principle : governs
-
-  ' ============================================================
-  ' REGULATOR
-  ' ============================================================
-
-  class Regulator {
-    +getGovernedPolicies(): Policy[]
-    +getGovernedRules(): Rule[]
-    +getGovernedControls(): Control[]
-  }
-
-  note top of Regulator
-    A regulator interprets principles and defines the
-    policies, rules, and controls that operationalize them.
-
-    **Governance Authority (not composition)**:
-    The Regulator has governance authority over Policies, Rules, and
-    Controls — it designs, validates coherence, and manages their
-    lifecycle. This is authority, not structural composition: PPRC
-    artifacts are not destroyed when the Regulator mechanism definition
-    changes. The generative direction is the reverse: PPRC definitions
-    → auto-define Mechanism definitions (via the Definition Manager's
-    auto-definition rule), not Mechanism → PPRC.
-
-    **Consistency Rules**:
-    - A regulator MUST reference at least one principle.
-    - Policies, rules, and controls governed by a regulator
-      mechanism MUST be unique within the context of that mechanism.
-  end note
-
-  Mechanism <|-- Regulator : is
-  Regulator "1" o--> "1..*" Policy : governs
-  Regulator "1" o--> "1..*" Rule : governs
-  Regulator "1" o--> "1..*" Control : governs
-
-  ' ============================================================
-  ' SUPERVISOR
-  ' ============================================================
-
-  class Supervisor {
-    +getEnforcingPolicies(): Policy[]
-    +getEnforcingRules(): Rule[]
-    +getEnforcingControls(): Control[]
-  }
-
-  note top of Supervisor
-    A supervisor enforces policies, rules, and controls
-    in real time, overseeing the operator controller mechanisms within the
-    system implementing these rules and controls.
-
-    **Consistency Rules**:
-    - A supervisor MUST receive at least one regulator or
-      governor event.
-    - A supervisor MUST enforce at least one policy, rule,
-      or control.
-  end note
-
-  Mechanism <|-- Supervisor : is
-  Supervisor "0..*" o--> "0..*" Policy : enforces
-  Supervisor "0..*" o--> "0..*" Rule : enforces
-  Supervisor "0..*" o--> "0..*" Control : enforces
-
-  ' ============================================================
-  ' COORDINATOR
-  ' ============================================================
-
-  class Coordinator {
-    +getCoordinatedSupervisors(): Supervisor[]
-    +getCoordinatedOperators(): Operator[]
-  }
-
-  note top of Coordinator
-    A coordinator stabilizes interactions between
-    supervisors and operators. It does not define governance artifacts.
-
-    **Consistency Rules**:
-    - A coordinator MUST coordinate at least two
-      supervisors and/or operators.
-  end note
-
-  Mechanism <|-- Coordinator : is
-  Coordinator "0..*" o--> "0..*" Supervisor : coordinates
-  Coordinator "0..*" o--> "0..*" Operator : coordinates
-
-  ' ============================================================
-  ' OPERATOR
-  ' ============================================================
-
-  class Operator {
-    +getFunctions(): Function[]
-    +getModalities(): Modality[]
-    +getRules(): Rule[]
-  }
-
-  note top of Operator
-    An operator implements rules and operates controls, executing
-    behavioral definitions in or on the state plane.
-
-    **Systemic Semantics**:
-    - Operators implement Rules and execute their Control sequences.
-    - An Operator Mechanism is auto-defined from the Rules it implements
-      (see Rule: Mechanism Auto-Definition Rule).
-
-    **Dual Definition Semantics:**
-    An Operator definition in GSM can describe two distinct realities:
-    - **SIE Operator**: a mechanism that SIE's Operation plane
-      instantiates and executes. The SIE Operator operates the state
-      plane by applying PPRC definitions: executing Rules, sequencing
-      Controls, commanding Actuators. Agency: SIE acts
-      (full loop: Observe → Decide → Act).
-    - **Domain Operator**: a prescriptive definition of what a domain
-      mechanism (software function, infrastructure service, human
-      procedure) in the tenant's state plane MUST be and do. GSM
-      defines the to-be; DSM observes the as-is. SIE Supervises
-      conformance between the two (Observe → Decide → Recommend)
-      and may command the domain mechanism through SIE Operators
-      and Actuators. Agency: Tenant acts, SIE oversees.
-
-    Both are Operator DEFINITIONS in GSM — they share the same PPRC
-    chain, the same receptors/effectors structure, and the same
-    governance semantics. The distinction appears at realization time:
-    who instantiates and runs the operational instance.
-
-    **Autonomy delegation (planned extension):**
-    When SIE Operators execute Rules autonomously, the delegation scope
-    must be bounded by a measured impact classification (output of
-    deterministic Appraisal/Determination processes). Human governance
-    always remains in the loop for decision authority; delegation of
-    execution to SIE is itself a human governance decision constrained
-    by impact level. This mechanism is planned for modeling as:
-    - An impact classification dimension on Actuation/Control.
-    - A delegation Policy constraining autonomous execution by impact.
-    (TODO: model autonomy delegation mechanism in future iteration.)
-  end note
-
-  Mechanism <|-- Operator : is
-  Operator "0..*" o--> "0..*" Function : realizes
-  Operator "0..*" o--> "0..*" Modality : operates
-  Operator "0..*" o--> "0..*" Rule : implements
-
-  ' ============================================================
   ' ACTUATOR
   ' ============================================================
 
@@ -2601,6 +2592,74 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Mechanism <|-- Sensor : is
 
   ' ============================================================
+  ' RECEPTOR
+  ' ============================================================
+
+  class Receptor {
+    +getName(): String
+    +getReceivedEventArchetype(): EventArchetype
+  }
+
+  note top of Receptor
+    A receptor represents a mechanism's capability to receive events produced by
+    mechanism's effectors. Such received event represent a cause for the
+    mechanism to operate.
+
+    **Systemic Semantics**:
+    Multiple receptors can listen to the same EventArchetype. This enables:
+    - Multiple mechanisms to react to the same event type
+    - Fan-out patterns where one event triggers many behaviors
+    - Cross-component coordination via shared event contracts
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all receptors of the same system.
+    - A receptor MUST be bound to exactly one event archetype.
+    - An event archetype MAY be bound to multiple receptors (sharing allowed).
+    - If the bound event archetype is deleted, all receptors bound to it MUST
+      be deleted.
+    - If a receptor is deleted, the bound event archetype MUST NOT be deleted
+      (other receptors may still reference it).
+  end note
+
+  SystemicPrimitive <|-- Receptor : is
+  Receptor "0..*" o--> "1" EventArchetype : receives
+
+  ' ============================================================
+  ' EFFECTOR
+  ' ============================================================
+
+  class Effector {
+    +getName(): String
+    +getProducedEventArchetype(): EventArchetype
+  }
+
+  note top of Effector
+    An effector represents a mechanism's capability to produce events. Such
+    produced events represent the effect of a mechanism's operation on the
+    system.
+
+    **Systemic Semantics**:
+    Multiple effectors can produce the same EventArchetype. This enables:
+    - Multiple mechanisms to emit the same event type
+    - Distributed event production (e.g., OrderCreatedEvent from different services)
+    - Consistent event contracts across system components
+
+    **Consistency Rules**:
+    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be unique among all effectors of the same system.
+    - An effector MUST be bound to exactly one event archetype.
+    - An event archetype MAY be bound to multiple effectors (sharing allowed).
+    - If the bound event archetype is deleted, all effectors bound to it MUST
+      be deleted.
+    - If an effector is deleted, the bound event archetype MUST NOT be deleted
+      (other effectors may still reference it).
+  end note
+
+  SystemicPrimitive <|-- Effector : is
+  Effector "0..*" o--> "1" EventArchetype : produces
+
+  ' ============================================================
   ' EVENT ARCHETYPE
   ' ============================================================
 
@@ -2648,65 +2707,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   SystemicPrimitive <|-- StateObjectArchetype : is
   StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
-
-  ' ============================================================
-  ' FUNCTION
-  ' ============================================================
-
-  class Function {
-    +getName(): String
-    +getPurposes(): Purpose[]
-    +getQualities(): Quality[]
-  }
-
-  note top of Function
-    A function serves a purpose of the system.
-
-    **Systemic Semantics**:
-    - Functions are realized by mechanisms, and their realization is what
-      produces negative effects on qualities.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all functions of the same system.
-  end note
-
-  SystemicPrimitive <|-- Function : is
-  Function "0..*" o--> "1..*" Purpose : serves
-  Function "0..*" o--> "0..*" Quality : affects
-
-  ' ============================================================
-  ' MODALITY
-  ' ============================================================
-
-  class Modality {
-    +getName(): String
-    +getCapacities(): Capacity[]
-    +getQualities(): Quality[]
-  }
-
-  note top of Modality
-    A modality represents a mode of operation or a dimension of variability in
-    the system's behavior.
-
-    **Systemic Semantics**:
-    - Modalities represent dimensions of variability or modes of operation in 
-      the system's behavior.
-    - Modalities enable capacities, which represent the system's ability to
-     operate in a certain way or under certain conditions.
-    - Modalities can be used to model different operational contexts, modes, or
-      configurations of the system.
-    - Modalities stabilize qualities by ensuring they remain within viable
-      bounds.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all modalities of the same system.
-  end note
-
-  SystemicPrimitive <|-- Modality : is
-  Modality "1..*" o--> "0..*" Capacity : enables
-  Modality "0..*" o--> "0..*" Quality : stabilizes
 
   ' ============================================================
   ' SYSTEMIC PROCESSES
