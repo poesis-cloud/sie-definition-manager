@@ -4,12 +4,21 @@
   "title": "AcquisitionActuationControl (GSM v1)",
   "description": "Control that defines acquisition of matching state objects.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/Control.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/Control.json"
+    }
   ],
   "type": "object",
-  "required": ["stateObjectArchetype", "stateObjectSelector"],
+  "required": [
+    "stateObjectArchetype",
+    "stateObjectSelector"
+  ],
   "properties": {
-    "stateObjectArchetype": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-    "stateObjectSelector": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/SelectorExpression" }
+    "stateObjectArchetype": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    },
+    "stateObjectSelector": {
+      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/SelectorExpression"
+    }
   }
 }

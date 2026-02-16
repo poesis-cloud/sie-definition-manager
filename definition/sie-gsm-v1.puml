@@ -25,6 +25,9 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
+' - Reorganize notes so that they relate specifically to the elements they refer 
+'   to, as long as that doesnt make the note loose meaning, coherence, context.
+' - Relate OrganizationalRelationship with PPRC.
 ' - Add / update relationships between primitives, and handle missing
 '   many-to-many definitions and handlings.
 ' - Refer to DSL constructs for model attributes integrating them.
@@ -36,14 +39,12 @@ skinparam noteBorderColor #57606A
 '   events archetypes.
 ' - Improve Boundary.
 ' - Challenge meta model, technically.
-' - Extract all notes into a separate puml.
 ' ============================================================
 
 frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) - v1" {
 
   note as CsdmNote
-    This model defines a reference set of notions for defining systems, with the
-    objective of being accepted as canonical:
+    This model defines a reference set of notions for defining systems:
     their components, capacities, interfaces, mechanisms, behaviors, and
     dynamics.
 
@@ -81,10 +82,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **active definitions** from which system structure, behavior, governance,
     and viability are *derived and produced*:
 
-    - A declared **Purpose** and **Capacity** set generates the functional
-      and viability envelope; the architecture function
-      Structure = Arch(Functional, Viability) synthesizes structural
-      primitives from them.
     - A declared **Principle** generates the identity constraints that
       Governors enforce; Regulators interpret those Principles to produce
       Policies, Rules, and Controls — executable governance artifacts.
@@ -105,27 +102,95 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     requires a complementary model that captures *what the system
     currently is*: the **Descriptive System Model (DSM)**.
 
-    DSM is the explicit heir of classical descriptive systemic models,
-    inheriting their observation, classification, and diagnostic
-    semantics:
+    Classical descriptive systemic models bundle two distinct facets
+    that SIE decomposes between GSM and DSM:
 
-    - **GST** (von Bertalanffy): open-system observation, environment
-      exchange, equifinality — DSM inherits the framework for
-      observing system state and its interactions with the
-      environment.
-    - **VSM** (Beer): specifically the algedonic/monitoring channels
-      (System 3* audit, System 4 environment scanning) — DSM
-      inherits the real-time observation and diagnostic semantics
-      that feed governance loops.
-    - **Cybernetics** (Wiener, Ashby): feedback, homeostasis, requisite
-      variety, sensor/comparator functions — DSM inherits the
-      observation-side semantics that close the regulatory cycle:
-      sense, compare, report deviation.
+    (a) **Structural and organizational primitives** — how to
+        categorize and organize system properties (constitutive,
+        organizational, functional, viability, structural layers).
+        GSM inherits these and transforms them from descriptive
+        taxonomies into **generative definitions**: active primitives
+        that produce governance artifacts. Classical models describe
+        these layers; GSM *defines* them.
 
-    Where those classical models stop at description, DSM feeds its
-    observations into GSM's generative machinery. Where GSM stops at
-    definition, DSM provides the evidence that triggers adaptation and
-    validates governance effectiveness. Neither model is self-sufficient.
+    (b) **Observational and diagnostic semantics** — how to observe,
+        measure, classify, and diagnose system state. DSM inherits
+        these as its core function.
+
+    **The descriptive entanglement of classical systemics:**
+
+    Classical systemic models are presented as *descriptive* (tools to
+    observe and reason about existing systems), yet they necessarily rely on
+    constructs that are *definitional* in effect.
+
+    Constitutive, organizational, functional, and viability layers are not
+    measurements; they are **typed categories** that establish what counts as
+    a system, what counts as a subsystem, what counts as a function, and what
+    counts as "viable". Without such categories, observation has no stable
+    referent: you cannot even decide what to measure or where the boundary is.
+
+    This is not a logical flaw in classical systemics; it is a feature of
+    second-order thinking: description depends on prior commitments about
+    identity, organization, and viability. The key point is that the
+    "descriptive" label hides this dependency, and therefore hides *where*
+    normative commitments enter the reasoning process.
+
+    Humans can carry that entanglement implicitly (the same mind both defines
+    the categories and interprets the observations). But for automation, this
+    implicit coupling becomes an **engineering problem**: the definitional
+    commitments are under-specified, not machine-checkable, and not
+    compilable into governance artifacts.
+
+    **SIE resolves the engineering gap** by distributing the right constructs
+    into the right models:
+
+    - **GSM** (generative): inherits the definitional constructs
+      — constitutive, organizational, functional, viability, and
+      structural primitives — and makes their definitional nature
+      *explicit and operational*. These are no longer descriptive
+      taxonomies pretending to be neutral observations; they are
+      **active definitions** that produce governance artifacts,
+      close homeostatic loops, and auto-define mechanisms.
+
+    - **DSM** (descriptive): inherits *only* the observational and
+      diagnostic semantics — sensing, measuring, classifying,
+      comparing, detecting deviation. DSM is genuinely descriptive:
+      it observes what is, without prescribing what should be.
+
+    This decomposition enables what classical systemics rarely made
+    *explicit and toolable*: a coherent, engineered autopoietic pipeline where
+    definition and description are cleanly separated yet coupled through
+    governance processes (Observation → Appraisal → Determination →
+    Realization → Stabilization). The system defines itself through
+    GSM, observes itself through DSM, and the governance loop
+    continuously aligns definition with reality — autopoiesis as
+    an engineered process, not merely a theoretical property.
+
+    **What each classical model contributes, and to which SIE model:**
+
+    - **GST** (von Bertalanffy):
+      - → GSM: open-system structuring (subsystem decomposition,
+        boundary, environment exchange, equifinality as Purpose).
+      - → DSM: state observation framework, environmental
+        interaction monitoring.
+    - **VSM** (Beer):
+      - → GSM: organizational functions (System 1–5 map to GRS&CO
+        positional functions), viability criteria, recursion
+        (heterarchy).
+      - → DSM: algedonic/monitoring channels (System 3* audit,
+        System 4 environment scanning), real-time diagnostic
+        semantics.
+    - **Cybernetics** (Wiener, Ashby):
+      - → GSM: regulatory structures (controller, actuator
+        definitions), requisite variety as a design constraint.
+      - → DSM: sensor/comparator functions, feedback observation,
+        homeostatic deviation detection.
+
+    Where classical models bundled structure and observation into a
+    single descriptive framework, SIE separates them: GSM makes
+    system structure generative (definition produces governance);
+    DSM makes observation systematic (evidence feeds governance).
+    Neither model is self-sufficient.
 
     **GSM ↔ DSM in the Six Planes closed loop:**
 
@@ -210,13 +275,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     not absolute: a Governor in one system may be an Operator from a
     supersystem's perspective (heterarchy).
 
-    There are 4 universal governance artifacts (PPRC), each applying to a
+    There are 4 universal governance artifacts (PPRC, aka **SDG** — the
+    **System Definitional Grammar** constructs stack), each applying to a
     distinct systemic layer:
 
     - Principles: Identity-level, long-term normative constraints.
     - Policies: Design-level constraints that operationalize principles.
     - Rules: Logical constraints on behavior.
-    - Controls: Monitoring, detection, correction, escalation mechanisms.
+    - Controls: Ordered, step-level behavioral specifications (actions +
+      mappings + optional actuations) and their supervisory hooks.
+
+    **Behavioral logical atom:** a Rule composed by its ordered Controls is the
+    atomic, compilable/executable governance logic that defines *how the
+    system behaves*.
 
     In this systemic grammar, the structure of a system is not limited to its
     static components (Functions, Capacities, Modalities, Mechanisms).
@@ -258,14 +329,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   note top of ArchetypeSchema
     Defines the structure and semantics of archetypes.
 
-    Schemas enable informationnal extensibility for cross-domain, global
+    Schemas enable informational extensibility for cross-domain, global
     systemic automatic reasoning to capture domain specific knowledge and
     semantics.
 
     **Consistency Rules**:
     - "uri" MUST be unique among all archetype schemas.
-    - An archetype schema instance MUST NOT be deleted if it is referenced by any
-      archetype instance.
   end note
 
   ' ============================================================
@@ -282,10 +351,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   note top of SystemicPrimitive
     A systemic primitive is a foundational modeling construct used to express
-    second-order system descriptions (the concepts and relations used to define
+    second-order system definition (the concepts and relations used to define
     systems).
 
-    **Extention Rules**:
+    **Extension Rules**:
     - The systemic primitive subtype MUST conform to the structure and semantics
       defined in the schema (or vice-versa) held by its archetype.
   end note
@@ -305,64 +374,62 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     The definitional status of a systemic primitive instance, reflecting its
     lifecycle stage and readiness for use in system definitions.
 
-    **Stage Semantics**:
+    **Attribute Semantics**:
     - DRAFT: The artifact exists but is incomplete and not yet submitted for
       governance review.
-    - PROPOSED: The artifact has been submitted for governance evaluation.
-    - APPROVED: The artifact has passed governance validation but is not yet
-      activated.
-    - ACTIVE: The artifact is fully integrated into the system definition and is
-      currently binding.
-    - SUSPENDED: The artifact is temporarily inactive but not deprecated or
-      retired.
-    - DEPRECATED: The artifact is being phased out and should not be used for
-      new design or behavior.
-    - RETIRED: The artifact is no longer part of the system definition.
-    - REJECTED: The artifact was reviewed and explicitly not accepted.
-
-    **Systemic Semantics**:
-    - DRAFT:
       - Not part of the system definition
       - Not visible to appraisal
       - Not binding
       - Editable without restriction
-    - PROPOSED:
+
+    - PROPOSED: The artifact has been submitted for governance evaluation.
       - Not yet binding
       - Not yet part of the system definition
-      - Under review for correctness, coherence, and alignment with Principles
-    - APPROVED:
+      - Under review for correctness, coherence, and alignment.
+
+    - APPROVED: The artifact has passed governance validation but is not yet
+      activated.
       - Valid and correct
       - Ready for integration
       - Not yet constraining or executable
-    - ACTIVE:
+
+    - ACTIVE: The artifact is fully integrated into the system definition and is
+      currently binding.
       - Principles constrain quality profiles
       - Policies constrain mechanisms
       - Rules articulate behavior
       - Controls supervise rules
       - Included in appraisal
       - Violations are meaningful
-    - SUSPENDED:
+
+    - SUSPENDED: The artifact is temporarily inactive but not deprecated or
+      retired.
       - Not currently binding
       - Not executed or enforced
       - Still valid and may be reactivated
       - Appraisal ignores it
-    - DEPRECATED:
+
+    - DEPRECATED: The artifact is being phased out and should not be used for
+      new design or behavior.
       - Still part of the system definition
       - Still binding unless also suspended
       - Marked for replacement
       - Appraisal still considers it unless suspended
-    - RETIRED:
+
+    - RETIRED: The artifact is no longer part of the system definition.
       - Not binding
       - Not executed
       - Not considered in appraisal
       - Preserved only for historical traceability
-    - REJECTED:
+
+    - REJECTED: The artifact was reviewed and explicitly not accepted.
       - Not part of the system definition
       - Not binding
       - Not considered in appraisal
       - May be revised and resubmitted
 
-    **State Transitions**:
+    **Transition Rules**:
+    The lifecycle transitions between statuses are constrained as follows:
     - DRAFT → PROPOSED
     - DRAFT → REJECTED
     - DRAFT → RETIRED (if abandoned)
@@ -424,7 +491,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   note top of SystemicPrimitiveArchetypeQualifierArchetype
     A qualifier is a logical extra attribute attached to a class. This enables
     informationnal extensibility for cross-domain, global systemic automatic
-    reasoning to capture domain specific knowledge and semantics.
+    reasoning to capture domain specific ontology and semantics (=> epistemic).
 
     **Consistency Rules**:
     - "name" MUST match the name of the schema.
@@ -519,12 +586,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     ' SYSTEMIC ORGANIZATIONAL PROPERTIES
     ' ============================================================
     
+    +getPolicies(): Policy[]
     +getGovernors(): Governor[]
     +getRegulators(): Regulator[]
     +getSupervisors(): Supervisor[]
-    +getCoordinators(): Coordinator[]
     +getOperators(): Operator[]
-    +getPolicies(): Policy[]
+    +getCoordinators(): Coordinator[]
+    +getOrganizationalRelationships(): OrganizationalRelationship[]
 
     ' ============================================================
     ' SYSTEMIC FUNCTIONAL PROPERTIES
@@ -544,13 +612,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     
     +getRules(): Rule[]
     +getControls(): Control[]
-    +getComponents(): Component[]
-    +getInterfaces(): Interface[]
-    +getChannels(): Channel[]
-    +getInteractions(): Interaction[]
     +getMechanisms(): Mechanism[]
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
+    +getInteractions(): Interaction[]
+    +getChannels(): Channel[]
+    +getInterfaces(): Interface[]
+    +getComponents(): Component[]
     +getEventArchetypes(): EventArchetype[]
     +getStateObjectArchetypes(): StateObjectArchetype[]
   }
@@ -568,10 +636,42 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - "name": Human-readable semantic identifier for the system.
 
     **Consistency Rules**:
+    - "name" MUST be mandatory and non-empty.
+    - "name" MUST be unique among all systems in the same SIE instance.
     - "name" MUST be maximum 80 characters long.
   end note
 
   SystemicPrimitive <|-- System : is
+  System "0..*" o--> "1" Type : has
+  System "1" *--> "0..1" Boundary : has
+  System "1" *--> "0..*" Purpose : has
+  System "1" *--> "0..*" Capacity : has
+  System "1" *--> "0..*" Quality : has
+  System "1" *--> "0..*" Principle : has
+
+  System "1" *--> "0..*" Policy : has
+  System "1" *--> "0..*" Governor : has
+  System "1" *--> "0..*" Regulator : has
+  System "1" *--> "0..*" Supervisor : has
+  System "1" *--> "0..*" Operator : has
+  System "1" *--> "0..*" Coordinator : has
+  System "1" *--> "0..*" OrganizationalRelationship : has
+
+  System "0..*" o--> "0..*" Function : has
+
+  System "0..*" o--> "0..*" Modality : has
+
+  System "0..*" o--> "0..*" Rule : has
+  System "0..*" o--> "0..*" Control : has
+  System "0..*" o--> "0..*" Mechanism : has
+  System "0..*" o--> "0..*" Receptor : has
+  System "0..*" o--> "0..*" Effector : has
+  System "0..*" o--> "0..*" Interaction : has
+  System "0..*" o--> "0..*" Channel : has
+  System "0..*" o--> "0..*" Interface : has
+  System "0..*" o--> "0..*" Component : has
+  System "0..*" o--> "0..*" EventArchetype : has
+  System "0..*" o--> "0..*" StateObjectArchetype : has
 
   ' ============================================================
   ' TYPE
@@ -590,71 +690,57 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - "name": Human-readable semantic identifier for the type.
 
     **Consistency Rules**:
+    - "name" MUST be mandatory and non-empty.
+    - "name" MUST be unique among all types in the same SIE instance.
     - "name" MUST be maximum 80 characters long.
   end note
 
   SystemicPrimitive <|-- Type : is
+  System "0..*" o--> "0..*" Type : has
 
   ' ============================================================
   ' BOUNDARY
   ' ============================================================
 
   class Boundary {
-    +getName(): String
     +getInterfaces(): Interface[]
-    +getSystemGovernances(): SystemGovernance[]
+    +getOrganizationalRelationships(): OrganizationalRelationship[]
   }
 
   note top of Boundary
     A boundary defines the limits of a system, distinguishing what is inside the
     system from what is outside. It encapsulates the system's internal
     components and interactions while exposing specific interfaces for interaction
-    with the external environment.
+    with the environment.
 
     **Systemic Semantics**:
     - The boundary is a fundamental systemic primitive that defines the system's
       identity and scope.
-    - It determines the system's interactions with its environment and other
-      systems, as well as the applicability of governance artifacts.
+    - It determines the system's interactions with its environment - meaning
+      other systems.
+    - Other systems can either:
+      - govern this system,
+      - be governed by this system,
+      - both,
+      or neither. Governance relationships between systems are defined by the
+      `OrganizationalRelationship` primitive.
+    - Because inter System relationship is complexe and subtile, GSM avoids
+      using vulgar terms such as *subsystem*, *integrated system*...
 
     **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the boundary.
     - "interfaces": The set of interfaces through which the system interacts with
-      external entities.
-    - "systemGovernances": The set of governance relationships that define how
+      the environment.
+    - "organizationalRelationships": The set of governance relationships that define how
       this system is governed by or governs other systems at its boundary.
 
     **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - A boundary MUST have at least one interface if the system has any external interactions.
+    - A boundary MUST have at least one interface if the system has any interactions with the environment.
   end note
 
   SystemicPrimitive <|-- Boundary : is
+  Boundary "1" o--> "1" System : binds
   Boundary "1" o--> "0..*" Interface : delimitedBy
-  Boundary "1" o--> "0..*" SystemGovernance : governs
-
-  ' ============================================================
-  ' ROLE
-  ' ============================================================
-
-  class Role {
-    +getName(): String
-  }
-
-  note top of Role
-    A role is a defined function or position that a system can assume within a
-    larger context, often in relation to other systems. Roles help to clarify
-    the system's purpose and interactions based on its position in a network of
-    systems.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the role.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-  end note
-
-  SystemicPrimitive <|-- Role : is
+  Boundary "1" o--> "0..*" OrganizationalRelationship : governs
 
   ' ============================================================
   ' PURPOSE
@@ -668,14 +754,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     A purpose is a reason for the system's existence, an intended outcome or
     objective that the system is designed to achieve.
 
+    **Systemic Semantics**:
+    - Purposes are associated with functional policies, which constrain the
+      system's functional envelope.
+    - Functions serve purposes, meaning they are the activities or processes
+      that the system performs to achieve its purposes.
+    - Capacities realize purposes, meaning they are the means through which the
+      system achieves its intended outcomes.
+    - Qualities constrain purposes, meaning they are the properties that limit
+      or define the conditions under which the system can achieve its purposes.
+
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the purpose.
 
     **Consistency Rules**:
+    - "name" MUST be mandatory and non-empty.
+    - "name" MUST be unique among all purposes of the same system.
     - "name" MUST be maximum 80 characters long.
   end note
 
   SystemicPrimitive <|-- Purpose : is
+  Purpose "0..*" o--> "1" System : functionallyRationalizes
 
   ' ============================================================
   ' CAPACITY
@@ -691,22 +790,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     the system MUST be able to withstand or maintain to remain viable.
 
     **Systemic Semantics**:
-    - Capacities are often associated with viability policies, which constrain
-      the system's viability envelope.
-    - Capacities can be enabled by modalities, which represent the system's current
-      state or configuration that affects its viability.
-    - Capacities are abilities the system possesses. Abilities do not directly
-      act on qualities, but they shape the system’s ability to affect them. Thus
-      a capacity influences qualities
+    - Capacities are associated with viability policies, which constrain the
+      system's viability envelope.
+    - Modalities enable capacities, meaning they are the conditions or states
+      that allow the system to utilize its capacities effectively.
+    - Purposes are realized by capacities, meaning they are the intended
+      outcomes that the system aims to achieve through its capacities.
+    - Qualities are influenced by capacities, meaning they are the properties that
+      are affected or shaped by the system's capacities. Capacities do not
+      directly act on qualities, but they shape the system’s ability to affect
+      them. Thus a capacity influences qualities.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the capacity.
 
     **Consistency Rules**:
+    - "name" MUST be mandatory and non-empty.
+    - "name" MUST be unique among all capacities of the same system.
     - "name" MUST be maximum 80 characters long.
   end note
 
   SystemicPrimitive <|-- Capacity : is
+  Capacity "0..*" o--> "1" System : enables
 
   ' ============================================================
   ' QUALITY
@@ -718,305 +823,54 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   note top of Quality
     A quality is a property of the system that characterizes its nature or
-    state. Qualities are the **direct objects** of Principles: they are what
-    governance verbs act upon (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, etc.).
-
+    state.
     Qualities are typically non-functional attributes that describe what the
     system is like, not what it does.
 
-    **Positive vs. negative framing:**
-    Qualities SHOULD be framed as **positive properties** when possible
-    (e.g., "data integrity" rather than "data loss"). This simplifies
-    appraisal because most verbs have positive direction semantics.
-    However, negatively-framed qualities are valid and supported —
-    the AVOID verb exists precisely for this purpose:
-    - "System MUST ENSURE data integrity" (positive quality + ENSURE)
-    - "System MUST AVOID data loss" (negative quality + AVOID)
-    Both are valid; choose whichever best expresses the governance intent.
+    **Systemic Semantics**:
+    - Qualities are associated with system principles. Qualities are the
+      **direct objects** of Principles: they are what governance verbs act upon
+      (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, etc.).
+    - Capacities influence qualities, meaning they shape the system's ability to
+      affect its qualities. Capacities do not directly act on qualities, but
+      they shape the system’s ability to affect them. Thus a capacity influences
+      qualities.
+    - Purposes are constrained by qualities, meaning they are the intended
+      outcomes that the system aims to achieve within the limits defined by its
+      qualities. Qualities do not directly act on purposes, but they define the
+      conditions under which purposes can be achieved. Thus a quality constrains
+      purposes.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the quality.
 
     **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
+    - "name" MUST be mandatory and non-empty.
     - "name" MUST be unique among all qualities of the same system.
+    - "name" MUST be maximum 80 characters long.
   end note
 
   SystemicPrimitive <|-- Quality : is
-
-  ' ============================================================
-  ' SCOPE DIMENSION
-  ' ============================================================
-
-  class ScopeDimension {
-    +getId(): UUID
-    +getName(): String
-    +getAllowedValues(): String[]
-  }
-
-  note top of ScopeDimension
-    A scope dimension is a system-declared axis of applicability for
-    governance artifacts (Principles, Policies).
-
-    Scope dimensions are NOT systemic primitives — they are a shared
-    vocabulary declared at System level to enable **deterministic scope
-    overlap detection** for governance appraisal.
-
-    **Design rationale (ABAC-inspired):**
-    Principles may apply to different subsets of the system's operational
-    context. Without structured scope, two principles with opposing verbs
-    on the same Quality cannot be deterministically classified as
-    conflicting vs. non-conflicting:
-    - P1: "MUST MAXIMIZE throughput **in production**"
-    - P2: "MUST MINIMIZE throughput **in staging**"
-    → NOT a conflict (disjoint scopes)
-    - P1: "MUST MAXIMIZE throughput **in production**"
-    - P2: "MUST MINIMIZE throughput **in all environments**"
-    → CONFLICT (P2's scope includes P1's scope)
-
-    This is the same pattern used by ABAC/RBAC policy engines
-    (AWS IAM Conditions, Azure RBAC, OPA/Rego) for deterministic
-    policy conflict detection.
-
-    **Attribute Semantics:**
-    - "name": The dimension axis (e.g., "environment", "region",
-      "data_classification", "tenant_tier").
-    - "allowedValues": Finite, enumerable set of valid values for
-      this dimension (e.g., ["production", "staging", "development"]).
-      Values are strings; the set MUST be exhaustive for the system.
-
-    **Examples of common dimensions:**
-
-    | Dimension            | Typical Values                           |
-    |----------------------|------------------------------------------|
-    | environment          | production, staging, development, test   |
-    | region               | eu-west-1, us-east-1, ap-southeast-1     |
-    | data_classification  | public, internal, confidential, secret   |
-    | tenant_tier          | free, standard, premium, enterprise      |
-    | criticality          | low, medium, high, critical              |
-
-    Domains add their own dimensions; the set is extensible per system.
-
-    **Consistency Rules:**
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all scope dimensions of the same system.
-    - "allowedValues" MUST have at least one value.
-    - Each value in "allowedValues" MUST be unique within the dimension.
-  end note
-
-  ' ============================================================
-  ' SCOPE
-  ' ============================================================
-
-  class Scope {
-    +getId(): UUID
-    +getBindings(): ScopeBinding[]
-  }
-
-  class ScopeBinding {
-    +getDimension(): ScopeDimension
-    +getValues(): String[]
-  }
-
-  note top of Scope
-    A scope defines the applicability boundary of a governance artifact
-    (Principle or Policy) using structured dimension bindings.
-
-    **Overlap detection (deterministic):**
-    Two scopes S1, S2 overlap iff for **every** dimension D:
-    - If D is bound in both S1 and S2:
-      S1.binding(D).values ∩ S2.binding(D).values ≠ ∅
-    - If D is bound in only one:
-      overlap (absent binding = universal / all values)
-    - If D is absent from both:
-      overlap (both universal on that dimension)
-
-    **Containment detection:**
-    S1 ⊆ S2 (S2 contains S1) iff for every dimension D:
-    - If D is bound in S2 but not S1: false (S1 is universal, S2 is not)
-    - If D is bound in S1 but not S2: true (S2 is universal)
-    - If D is bound in both: S1.values(D) ⊆ S2.values(D)
-    - If D is absent from both: true
-
-    **Disjointness:**
-    S1 and S2 are disjoint iff ∃ dimension D where:
-    - D is bound in both AND S1.values(D) ∩ S2.values(D) = ∅
-
-    **Empty scope (no bindings) = universal scope:**
-    A scope with no bindings applies everywhere. This is the default
-    when a Principle has no indirectObject.
-
-    **Attribute Semantics:**
-    - "bindings": Set of dimension → values pairs. Each binding
-      restricts applicability on one dimension.
-
-    **Consistency Rules:**
-    - Each binding MUST reference a ScopeDimension owned by the same system.
-    - Each binding's values MUST be a subset of the dimension's allowedValues.
-    - A scope MUST NOT have two bindings for the same dimension.
-    - Bindings values MUST have at least one value.
-  end note
-
-  Scope "1" *--> "0..*" ScopeBinding : has
-  ScopeBinding "1" o--> "1" ScopeDimension : on
+  Quality "0..*" o--> "1" System : characterizes
 
   ' ============================================================
   ' PRINCIPLE
   ' ============================================================
 
   class Principle {
-    +getSubject(): PrincipleSubject
-    +getModal(): PrincipleModal
-    +getVerb(): PrincipleVerb
-    +getDirectObject(): Quality
-    +getIndirectObject(): Scope
+    +getApplicabilityConditions(): String
+    +getConstraint(): String
     +getPriorityLevel(): Integer
   }
-
-  PrincipleSubject <|-- System : is
-  PrincipleSubject <|-- Role : is
-
-  enum PrincipleModal {
-    MUST
-    MUST_NOT
-    SHOULD
-    SHOULD_NOT
-    MAY
-  }
-
-  enum PrincipleVerb {
-    MAXIMIZE
-    MINIMIZE
-    PRESERVE
-    BALANCE
-    ENSURE
-    AVOID
-    PROMOTE
-    REDUCE
-  }
-
-  note top of PrincipleVerb
-    **Constrained verb set for deterministic principle appraisal.**
-
-    PrincipleVerb is intentionally constrained to a finite, semantically
-    partitioned set. This enables the governance engine to deterministically
-    appraise principles against each other — detecting conflicts, redundancies,
-    and priority inversions — without free-form NLP interpretation.
-
-    **Design Rationale:**
-    The expressiveness of a Principle is the product of four dimensions:
-    Subject × Modal × Verb × DirectObject(Quality). Any governance intent
-    expressible as "<subject> <obligation> <direction> <quality>" is covered.
-    The verb carries *direction and commitment semantics* on the quality; it
-    does NOT carry the full intent alone.
-
-    **Semantic Partition:**
-
-    | Category       | Absolute (hard)  | Relative (best-effort) |
-    |----------------|------------------|------------------------|
-    | Push upward    | MAXIMIZE         | PROMOTE                |
-    | Push downward  | MINIMIZE         | REDUCE                 |
-    | Stability      | PRESERVE         | BALANCE                |
-    | Positive guar. | ENSURE           | —                      |
-    | Negative guar. | AVOID            | —                      |
-
-    **Direction semantics** (for appraisal):
-    - MAXIMIZE, PROMOTE, ENSURE: **positive** — increase/maintain the quality.
-    - MINIMIZE, REDUCE, AVOID:  **negative** — decrease/prevent the quality.
-    - PRESERVE, BALANCE:        **neutral** — stabilize (resist deviation).
-
-    **Commitment semantics** (absolute vs. relative):
-    - Absolute verbs (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, AVOID) express
-      unconditional direction. Appraisal treats them as hard constraints.
-    - Relative verbs (PROMOTE, REDUCE, BALANCE) express best-effort
-      directional intent. Appraisal treats them as soft constraints
-      (satisficed, not optimized).
-
-    **Verb Definitions:**
-    - MAXIMIZE: Drive the quality to its highest feasible level.
-      *e.g., "System MUST MAXIMIZE throughput"*
-    - MINIMIZE: Drive the quality to its lowest feasible level.
-      *e.g., "System MUST MINIMIZE latency"*
-    - PRESERVE: Maintain the quality at its current level; resist change.
-      *e.g., "System MUST PRESERVE backward compatibility"*
-    - BALANCE: Maintain the quality within an acceptable range relative
-      to competing concerns; tolerate bounded deviation.
-      *e.g., "System SHOULD BALANCE cost-efficiency"*
-    - ENSURE: Guarantee the quality is present, satisfied, or holds true.
-      Positive existential guarantee.
-      *e.g., "System MUST ENSURE data integrity"*
-    - AVOID: Guarantee the quality (framed as a negative property) does
-      not manifest. Negative existential guarantee.
-      *e.g., "System MUST AVOID vendor lock-in"*
-      *e.g., "System MUST AVOID data loss"*
-    - PROMOTE: Actively contribute toward increasing the quality, without
-      requiring maximization. Best-effort positive direction.
-      *e.g., "System SHOULD PROMOTE observability"*
-    - REDUCE: Actively contribute toward decreasing the quality, without
-      requiring minimization. Best-effort negative direction.
-      *e.g., "System SHOULD REDUCE operational complexity"*
-
-    **ENSURE vs. AVOID (guarantee pair):**
-    ENSURE and AVOID are logical complements expressing existential
-    guarantees. They differ from directional verbs (MAXIMIZE/MINIMIZE)
-    in that they target a **boolean property** (holds / does not hold)
-    rather than a **scalar magnitude**.
-    - ENSURE(Q) ≡ "Q must hold" (Achieve + Maintain in KAOS terms).
-    - AVOID(Q)  ≡ "Q must not hold" (Avoid in KAOS terms).
-    Some principles are more naturally expressed with AVOID than by
-    reframing the quality positively. Both are valid; AVOID prevents
-    forced quality reframing that can obscure intent.
-
-    **Appraisal Conflict Detection Rules:**
-    Two principles P1, P2 on the same Quality Q conflict when:
-    1) Their **scopes overlap** (see Scope overlap detection), AND
-    2) Their verbs are directionally incompatible:
-       - P1.verb ∈ {MAXIMIZE, PROMOTE, ENSURE} and
-         P2.verb ∈ {MINIMIZE, REDUCE, AVOID} (opposing directions).
-       - P1.verb = ENSURE and P2.verb = AVOID on the same Q
-         (logical contradiction).
-       - P1.verb = PRESERVE and P2.verb ∈ {MAXIMIZE, MINIMIZE}
-         (stability vs. extremization).
-
-    If scopes are **disjoint**, opposing verbs on the same Quality
-    are NOT a conflict — they govern different applicability contexts.
-
-    If one scope **contains** the other (S1 ⊆ S2), the narrower
-    principle specializes the broader one within its scope. This is
-    valid but SHOULD be flagged for review.
-
-    Conflicts are resolved by PrincipleModal (MUST > SHOULD > MAY)
-    and priorityLevel (lower number = higher priority).
-
-    **Theoretical Grounding:**
-    - **KAOS** (van Lamsweerde): {Achieve, Maintain, Avoid, Cease} — 4
-      canonical goal types proven sufficient for formal goal reasoning.
-      GSM's 8 verbs are a strict superset with finer granularity.
-    - **GRL/URN** (ITU-T Z.151): contribution types {Make, Help,
-      SomePositive, Unknown, SomeNegative, Hurt, Break} — comparable
-      gradient from absolute to relative direction.
-    - **NFR Framework** (Chung et al.): {++, +, -, --} softgoal
-      contributions — enables automated conflict detection.
-    - **Deontic logic**: {Obligatory, Permitted, Forbidden} — mapped
-      to PrincipleModal, complementing constrained verbs.
-
-    **Completeness Argument:**
-    Any governance principle expressible in natural language as
-    "<subject> <modal> <verb> <quality>" falls into one of:
-    (a) directional scalar intent → MAXIMIZE/MINIMIZE/PROMOTE/REDUCE,
-    (b) stability intent → PRESERVE/BALANCE,
-    (c) existential guarantee → ENSURE/AVOID.
-    No fourth semantic category exists for quality-directed normative
-    statements. The set is therefore complete.
-  end note
   
   note top of Principle
     An identity-level, long-term normative constraint that defines what the
     system fundamentally is and stands for.
 
-    A Principle is a structured normative sentence:
-      **Subject  Modal  Verb  DirectObject  [IndirectObject]**
-      e.g., "System  MUST  ENSURE  data integrity  across all regions"
+    A Principle is a structured normative sentence encoded in `constraint`
+    (SIE DSL `PrincipleConstraintExpression`):
+      **Subject  Modal  Verb  DirectObject(Quality)  [Applicability]**
+      e.g., "System MUST ENSURE data integrity when jurisdiction = EU"
 
     **Systemic Semantics**:
     - Principles are DEFINED and ENFORCED by Governor controller mechanisms.
@@ -1028,24 +882,91 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       principles of the system without free-form NLP interpretation.
 
     **Attribute Semantics**:
-    - "subject": The system or role to which the principle applies.
-    - "modal": Deontic obligation strength (MUST > SHOULD > MAY).
-    - "verb": Constrained governance verb (see PrincipleVerb).
-    - "directObject": The Quality the principle targets.
-    - "indirectObject": Optional Scope defining where/when the principle
-      applies. Null = universal scope (applies everywhere).
+    - "applicability conditions": Optional SIE DSL LogicalExpression
+      defining where/when the principle applies.
+      - Absent / null = universal applicability.
+      - When present, it SHOULD be expressed as a restricted applicability
+        guard (see below) to keep appraisal deterministic.
+    - "constraint": A JSON-serialized SIE DSL `PrincipleConstraintExpression`
+      that encodes the normative sentence core:
+      Subject × Modal × Verb × DirectObject(Quality).
     - "priorityLevel": Conflict-resolution rank (lower = higher priority).
+
+    **Deterministic applicability (restricted guard form):**
+    To enable deterministic conflict detection, Principle.applicabilityConditions
+    SHOULD be in "applicability guard" normal form:
+    - AndExpression of one or more boolean atoms, where each atom is either:
+      - FunctionCallExpression(functionName="exists", arguments=[ReferenceExpression])
+        (meaning: the referenced applicability axis is present), OR
+      - ComparisonExpression over ReferenceExpression and a LiteralExpression
+        for simple scalar constraints (e.g., axis.flag == true).
+
+    **Allow-listed applicability axes (Principle applicability):**
+    By default, ReferenceExpressions used in Principle applicability SHOULD be
+    restricted to a small set of **stable definitional axes**.
+
+    The default encoding is: reference a **named SystemicPrimitive instance**
+    that represents the axis (e.g., a specific OrganizationalRelationship relation), then
+    use `exists(axisRef)` and/or simple scalar comparisons on that axis.
+
+    Initial allow-list (subject to refinement):
+    - OrganizationalRelationship (party roles, authority aspects)
+    - Modality (environment/mode, e.g., Production vs Staging)
+    - Component (structural presence/absence)
+
+    StateObjectArchetypeReferenceExpression SHOULD NOT be used at Principle level
+    (use Policy/Rule applicability for state-dependent scoping).
+
+    **Validation Rules**:
+    - When Principle.constraint is expressed as a SIE DSL PrincipleConstraintExpression:
+      - constraint.subject MUST be a SystemicPrimitiveSelectorExpression whose name
+        is either System or Role.
+      - constraint.directObject MUST be a SystemicPrimitiveSelectorExpression whose
+        name is Quality.
+
+    *Shape restrictions (restricted guard form):*
+    - applicabilityConditions MUST be either null/absent (universal), OR an
+      AndExpression, OR a single atom (exists(...) / simple comparison).
+    - OrExpression and NotExpression MUST NOT be used in Principle applicability.
+
+    *Allowed atoms:*
+    - FunctionCallExpression(functionName="exists") with exactly one argument.
+      - The argument MUST be a SystemicPrimitiveReferenceExpression.
+      - The reference's propertyPath MUST be empty (axis presence check).
+    - ComparisonExpression with operator EQUALS or NOT_EQUALS.
+      - left MUST be a SystemicPrimitiveReferenceExpression.
+      - right MUST be a LiteralExpression.
+      - The left reference MUST resolve to a scalar primitive property
+        (boolean/string/number), and the literal MUST type-check against it.
+
+    *Forbidden references:*
+    - EventArchetypeReferenceExpression (events are not stable applicability axes).
+    - ContextVariableReferenceExpression (receptor context is Rule-level).
+    - StateObjectArchetypeReferenceExpression (state-dependent scoping is Policy/Rule-level).
+    - SelectorExpression (selection/quantification is Policy/Rule-level).
+
+    *Axis resolution and allow-listing:*
+    - Each SystemicPrimitiveReferenceExpression.name MUST resolve to a
+      SystemicPrimitive instance in the same System definition context.
+    - The resolved primitive's archetype MUST be in the allow-listed axis set:
+      {OrganizationalRelationship, Modality, Component} (extendable).
+    - The resolved primitive SHOULD have definitionStatus = ACTIVE (or equivalent)
+      for it to be considered an applicable axis.
+
+    *Accepted values:*
+    - When a comparison targets an enum-like property, the LiteralExpression
+      value MUST be one of the property's accepted values.
+    - When a comparison targets a boolean property, the LiteralExpression value
+      MUST be boolean.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all principles of the same system.
-    - "directObject" MUST reference a Quality owned by the same system.
-    - "indirectObject", if set, MUST reference scope dimensions owned by
-      the same system, with values from each dimension's allowedValues.
+    - constraint.directObject MUST reference a Quality owned by the same system.
     - Two principles with ENSURE and AVOID on the same Quality with
-      overlapping scopes MUST be flagged as a contradiction.
+      overlapping applicability MUST be flagged as a contradiction.
     - Two principles with opposing verb directions on the same Quality
-      with overlapping scopes MUST be flagged as a conflict.
+      with overlapping applicability MUST be flagged as a conflict.
   end note
 
   SystemicPrimitive <|-- Principle : is
@@ -1056,120 +977,258 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Purpose "1" o--> "0..*" Quality : constrains
 
   ' ============================================================
-  ' SYSTEM GOVERNANCE
+  ' ROLE
   ' ============================================================
 
-  class SystemGovernance {
+  class Role {
     +getName(): String
-    +getSupersystem(): System
-    +getSubsystem(): System
-    +getLifecycleGovernance(): Boolean
-    +getContractEnforcement(): Boolean
-    +getConfigurationAuthority(): Boolean
-    +getSubstitutionAuthority(): Boolean
-    +getViabilityAccountability(): Boolean
-    +getResourceAllocation(): Boolean
-    +getBoundaryInclusion(): Boolean
-    +getPurposeContribution(): Purpose[]
   }
 
-  note top of SystemGovernance
-    Captures the explicit governance relationship between a supersystem and a
-    subsystem. "Subsystem" is not an intrinsic property—it is a relational role
-    defined by governable integration, not by internal control.
+  note top of Role
+    A role is a **relational, positional label** used to name how a System is
+    positioned *in a specific OrganizationalRelationship*.
+    Roles are not intrinsic properties of a System taken in isolation: the same
+    System may play different roles in different relationships (heterarchy).
 
-    A system S is a subsystem of supersystem P if P can govern the *integration
-    relationship* with S — not necessarily S's internals.
-
-    **Systemic Semantics**:
-    - A SystemGovernance makes explicit *why* a system is
-      considered a subsystem of another, capturing which governance levers the
-      supersystem holds over the relationship.
-    - Heterarchy is natural: a system may be a subsystem of multiple
-      supersystems via distinct SystemGovernance instances, each
-      governing different aspects.
-    - The subsystem retains its own identity, boundary, and potentially its own
-      governance — what makes it "sub" is the supersystem's authority over the
-      integration relationship, not over subsystem internals.
+    Roles are used for:
+    - Deterministic relationship classification (derived from the pair of roles
+      + any asserted authority aspects).
+    - Applicability axes for governance intent (e.g., Principles whose
+      constraint.subject selects a Role apply to Systems *when they play that
+      role* in an applicable relationship).
 
     **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the integration.
-    - "supersystem": The system that governs the integration relationship, the
-      owner of this primitive instance.
-    - "subsystem": The system whose integration is governed.
-    - "lifecycleGovernance": Supersystem controls provisioning, versioning,
-      upgrade cadence, or decommissioning of the subsystem.
-    - "contractEnforcement": Supersystem can enforce interaction contracts
-      (interfaces, SLAs, event schemas) on the subsystem.
-    - "configurationAuthority": Supersystem can restrict or mandate subsystem
-      configuration (modes, features, parameters).
-    - "substitutionAuthority": Supersystem can replace the subsystem with an
-      alternative implementation.
-    - "viabilityAccountability": Supersystem is accountable for subsystem
-      viability (incidents in sub are incidents of super).
-    - "resourceAllocation": Supersystem controls resource budgets (compute,
-      memory, rate limits) allocated to the subsystem.
-    - "boundaryInclusion": Subsystem boundary is operationally inside
-      supersystem boundary.
-    - "purposeContribution": Purposes of the supersystem that the subsystem
-      materially contributes to.
+    - "name": Human-readable semantic identifier for the role.
+
+    **Consistency Rules**:
+    - "name" MUST be mandatory and non-empty.
+    - "name" MUST be unique among all Role instances in the same SIE instance.
+    - "name" MUST be maximum 80 characters long.
+
+    **Usage Rules**:
+    - Deterministic relationship classification SHOULD prefer these canonical
+      roles, while tenant/domain-specific nuance SHOULD be expressed via
+      qualifiers (schema-bound) rather than by proliferating ad-hoc roles.
+
+    **Seed Semantics**:
+    The SIE instance initialization populates a global Role table with one row
+    per canonical role. GSM models reference those generic Role instances.
+    These are not a GSM enum on purpose; they are shared Role instances.
+
+    - CUSTOMER:
+      - Pays for / commissions value delivery.
+      - May or may not be the direct user of interfaces.
+
+    - CONSUMER:
+      - Direct user of a capability/interface.
+      - May be distinct from CUSTOMER (e.g., buyer vs end-user).
+
+    - SUPPLIER:
+      - Provides a good/service/capability to another system.
+      - Typically upstream in a dependency chain.
+
+    - PROVIDER:
+      - Exposes an interface/capability that another system depends on.
+      - Used when the relationship is primarily about service provision, not procurement.
+
+    - VENDOR:
+      - A SUPPLIER in a commercial/procurement framing (pricing, licensing, SLAs).
+      - Use when contract-enforcement semantics are expected to be salient in DSM evidence.
+
+    - PARTNER:
+      - Peer collaboration for mutual benefit (non-hierarchical intent).
+      - Authority aspects may still exist, but should be justified and appraised for coherence.
+
+    - SPONSOR:
+      - Funds and authorizes an initiative/integration.
+      - Typically sets priorities/constraints without operating day-to-day.
+
+    - BENEFICIARY:
+      - Receives outcomes/value but is not necessarily a direct interface consumer.
+
+    - OWNER:
+      - Accountable for the lifecycle and correctness of a defined integration/asset.
+      - Often paired with authority aspects like LIFECYCLE_GOVERNANCE.
+
+    - STEWARD:
+      - Custodian of definitional integrity (quality, coherence, policy compliance) over time.
+      - Focuses on governance quality rather than execution.
+
+    - MAINTAINER:
+      - Performs changes/maintenance to keep the relationship/integration functional.
+      - May be internal or external; do not assume authority by default.
+
+    - OPERATING_UNIT:
+      - Runs day-to-day operations (a team/organization-as-system).
+      - Often relevant for internal relationships and accountability mapping.
+
+    - INTERNAL_UNIT:
+      - Counterparty is internal to the broader organization/ecosystem boundary.
+      - Use when “internal vs external” is the salient positional distinction.
+
+    - GOVERNING_AUTHORITY:
+      - Imposes constraints and may approve/audit (e.g., regulator, platform governance).
+      - Typically paired with authority aspects like CONTRACT_ENFORCEMENT or CONFIGURATION_AUTHORITY.
+
+    - GOVERNED_SUBJECT:
+      - Target of governance constraints imposed by a GOVERNING_AUTHORITY.
+
+    - AUDITOR:
+      - Independent assessor of conformance/compliance.
+      - Should not be conflated with GOVERNING_AUTHORITY (audit vs mandate).
+
+    - CERTIFYING_AUTHORITY:
+      - Issues attestations/certifications that affect eligibility or trust.
+      - Often interacts via evidence flows rather than operational control.
+
+    - HOST:
+      - Provides hosting/execution substrate to another system (compute, network, runtime).
+      - Common in platform relationships; may imply RESOURCE_ALLOCATION authority aspects.
+
+    - TENANT:
+      - Occupies/uses shared HOST resources under constraints.
+      - Salient when the relationship is about isolation, quotas, and shared substrate rules.
+
+    - INTEGRATOR:
+      - Composes/integrates other systems into a larger system-of-systems.
+      - Often paired with authority aspects like BOUNDARY_INCLUSION or SUBSTITUTION_AUTHORITY.
+
+    - INTEGRATED_COMPONENT:
+      - A system being integrated by an INTEGRATOR (component-from-integrator perspective).
+  end note
+
+  SystemicPrimitive <|-- Role : is
+
+  ' ============================================================
+  ' ORGANIZATIONAL RELATIONSHIP
+  ' ============================================================
+
+  class OrganizationalRelationship {
+    +getDefiningSystem(): System
+    +getCounterpartySystem(): System
+    +getDefiningSystemRole(): Role
+    +getCounterpartyRole(): Role
+  }
+
+  note top of OrganizationalRelationship
+    Captures an organizational relationship between two systems.
+
+    **Systemic Semantics**:
+    - The relationship is defined **from the perspective of the defining
+      system** (the owner in the system definition context). The counterparty
+      system is the other endpoint.
+    - Any counterparty (customer group, partner org, regulator, team, community)
+      is modeled as a **System** (including social/ organizational systems). This
+      preserves GSM's "everything is a System" coherence and avoids mixing
+      system-to-non-system semantics.
+    - This asymmetry is deliberate: each party may define its own relationship
+      instance (with its own roles and asserted authority aspects). When both
+      parties agree, the two instances are coherent (reciprocal views). When
+      they disagree, conformance appraisal flags drift.
+    - Heterarchy is natural: a system may have many organizational
+      relationships with many counterparties (and even multiple relationships
+      with the same counterparty under different kinds/roles).
+
+    **Attribute Semantics**:
+    - "name": Human-readable semantic identifier for the relationship.
+    - "definingSystem": The system that defines this relationship in its own
+      definition context (the owner of this primitive instance).
+    - "counterpartySystem": The other endpoint system.
+    - "definingSystemRole": The Role assigned by the defining system's
+      perspective, describing how it positions itself in this relationship.
+    - "counterpartyRole": The Role assigned by the defining system's
+      perspective, describing how it positions the counterparty.
 
     **Derivation Rules**:
-    - If ALL governance booleans are false AND purposeContribution is empty,
-      the relation SHOULD be reconsidered: S may be an external dependency
-      rather than a subsystem.
+    - A relationship expresses a governance posture when its role pair encodes
+      governance asymmetry (e.g., GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT), or
+      when its qualifiers declare governance intent.
+    - A relationship expresses non-governance posture when roles encode a
+      symmetric/market posture (e.g., PARTNER ↔ PARTNER, CUSTOMER ↔ VENDOR),
+      optionally refined by qualifiers.
 
-    **Examples** (Software Application as supersystem):
+    **Examples** (Software Application as defining system):
 
-    1. *OS as subsystem*:
-       - substitutionAuthority: true (app decides which OS to support)
-       - contractEnforcement: true (app defines required OS API contract)
-       - configurationAuthority: true (app may mandate OS settings)
-       - viabilityAccountability: true (OS failure = app failure)
-       - purposeContribution: [Execution Platform]
+     1. *Hosting posture* (resource allocation / inclusion):
+       - definingSystemRole: HOST
+       - counterpartyRole: TENANT
+       - qualifiers MAY encode quotas, isolation model, inclusion scope.
 
-    2. *VM/Container Runtime as subsystem*:
-       - resourceAllocation: true (app defines resource requests/limits)
-       - boundaryInclusion: true (VM hosts the app boundary)
-       - substitutionAuthority: true (app can target different runtimes)
-       - viabilityAccountability: true (runtime failure = app failure)
-       - purposeContribution: [Execution Platform]
+     2. *Governance posture* (mandate / enforcement):
+       - definingSystemRole: GOVERNING_AUTHORITY
+       - counterpartyRole: GOVERNED_SUBJECT
+       - qualifiers MAY encode what is governed (interfaces, configs, domains).
 
-    3. *IT RUN Team as subsystem*:
-       - lifecycleGovernance: true (app defines release/deploy cadence)
-       - contractEnforcement: true (app defines SLAs, runbooks)
-       - viabilityAccountability: true (ops incidents = app incidents)
-       - purposeContribution: [Operational Continuity]
+     3. *Integration posture* (lifecycle / substitution intent):
+       - definingSystemRole: INTEGRATOR
+       - counterpartyRole: INTEGRATED_COMPONENT
+       - qualifiers MAY encode lifecycle scope and substitution intent.
 
-    4. *Library as subsystem*:
-       - lifecycleGovernance: true (app controls version upgrades)
-       - substitutionAuthority: true (app can swap implementations)
-       - contractEnforcement: true (app defines expected API)
-       - boundaryInclusion: true (library runs inside app boundary)
-       - purposeContribution: [specific functional purposes]
+     4. *Commercial posture*:
+       - definingSystemRole: CUSTOMER
+       - counterpartyRole: VENDOR
 
-    These examples illustrate that "subsystem" is defined by *who governs the
-    integration*, not by relative size or abstraction layer.
+     5. *Peer collaboration posture*:
+       - definingSystemRole: PARTNER
+       - counterpartyRole: PARTNER
+
+    These examples illustrate that "subsystem" and other relational
+    interpretations are derived from role pairs + qualifiers, while the
+    primitive itself stays generic.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
-    - "supersystem" MUST be defined.
-    - "subsystem" MUST be defined.
-    - "supersystem" MUST NOT be the same as "subsystem".
-    - At least one governance lever (lifecycleGovernance, contractEnforcement,
-      configurationAuthority, substitutionAuthority, viabilityAccountability,
-      resourceAllocation, boundaryInclusion) MUST be true, OR
-      purposeContribution MUST NOT be empty.
-    - A system MUST NOT have an SystemGovernance where it is both
-      supersystem and subsystem (no direct self-loops).
-    - Cycles in SystemGovernance chains are allowed (heterarchy),
+    - "definingSystem" MUST be defined.
+    - "counterpartySystem" MUST be defined.
+    - "definingSystem" MUST NOT be the same as "counterpartySystem".
+    - "definingSystemRole" MUST be defined.
+    - "counterpartyRole" MUST be defined.
+    - "definingSystemRole" and "counterpartyRole" MUST resolve to Role
+      instances available in the same SIE instance.
+    - For deterministic classification, both roles SHOULD be canonical roles
+      (DB-seeded shared Role instances), unless an explicit domain/tenant
+      extension is required (expressed via qualifiers).
+
+    **Canonical role pairing validation rules (deterministic hints):**
+    The role pair SHOULD be compatible with the canonical posture it implies.
+    These are validation/appraisal rules intended to keep relationship
+    classification deterministic without introducing a stored "kind" enum.
+
+    - If definingSystemRole is HOST, counterpartyRole SHOULD be TENANT.
+    - If definingSystemRole is TENANT, counterpartyRole SHOULD be HOST.
+
+    - If definingSystemRole is INTEGRATOR, counterpartyRole SHOULD be
+      INTEGRATED_COMPONENT.
+    - If definingSystemRole is INTEGRATED_COMPONENT, counterpartyRole SHOULD be
+      INTEGRATOR.
+
+    - If definingSystemRole is GOVERNING_AUTHORITY, counterpartyRole SHOULD be
+      GOVERNED_SUBJECT.
+    - If definingSystemRole is GOVERNED_SUBJECT, counterpartyRole SHOULD be
+      GOVERNING_AUTHORITY.
+
+    **Validation behavior:**
+    - If these checks fail, the Definition Manager SHOULD emit a coherence
+      appraisal finding (warning) rather than block persistence, because the
+      relationship primitive remains intentionally general.
+    - **Role/qualifier coherence (appraisal rule):** the role configuration
+      SHOULD be semantically compatible with any qualifiers that assert
+      governance intent. If roles imply "peer" symmetry but qualifiers assert
+      unilateral mandate, this SHOULD be flagged for review.
+    - **Reciprocity representation:** if both parties assert governance intent,
+      this MUST be represented as two OrganizationalRelationship instances, one
+      from each system's defining perspective (reciprocal views).
+    - A system MUST NOT have an OrganizationalRelationship where it is both
+      definingSystem and counterpartySystem (no direct self-loops).
+    - Cycles in OrganizationalRelationship chains are allowed (heterarchy),
       but SHOULD be flagged for review if they form tight loops.
   end note
 
-  SystemicPrimitive <|-- SystemGovernance : is
-  SystemGovernance "0..*" o--> "1" System : supersystem
-  SystemGovernance "0..*" o--> "1" System : subsystem
-  SystemGovernance "0..*" o--> "0..*" Purpose : contributesTo
+  SystemicPrimitive <|-- OrganizationalRelationship : is
+  OrganizationalRelationship "0..*" o--> "1" System : definingSystem
+  OrganizationalRelationship "0..*" o--> "1" System : counterpartySystem
+  OrganizationalRelationship "0..*" o--> "1" Role : definingSystemRole
+  OrganizationalRelationship "0..*" o--> "1" Role : counterpartyRole
 
   ' ============================================================
   ' GOVERNOR
@@ -1219,7 +1278,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     lifecycle. This is authority, not structural composition: PPRC
     artifacts are not destroyed when the Regulator mechanism definition
     changes. The generative direction is the reverse: PPRC definitions
-    → auto-define Mechanism definitions (via the Definition Manager's
+    → auto-define Mechanism definitions (via the Regulation function's
     auto-definition rule), not Mechanism → PPRC.
 
     **Consistency Rules**:
@@ -1343,7 +1402,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   abstract class Policy {
-    +getName(): String
     +getApplicabilityConditions(): String
     +getConstraint(): String
     +getPrinciples(): Principle[]
@@ -1378,7 +1436,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - STATE (External): Actual systems emit metrics consumed by SIE
 
     **Attribute Semantics**:
-    - "name": Human-readable semantic identifier.
     - "applicability conditions": A logical expression that must evaluate to
       true for the policy to be applicable to the system.
     - "constraint": A declarative expression of the constraint imposed by the
@@ -1438,8 +1495,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
        - Count matching state objects and evaluate the bounds.
 
     **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all policies of the same system.
     - A policy MUST have at least one principle.
 
     **Policy → Principle Direction Coherence Rules:**
@@ -1514,6 +1569,129 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - SHOULD vs SHOULD → advisory (review recommended).
     - MAY vs anything → no conflict (MAY is permissive).
 
+    **Deterministic Policy importance (DB-seeded presets rule):**
+    The Definition Database seeds default Principle/Policy presets. To avoid
+    storing a separate, drift-prone Policy priority, a Policy's effective
+    importance is derived deterministically from the Principle(s) it
+    operationalizes:
+    - effectiveModal = max(Principle.modal) over operationalized Principles
+      (MUST dominates SHOULD dominates MAY; MUST_NOT dominates SHOULD_NOT).
+    - effectivePriorityLevel = min(Principle.priorityLevel) over operationalized
+      Principles (lower number = higher priority).
+    This derived importance is used to order deterministic conflict resolution
+    between policies (and to qualify the severity of principle–policy
+    incoherence findings).
+
+    **Conflict-resolution strategy as DB-seeded meta-policies (runtime configuration):**
+    SIE's Definition Manager and resolvers need deterministic behavior when
+    appraising and resolving conflicts (Principle↔Policy, Policy↔Policy, etc.).
+    Rather than hard-coding those choices, SIE treats conflict-resolution
+    strategy as **SIE self-governance**: it is defined by DB-seeded preset
+    Policy instances owned by the **SIE system definition**.
+
+    These preset policies are not tenant-domain constraints; they configure how
+    SIE performs *coherence appraisal* and *deterministic resolution*.
+
+    **Preset specification (normative):**
+    - Each resolver MUST load the active preset(s) and apply them consistently
+      for a given system definition snapshot.
+    - Presets MUST be deterministic (no state-object selectors, no non-deterministic
+      functions) so that two resolvers produce identical outcomes.
+    - Preset changes are Definition-plane changes: they are versioned and appraised
+      like any other governance definition.
+
+    **Default preset set (seeded by Definition DB):**
+    - Policy `SIE_CONFLICT_RESOLUTION_ORDER_V1` (StructuralPolicy):
+      Defines the tie-break order for comparing two conflicting constraints.
+      Default order:
+        1) effectiveModal (MUST/MUST_NOT > SHOULD/SHOULD_NOT > MAY)
+        2) effectivePriorityLevel (lower wins)
+        3) applicability specificity (narrower scope wins when comparable)
+        4) PPRC layer precedence (Principle > Policy > Rule > Control)
+        5) stable fallback (UUID lexical order) with advisory flag
+
+      **Policy.constraint (SIE DSL AST JSON example):**
+      ```json
+      {
+        "type": "ResolverPresetPolicyConstraint",
+        "presetId": "SIE_CONFLICT_RESOLUTION_ORDER_V1",
+        "spec": {
+          "type": "LiteralExpression",
+          "value": {
+            "tieBreakOrder": [
+              "effectiveModal",
+              "effectivePriorityLevel",
+              "applicabilitySpecificity",
+              "pprcLayerPrecedence",
+              "stableFallback"
+            ],
+            "stableFallback": {
+              "strategy": "UUID_LEXICAL",
+              "emitAdvisory": true
+            }
+          }
+        }
+      }
+      ```
+
+    - Policy `SIE_PRINCIPLE_POLICY_INCOHERENCE_HANDLING_V1` (StructuralPolicy):
+      Defines what happens when a Policy conflicts with an applicable Principle.
+      Default handling:
+        - If Principle effectiveModal is MUST/MUST_NOT → block activation of the
+          incoherent Policy (hard conflict).
+        - If Principle effectiveModal is SHOULD/SHOULD_NOT → allow activation but
+          emit warning + remediation recommendation (soft conflict).
+        - If Principle effectiveModal is MAY → advisory only.
+
+      **Policy.constraint (SIE DSL AST JSON example):**
+      ```json
+      {
+        "type": "ResolverPresetPolicyConstraint",
+        "presetId": "SIE_PRINCIPLE_POLICY_INCOHERENCE_HANDLING_V1",
+        "spec": {
+          "type": "LiteralExpression",
+          "value": {
+            "handling": {
+              "MUST": "BLOCK_POLICY_ACTIVATION",
+              "MUST_NOT": "BLOCK_POLICY_ACTIVATION",
+              "SHOULD": "ALLOW_WITH_WARNING",
+              "SHOULD_NOT": "ALLOW_WITH_WARNING",
+              "MAY": "ADVISORY_ONLY"
+            },
+            "emitRemediationRecommendation": true
+          }
+        }
+      }
+      ```
+
+    - Policy `SIE_POLICY_CONFLICT_SEVERITY_MAPPING_V1` (StructuralPolicy):
+      Defines severity mapping for Policy↔Policy conflicts using the operationalized
+      Principles' modals (MUST vs MUST = error; MUST vs SHOULD = warning; etc.).
+
+      **Policy.constraint (SIE DSL AST JSON example):**
+      ```json
+      {
+        "type": "ResolverPresetPolicyConstraint",
+        "presetId": "SIE_POLICY_CONFLICT_SEVERITY_MAPPING_V1",
+        "spec": {
+          "type": "LiteralExpression",
+          "value": {
+            "severityMatrix": {
+              "MUST": { "MUST": "ERROR", "SHOULD": "WARNING", "MAY": "NONE" },
+              "SHOULD": { "MUST": "WARNING", "SHOULD": "ADVISORY", "MAY": "NONE" },
+              "MAY": { "MUST": "NONE", "SHOULD": "NONE", "MAY": "NONE" }
+            },
+            "mustNotDominatesShouldNot": true
+          }
+        }
+      }
+      ```
+
+    **Representation note (implementation guidance):**
+    The preset policies' `constraint` SHOULD be expressed as the dedicated SIE DSL
+    `ResolverPresetPolicyConstraint` AST format, so that resolvers can interpret
+    them without free-form text.
+
     **Operationalizes Link Validation Rules:**
     The `operationalizes` link between a Policy and its Principle(s) is
     subject to three deterministic validation checks at persistence time.
@@ -1547,9 +1725,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       → walk quality-influence edges → must reach Principle.directObject.
     - InvariantConstraint: extract all ReferenceExpressions from condition
       → resolve each to a primitive → walk as above.
-    - CardinalityConstraint: target selector archetype → resolve to
+    - CardinalityConstraint: target selector name → resolve to
       primitive type → walk as above.
-    - DependencyConstraint: dependent/dependency selector archetypes →
+    - DependencyConstraint: dependent/dependency selector names →
       resolve to primitive types → walk as above.
 
     **Behavior:**
@@ -1559,33 +1737,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       quality-influence graph may be incomplete at definition time.
     - Multiple paths found → pass (redundancy is acceptable).
 
-    *Check 3 — Scope containment:*
-    When the operationalized Principle has an indirectObject (Scope),
-    the Policy's applicabilityConditions MUST be satisfiable only
-    within the Principle's scope. Formally:
+    *Check 3 — Applicability containment:*
+    When the operationalized Principle declares applicability conditions,
+    the Policy's applicabilityConditions MUST be satisfiable only within
+    the Principle's applicability. Informally: Policy guard MUST NOT
+    allow contexts where the Principle does not apply.
 
-    For every ScopeBinding B in Principle.indirectObject.bindings:
-      If the Policy.applicabilityConditions references the same dimension
-      (directly or via a mapped attribute), then the set of values
-      allowed by the Policy guard MUST be a subset of B.values.
-
-    If the Policy guard allows evaluation contexts OUTSIDE the
-    Principle's scope, the Policy cannot fully operationalize that
-    Principle — it would enforce a constraint in contexts where the
-    Principle does not apply.
+    This check has two parts:
+    - **Guard containment (structural):** If the Principle's
+      applicabilityConditions is in restricted "applicability guard" form,
+      the Policy's applicabilityConditions MUST be a subset of it over the
+      same allow-listed applicability axes.
 
     **Detection levels:**
-    - **Structural (deterministic):** When applicabilityConditions
-      contains ComparisonExpressions on attributes that map to
-      ScopeDimensions (e.g., `environment == "production"`), the engine
-      extracts the allowed values and checks containment against the
-      Principle's scope bindings. Subset → pass. Superset → warning.
-      Disjoint → error (Policy cannot operationalize this Principle
-      in any context where the Principle applies).
-    - **Undecidable cases:** When the guard uses complex expressions
-      (arithmetic, function calls, cross-references) that cannot be
-      statically resolved to scope dimension values, the engine emits
-      an advisory: "scope containment could not be verified
+    - **Structural (deterministic):** When both Principle and Policy
+      guards are in restricted "applicability guard" form (And of simple
+      existence predicates over allow-listed axes), the engine extracts
+      the required axis predicates and checks set containment. Subset → pass.
+      Superset → warning. Disjoint → error (Policy cannot operationalize
+      the Principle in any applicable context).
+    - **Undecidable cases:** When either guard uses complex expressions
+      (arithmetic, function calls, cross-references), the engine emits an
+      advisory: "applicability containment could not be verified
       statically".
 
     **Severity summary for all three checks:**
@@ -1593,7 +1766,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     |-------|------|----------------------|---------------|-------------|
     | Direction coherence | silent | error (blocks) | warning | n/a |
     | Metric→Quality path | silent | warning | warning | advisory |
-    | Scope containment | silent | error (disjoint) / warning (superset) | warning | advisory |
+    | Applicability containment | silent | error (disjoint) / warning (superset) | warning | advisory |
 
   end note
 
@@ -1752,17 +1925,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getControlSequence(): Control[]
   }
 
-  enum RuleStatus {
-    DRAFT
-    PROPOSED
-    APPROVED
-    REJECTED
-    PUBLISHED
-    INTEGRATED
-    SUSPENDED
-    DEPRECATED
-  }
-
   note top of Rule
     A behavioral rule is a constraint over the system's behavioral properties:
     how the system acts over time via mechanisms, sensors, and effectors.
@@ -1817,18 +1979,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - A Rule MUST apply at least one Policy (of any type: FunctionalPolicy,
       ViabilityPolicy, or StructuralPolicy). Each subtype is optional (0..*),
       but the union MUST NOT be empty.
-    - "scope" MUST be compatible with the policies' scope.
+    - Rule.scopedFunctions and Rule.scopedModalities MUST be compatible with
+      the applied policies' scopes (see Scoping Coherence Rules).
     - "trigger" MUST reference an event archetype defined in the same system.
 
-    **Scope Coherence Rules (Regulation coherence appraisal)**:
+    **Scoping Coherence Rules (Regulation coherence appraisal)**:
     - Rule.scopedFunctions[*].serves MUST be a subset of
       Rule.applyingFunctionalPolicies[*].scopedPurposes.
       (A Rule MUST NOT scope Functions that serve Purposes outside
-      its applied FunctionalPolicies' scope.)
+      its applied FunctionalPolicies' scopedPurposes.)
     - Rule.scopedModalities[*].enables MUST be a subset of
       Rule.applyingViabilityPolicies[*].scopedCapacities.
       (A Rule MUST NOT scope Modalities that enable Capacities outside
-      its applied ViabilityPolicies' scope.)
+      its applied ViabilityPolicies' scopedCapacities.)
     - Violations are coherence appraisal findings in the Regulation plane.
 
     **Mechanism Auto-Definition Rule (Definition Manager)**:
@@ -2377,7 +2540,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     A mechanism's label is determined by its function relative to the system
     scope it governs. A Governor in one system may be an Operator from a
     supersystem's perspective (heterarchy; second-order observer dependence
-    — von Foerster). This is consistent with SystemGovernance.
+    — von Foerster). This is consistent with OrganizationalRelationship.
 
     **Layer and plane placement:**
     - Governor belongs to the **Governance plane** (Reflexive Layer).

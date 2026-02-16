@@ -2,15 +2,73 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Principle.json",
   "title": "Principle (GSM v1)",
-  "description": "Identity-level, long-term normative constraint that defines system identity.",
+  "description": "Identity-level, long-term normative constraint over system identity and qualities.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "status", "statement"],
+  "required": [
+    "name",
+    "status",
+    "subject",
+    "modal",
+    "verb",
+    "directObject"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "status": { "$ref": "sie://schemas/gsm/v1/PrincipleStatus.json" },
-    "statement": { "type": "string", "description": "Normative principle statement (may be non-measurable)." }
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "status": {
+      "$ref": "sie://schemas/gsm/v1/PrincipleStatus.json"
+    },
+    "subject": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
+      "description": "Reference to the System or Role to which the principle applies. (Union not enforced in JSON Schema v1.)"
+    },
+    "modal": {
+      "type": "string",
+      "enum": [
+        "MUST",
+        "MUST_NOT",
+        "SHOULD",
+        "SHOULD_NOT",
+        "MAY"
+      ],
+      "description": "Deontic obligation strength."
+    },
+    "verb": {
+      "type": "string",
+      "enum": [
+        "MAXIMIZE",
+        "MINIMIZE",
+        "PRESERVE",
+        "BALANCE",
+        "ENSURE",
+        "AVOID",
+        "PROMOTE",
+        "REDUCE"
+      ],
+      "description": "Constrained governance verb operating on the directObject quality."
+    },
+    "directObject": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
+      "description": "Reference to a Quality owned by the same System."
+    },
+    "applicabilityConditions": {
+      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
+      "description": "Optional applicability guard (SIE DSL LogicalExpression JSON AST). Absent/null means universal applicability. Recommended restricted form: conjunction of simple existence predicates over allow-listed ReferenceExpressions (e.g., exists(reference)), optionally combined with simple scalar comparisons on those references (e.g., axis.flag == true)."
+    },
+    "priorityLevel": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Conflict resolution rank (lower = higher priority)."
+    },
+    "statement": {
+      "type": "string",
+      "description": "Optional human-readable rendering of the principle. Non-normative: should be derivable from structured fields; must not be used as executable semantics."
+    }
   }
 }

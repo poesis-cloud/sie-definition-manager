@@ -40,7 +40,7 @@ end note
 
 package "Definition Plane" as DefPlane #E8F4E8 {
   package "Definition DB\n(primitive invariants + storage)" as SDM #E8F4E8 {
-    [Compilation\n(GSM-DSL → CEL)] as Compiler
+    [Compilation\n(SIE DSL → CEL)] as Compiler
     [Governor\n(owns Policies)\n(Emergence + Decision)] as Governor
     [Supervisor\n(owns Rules)\n(Adaptation)] as Supervisor
     [Coherence\n(coherence + feasibility)\n(owned by Governor)] as Coherence

@@ -4,29 +4,70 @@
   "title": "Rule (GSM v1)",
   "description": "Constraint over system behavioral properties; operationalizes policies and defines an ordered control sequence.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "status", "triggeringReceptor", "applicabilityConditions", "iterationConditions", "controlSequence"],
+  "required": [
+    "name",
+    "status",
+    "triggeringReceptor",
+    "applicabilityConditions",
+    "iterationConditions",
+    "controlSequence"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "status": { "$ref": "sie://schemas/gsm/v1/RuleStatus.json" },
-
-    "applyingFunctionalPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "applyingViabilityPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "applyingStructuralPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "scopedFunctions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "scopedModalities": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "triggeringReceptor": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-
-    "applicabilityConditions": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/LogicalExpression" },
-    "iterationConditions": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/LogicalExpression" },
-
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "status": {
+      "$ref": "sie://schemas/gsm/v1/RuleStatus.json"
+    },
+    "applyingFunctionalPolicies": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "applyingViabilityPolicies": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "applyingStructuralPolicies": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "scopedFunctions": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "scopedModalities": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "triggeringReceptor": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    },
+    "applicabilityConditions": {
+      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression"
+    },
+    "iterationConditions": {
+      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression"
+    },
     "controlSequence": {
       "type": "array",
-      "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
       "description": "Ordered references to Control primitives."
     }
   }

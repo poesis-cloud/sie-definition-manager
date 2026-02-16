@@ -4,13 +4,25 @@
   "title": "ModificationActuationControl (GSM v1)",
   "description": "Control that defines new state for a StateObjectArchetype using a selector.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/Control.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/Control.json"
+    }
   ],
   "type": "object",
-  "required": ["stateObjectArchetype", "stateObjectSourceMapping", "stateObjectSelector"],
+  "required": [
+    "stateObjectArchetype",
+    "stateObjectSourceMapping",
+    "stateObjectSelector"
+  ],
   "properties": {
-    "stateObjectArchetype": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-    "stateObjectSourceMapping": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/SourceMappingExpression" },
-    "stateObjectSelector": { "$ref": "sie://schemas/gsm-dsl/v1/Expression.json#/definitions/SelectorExpression" }
+    "stateObjectArchetype": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    },
+    "stateObjectSourceMapping": {
+      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/SourceMappingExpression"
+    },
+    "stateObjectSelector": {
+      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/SelectorExpression"
+    }
   }
 }

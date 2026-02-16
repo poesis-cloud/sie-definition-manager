@@ -52,7 +52,7 @@ note right of Scope
   Sources:
   - Systems Theory (boundary, environment)
   - ISO/IEC 42010 (concern/viewpoint scope)
-  - CSDSL applicabilityConditions/selectors
+  - SIE DSL applicabilityConditions/selectors
 end note
 
 class Priority {
@@ -79,14 +79,14 @@ note right of ObjectTarget
 end note
 
 class ConstraintType {
-  +ThresholdConstraint
-  +InvariantConstraint
-  +DependencyConstraint
-  +CardinalityConstraint
+  +ThresholdPolicyConstraint
+  +InvariantPolicyConstraint
+  +DependencyPolicyConstraint
+  +CardinalityPolicyConstraint
 }
 
 note right of ConstraintType
-  Source: CSDSL constraint taxonomy
+  Source: SIE DSL constraint taxonomy
 end note
 
 @enduml
