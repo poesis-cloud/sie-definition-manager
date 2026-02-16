@@ -236,6 +236,74 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     reason over definitions, detect definition–reality mismatch, and
     produce remediation or evolutionary change — autonomously.
 
+    **GSM and the two appraisal types (Norm Appraisal / Form Appraisal)**
+
+    The definition–description duality creates two distinct appraisal
+    boundaries, each with its own coherence dimensions. GSM structures
+    serve as the normative reference for both.
+
+    **Norm Appraisal** — appraisal of the form of norms.
+    Boundary: definition ↔ definition (intra-normative).
+    Question: "Are our norms sound?"
+
+    GSM structures that enable Norm Appraisal:
+    - **Principle ↔ Quality**: verb direction, scope overlap/containment,
+      and priority enable deterministic conflict detection between
+      Principles (consistency).
+    - **Policy → Principle**: direction coherence (constraint operator vs.
+      verb), metric→Quality path tracing, and scope containment enable
+      checking that Policies correctly operationalize their Principles
+      (adequacy).
+    - **Policy ↔ Policy**: constraint type–specific conflict detection
+      (infeasible threshold ranges, contradictory invariants, cardinality
+      impossibilities) (consistency).
+    - **Rule → Policy coverage**: every active Policy should have
+      implementing Rules; every Rule must apply at least one Policy
+      (completeness).
+    - **PPRC chain integrity**: the full Principle → Policy → Rule →
+      Control chain is structurally traversable, enabling end-to-end
+      coherence verification of the normative stack.
+
+    Norm Appraisal is executed by the Governance and Regulation planes
+    (Reflexive Layer). It operates entirely within GSM — no DSM input
+    is required.
+
+    **Form Appraisal** — appraisal of the form of reality.
+    Boundary: definition ↔ reality (trans-normative).
+    Question: "Is reality well-formed per our norms?"
+
+    GSM structures that serve as the normative reference for Form
+    Appraisal:
+    - **Mechanism definition ↔ observed behavior**: Rules and Controls
+      define what a Mechanism MUST do; DSM observes what Mechanisms
+      actually do. Deviation between definition and observation is a
+      Form Appraisal finding (fidelity).
+    - **StateObjectArchetype ↔ observed state**: GSM defines the
+      expected structure and constraints of state objects; DSM observes
+      actual state object instances. Missing, malformed, or uncovered
+      state objects produce findings (coverage).
+    - **Policy constraints ↔ measured metrics**: ThresholdPolicyConstraint,
+      InvariantPolicyConstraint, CardinalityPolicyConstraint, and
+      DependencyPolicyConstraint define the normative envelope; DSM
+      measures reality against those constraints. Violations are Form
+      Appraisal findings (fidelity); trend toward or away from the
+      normative envelope is tracked (convergence).
+    - **Actuation feedback loop**: Actuator/Sensor auto-definitions
+      close the observation loop for each Actuation, enabling Form
+      Appraisal to verify that actuations produced their intended
+      state-plane effects.
+
+    Form Appraisal is executed by the Supervision plane (Reflexive
+    Layer). It requires both GSM (definitions) and DSM (observations)
+    as inputs.
+
+    Neither appraisal type is a process sub-type — they are coherence
+    evaluations distinguished by *where* coherence is checked (within
+    norms vs. between norms and reality). The coherence *dimensions*
+    (consistency/completeness/adequacy for Norm; fidelity/coverage/
+    convergence for Form) are evaluation criteria within each appraisal,
+    not separate processes.
+
     **Specification: no free-form description fields**
 
     GSM primitives MUST NOT define free-form `description` fields as semantic
