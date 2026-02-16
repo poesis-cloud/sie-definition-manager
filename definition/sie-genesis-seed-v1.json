@@ -1,0 +1,4219 @@
+{
+    "_metadata": {
+        "name": "SIE Genesis Seed",
+        "version": "1.0.0",
+        "description": "Axiomatic genesis definitions for the Systemic Intelligence Engine. Contains the SIE system definition with all norm appraisal checkpoints modeled as PPRC chains, governance mechanisms, and supporting primitives. These seeds are owned by the SIE system definition and are immutable to tenant definitions.",
+        "immutabilityPolicy": "Owned by SIE system definition. Tenant definitions MUST NOT modify, override, or delete genesis seed primitives. Seed ownership is enforced by the Definition Manager via system-level access control.",
+        "uuidScheme": "Deterministic UUIDs in 00000000-0000-0000-XXXX-YYYYYYYYYYYY range. XXXX = primitive category code, YYYYYYYYYYYY = sequence number within category.",
+        "categories": {
+            "0000": "System",
+            "0001": "Type",
+            "0010": "Purpose",
+            "0011": "Quality",
+            "0012": "Capacity",
+            "0013": "Modality",
+            "0020": "Function",
+            "0030": "Principle",
+            "0031": "StructuralPolicy",
+            "0040": "Rule",
+            "0041": "Control",
+            "0050": "Mechanism",
+            "0060": "Component",
+            "0070": "EventArchetype",
+            "0071": "StateObjectArchetype",
+            "0080": "Receptor",
+            "0081": "Effector",
+            "00a0": "Actuation",
+            "00b0": "ArchetypeSchema"
+        },
+        "checkpointIndex": {
+            "NA-PRIN-01": {
+                "dimension": "CONSISTENCY",
+                "severity": "ERROR",
+                "trigger": "Principle",
+                "description": "Principle conflict detection"
+            },
+            "NA-PRIN-02": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Principle",
+                "description": "Principle applicability guard validation"
+            },
+            "NA-POL-01": {
+                "dimension": "ADEQUACY",
+                "severity": "ERROR",
+                "trigger": "Policy",
+                "description": "Policy direction coherence"
+            },
+            "NA-POL-02": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Policy",
+                "description": "Policy metric-to-quality path tracing"
+            },
+            "NA-POL-03": {
+                "dimension": "ADEQUACY",
+                "severity": "ERROR",
+                "trigger": "Policy",
+                "description": "Policy applicability containment"
+            },
+            "NA-POL-04": {
+                "dimension": "CONSISTENCY",
+                "severity": "ERROR",
+                "trigger": "Policy",
+                "description": "Policy conflict detection"
+            },
+            "NA-POL-05": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Policy",
+                "description": "FunctionalPolicy purpose grounding"
+            },
+            "NA-POL-06": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Policy",
+                "description": "ViabilityPolicy capacity grounding"
+            },
+            "NA-POL-07": {
+                "dimension": "ADEQUACY",
+                "severity": "ERROR",
+                "trigger": "Policy",
+                "description": "StructuralPolicy component grounding"
+            },
+            "NA-POL-08": {
+                "dimension": "COMPLETENESS",
+                "severity": "WARNING",
+                "trigger": "Policy",
+                "description": "Policy operationalization coverage"
+            },
+            "NA-RULE-01": {
+                "dimension": "COMPLETENESS",
+                "severity": "ERROR",
+                "trigger": "Rule",
+                "description": "Rule policy application minimum"
+            },
+            "NA-RULE-02": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Rule",
+                "description": "Rule functional policy scope containment"
+            },
+            "NA-RULE-03": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Rule",
+                "description": "Rule viability policy scope containment"
+            },
+            "NA-RULE-04": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Rule",
+                "description": "Rule function behavioral grounding"
+            },
+            "NA-RULE-05": {
+                "dimension": "ADEQUACY",
+                "severity": "WARNING",
+                "trigger": "Rule",
+                "description": "Rule modality behavioral grounding"
+            },
+            "NA-CTRL-01": {
+                "dimension": "CONSISTENCY",
+                "severity": "ERROR",
+                "trigger": "Control",
+                "description": "Control effector/receptor binding consistency"
+            },
+            "NA-CTRL-02": {
+                "dimension": "CONSISTENCY",
+                "severity": "ERROR",
+                "trigger": "Control",
+                "description": "Control source mapping type compatibility"
+            },
+            "NA-PPRC-01": {
+                "dimension": "COMPLETENESS",
+                "severity": "ERROR",
+                "trigger": "PPRC",
+                "description": "PPRC chain end-to-end traversability"
+            }
+        }
+    },
+    "primitives": {
+        "archetypeSchemas": [
+            {
+                "id": "00000000-0000-0000-00b0-000000000001",
+                "uri": "sie://schemas/events/v1/DefinitionPersistedEvent.json"
+            },
+            {
+                "id": "00000000-0000-0000-00b0-000000000002",
+                "uri": "sie://schemas/events/v1/TransitionRequestEvent.json"
+            },
+            {
+                "id": "00000000-0000-0000-00b0-000000000003",
+                "uri": "sie://schemas/events/v1/NormAppraisalFindingEvent.json"
+            },
+            {
+                "id": "00000000-0000-0000-00b0-000000000004",
+                "uri": "sie://schemas/events/v1/TransitionDecisionEvent.json"
+            },
+            {
+                "id": "00000000-0000-0000-00b0-000000000005",
+                "uri": "sie://schemas/events/v1/GovernanceDirectiveEvent.json"
+            },
+            {
+                "id": "00000000-0000-0000-00b0-000000000006",
+                "uri": "sie://schemas/state-objects/v1/AppraisalFinding.json"
+            }
+        ],
+        "types": [
+            {
+                "id": "00000000-0000-0000-0001-000000000001",
+                "name": "SystemicIntelligenceEngine",
+                "status": "ACTIVE"
+            }
+        ],
+        "purposes": [
+            {
+                "id": "00000000-0000-0000-0010-000000000001",
+                "name": "NormAppraisal",
+                "status": "ACTIVE"
+            },
+            {
+                "id": "00000000-0000-0000-0010-000000000002",
+                "name": "FormAppraisal",
+                "status": "ACTIVE"
+            }
+        ],
+        "qualities": [
+            {
+                "id": "00000000-0000-0000-0011-000000000001",
+                "name": "DefinitionCoherence",
+                "status": "ACTIVE"
+            },
+            {
+                "id": "00000000-0000-0000-0011-000000000002",
+                "name": "NormativeConsistency",
+                "status": "ACTIVE"
+            },
+            {
+                "id": "00000000-0000-0000-0011-000000000003",
+                "name": "NormativeCompleteness",
+                "status": "ACTIVE"
+            },
+            {
+                "id": "00000000-0000-0000-0011-000000000004",
+                "name": "NormativeAdequacy",
+                "status": "ACTIVE"
+            }
+        ],
+        "capacities": [
+            {
+                "id": "00000000-0000-0000-0012-000000000001",
+                "name": "GovernanceAutomation",
+                "status": "ACTIVE"
+            }
+        ],
+        "modalities": [
+            {
+                "id": "00000000-0000-0000-0013-000000000001",
+                "name": "DefinitionTimeProcessing",
+                "status": "ACTIVE",
+                "capacities": [
+                    "00000000-0000-0000-0012-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000001"
+                ]
+            }
+        ],
+        "functions": [
+            {
+                "id": "00000000-0000-0000-0020-000000000001",
+                "name": "PrincipleConflictDetection",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000002"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000002",
+                "name": "PrincipleGuardValidation",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000003",
+                "name": "PolicyDirectionCoherence",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000004",
+                "name": "PolicyMetricPathTracing",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000005",
+                "name": "PolicyApplicabilityContainment",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000006",
+                "name": "PolicyConflictDetection",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000002"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000007",
+                "name": "FuncPolicyPurposeGrounding",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000008",
+                "name": "ViabPolicyCapacityGrounding",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000009",
+                "name": "StructPolicyCompGrounding",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-00000000000a",
+                "name": "PolicyOperCoverage",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000003"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-00000000000b",
+                "name": "RulePolicyAppMinimum",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000003"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-00000000000c",
+                "name": "RuleFuncPolicyScopeCont",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-00000000000d",
+                "name": "RuleViabPolicyScopeCont",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-00000000000e",
+                "name": "RuleFuncBehavGrounding",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-00000000000f",
+                "name": "RuleModBehavGrounding",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000004"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000010",
+                "name": "ControlBindingConsistency",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000002"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000011",
+                "name": "ControlMappingTypeCompat",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000002"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0020-000000000012",
+                "name": "PPRCChainTraversability",
+                "status": "ACTIVE",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000003"
+                ]
+            }
+        ],
+        "principles": [
+            {
+                "id": "00000000-0000-0000-0030-000000000001",
+                "name": "SIE_DEFINITION_COHERENCE",
+                "status": "ACTIVE",
+                "applicabilityConditions": null,
+                "constraint": {
+                    "type": "PrincipleConstraint",
+                    "subject": {
+                        "type": "SystemicPrimitiveSelectorExpression",
+                        "name": "System",
+                        "filter": {
+                            "type": "LiteralExpression",
+                            "value": true
+                        }
+                    },
+                    "modal": "MUST",
+                    "verb": "ENSURE",
+                    "directObject": {
+                        "type": "SystemicPrimitiveSelectorExpression",
+                        "name": "Quality",
+                        "filter": {
+                            "type": "ComparisonExpression",
+                            "operator": "EQUALS",
+                            "left": {
+                                "type": "SystemicPrimitiveReferenceExpression",
+                                "name": "Quality",
+                                "propertyPath": [
+                                    "name"
+                                ]
+                            },
+                            "right": {
+                                "type": "LiteralExpression",
+                                "value": "DefinitionCoherence"
+                            }
+                        }
+                    }
+                },
+                "priorityLevel": 1
+            }
+        ],
+        "structuralPolicies": [
+            {
+                "id": "00000000-0000-0000-0031-000000000001",
+                "name": "NormConsistencyInvariant",
+                "status": "ACTIVE",
+                "applicabilityConditions": null,
+                "constraint": {
+                    "type": "CardinalityPolicyConstraint",
+                    "target": {
+                        "type": "StateObjectSelectorExpression",
+                        "name": "AppraisalFinding",
+                        "filter": {
+                            "type": "AndExpression",
+                            "operands": [
+                                {
+                                    "type": "ComparisonExpression",
+                                    "operator": "EQUALS",
+                                    "left": {
+                                        "type": "StateObjectArchetypeReferenceExpression",
+                                        "name": "AppraisalFinding",
+                                        "propertyPath": [
+                                            "dimension"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "LiteralExpression",
+                                        "value": "CONSISTENCY"
+                                    }
+                                },
+                                {
+                                    "type": "ComparisonExpression",
+                                    "operator": "EQUALS",
+                                    "left": {
+                                        "type": "StateObjectArchetypeReferenceExpression",
+                                        "name": "AppraisalFinding",
+                                        "propertyPath": [
+                                            "severity"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "LiteralExpression",
+                                        "value": "ERROR"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "minimum": null,
+                    "maximum": 0
+                },
+                "principles": [
+                    "00000000-0000-0000-0030-000000000001"
+                ],
+                "scopedComponents": [
+                    "00000000-0000-0000-0060-000000000001"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0031-000000000002",
+                "name": "NormCompletenessInvariant",
+                "status": "ACTIVE",
+                "applicabilityConditions": null,
+                "constraint": {
+                    "type": "CardinalityPolicyConstraint",
+                    "target": {
+                        "type": "StateObjectSelectorExpression",
+                        "name": "AppraisalFinding",
+                        "filter": {
+                            "type": "AndExpression",
+                            "operands": [
+                                {
+                                    "type": "ComparisonExpression",
+                                    "operator": "EQUALS",
+                                    "left": {
+                                        "type": "StateObjectArchetypeReferenceExpression",
+                                        "name": "AppraisalFinding",
+                                        "propertyPath": [
+                                            "dimension"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "LiteralExpression",
+                                        "value": "COMPLETENESS"
+                                    }
+                                },
+                                {
+                                    "type": "ComparisonExpression",
+                                    "operator": "EQUALS",
+                                    "left": {
+                                        "type": "StateObjectArchetypeReferenceExpression",
+                                        "name": "AppraisalFinding",
+                                        "propertyPath": [
+                                            "severity"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "LiteralExpression",
+                                        "value": "ERROR"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "minimum": null,
+                    "maximum": 0
+                },
+                "principles": [
+                    "00000000-0000-0000-0030-000000000001"
+                ],
+                "scopedComponents": [
+                    "00000000-0000-0000-0060-000000000001"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0031-000000000003",
+                "name": "NormAdequacyInvariant",
+                "status": "ACTIVE",
+                "applicabilityConditions": null,
+                "constraint": {
+                    "type": "CardinalityPolicyConstraint",
+                    "target": {
+                        "type": "StateObjectSelectorExpression",
+                        "name": "AppraisalFinding",
+                        "filter": {
+                            "type": "AndExpression",
+                            "operands": [
+                                {
+                                    "type": "ComparisonExpression",
+                                    "operator": "EQUALS",
+                                    "left": {
+                                        "type": "StateObjectArchetypeReferenceExpression",
+                                        "name": "AppraisalFinding",
+                                        "propertyPath": [
+                                            "dimension"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "LiteralExpression",
+                                        "value": "ADEQUACY"
+                                    }
+                                },
+                                {
+                                    "type": "ComparisonExpression",
+                                    "operator": "EQUALS",
+                                    "left": {
+                                        "type": "StateObjectArchetypeReferenceExpression",
+                                        "name": "AppraisalFinding",
+                                        "propertyPath": [
+                                            "severity"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "LiteralExpression",
+                                        "value": "ERROR"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "minimum": null,
+                    "maximum": 0
+                },
+                "principles": [
+                    "00000000-0000-0000-0030-000000000001"
+                ],
+                "scopedComponents": [
+                    "00000000-0000-0000-0060-000000000001"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0031-000000000004",
+                "name": "TransitionGuardOnFindings",
+                "status": "ACTIVE",
+                "applicabilityConditions": null,
+                "constraint": {
+                    "type": "CardinalityPolicyConstraint",
+                    "target": {
+                        "type": "StateObjectSelectorExpression",
+                        "name": "AppraisalFinding",
+                        "filter": {
+                            "type": "ComparisonExpression",
+                            "operator": "EQUALS",
+                            "left": {
+                                "type": "StateObjectArchetypeReferenceExpression",
+                                "name": "AppraisalFinding",
+                                "propertyPath": [
+                                    "severity"
+                                ]
+                            },
+                            "right": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        }
+                    },
+                    "minimum": null,
+                    "maximum": 0
+                },
+                "principles": [
+                    "00000000-0000-0000-0030-000000000001"
+                ],
+                "scopedComponents": [
+                    "00000000-0000-0000-0060-000000000001"
+                ]
+            }
+        ],
+        "eventArchetypes": [
+            {
+                "id": "00000000-0000-0000-0070-000000000001",
+                "name": "DefinitionPersistedEvent",
+                "status": "ACTIVE",
+                "schema": "00000000-0000-0000-00b0-000000000001"
+            },
+            {
+                "id": "00000000-0000-0000-0070-000000000002",
+                "name": "TransitionRequestEvent",
+                "status": "ACTIVE",
+                "schema": "00000000-0000-0000-00b0-000000000002"
+            },
+            {
+                "id": "00000000-0000-0000-0070-000000000003",
+                "name": "NormAppraisalFindingEvent",
+                "status": "ACTIVE",
+                "schema": "00000000-0000-0000-00b0-000000000003"
+            },
+            {
+                "id": "00000000-0000-0000-0070-000000000004",
+                "name": "TransitionDecisionEvent",
+                "status": "ACTIVE",
+                "schema": "00000000-0000-0000-00b0-000000000004"
+            },
+            {
+                "id": "00000000-0000-0000-0070-000000000005",
+                "name": "GovernanceDirectiveEvent",
+                "status": "ACTIVE",
+                "schema": "00000000-0000-0000-00b0-000000000005"
+            }
+        ],
+        "stateObjectArchetypes": [
+            {
+                "id": "00000000-0000-0000-0071-000000000001",
+                "name": "AppraisalFinding",
+                "status": "ACTIVE",
+                "schema": "00000000-0000-0000-00b0-000000000006"
+            }
+        ],
+        "receptors": [
+            {
+                "id": "00000000-0000-0000-0080-000000000001",
+                "name": "governorFeedbackReceptor",
+                "status": "ACTIVE",
+                "receivedEventArchetype": "00000000-0000-0000-0070-000000000003"
+            },
+            {
+                "id": "00000000-0000-0000-0080-000000000002",
+                "name": "regulatorDirectiveReceptor",
+                "status": "ACTIVE",
+                "receivedEventArchetype": "00000000-0000-0000-0070-000000000005"
+            },
+            {
+                "id": "00000000-0000-0000-0080-000000000003",
+                "name": "supervisorFindingReceptor",
+                "status": "ACTIVE",
+                "receivedEventArchetype": "00000000-0000-0000-0070-000000000003"
+            },
+            {
+                "id": "00000000-0000-0000-0080-000000000004",
+                "name": "definitionPersistedReceptor",
+                "status": "ACTIVE",
+                "receivedEventArchetype": "00000000-0000-0000-0070-000000000001"
+            },
+            {
+                "id": "00000000-0000-0000-0080-000000000005",
+                "name": "transitionRequestReceptor",
+                "status": "ACTIVE",
+                "receivedEventArchetype": "00000000-0000-0000-0070-000000000002"
+            },
+            {
+                "id": "00000000-0000-0000-0080-000000000006",
+                "name": "coordinatorInputReceptor",
+                "status": "ACTIVE",
+                "receivedEventArchetype": "00000000-0000-0000-0070-000000000003"
+            }
+        ],
+        "effectors": [
+            {
+                "id": "00000000-0000-0000-0081-000000000001",
+                "name": "governanceDirectiveEffector",
+                "status": "ACTIVE",
+                "producedEventArchetype": "00000000-0000-0000-0070-000000000005"
+            },
+            {
+                "id": "00000000-0000-0000-0081-000000000002",
+                "name": "regulationOutputEffector",
+                "status": "ACTIVE",
+                "producedEventArchetype": "00000000-0000-0000-0070-000000000005"
+            },
+            {
+                "id": "00000000-0000-0000-0081-000000000003",
+                "name": "supervisorEnforcementEffector",
+                "status": "ACTIVE",
+                "producedEventArchetype": "00000000-0000-0000-0070-000000000004"
+            },
+            {
+                "id": "00000000-0000-0000-0081-000000000004",
+                "name": "operatorFindingEffector",
+                "status": "ACTIVE",
+                "producedEventArchetype": "00000000-0000-0000-0070-000000000003"
+            },
+            {
+                "id": "00000000-0000-0000-0081-000000000005",
+                "name": "operatorDecisionEffector",
+                "status": "ACTIVE",
+                "producedEventArchetype": "00000000-0000-0000-0070-000000000004"
+            },
+            {
+                "id": "00000000-0000-0000-0081-000000000006",
+                "name": "coordinatorOutputEffector",
+                "status": "ACTIVE",
+                "producedEventArchetype": "00000000-0000-0000-0070-000000000004"
+            }
+        ],
+        "actuations": [
+            {
+                "id": "00000000-0000-0000-00a0-000000000001",
+                "name": "CreateAppraisalFinding",
+                "status": "ACTIVE",
+                "type": "CREATION",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001"
+            }
+        ],
+        "rules": [
+            {
+                "id": "00000000-0000-0000-0040-000000000001",
+                "name": "NormAppraisal-PrincipleChecks",
+                "status": "ACTIVE",
+                "applyingFunctionalPolicies": [],
+                "applyingViabilityPolicies": [],
+                "applyingStructuralPolicies": [
+                    "00000000-0000-0000-0031-000000000001",
+                    "00000000-0000-0000-0031-000000000003"
+                ],
+                "scopedFunctions": [
+                    "00000000-0000-0000-0020-000000000001",
+                    "00000000-0000-0000-0020-000000000002"
+                ],
+                "scopedModalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "EQUALS",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": "Principle"
+                    }
+                },
+                "iterationConditions": {
+                    "type": "LiteralExpression",
+                    "value": false
+                },
+                "controlSequence": [
+                    "00000000-0000-0000-0041-000000000001",
+                    "00000000-0000-0000-0041-000000000002"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0040-000000000002",
+                "name": "NormAppraisal-PolicyChecks",
+                "status": "ACTIVE",
+                "applyingFunctionalPolicies": [],
+                "applyingViabilityPolicies": [],
+                "applyingStructuralPolicies": [
+                    "00000000-0000-0000-0031-000000000001",
+                    "00000000-0000-0000-0031-000000000002",
+                    "00000000-0000-0000-0031-000000000003"
+                ],
+                "scopedFunctions": [
+                    "00000000-0000-0000-0020-000000000003",
+                    "00000000-0000-0000-0020-000000000004",
+                    "00000000-0000-0000-0020-000000000005",
+                    "00000000-0000-0000-0020-000000000006",
+                    "00000000-0000-0000-0020-000000000007",
+                    "00000000-0000-0000-0020-000000000008",
+                    "00000000-0000-0000-0020-000000000009",
+                    "00000000-0000-0000-0020-00000000000a"
+                ],
+                "scopedModalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "IN",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": [
+                            "Policy",
+                            "FunctionalPolicy",
+                            "ViabilityPolicy",
+                            "StructuralPolicy"
+                        ]
+                    }
+                },
+                "iterationConditions": {
+                    "type": "LiteralExpression",
+                    "value": false
+                },
+                "controlSequence": [
+                    "00000000-0000-0000-0041-000000000003",
+                    "00000000-0000-0000-0041-000000000004",
+                    "00000000-0000-0000-0041-000000000005",
+                    "00000000-0000-0000-0041-000000000006",
+                    "00000000-0000-0000-0041-000000000007",
+                    "00000000-0000-0000-0041-000000000008",
+                    "00000000-0000-0000-0041-000000000009",
+                    "00000000-0000-0000-0041-00000000000a"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0040-000000000003",
+                "name": "NormAppraisal-RuleChecks",
+                "status": "ACTIVE",
+                "applyingFunctionalPolicies": [],
+                "applyingViabilityPolicies": [],
+                "applyingStructuralPolicies": [
+                    "00000000-0000-0000-0031-000000000002",
+                    "00000000-0000-0000-0031-000000000003"
+                ],
+                "scopedFunctions": [
+                    "00000000-0000-0000-0020-00000000000b",
+                    "00000000-0000-0000-0020-00000000000c",
+                    "00000000-0000-0000-0020-00000000000d",
+                    "00000000-0000-0000-0020-00000000000e",
+                    "00000000-0000-0000-0020-00000000000f"
+                ],
+                "scopedModalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "EQUALS",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": "Rule"
+                    }
+                },
+                "iterationConditions": {
+                    "type": "LiteralExpression",
+                    "value": false
+                },
+                "controlSequence": [
+                    "00000000-0000-0000-0041-00000000000b",
+                    "00000000-0000-0000-0041-00000000000c",
+                    "00000000-0000-0000-0041-00000000000d",
+                    "00000000-0000-0000-0041-00000000000e",
+                    "00000000-0000-0000-0041-00000000000f"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0040-000000000004",
+                "name": "NormAppraisal-ControlChecks",
+                "status": "ACTIVE",
+                "applyingFunctionalPolicies": [],
+                "applyingViabilityPolicies": [],
+                "applyingStructuralPolicies": [
+                    "00000000-0000-0000-0031-000000000001"
+                ],
+                "scopedFunctions": [
+                    "00000000-0000-0000-0020-000000000010",
+                    "00000000-0000-0000-0020-000000000011"
+                ],
+                "scopedModalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "IN",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": [
+                            "Control",
+                            "CreationActuationControl",
+                            "ModificationActuationControl",
+                            "DeletionActuationControl",
+                            "AcquisitionActuationControl"
+                        ]
+                    }
+                },
+                "iterationConditions": {
+                    "type": "LiteralExpression",
+                    "value": false
+                },
+                "controlSequence": [
+                    "00000000-0000-0000-0041-000000000010",
+                    "00000000-0000-0000-0041-000000000011"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0040-000000000005",
+                "name": "NormAppraisal-PPRCChainCheck",
+                "status": "ACTIVE",
+                "applyingFunctionalPolicies": [],
+                "applyingViabilityPolicies": [],
+                "applyingStructuralPolicies": [
+                    "00000000-0000-0000-0031-000000000002"
+                ],
+                "scopedFunctions": [
+                    "00000000-0000-0000-0020-000000000012"
+                ],
+                "scopedModalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "IN",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": [
+                            "Principle",
+                            "Policy",
+                            "FunctionalPolicy",
+                            "ViabilityPolicy",
+                            "StructuralPolicy",
+                            "Rule",
+                            "Control"
+                        ]
+                    }
+                },
+                "iterationConditions": {
+                    "type": "LiteralExpression",
+                    "value": false
+                },
+                "controlSequence": [
+                    "00000000-0000-0000-0041-000000000012"
+                ]
+            },
+            {
+                "id": "00000000-0000-0000-0040-000000000006",
+                "name": "TransitionGuard-NormAppraisal",
+                "status": "ACTIVE",
+                "applyingFunctionalPolicies": [],
+                "applyingViabilityPolicies": [],
+                "applyingStructuralPolicies": [
+                    "00000000-0000-0000-0031-000000000004"
+                ],
+                "scopedFunctions": [],
+                "scopedModalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "triggeringReceptor": "00000000-0000-0000-0080-000000000005",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "EQUALS",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "transitionRequestReceptor",
+                        "propertyPath": [
+                            "requestedStatus"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": "ACTIVE"
+                    }
+                },
+                "iterationConditions": {
+                    "type": "LiteralExpression",
+                    "value": false
+                },
+                "controlSequence": [
+                    "00000000-0000-0000-0041-000000000013"
+                ]
+            }
+        ],
+        "controls": [
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000001",
+                "name": "NA-PRIN-01",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000001",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-PRIN-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-PRIN-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "CONSISTENCY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000002",
+                "name": "NA-PRIN-02",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000001",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-PRIN-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-PRIN-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000003",
+                "name": "NA-POL-01",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000004",
+                "name": "NA-POL-02",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000005",
+                "name": "NA-POL-03",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-03"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-03"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000006",
+                "name": "NA-POL-04",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-04"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-04"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "CONSISTENCY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000007",
+                "name": "NA-POL-05",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "EQUALS",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": "FunctionalPolicy"
+                    }
+                },
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-05"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-05"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000008",
+                "name": "NA-POL-06",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "EQUALS",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": "ViabilityPolicy"
+                    }
+                },
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-06"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-06"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000009",
+                "name": "NA-POL-07",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": {
+                    "type": "ComparisonExpression",
+                    "operator": "EQUALS",
+                    "left": {
+                        "type": "ContextVariableReferenceExpression",
+                        "name": "definitionPersistedReceptor",
+                        "propertyPath": [
+                            "primitiveType"
+                        ]
+                    },
+                    "right": {
+                        "type": "LiteralExpression",
+                        "value": "StructuralPolicy"
+                    }
+                },
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-07"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-07"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-00000000000a",
+                "name": "NA-POL-08",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000002",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-08"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-POL-08"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "COMPLETENESS"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-00000000000b",
+                "name": "NA-RULE-01",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000003",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "COMPLETENESS"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-00000000000c",
+                "name": "NA-RULE-02",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000003",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-00000000000d",
+                "name": "NA-RULE-03",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000003",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-03"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-03"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-00000000000e",
+                "name": "NA-RULE-04",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000003",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-04"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-04"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-00000000000f",
+                "name": "NA-RULE-05",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000003",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-05"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-RULE-05"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ADEQUACY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "WARNING"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000010",
+                "name": "NA-CTRL-01",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000004",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-CTRL-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-CTRL-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "CONSISTENCY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000011",
+                "name": "NA-CTRL-02",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000004",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-CTRL-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-CTRL-02"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "CONSISTENCY"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "CreationActuationControl",
+                "id": "00000000-0000-0000-0041-000000000012",
+                "name": "NA-PPRC-01",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000005",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000004",
+                "feedbackReceptor": null,
+                "actuation": "00000000-0000-0000-00a0-000000000001",
+                "stateObjectArchetype": "00000000-0000-0000-0071-000000000001",
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "NormAppraisalFindingEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-PPRC-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "stateObjectSourceMapping": {
+                    "type": "StateObjectStructureSourceMapping",
+                    "targetArchetype": "AppraisalFinding",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "checkpointId"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "NA-PPRC-01"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "dimension"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "COMPLETENESS"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "severity"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "ERROR"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "systemId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "definitionPersistedReceptor",
+                                "propertyPath": [
+                                    "systemId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "evaluationMode"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "DETERMINISTIC"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "confidence"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": 1.0
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "Control",
+                "id": "00000000-0000-0000-0041-000000000013",
+                "name": "TransitionGuard-BlockOnFindings",
+                "status": "ACTIVE",
+                "applyingRule": "00000000-0000-0000-0040-000000000006",
+                "applicabilityConditions": null,
+                "iterationConditions": null,
+                "effector": "00000000-0000-0000-0081-000000000005",
+                "feedbackReceptor": null,
+                "actuation": null,
+                "effectorEventSourceMapping": {
+                    "type": "EventStructureSourceMapping",
+                    "targetArchetype": "TransitionDecisionEvent",
+                    "mappings": [
+                        {
+                            "targetPath": [
+                                "primitiveId"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "transitionRequestReceptor",
+                                "propertyPath": [
+                                    "primitiveId"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "primitiveType"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "transitionRequestReceptor",
+                                "propertyPath": [
+                                    "primitiveType"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "requestedStatus"
+                            ],
+                            "source": {
+                                "type": "ContextVariableReferenceExpression",
+                                "name": "transitionRequestReceptor",
+                                "propertyPath": [
+                                    "requestedStatus"
+                                ]
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "decision"
+                            ],
+                            "source": {
+                                "type": "LiteralExpression",
+                                "value": "EVALUATE_FINDINGS"
+                            }
+                        },
+                        {
+                            "targetPath": [
+                                "timestamp"
+                            ],
+                            "source": {
+                                "type": "FunctionCallExpression",
+                                "functionName": "now",
+                                "arguments": []
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "mechanisms": {
+            "governors": [
+                {
+                    "id": "00000000-0000-0000-0050-000000000001",
+                    "name": "SIE-GenesisGovernor",
+                    "status": "ACTIVE",
+                    "receptors": [
+                        "00000000-0000-0000-0080-000000000001"
+                    ],
+                    "effectors": [
+                        "00000000-0000-0000-0081-000000000001"
+                    ],
+                    "governedPrinciples": [
+                        "00000000-0000-0000-0030-000000000001"
+                    ]
+                }
+            ],
+            "regulators": [
+                {
+                    "id": "00000000-0000-0000-0050-000000000002",
+                    "name": "SIE-GenesisRegulator",
+                    "status": "ACTIVE",
+                    "receptors": [
+                        "00000000-0000-0000-0080-000000000002"
+                    ],
+                    "effectors": [
+                        "00000000-0000-0000-0081-000000000002"
+                    ],
+                    "governedPolicies": [
+                        "00000000-0000-0000-0031-000000000001",
+                        "00000000-0000-0000-0031-000000000002",
+                        "00000000-0000-0000-0031-000000000003",
+                        "00000000-0000-0000-0031-000000000004"
+                    ],
+                    "governedRules": [
+                        "00000000-0000-0000-0040-000000000001",
+                        "00000000-0000-0000-0040-000000000002",
+                        "00000000-0000-0000-0040-000000000003",
+                        "00000000-0000-0000-0040-000000000004",
+                        "00000000-0000-0000-0040-000000000005",
+                        "00000000-0000-0000-0040-000000000006"
+                    ],
+                    "governedControls": [
+                        "00000000-0000-0000-0041-000000000001",
+                        "00000000-0000-0000-0041-000000000002",
+                        "00000000-0000-0000-0041-000000000003",
+                        "00000000-0000-0000-0041-000000000004",
+                        "00000000-0000-0000-0041-000000000005",
+                        "00000000-0000-0000-0041-000000000006",
+                        "00000000-0000-0000-0041-000000000007",
+                        "00000000-0000-0000-0041-000000000008",
+                        "00000000-0000-0000-0041-000000000009",
+                        "00000000-0000-0000-0041-00000000000a",
+                        "00000000-0000-0000-0041-00000000000b",
+                        "00000000-0000-0000-0041-00000000000c",
+                        "00000000-0000-0000-0041-00000000000d",
+                        "00000000-0000-0000-0041-00000000000e",
+                        "00000000-0000-0000-0041-00000000000f",
+                        "00000000-0000-0000-0041-000000000010",
+                        "00000000-0000-0000-0041-000000000011",
+                        "00000000-0000-0000-0041-000000000012",
+                        "00000000-0000-0000-0041-000000000013"
+                    ]
+                }
+            ],
+            "supervisors": [
+                {
+                    "id": "00000000-0000-0000-0050-000000000003",
+                    "name": "SIE-NormAppraisalSupervisor",
+                    "status": "ACTIVE",
+                    "receptors": [
+                        "00000000-0000-0000-0080-000000000003"
+                    ],
+                    "effectors": [
+                        "00000000-0000-0000-0081-000000000003"
+                    ],
+                    "enforcingPolicies": [
+                        "00000000-0000-0000-0031-000000000001",
+                        "00000000-0000-0000-0031-000000000002",
+                        "00000000-0000-0000-0031-000000000003",
+                        "00000000-0000-0000-0031-000000000004"
+                    ],
+                    "enforcingRules": [
+                        "00000000-0000-0000-0040-000000000001",
+                        "00000000-0000-0000-0040-000000000002",
+                        "00000000-0000-0000-0040-000000000003",
+                        "00000000-0000-0000-0040-000000000004",
+                        "00000000-0000-0000-0040-000000000005",
+                        "00000000-0000-0000-0040-000000000006"
+                    ]
+                }
+            ],
+            "operators": [
+                {
+                    "id": "00000000-0000-0000-0050-000000000004",
+                    "name": "SIE-NormAppraisalOperator",
+                    "status": "ACTIVE",
+                    "receptors": [
+                        "00000000-0000-0000-0080-000000000004",
+                        "00000000-0000-0000-0080-000000000005"
+                    ],
+                    "effectors": [
+                        "00000000-0000-0000-0081-000000000004",
+                        "00000000-0000-0000-0081-000000000005"
+                    ],
+                    "functions": [
+                        "00000000-0000-0000-0020-000000000001",
+                        "00000000-0000-0000-0020-000000000002",
+                        "00000000-0000-0000-0020-000000000003",
+                        "00000000-0000-0000-0020-000000000004",
+                        "00000000-0000-0000-0020-000000000005",
+                        "00000000-0000-0000-0020-000000000006",
+                        "00000000-0000-0000-0020-000000000007",
+                        "00000000-0000-0000-0020-000000000008",
+                        "00000000-0000-0000-0020-000000000009",
+                        "00000000-0000-0000-0020-00000000000a",
+                        "00000000-0000-0000-0020-00000000000b",
+                        "00000000-0000-0000-0020-00000000000c",
+                        "00000000-0000-0000-0020-00000000000d",
+                        "00000000-0000-0000-0020-00000000000e",
+                        "00000000-0000-0000-0020-00000000000f",
+                        "00000000-0000-0000-0020-000000000010",
+                        "00000000-0000-0000-0020-000000000011",
+                        "00000000-0000-0000-0020-000000000012"
+                    ],
+                    "modalities": [
+                        "00000000-0000-0000-0013-000000000001"
+                    ],
+                    "rules": [
+                        "00000000-0000-0000-0040-000000000001",
+                        "00000000-0000-0000-0040-000000000002",
+                        "00000000-0000-0000-0040-000000000003",
+                        "00000000-0000-0000-0040-000000000004",
+                        "00000000-0000-0000-0040-000000000005",
+                        "00000000-0000-0000-0040-000000000006"
+                    ]
+                }
+            ],
+            "coordinators": [
+                {
+                    "id": "00000000-0000-0000-0050-000000000005",
+                    "name": "SIE-NormAppraisalCoordinator",
+                    "status": "ACTIVE",
+                    "receptors": [
+                        "00000000-0000-0000-0080-000000000006"
+                    ],
+                    "effectors": [
+                        "00000000-0000-0000-0081-000000000006"
+                    ],
+                    "coordinatedSupervisors": [
+                        "00000000-0000-0000-0050-000000000003"
+                    ],
+                    "coordinatedOperators": [
+                        "00000000-0000-0000-0050-000000000004"
+                    ]
+                }
+            ]
+        },
+        "components": [
+            {
+                "id": "00000000-0000-0000-0060-000000000001",
+                "name": "DefinitionManager",
+                "status": "ACTIVE",
+                "functions": [
+                    "00000000-0000-0000-0020-000000000001",
+                    "00000000-0000-0000-0020-000000000002",
+                    "00000000-0000-0000-0020-000000000003",
+                    "00000000-0000-0000-0020-000000000004",
+                    "00000000-0000-0000-0020-000000000005",
+                    "00000000-0000-0000-0020-000000000006",
+                    "00000000-0000-0000-0020-000000000007",
+                    "00000000-0000-0000-0020-000000000008",
+                    "00000000-0000-0000-0020-000000000009",
+                    "00000000-0000-0000-0020-00000000000a",
+                    "00000000-0000-0000-0020-00000000000b",
+                    "00000000-0000-0000-0020-00000000000c",
+                    "00000000-0000-0000-0020-00000000000d",
+                    "00000000-0000-0000-0020-00000000000e",
+                    "00000000-0000-0000-0020-00000000000f",
+                    "00000000-0000-0000-0020-000000000010",
+                    "00000000-0000-0000-0020-000000000011",
+                    "00000000-0000-0000-0020-000000000012"
+                ],
+                "modalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "mechanisms": [
+                    "00000000-0000-0000-0050-000000000001",
+                    "00000000-0000-0000-0050-000000000002",
+                    "00000000-0000-0000-0050-000000000003",
+                    "00000000-0000-0000-0050-000000000004",
+                    "00000000-0000-0000-0050-000000000005"
+                ],
+                "interactions": [],
+                "interfaces": []
+            }
+        ],
+        "systems": [
+            {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "name": "SIE",
+                "status": "ACTIVE",
+                "type": "00000000-0000-0000-0001-000000000001",
+                "purposes": [
+                    "00000000-0000-0000-0010-000000000001",
+                    "00000000-0000-0000-0010-000000000002"
+                ],
+                "qualities": [
+                    "00000000-0000-0000-0011-000000000001",
+                    "00000000-0000-0000-0011-000000000002",
+                    "00000000-0000-0000-0011-000000000003",
+                    "00000000-0000-0000-0011-000000000004"
+                ],
+                "capacities": [
+                    "00000000-0000-0000-0012-000000000001"
+                ],
+                "modalities": [
+                    "00000000-0000-0000-0013-000000000001"
+                ],
+                "functions": [
+                    "00000000-0000-0000-0020-000000000001",
+                    "00000000-0000-0000-0020-000000000002",
+                    "00000000-0000-0000-0020-000000000003",
+                    "00000000-0000-0000-0020-000000000004",
+                    "00000000-0000-0000-0020-000000000005",
+                    "00000000-0000-0000-0020-000000000006",
+                    "00000000-0000-0000-0020-000000000007",
+                    "00000000-0000-0000-0020-000000000008",
+                    "00000000-0000-0000-0020-000000000009",
+                    "00000000-0000-0000-0020-00000000000a",
+                    "00000000-0000-0000-0020-00000000000b",
+                    "00000000-0000-0000-0020-00000000000c",
+                    "00000000-0000-0000-0020-00000000000d",
+                    "00000000-0000-0000-0020-00000000000e",
+                    "00000000-0000-0000-0020-00000000000f",
+                    "00000000-0000-0000-0020-000000000010",
+                    "00000000-0000-0000-0020-000000000011",
+                    "00000000-0000-0000-0020-000000000012"
+                ],
+                "principles": [
+                    "00000000-0000-0000-0030-000000000001"
+                ],
+                "functionalPolicies": [],
+                "viabilityPolicies": [],
+                "structuralPolicies": [
+                    "00000000-0000-0000-0031-000000000001",
+                    "00000000-0000-0000-0031-000000000002",
+                    "00000000-0000-0000-0031-000000000003",
+                    "00000000-0000-0000-0031-000000000004"
+                ],
+                "rules": [
+                    "00000000-0000-0000-0040-000000000001",
+                    "00000000-0000-0000-0040-000000000002",
+                    "00000000-0000-0000-0040-000000000003",
+                    "00000000-0000-0000-0040-000000000004",
+                    "00000000-0000-0000-0040-000000000005",
+                    "00000000-0000-0000-0040-000000000006"
+                ],
+                "controls": [
+                    "00000000-0000-0000-0041-000000000001",
+                    "00000000-0000-0000-0041-000000000002",
+                    "00000000-0000-0000-0041-000000000003",
+                    "00000000-0000-0000-0041-000000000004",
+                    "00000000-0000-0000-0041-000000000005",
+                    "00000000-0000-0000-0041-000000000006",
+                    "00000000-0000-0000-0041-000000000007",
+                    "00000000-0000-0000-0041-000000000008",
+                    "00000000-0000-0000-0041-000000000009",
+                    "00000000-0000-0000-0041-00000000000a",
+                    "00000000-0000-0000-0041-00000000000b",
+                    "00000000-0000-0000-0041-00000000000c",
+                    "00000000-0000-0000-0041-00000000000d",
+                    "00000000-0000-0000-0041-00000000000e",
+                    "00000000-0000-0000-0041-00000000000f",
+                    "00000000-0000-0000-0041-000000000010",
+                    "00000000-0000-0000-0041-000000000011",
+                    "00000000-0000-0000-0041-000000000012",
+                    "00000000-0000-0000-0041-000000000013"
+                ],
+                "governors": [
+                    "00000000-0000-0000-0050-000000000001"
+                ],
+                "regulators": [
+                    "00000000-0000-0000-0050-000000000002"
+                ],
+                "supervisors": [
+                    "00000000-0000-0000-0050-000000000003"
+                ],
+                "operators": [
+                    "00000000-0000-0000-0050-000000000004"
+                ],
+                "coordinators": [
+                    "00000000-0000-0000-0050-000000000005"
+                ],
+                "mechanisms": [
+                    "00000000-0000-0000-0050-000000000001",
+                    "00000000-0000-0000-0050-000000000002",
+                    "00000000-0000-0000-0050-000000000003",
+                    "00000000-0000-0000-0050-000000000004",
+                    "00000000-0000-0000-0050-000000000005"
+                ],
+                "receptors": [
+                    "00000000-0000-0000-0080-000000000001",
+                    "00000000-0000-0000-0080-000000000002",
+                    "00000000-0000-0000-0080-000000000003",
+                    "00000000-0000-0000-0080-000000000004",
+                    "00000000-0000-0000-0080-000000000005",
+                    "00000000-0000-0000-0080-000000000006"
+                ],
+                "effectors": [
+                    "00000000-0000-0000-0081-000000000001",
+                    "00000000-0000-0000-0081-000000000002",
+                    "00000000-0000-0000-0081-000000000003",
+                    "00000000-0000-0000-0081-000000000004",
+                    "00000000-0000-0000-0081-000000000005",
+                    "00000000-0000-0000-0081-000000000006"
+                ],
+                "eventArchetypes": [
+                    "00000000-0000-0000-0070-000000000001",
+                    "00000000-0000-0000-0070-000000000002",
+                    "00000000-0000-0000-0070-000000000003",
+                    "00000000-0000-0000-0070-000000000004",
+                    "00000000-0000-0000-0070-000000000005"
+                ],
+                "stateObjectArchetypes": [
+                    "00000000-0000-0000-0071-000000000001"
+                ],
+                "components": [
+                    "00000000-0000-0000-0060-000000000001"
+                ],
+                "organizationalRelationships": [],
+                "interactions": [],
+                "channels": [],
+                "interfaces": []
+            }
+        ]
+    }
+}
