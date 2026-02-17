@@ -4,16 +4,44 @@
   "title": "Adaptation (GSM v1)",
   "description": "Second-order regulation within the current definition envelope (updates Rules without changing Policies).",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["id", "name", "owner"],
+  "required": [
+    "id",
+    "name",
+    "owner"
+  ],
   "properties": {
-    "id": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "inputPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "updatedRules": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "triggerEventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "owner": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID", "description": "Reference to Supervisor owning this process." }
+    "id": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    },
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "inputPolicies": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "updatedRules": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "triggerEventArchetypes": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "owner": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
+      "description": "Reference to the supervision plane process instance owning this process."
+    }
   }
 }
