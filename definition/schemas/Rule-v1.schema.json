@@ -24,31 +24,13 @@
     "status": {
       "$ref": "sie://schemas/gsm/v1/RuleStatus.json"
     },
-    "applyingFunctionalPolicies": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      }
-    },
-    "applyingViabilityPolicies": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      }
-    },
-    "applyingStructuralPolicies": {
+    "applyingPolicies": {
       "type": "array",
       "items": {
         "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
       }
     },
     "scopedFunctions": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      }
-    },
-    "scopedModalities": {
       "type": "array",
       "items": {
         "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"

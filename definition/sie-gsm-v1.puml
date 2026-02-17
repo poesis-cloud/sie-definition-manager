@@ -255,12 +255,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     Named checkpoints (Governance plane — Principle level):
 
     - **NA-PRIN-01**: Principle ↔ Principle conflict detection.
-      Two Principles on the same Quality with overlapping applicability
-      and directionally incompatible verbs are flagged (consistency).
+      Two Principles on the same purposeQualifier AND same Purpose with
+      overlapping applicability and directionally incompatible verbs are
+      flagged (consistency). Different Purposes on the same
+      purposeQualifier are NOT conflicts.
       See Principle note: Consistency Rules.
     - **NA-PRIN-02**: Principle applicability guard validation.
-      Applicability conditions MUST be in restricted guard normal form
-      with allow-listed axes (adequacy).
+      Applicability conditions MUST be in G5 restricted guard normal form:
+      null | And(AxisPredicate, ...) with one-predicate-per-axis invariant
+      and allow-listed axes. Allowed atoms: exists(axis), axis.prop == value,
+      axis.prop IN {values}, axis.prop NOT IN {values} (adequacy).
       See Principle note: Deterministic applicability.
 
     Named checkpoints (Regulation plane — Policy level):
@@ -269,10 +273,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       Constraint operator direction MUST be compatible with the verb
       direction of the operationalized Principle(s) (adequacy).
       See Policy note: Operationalizes Link Validation Rules, Check 1.
-    - **NA-POL-02**: Policy → Principle metric → Quality path tracing.
-      Constraint metric MUST be reachable to the Principle's Quality
-      via the GSM quality-influence graph (adequacy).
-      See Policy note: Operationalizes Link Validation Rules, Check 2.
+    - **NA-POL-02**: (SUSPENDED — Quality primitive dropped)
+      TODO: redesign metric → purposeQualifier path tracing to operate
+      without the Quality primitive and quality-influence graph (deferred).
     - **NA-POL-03**: Policy → Principle applicability containment.
       Policy applicability MUST be satisfiable only within the
       Principle's applicability (adequacy).
@@ -281,18 +284,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       Two Policies imposing incompatible constraints on the same
       target are flagged (consistency).
       See Policy note: Policy ↔ Policy Conflict Detection Rules.
-    - **NA-POL-05**: FunctionalPolicy → Purpose grounding.
-      Constraint metric MUST be reachable to scopedPurposes via the
-      purpose-influence graph (adequacy).
-      See FunctionalPolicy note: Scoping Coherence Rules.
-    - **NA-POL-06**: ViabilityPolicy → Capacity grounding.
-      Constraint metric MUST be reachable to scopedCapacities via the
-      capacity-influence graph (adequacy).
-      See ViabilityPolicy note: Scoping Coherence Rules.
-    - **NA-POL-07**: StructuralPolicy → Component grounding.
+    - **NA-POL-05**: Policy → Purpose grounding.
+      Constraint metric MUST be structurally reachable to
+      effectiveScopedPurposes via the PPRC structural graph
+      (adequacy).
+      See Policy note: Scoping Coherence Rules.
+    - **NA-POL-06**: (SUSPENDED — Capacity primitive dropped)
+      TODO: redesign metric → purposeQualifier path tracing to operate
+      without the Quality primitive and quality-influence graph (deferred).
+    - **NA-POL-07**: Policy → Component grounding.
       Constraint selectors MUST target primitives within
-      scopedComponents (adequacy).
-      See StructuralPolicy note: Scoping Coherence Rules.
+      Components that regroup Functions scoped by Rules
+      applying Policies governing the same
+      effectiveScopedPurposes (adequacy).
+      See Policy note: Scoping Coherence Rules.
     - **NA-POL-08**: Policy operationalization coverage.
       Every ACTIVE Policy SHOULD have at least one implementing Rule;
       every Rule MUST apply at least one Policy (completeness).
@@ -302,22 +307,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **NA-RULE-01**: Rule → Policy application minimum.
       A Rule MUST apply at least one Policy (completeness).
       See Rule note: Consistency Rules.
-    - **NA-RULE-02**: Rule → FunctionalPolicy scope containment.
-      Rule.scopedFunctions[*].serves MUST be a subset of
-      applied FunctionalPolicies' scopedPurposes (adequacy).
-      See Rule note: Scoping Coherence Rules.
-    - **NA-RULE-03**: Rule → ViabilityPolicy scope containment.
-      Rule.scopedModalities[*].enables MUST be a subset of
-      applied ViabilityPolicies' scopedCapacities (adequacy).
-      See Rule note: Scoping Coherence Rules.
+    - **NA-RULE-02**: (DROPPED — Function→Purpose direct link removed)
+      Function↔Purpose is now derived through the PPRC chain
+      (Rule scopes Functions AND applies Policies governing
+      Purposes). The independent adequacy check is subsumed by
+      PPRC chain definition (see NA-PPRC-01).
     - **NA-RULE-04**: Rule → Function behavioral grounding.
       Auto-defined Operator.realizes SHOULD intersect with
       Rule.scopedFunctions (adequacy).
       See Rule note: Behavioral Grounding Rules.
-    - **NA-RULE-05**: Rule → Modality behavioral grounding.
-      Auto-defined Operator.operates SHOULD intersect with
-      Rule.scopedModalities (adequacy).
-      See Rule note: Behavioral Grounding Rules.
+    - **NA-RULE-05**: (SUSPENDED — Modality/Capacity primitives dropped)
+      TODO: redesign Modality behavioral grounding (deferred).
 
     Named checkpoints (Regulation plane — Control level):
 
@@ -425,7 +425,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     system behaves*.
 
     In this systemic grammar, the structure of a system is not limited to its
-    static components (Functions, Capacities, Modalities, Mechanisms).
+    static components (Functions, Mechanisms).
 
     The system's true structure is the set of Rules, Controls, Policies, and
     Principles (PPRC) that articulate how these primitives behave, interact,
@@ -530,7 +530,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - ACTIVE: The artifact is fully integrated into the system definition and is
       currently binding.
-      - Principles constrain quality profiles
+      - Principles constrain purpose quality dimensions
       - Policies constrain mechanisms
       - Rules articulate behavior
       - Controls supervise rules
@@ -705,48 +705,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   class System {
 
     ' ============================================================
-    ' SYSTEM CONSTITUTIVE PROPERTIES
+    ' CONSTITUTION
     ' ============================================================
 
     +getName(): String
     +getType(): Type
-    +getBoundary(): Boundary
-    +getRoles(): Role[]
     +getPurposes(): Purpose[]
-    +getCapacities(): Capacity[]
-    +getQualities(): Quality[]
     +getPrinciples(): Principle[]
 
     ' ============================================================
-    ' SYSTEM ORGANIZATIONAL PROPERTIES
+    ' ORGANIZATION
     ' ============================================================
     
+    +getFunctions(): Function[]
+    +getPolicies(): Policy[]
+    +getRules(): Rule[]
+    +getControls(): Control[]
+    +getRelationships(): Relationship[]
     +getGovernors(): Governor[]
     +getRegulators(): Regulator[]
     +getSupervisors(): Supervisor[]
     +getCoordinators(): Coordinator[]
     +getOperators(): Operator[]
-    +getPolicies(): Policy[]
-    +getOrganizationalRelationships(): OrganizationalRelationship[]
 
     ' ============================================================
-    ' SYSTEM FUNCTIONAL PROPERTIES
-    ' ============================================================
-
-    +getFunctions(): Function[]
-
-    ' ============================================================
-    ' SYSTEM VIABILITY PROPERTIES
-    ' ============================================================
-
-    +getModalities(): Modality[]
-
-    ' ============================================================
-    ' SYSTEM STRUCTURAL PROPERTIES
+    ' STRUCTURE
     ' ============================================================
     
-    +getRules(): Rule[]
-    +getControls(): Control[]
     +getMechanisms(): Mechanism[]
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
@@ -758,7 +743,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getStateObjectArchetypes(): StateObjectArchetype[]
 
     ' ============================================================
-    ' SYSTEM BEHAVIORAL PROPERTIES
+    ' SYSTEM BEHAVIORAL PROPERTIES (FAST)
     ' Out of scope.
     ' ============================================================
   }
@@ -769,8 +754,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Systemic Semantics**:
     - A system is defined by its systemic primitives: its type, boundary,
-      roles, purposes, capacities, qualities, principles, and governance
-      relationships.
+      roles, purposes, principles, and governance relationships.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the system.
@@ -785,8 +769,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   System "0..*" o--> "0..1" Type : has
   System "1" *--> "0..1" Boundary : has
   System "1" *--> "0..*" Purpose : has
-  System "1" *--> "0..*" Capacity : has
-  System "1" *--> "0..*" Quality : has
   System "1" *--> "0..*" Principle : has
 
   System "1" *--> "0..*" Governor : has
@@ -798,8 +780,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   System "1" *--> "0..*" OrganizationalRelationship : has
 
   System "1" *--> "0..*" Function : has
-
-  System "1" *--> "0..*" Modality : has
 
   System "1" *--> "0..*" Rule : has
   System "1" *--> "0..*" Control : has
@@ -837,50 +817,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   SystemicPrimitive <|-- Type : is
   Type "0..1" o--> "0..*" System : classifies
-
-  ' ============================================================
-  ' BOUNDARY
-  ' ============================================================
-
-  class Boundary {
-    +getInterfaces(): Interface[]
-    +getOrganizationalRelationships(): OrganizationalRelationship[]
-  }
-
-  note top of Boundary
-    A boundary defines the limits of a system, distinguishing what is inside the
-    system from what is outside. It encapsulates the system's internal
-    components and interactions while exposing specific interfaces for interaction
-    with the environment.
-
-    **Systemic Semantics**:
-    - The boundary is a fundamental systemic primitive that defines the system's
-      identity and scope.
-    - It determines the system's interactions with its environment - meaning
-      other systems.
-    - Other systems can either:
-      - govern this system,
-      - be governed by this system,
-      - both,
-      or neither. Governance relationships between systems are defined by the
-      `OrganizationalRelationship` primitive.
-    - Because inter System relationship is complexe and subtile, GSM avoids
-      using vulgar terms such as *subsystem*, *integrated system*...
-
-    **Attribute Semantics**:
-    - "interfaces": The set of interfaces through which the system interacts with
-      the environment.
-    - "organizationalRelationships": The set of governance relationships that define how
-      this system is governed by or governs other systems at its boundary.
-
-    **Consistency Rules**:
-    - A boundary MUST have at least one interface if the system has any interactions with the environment.
-  end note
-
-  SystemicPrimitive <|-- Boundary : is
-  Boundary "0..1" o--> "1" System : binds
-  Boundary "1" o--> "0..*" Interface : delimitedBy
-  Boundary "1" o--> "0..*" OrganizationalRelationship : governs
 
   ' ============================================================
   ' ROLE
@@ -974,7 +910,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - GOVERNING_AUTHORITY:
       - Imposes constraints and may approve/audit (e.g., regulator, platform governance).
-      - Typically paired with authority aspects like CONTRACT_ENFORCEMENT or CONFIGURATION_AUTHORITY.
+      - Typically paired with authority aspects like CONTRACT_ENFORCEMENT or
+      CONFIGURATION_AUTHORITY.
 
     - GOVERNED_SUBJECT:
       - Target of governance constraints imposed by a GOVERNING_AUTHORITY.
@@ -1076,10 +1013,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       system's functional envelope.
     - Functions serve purposes, meaning they are the activities or processes
       that the system performs to achieve its purposes.
-    - Capacities realize purposes, meaning they are the means through which the
-      system achieves its intended outcomes.
-    - Qualities constrain purposes, meaning they are the properties that limit
-      or define the conditions under which the system can achieve its purposes.
+      Function↔Purpose is NOT a direct, stored relationship in GSM. It is
+      **derived through the PPRC chain**: Rules scope Functions AND apply
+      Policies whose effectiveScopedPurposes derive from Principles
+      governing Purposes.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier for the purpose.
@@ -1092,83 +1029,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   SystemicPrimitive <|-- Purpose : is
   Purpose "0..*" o--> "1" System : functionallyRationalizes
-
-  ' ============================================================
-  ' CAPACITY
-  ' ============================================================
-
-  class Capacity {
-    +getName(): String
-  }
-
-  note top of Capacity
-    A capacity is a property of the system that enables it to fulfill its purposes.
-    Capacities are typically associated with viability properties, defining what
-    the system MUST be able to withstand or maintain to remain viable.
-
-    **Systemic Semantics**:
-    - Capacities are associated with viability policies, which constrain the
-      system's viability envelope.
-    - Modalities enable capacities, meaning they are the conditions or states
-      that allow the system to utilize its capacities effectively.
-    - Purposes are realized by capacities, meaning they are the intended
-      outcomes that the system aims to achieve through its capacities.
-    - Qualities are influenced by capacities, meaning they are the properties that
-      are affected or shaped by the system's capacities. Capacities do not
-      directly act on qualities, but they shape the system’s ability to affect
-      them. Thus a capacity influences qualities.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the capacity.
-
-    **Consistency Rules**:
-    - "name" MUST be mandatory and non-empty.
-    - "name" MUST be unique among all capacities of the same system.
-    - "name" MUST be maximum 80 characters long.
-  end note
-
-  SystemicPrimitive <|-- Capacity : is
-  Capacity "0..*" o--> "1" System : enables
-
-  ' ============================================================
-  ' QUALITY
-  ' ============================================================
-
-  class Quality {
-    +getName(): String
-  }
-
-  note top of Quality
-    A quality is a property of the system that characterizes its nature or
-    state.
-    Qualities are typically non-functional attributes that describe what the
-    system is like, not what it does.
-
-    **Systemic Semantics**:
-    - Qualities are associated with system principles. Qualities are the
-      **direct objects** of Principles: they are what governance verbs act upon
-      (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, etc.).
-    - Capacities influence qualities, meaning they shape the system's ability to
-      affect its qualities. Capacities do not directly act on qualities, but
-      they shape the system’s ability to affect them. Thus a capacity influences
-      qualities.
-    - Purposes are constrained by qualities, meaning they are the intended
-      outcomes that the system aims to achieve within the limits defined by its
-      qualities. Qualities do not directly act on purposes, but they define the
-      conditions under which purposes can be achieved. Thus a quality constrains
-      purposes.
-
-    **Attribute Semantics**:
-    - "name": Human-readable semantic identifier for the quality.
-
-    **Consistency Rules**:
-    - "name" MUST be mandatory and non-empty.
-    - "name" MUST be unique among all qualities of the same system.
-    - "name" MUST be maximum 80 characters long.
-  end note
-
-  SystemicPrimitive <|-- Quality : is
-  Quality "0..*" o--> "1" System : characterizes
 
   ' ============================================================
   ' PRINCIPLE
@@ -1184,6 +1044,61 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     An identity-level, long-term normative constraint that defines what the
     system fundamentally is and stands for.
 
+    **Rationale:**
+    A system's identity is not fully defined by *what* it does (its Purposes
+    alone). Identity also requires a declared stance on *how* and *in
+    which direction* the system must operate those Purposes. That declared
+    stance is, exactly, a System Quality Attribute (high level non-functional
+    requirement), and a Principle.
+
+    Concretely, a Principle constraint IS a **system quality attribute** —
+    a structured, directional governance statement that qualifies how the
+    system must operate with respect to its Purposes. The constraint grammar
+    (Subject × Modal × Verb × PurposeQualifier × Purpose) encodes three
+    operability facets:
+
+    - **Operability qualifier** (purposeQualifier): the quality dimension
+      along which the system's operation is governed — e.g., "integrity",
+      "throughput", "latency", "cost-efficiency". This is the *adjective*
+      that qualifies Purpose within the governance sentence.
+    - **Operability direction** (Verb): the governance direction imposed
+      on that quality dimension — MAXIMIZE, MINIMIZE, ENSURE, AVOID, etc.
+      This tells the system *in which direction* to steer on the quality
+      axis.
+    - **Value target** (Purpose): the specific system Purpose whose
+      achievement is quality-constrained — e.g., "order-processing",
+      "identity-management". This scopes the quality attribute to a
+      concrete functional outcome.
+
+    Without Principles, a system has Purposes (functional goals) but no
+    declared stance on the quality dimensions that matter for their
+    pursuit. Policies, Rules, and Controls operationalize quality intent
+    — but they do not originate it. Principles are the normative root:
+    they anchor the system's quality identity and provide the foundation
+    from which the entire PPRC chain derives governance artifacts.
+
+    **PPRC Step-Down (Principle level — normative root)**:
+    Principle sits at the top of the PPRC governance stack:
+    - **Principle → Purpose** (identity-level: directional intent on quality
+      of Purpose; declarative). Its constraint is an unbounded direction
+      (verb × purposeQualifier × Purpose).
+    - Policy → Purpose (design-level: translates the unbounded direction
+      into measurable bounds; declarative; scope derived from Principles).
+    - Rule → Function (behavioral-level: imperative logic on Functions).
+    - Control → Step (execution-level: effector + mapping + actuation).
+
+    The transition from Principle/Policy (declarative) to Rule/Control
+    (imperative) IS the PPRC step-down: declarative governance specifies
+    *what* must hold; imperative governance specifies *how* to achieve it.
+
+    In quality-attribute engineering terms (ISO 25010, Bass et al.),
+    Principles express the equivalent of **architectural quality attribute
+    scenarios** — but in a structured, governance-actionable, machine-
+    appraisable form. Unlike passive quality attribute descriptions, a
+    GSM Principle is *generative*: it produces appraisal criteria,
+    conflict detection inputs, coverage gap evidence, and
+    operationalization contracts for Policies.
+
     **Systemic Semantics**:
     - Principles are DEFINED and ENFORCED by Governor.
     - Principles are OPERATED by Regulator when designing and validating
@@ -1197,7 +1112,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         guard (see Validation Rules) to keep appraisal deterministic.
     - "constraint": A JSON-serialized SIE DSL `PrincipleConstraintExpression`
       that encodes the normative sentence core:
-      Subject × Modal × Verb × DirectObject(Quality).
+      Subject × Modal × Verb × PurposeQualifier × Purpose.
     - "priorityLevel": Conflict-resolution rank (lower = higher priority).
 
     **Validation Rules**:
@@ -1205,13 +1120,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       PrincipleConstraintExpression:
       - constraint.subject MUST be a SystemicPrimitiveSelectorExpression whose
         name is either System or Role.
-      - constraint.directObject MUST be a SystemicPrimitiveSelectorExpression
-        whose name is Quality.
+      - constraint.purposeQualifier MUST be a non-empty String (a vocabulary
+        term naming the viability dimension, e.g. "integrity", "throughput",
+        "latency"). It is NOT a reference to a SystemicPrimitive.
+      - constraint.purposeScope MUST be a SystemicPrimitiveSelectorExpression
+        whose name is Purpose.
 
     *Applicability guard form (deterministic / restricted):*
     - applicabilityConditions MUST be either null/absent (universal), OR an
-      AndExpression, OR a single atom (exists(...) / simple comparison).
+      AndExpression, OR a single atom (exists(...) / simple comparison /
+      set membership / set exclusion).
     - OrExpression and NotExpression MUST NOT be used in Principle applicability.
+    - **One-predicate-per-axis invariant**: at most one predicate (atom) per
+      applicability axis. Multi-value selection on the same axis MUST use
+      ComparisonExpression with operator IN or NOT_IN, not multiple
+      ComparisonExpressions with EQUALS.
 
     *Allowed atoms:*
     - FunctionCallExpression(functionName="exists") with exactly one argument.
@@ -1222,6 +1145,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - right MUST be a LiteralExpression.
       - The left reference MUST resolve to a scalar primitive property
         (boolean/string/number), and the literal MUST type-check against it.
+    - ComparisonExpression with operator IN (axis.prop IN {v1, v2, ...}).
+      - left MUST be a SystemicPrimitiveReferenceExpression.
+      - right MUST be a LiteralExpression whose value is a JSON array
+        (at least 2 elements, unique, type-compatible).
+      - The left reference MUST resolve to a scalar primitive property.
+    - ComparisonExpression with operator NOT_IN (axis.prop NOT IN {v1, v2, ...}).
+      - left MUST be a SystemicPrimitiveReferenceExpression.
+      - right MUST be a LiteralExpression whose value is a JSON array
+        (at least 1 element, unique, type-compatible).
+      - The left reference MUST resolve to a scalar primitive property.
 
     *Forbidden references (Principle applicability):*
     - EventArchetypeReferenceExpression (events are not stable applicability axes).
@@ -1233,7 +1166,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Each SystemicPrimitiveReferenceExpression.name MUST resolve to a
       SystemicPrimitive instance in the same System definition context.
     - The resolved primitive's archetype MUST be in the allow-listed axis set:
-      {OrganizationalRelationship, Modality, Component} (extendable).
+      {OrganizationalRelationship, Component} (extendable).
     - The resolved primitive SHOULD have definitionStatus = ACTIVE (or equivalent)
       for it to be considered an applicable axis.
 
@@ -1246,17 +1179,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
     - "name" MUST be unique among all principles of the same system.
-    - constraint.directObject MUST reference a Quality owned by the same system.
-    - Two principles with ENSURE and AVOID on the same Quality with
-      overlapping applicability MUST be flagged as a contradiction.
-    - Two principles with opposing verb directions on the same Quality
-      with overlapping applicability MUST be flagged as a conflict.
+    - constraint.purposeQualifier MUST be a non-empty String.
+    - constraint.purposeScope MUST reference a Purpose owned by the same system.
+    - Two principles with ENSURE and AVOID on the same purposeQualifier AND
+      same Purpose with overlapping applicability MUST be flagged as a
+      contradiction.
+    - Two principles with opposing verb directions on the same
+      purposeQualifier AND same Purpose with overlapping applicability MUST
+      be flagged as a conflict.
+    - Different Purposes on the same purposeQualifier are NOT conflicts —
+      they govern different value targets.
 
     **Additional Notes**:
     A Principle is a structured normative sentence encoded in `constraint`
     (SIE DSL `PrincipleConstraintExpression`):
-      **Subject  Modal  Verb  DirectObject(Quality)  [Applicability]**
-      e.g., "System MUST ENSURE data integrity when jurisdiction = EU"
+      **Subject  Modal  Verb  PurposeQualifier  OF  Purpose  [Applicability]**
+      e.g., "System MUST ENSURE integrity OF order-processing when jurisdiction = EU"
 
     To enable deterministic conflict detection, Principle.applicabilityConditions
     SHOULD be in "applicability guard" normal form:
@@ -1264,7 +1202,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - FunctionCallExpression(functionName="exists", arguments=[ReferenceExpression])
         (meaning: the referenced applicability axis is present), OR
       - ComparisonExpression over ReferenceExpression and a LiteralExpression
-        for simple scalar constraints (e.g., axis.flag == true).
+        for simple scalar constraints (e.g., axis.flag == true), OR
+      - ComparisonExpression with operator IN
+        (axis.prop IN {v1, v2, ...}) for multi-value
+        inclusion on a single axis, OR
+      - ComparisonExpression with operator NOT_IN
+        (axis.prop NOT IN {v1, v2, ...}) for multi-value
+        exclusion on a single axis.
+    - **One-predicate-per-axis invariant**: at most one predicate (atom) per
+      applicability axis. Multi-value selection on the same axis MUST use
+      ComparisonExpression with operator IN or NOT_IN, not multiple
+      ComparisonExpressions with EQUALS.
 
     By default, ReferenceExpressions used in Principle applicability SHOULD be
     restricted to a small set of **stable definitional axes**.
@@ -1276,7 +1224,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     Initial allow-list (subject to refinement):
     - OrganizationalRelationship (party roles, authority aspects)
-    - Modality (environment/mode, e.g., Production vs Staging)
     - Component (structural presence/absence)
 
     StateObjectArchetypeReferenceExpression SHOULD NOT be used at Principle level
@@ -1579,7 +1526,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class Operator {
     +getFunctions(): Function[]
-    +getModalities(): Modality[]
     +getRules(): Rule[]
   }
 
@@ -1626,31 +1572,161 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   Mechanism <|-- Operator : is
   Operator "0..*" o--> "0..*" Function : realizes
-  Operator "0..*" o--> "0..*" Modality : operates
   Operator "0..*" o--> "0..*" Rule : implements
 
   ' ============================================================
   ' POLICY
   ' ============================================================
 
-  abstract class Policy {
+  class Policy {
     +getApplicabilityConditions(): String
     +getConstraint(): String
     +getPrinciples(): Principle[]
   }
 
   note top of Policy
-    A policy is a measurable normative regulatory constraint over a system
-    definition. It does not prescribe behavior directly; instead, it constrains
-    what the system MUST do (functional), MUST withstand (viability), or MUST be
-    (structural).
+    A policy is a declarative, measurable normative envelope over a system
+    definition. It does not prescribe behavior directly; instead, it bounds
+    what the system's Purposes may tolerate — functionally, structurally,
+    or in terms of viability — by operationalizing Principles.
+
+    **What IS a Policy, ontologically?**
+
+    A Policy is a **measurable boundary condition** on one or more Purposes
+    of the system (inherited from the Purposes its Principles govern).
+    Whereas a Principle declares *directional intent* on a quality dimension
+    of a Purpose (e.g., "MAXIMIZE throughput OF order-processing"), a Policy
+    translates that unbounded direction into a **bounded, falsifiable
+    envelope** (e.g., "throughput P99 >= 1000 req/s over 5 minutes").
+
+    In cybernetics terms (Ashby), a Policy is a **requisite variety reducer**:
+    it collapses the space of admissible system states from the Principle's
+    open-ended direction to a measurable subset. Without Policies, Principles
+    are aspirational but unverifiable; without Principles, Policies are
+    isolated measurements without governance intent.
+
+    A Policy is NOT:
+    - A behavior specification (that is a Rule).
+    - A process step (that is a Control).
+    - An identity-level direction (that is a Principle).
+
+    A Policy IS:
+    - Declarative (what must hold, not how to achieve it).
+    - Measurable (expressible as threshold, invariant, cardinality, or
+      dependency constraint).
+    - Purpose-scoped (inherited from operationalized Principles).
+    - Falsifiable by DSM observation (Form Appraisal FA-POL-01).
+
+    **Ontological hierarchy (value propagation):**
+    - **Principle** = directional intent on a quality dimension (the "why"
+      direction: Purpose × purposeQualifier × verb).
+    - **Policy** = measurable normative envelope (the "what bounds":
+      metric × operator × threshold).
+    - **Rule** = behavioral specification (the "how": event-triggered
+      control sequence operating on Functions).
+    - **Control** = step-level operations (the "do": effector + mapping +
+      optional actuation).
+
+    The transition from Principle/Policy (declarative) to Rule/Control
+    (imperative) IS the PPRC step-down: declarative governance specifies
+    *what* must hold; imperative governance specifies *how* to achieve it.
+
+    The nature of the constraint (functional, viability, structural) is NOT
+    encoded as a Policy subtype. It is derivable from the Principle's
+    purposeQualifier and the constraint format (Threshold, Invariant,
+    Dependency, Cardinality). This eliminates a false taxonomy: a single
+    Policy can simultaneously constrain functional performance and structural
+    topology if the Principle's purposeQualifier warrants it.
 
     If a constraint is not measurable, it is not a policy.
+
+    **PPRC Step-Down Pattern:**
+    Principle → Purpose (identity-level: directional intent on quality of
+    Purpose; declarative).
+    Policy → Purpose (design-level: measurable bounds on quality of Purpose;
+    declarative; scope derived from Principles).
+    Rule → Function (behavioral-level: event-triggered logic operating on
+    Functions whose governance connection to Purposes is defined by the
+    PPRC chain; imperative).
+    Control → Step (execution-level: effector + mapping + actuation within
+    a Rule; imperative).
+
+    Both Principle and Policy are **declarative constraints on Purpose
+    quality**. The difference is specificity: Principle declares a direction
+    (MAXIMIZE, ENSURE, ...); Policy declares a measurable bound. Rule and
+    Control are **imperative specifications on Function behavior**. The
+    declarative → imperative transition is the fundamental scope step-down
+    that connects governance intent to system behavior.
 
     **Systemic Semantics**:
     - Policies are DEFINED by Regulator mechanisms.
     - Policies are ENFORCED and OPERATED by Supervisor mechanisms.
     - Policies operationalize one or more Principles.
+
+    **Attribute Semantics**:
+    - "applicability conditions": Optional SIE DSL LogicalExpression defining
+      where/when the policy applies.
+    - "constraint": A declarative expression of the constraint imposed by the
+      policy.
+
+    **Derived Scope (Purpose-level, from Principles)**:
+    A Policy does NOT store its own scope. Its effective scope is
+    **derived deterministically** from the Purposes its Principles govern:
+
+      effectiveScopedPurposes =
+        union(operationalizedPrinciples[*].constraint.purposeScope)
+
+    This derivation eliminates scope drift between Policies and their
+    Principles: if a Policy operationalizes Principle P₁ (which governs
+    Purpose "order-processing") and Principle P₂ (which governs Purpose
+    "payment-processing"), the Policy's effective scope is
+    {order-processing, payment-processing}.
+
+    This is the correct ontological level: Principle and Policy are BOTH
+    declarative constraints on Purpose quality. Scoping both at Purpose-
+    level preserves semantic coherence and eliminates the false step-down
+    that previously forced Policy to scope Functions (a concern that
+    properly belongs to Rule).
+
+    **Scoping Coherence Rules (NA-POL-05: Policy → Purpose grounding)**:
+    The constraint references MUST be traceable to the
+    effectiveScopedPurposes via the PPRC structural graph. This check
+    validates that the Policy's constraint actually governs the Purposes
+    it claims to scope (via its Principles).
+
+    *Grounding graph walk:*
+    1) Resolve the constraint's metric/selector references to a
+       SystemicPrimitive or StateObjectArchetype property.
+    2) Walk the GSM structural graph:
+       - Function → (scoped by) → Rule → (applies) → Policy
+         → (effectiveScopedPurposes) → Purpose
+       - Operator → realizes → Function
+       - Component → regroups → Function
+    3) The walk succeeds if there exists at least one path from the
+       resolved reference's owning primitive to at least one Function
+       that is scoped by a Rule applying a Policy governing at least
+       one Purpose in effectiveScopedPurposes.
+
+    *Path resolution per constraint type:*
+    - ThresholdConstraint: metric reference → resolve → walk → must reach
+      at least one Function governed through PPRC for an effectiveScopedPurpose.
+    - InvariantConstraint: extract ReferenceExpressions from condition →
+      resolve each → walk as above.
+    - CardinalityConstraint: target selector → resolve to primitive type
+      → walk as above.
+    - DependencyConstraint: dependent/dependency selectors → resolve →
+      walk as above.
+
+    *Behavior:*
+    - Path found → pass (grounding confirmed).
+    - No path found → warning (constraint may not actually constrain the
+      governed Purposes). Not an error because the function graph may be
+      incomplete at definition time.
+
+    **NA-POL-07: Policy → Component grounding**:
+    Constraint selectors MUST target primitives within Components that
+    regroup Functions scoped by Rules applying Policies governing the
+    same effectiveScopedPurposes (adequacy).
 
     **Homeostatic Auto-Definition Rule (Sensor)**:
     When a Policy constraint is measurable, the system SHOULD auto-define:
@@ -1666,12 +1742,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (Kafka consumers = Sensors, CoherenceCheck = Governor feedback)
     - CONTROL (Actuators): Execute actions on State Plane
     - STATE (External): Actual systems emit metrics consumed by SIE
-
-    **Attribute Semantics**:
-    - "applicability conditions": A logical expression that must evaluate to
-      true for the policy to be applicable to the system.
-    - "constraint": A declarative expression of the constraint imposed by the
-      policy.
 
     **Evaluation Semantics (derived)**:
     Policy evaluation is derived deterministically from the constraint format.
@@ -1833,7 +1903,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       like any other governance definition.
 
     **Default preset set (seeded by Definition DB):**
-    - Policy `SIE_CONFLICT_RESOLUTION_ORDER_V1` (StructuralPolicy):
+    - Policy `SIE_CONFLICT_RESOLUTION_ORDER_V1`:
       Defines the tie-break order for comparing two conflicting constraints.
       Default order:
         1) effectiveModal (MUST/MUST_NOT > SHOULD/SHOULD_NOT > MAY)
@@ -1866,7 +1936,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       }
       ```
 
-    - Policy `SIE_PRINCIPLE_POLICY_INCOHERENCE_HANDLING_V1` (StructuralPolicy):
+    - Policy `SIE_PRINCIPLE_POLICY_INCOHERENCE_HANDLING_V1`:
       Defines what happens when a Policy conflicts with an applicable Principle.
       Default handling:
         - If Principle effectiveModal is MUST/MUST_NOT → block activation of the
@@ -1896,7 +1966,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       }
       ```
 
-    - Policy `SIE_POLICY_CONFLICT_SEVERITY_MAPPING_V1` (StructuralPolicy):
+    - Policy `SIE_POLICY_CONFLICT_SEVERITY_MAPPING_V1`:
       Defines severity mapping for Policy↔Policy conflicts using the operationalized
       Principles' modals (MUST vs MUST = error; MUST vs SHOULD = warning; etc.).
 
@@ -1935,39 +2005,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     using the constraint type × verb matrices defined above.
     - Severity: error for MUST/MUST_NOT modals, warning for SHOULD/SHOULD_NOT.
 
-    *Check 2 — NA-POL-02: Metric → Quality path tracing:*
-    The Policy's constraint MUST reference a metric or property that is
-    reachable to the Principle's direct object (Quality) via the GSM
-    quality-influence graph. The engine walks the following typed edges:
-
-    1) Resolve the constraint's metric reference to a SystemicPrimitive
-       or StateObjectArchetype property.
-    2) Walk the GSM quality-influence graph:
-       - Function → affects → Quality
-       - Modality → stabilizes → Quality
-       - Capacity → influences → Quality
-       - Purpose → constrains → Quality
-    3) The walk succeeds if there exists at least one path from the
-       resolved metric's owning primitive to the Principle's Quality
-       through the edges above.
-
-    **Path resolution per constraint type:**
-    - ThresholdConstraint: metric reference → resolve to property of
-      a Function, Modality, Capacity, Component, or StateObjectArchetype
-      → walk quality-influence edges → must reach Principle.directObject.
-    - InvariantConstraint: extract all ReferenceExpressions from condition
-      → resolve each to a primitive → walk as above.
-    - CardinalityConstraint: target selector name → resolve to
-      primitive type → walk as above.
-    - DependencyConstraint: dependent/dependency selector names →
-      resolve to primitive types → walk as above.
-
-    **Behavior:**
-    - Path found → pass (link is semantically grounded).
-    - No path found → warning (the policy may not actually constrain the
-      quality it claims to operationalize). Not an error because the
-      quality-influence graph may be incomplete at definition time.
-    - Multiple paths found → pass (redundancy is acceptable).
+    *Check 2 — NA-POL-02: (SUSPENDED — Quality primitive dropped)*
+    TODO: redesign metric → purposeQualifier path tracing to operate
+    without the Quality primitive and quality-influence graph (deferred).
 
     *Check 3 — NA-POL-03: Applicability containment:*
     When the operationalized Principle declares applicability conditions,
@@ -2006,217 +2046,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Policy "1" o--> "1..*" Principle : operationalizes
 
   ' ============================================================
-  ' FUNCTIONAL POLICY
-  ' ============================================================
-
-  class FunctionalPolicy {
-    +getScopedPurposes(): Purpose[]
-  }
-
-  note top of FunctionalPolicy
-    A functional policy constrains the system's functional properties: what the
-    system MUST do to fulfill its purpose.
-
-    **Systemic Semantics**:
-    - Direct object of the constraint is purpose, value delivery, or functional
-      behavior.
-    - Input to structural synthesis:
-      Structure = Arch(Functional, Viability).
-
-    **Attribute Semantics**:
-    - "scopedPurposes": Purposes whose fulfillment is constrained by this
-      policy.
-
-    **Scoping Coherence Rules (NA-POL-05: FunctionalPolicy → Purpose grounding)**:
-    The constraint metric references MUST be traceable to the scopedPurposes
-    via the GSM purpose-influence graph. This check mirrors NA-POL-02
-    (metric→Quality path tracing) but targets the scoped Purposes.
-
-    *Grounding graph walk:*
-    1) Resolve the constraint's metric reference to a SystemicPrimitive
-       or StateObjectArchetype property.
-    2) Walk the GSM purpose-influence graph:
-       - Function → serves → Purpose
-       - Capacity → realizes → Purpose
-    3) The walk succeeds if there exists at least one path from the
-       resolved metric's owning primitive to at least one of the
-       Policy's scopedPurposes through the edges above.
-
-    *Path resolution per constraint type* (same pattern as NA-POL-02):
-    - ThresholdConstraint: metric reference → resolve → walk → must reach
-      at least one scopedPurpose.
-    - InvariantConstraint: extract ReferenceExpressions from condition →
-      resolve each → walk as above.
-    - CardinalityConstraint: target selector → resolve to primitive type
-      → walk as above.
-    - DependencyConstraint: dependent/dependency selectors → resolve →
-      walk as above.
-
-    *Behavior:*
-    - Path found → pass (grounding confirmed).
-    - No path found → warning (constraint may not actually constrain the
-      scoped Purposes). Not an error because the purpose-influence graph
-      may be incomplete at definition time.
-
-    *Ownership validity:*
-    - scopedPurposes[*] MUST belong to the same System as the Policy.
-
-    *Coverage (advisory):*
-    - Each scopedPurpose SHOULD be reachable from at least one constraint
-      reference. Unreachable scopedPurposes indicate over-inclusive scoping.
-  end note
-
-  Policy <|-- FunctionalPolicy : is
-
-  ' ============================================================
-  ' VIABILITY POLICY
-  ' ============================================================
-
-  class ViabilityPolicy {
-    +getScopedCapacities(): Capacity[]
-  }
-
-  note top of ViabilityPolicy
-    A viability policy constrains the system's viability properties: what the
-    system MUST withstand to remain viable in its environment.
-
-    **Systemic Semantics**:
-    - Direct object of the constraint is the viability envelope.
-    - Input to structural synthesis:
-      Structure = Arch(Functional, Viability).
-
-    **Attribute Semantics**:
-    - "scopedCapacities": Capacities whose existence or properties are
-      constrained by this policy.
-
-    **Scoping Coherence Rules (NA-POL-06: ViabilityPolicy → Capacity grounding)**:
-    The constraint metric references MUST be traceable to the scopedCapacities
-    via the GSM capacity-influence graph. This check mirrors NA-POL-02
-    (metric→Quality path tracing) but targets the scoped Capacities.
-
-    *Grounding graph walk:*
-    1) Resolve the constraint's metric reference to a SystemicPrimitive
-       or StateObjectArchetype property.
-    2) Walk the GSM capacity-influence graph:
-       - Modality → enables → Capacity
-       - Function → (serves → Purpose → constrains → Quality →)
-         (Quality ← influences ← Capacity)
-         — indirect path via the quality-influence graph when the
-         constraint metric is quality-related.
-    3) The walk succeeds if there exists at least one path from the
-       resolved metric's owning primitive to at least one of the
-       Policy's scopedCapacities through the edges above.
-
-    *Path resolution per constraint type* (same pattern as NA-POL-02):
-    - ThresholdConstraint: metric reference → resolve → walk → must reach
-      at least one scopedCapacity.
-    - InvariantConstraint: extract ReferenceExpressions from condition →
-      resolve each → walk as above.
-    - CardinalityConstraint: target selector → resolve to primitive type
-      → walk as above.
-    - DependencyConstraint: dependent/dependency selectors → resolve →
-      walk as above.
-
-    *Behavior:*
-    - Path found → pass (grounding confirmed).
-    - No path found → warning (constraint may not actually constrain the
-      scoped Capacities). Not an error because the capacity-influence graph
-      may be incomplete at definition time.
-
-    *Ownership validity:*
-    - scopedCapacities[*] MUST belong to the same System as the Policy.
-
-    *Coverage (advisory):*
-    - Each scopedCapacity SHOULD be reachable from at least one constraint
-      reference. Unreachable scopedCapacities indicate over-inclusive scoping.
-  end note
-
-  Policy <|-- ViabilityPolicy : is
-
-  ' ============================================================
-  ' STRUCTURAL POLICY
-  ' ============================================================
-
-  class StructuralPolicy {
-    +getScopedComponents(): Component[]
-  }
-
-  note top of StructuralPolicy
-    A structural policy constrains the system's structural properties: what the
-    system MUST be in terms of architecture, invariants, mechanisms, and
-    topology.
-
-    **Systemic Semantics**:
-    - Direct object of the constraint is form and invariants.
-    - Typically synthesized from functional and viability policies via the
-      architecture function:
-      Structure = Arch(Functional, Viability).
-
-    **Attribute Semantics**:
-    - "scopedComponents": Components whose integrations / interactions are
-      constrained by this policy.
-
-    **Scoping Coherence Rules (NA-POL-07: StructuralPolicy → Component grounding)**:
-    The constraint selectors and references MUST target primitives within or
-    regrouped by the scopedComponents. This check differs from NA-POL-05/06
-    because structural constraints typically use selectors (Component,
-    Mechanism, Interface) rather than metric references.
-
-    *Grounding check:*
-    1) Extract all SelectorExpression and ReferenceExpression nodes from
-       the constraint.
-    2) For each selector/reference, resolve the target primitive(s).
-    3) Check that each resolved primitive is either:
-       - One of the scopedComponents itself, OR
-       - A primitive regrouped by at least one scopedComponent
-         (Component.mechanisms, Component.interactions,
-         Component.interfaces, Component.functions,
-         Component.modalities).
-
-    *Path resolution per constraint type:*
-    - DependencyConstraint: dependent/dependency selectors → resolve to
-      primitives → check containment in scopedComponents' regrouped sets.
-    - CardinalityConstraint: target selector → resolve → check containment.
-    - InvariantConstraint: extract ReferenceExpressions from condition →
-      resolve → check containment.
-    - ThresholdConstraint: metric reference → resolve to owning primitive
-      → check containment.
-
-    *Behavior:*
-    - All resolved primitives within scopedComponents → pass.
-    - Some resolved primitives outside scopedComponents → warning
-      (constraint references primitives outside its declared scope).
-    - All resolved primitives outside scopedComponents → error
-      (constraint is entirely ungrounded in its scoped components).
-
-    *Ownership validity:*
-    - scopedComponents[*] MUST belong to the same System as the Policy.
-
-    *Coverage (advisory):*
-    - Each scopedComponent SHOULD be referenced by at least one constraint
-      selector/reference. Unreferenced scopedComponents indicate
-      over-inclusive scoping.
-  end note
-
-  Policy <|-- StructuralPolicy : is
-  StructuralPolicy "1" o--> "1..*" Component : constrainsInteractionsWith
-
-  ' ============================================================
   ' FUNCTION
   ' ============================================================
 
   class Function {
     +getName(): String
-    +getPurposes(): Purpose[]
-    +getQualities(): Quality[]
   }
 
   note top of Function
-    A function serves a purpose of the system.
+    A function is an activity or process that the system can perform.
 
     **Systemic Semantics**:
-    - Functions are realized by mechanisms, and their realization is what
-      produces negative effects on qualities.
+    - Functions are realized by mechanisms.
+    - Function↔Purpose is NOT a direct, stored relationship. It is
+      **derived through the PPRC chain**: Rules scope Functions AND
+      apply Policies whose effectiveScopedPurposes derive from
+      Principles governing Purposes. The PPRC chain IS the
+      authoritative definition of which Functions participate in the
+      governance of which Purposes.
 
     **Consistency Rules**:
     - "name" MUST be maximum 80 characters long.
@@ -2224,41 +2071,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   SystemicPrimitive <|-- Function : is
-  Function "0..*" o--> "1..*" Purpose : serves
-  Function "0..*" o--> "0..*" Quality : affects
 
   ' ============================================================
-  ' MODALITY
+  ' MODALITY (DROPPED — see TODO)
+  ' Modality, Capacity, and Quality primitives have been removed
+  ' from GSM. The quality dimension is now captured as
+  ' "purposeQualifier" (String) in PrincipleConstraintExpression.
+  ' Policy subtypes (FunctionalPolicy, ViabilityPolicy,
+  ' StructuralPolicy) have been unified into a single Policy
+  ' whose scope is derived from its Principles' purposeScopes.
+  ' Constraint nature is derivable from Principle.purposeQualifier
+  ' and the constraint format.
   ' ============================================================
-
-  class Modality {
-    +getName(): String
-    +getCapacities(): Capacity[]
-    +getQualities(): Quality[]
-  }
-
-  note top of Modality
-    A modality represents a mode of operation or a dimension of variability in
-    the system's behavior.
-
-    **Systemic Semantics**:
-    - Modalities represent dimensions of variability or modes of operation in 
-      the system's behavior.
-    - Modalities enable capacities, which represent the system's ability to
-     operate in a certain way or under certain conditions.
-    - Modalities can be used to model different operational contexts, modes, or
-      configurations of the system.
-    - Modalities stabilize qualities by ensuring they remain within viable
-      bounds.
-
-    **Consistency Rules**:
-    - "name" MUST be maximum 80 characters long.
-    - "name" MUST be unique among all modalities of the same system.
-  end note
-
-  SystemicPrimitive <|-- Modality : is
-  Modality "1..*" o--> "0..*" Capacity : enables
-  Modality "0..*" o--> "0..*" Quality : stabilizes
 
   ' ============================================================
   ' RULE
@@ -2266,11 +2090,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   
   class Rule {
     +getName(): String
-    +getApplyingFunctionalPolicies(): FunctionalPolicy[]
-    +getApplyingViabilityPolicies(): ViabilityPolicy[]
-    +getApplyingStructuralPolicies(): StructuralPolicy[]
+    +getApplyingPolicies(): Policy[]
     +getScopedFunctions(): Function[]
-    +getScopedModalities(): Modality[]
     +getTriggeringReceptor(): Receptor
     +getApplicabilityConditions(): String
     +getIterationConditions(): String
@@ -2283,24 +2104,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Systemic Semantics**:
     - Behavioral rules operationalize policies:
-      "applyingPolicies" references the functional, viability, and/or
-      structural policies whose constraints this rule enforces.
+      "applyingPolicies" references the policies whose constraints this
+      rule enforces.
     - Rules are DEFINED by Regulator controller mechanisms.
     - Rules are ENFORCED by Supervisor controller mechanisms via Controls.
     - Rules are OPERATED by Operator controller mechanisms.
 
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier.
-    - "applying functional policies": The set of functional policies whose
-      constraints are enforced by the behavioral rule.
-    - "applying viability policies": The set of viability policies whose
-      constraints are enforced by the behavioral rule.
-    - "applying structural policies": The set of structural policies whose
-      constraints are enforced by the behavioral rule.
+    - "applying policies": The set of policies whose constraints are
+      enforced by the behavioral rule.
     - "scoped functions": The set of functions whose execution the
       behavioral rule may impact when applied.
-    - "scoped modalities": The set of modalities whose state the behavioral
-      rule may impact when applied.
     - "triggering receptor": The receptor whose received events trigger the
       behavioral rule.
     - "applicability conditions": A logical expression that must evaluate to
@@ -2328,28 +2143,36 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - If a behavioral rule is deleted, its behavioral rule effects MUST be
       deleted, and vice-versa IF it is the last behavioral rule effect the
       behavioral rule owns.
-    - A Rule MUST apply at least one Policy (of any type: FunctionalPolicy,
-      ViabilityPolicy, or StructuralPolicy). Each subtype is optional (0..*),
-      but the union MUST NOT be empty.
-    - Rule.scopedFunctions and Rule.scopedModalities MUST be compatible with
-      the applied policies' scopes (see NA-RULE-02, NA-RULE-03).
+    - A Rule MUST apply at least one Policy.
     - "trigger" MUST reference an event archetype defined in the same system.
+
+    **PPRC Step-Down (Rule level — imperative transition)**:
+    Rule is the first **imperative** level in the PPRC chain:
+    - Principle → Purpose (identity-level: directional intent on quality of
+      Purpose; declarative).
+    - Policy → Purpose (design-level: measurable bounds on quality of Purpose;
+      declarative; scope derived from Principles).
+    - **Rule → Function** (behavioral-level: event-triggered logic operating
+      on Functions whose governance connection to Purposes is defined by
+      the PPRC chain itself; imperative).
+    - Control → Step (execution-level: effector + mapping + actuation within
+      a Rule; imperative).
+
+    The Rule is where the declarative → imperative transition occurs:
+    Principles and Policies declare *what* must hold (on Purposes); Rules
+    specify *how* to achieve it (through Functions). This is the fundamental
+    scope step-down that connects governance intent to system behavior.
 
     **Scoping Coherence Rules (Norm Appraisal, Regulation plane)**:
 
-    *NA-RULE-02: Rule → FunctionalPolicy scope containment (adequacy):*
-    - Rule.scopedFunctions[*].serves MUST be a subset of
-      Rule.applyingFunctionalPolicies[*].scopedPurposes.
-      (A Rule MUST NOT scope Functions that serve Purposes outside
-      its applied FunctionalPolicies' scopedPurposes.)
-    - Behavior: violation → Norm Appraisal finding (warning).
-
-    *NA-RULE-03: Rule → ViabilityPolicy scope containment (adequacy):*
-    - Rule.scopedModalities[*].enables MUST be a subset of
-      Rule.applyingViabilityPolicies[*].scopedCapacities.
-      (A Rule MUST NOT scope Modalities that enable Capacities outside
-      its applied ViabilityPolicies' scopedCapacities.)
-    - Behavior: violation → Norm Appraisal finding (warning).
+    *NA-RULE-02: (DROPPED — Function→Purpose direct link removed)*
+    Function↔Purpose is derived through the PPRC chain: a Rule
+    scopes Functions AND applies Policies (whose effectiveScopedPurposes
+    derive from Principles governing Purposes). The Rule IS the
+    definitional bridge between Functions and Purposes — there is no
+    independent Function→Purpose assertion to validate against.
+    The adequacy check is subsumed by PPRC chain traversability
+    (NA-PPRC-01).
 
     **Behavioral Grounding Rules (Norm Appraisal, Regulation plane)**:
 
@@ -2365,16 +2188,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (partial grounding; some scoped Functions are not realized by
       the auto-defined Operator).
 
-    *NA-RULE-05: Rule → Modality behavioral grounding (adequacy):*
-    After Mechanism Auto-Definition, the auto-defined Operator's
-    Operator.operates set SHOULD intersect with Rule.scopedModalities.
-    If the intersection is empty, the Rule's behavioral logic does
-    not operate any of its scoped Modalities through the auto-defined
-    Operator — the scoping is semantically ungrounded.
-    - Behavior: empty intersection → Norm Appraisal finding (warning).
-    - Non-empty intersection with missing Modalities → advisory
-      (partial grounding; some scoped Modalities are not operated by
-      the auto-defined Operator).
+    *NA-RULE-05: (SUSPENDED — Modality/Capacity primitives dropped)*
+    TODO: redesign Modality behavioral grounding check to operate
+    without Modality and Capacity primitives (deferred).
 
     **Mechanism Auto-Definition Rule (Definition Manager)**:
     When a Rule is persisted or modified, the Definition Manager SHOULD
@@ -2398,9 +2214,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   SystemicPrimitive <|-- Rule : is
-  Rule "0..*" o--> "0..*" FunctionalPolicy : applies
-  Rule "0..*" o--> "0..*" ViabilityPolicy : applies
-  Rule "0..*" o--> "0..*" StructuralPolicy : applies
+  Rule "0..*" o--> "0..*" Policy : applies
   Rule "1" *--> "1..*" Control : has
 
   ' ============================================================
@@ -2420,6 +2234,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   note top of Control
     A behavioral rule control defines an action to be performed when its
     enclosing behavioral rule is triggered and applied.
+
+    **PPRC Step-Down (Control level — execution)**:
+    Control is the lowest, most concrete level of the PPRC chain:
+    - Principle → Purpose (identity-level: directional intent; declarative).
+    - Policy → Purpose (design-level: measurable bounds; declarative).
+    - Rule → Function (behavioral-level: event-triggered logic; imperative).
+    - **Control → Step** (execution-level: effector + mapping + optional
+      actuation within a Rule; imperative).
+
+    A Control is the atomic executable unit: it commands one effector,
+    provides the event mapping, and optionally declares an actuation.
+    It does not define governance intent (that is Principle/Policy) nor
+    behavioral logic (that is Rule). It executes one step of the Rule's
+    control sequence.
 
     **Systemic Semantics**:
     - Controls are DEFINED by Regulator controller mechanisms.
@@ -2706,7 +2534,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   class Component {
     +getName(): String
     +getFunctions(): Function[]
-    +getModalities(): Modality[]
     +getMechanisms(): Mechanism[]
     +getInteractions(): Interaction[]
     +getInterfaces(): Interface[]
@@ -2728,8 +2555,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Attribute Semantics**:
     - "name": Human-readable semantic identifier.
     - "functions": Functions allocated to / realized by the component.
-    - "modalities": Modalities supported/managed by mechanisms in the
-      component.
     - "mechanisms": Mechanisms belonging to the component.
     - "interfaces": Interfaces regrouped by the component (may be internal or
       external).
@@ -2748,7 +2573,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   SystemicPrimitive <|-- Component : is
   Component "1" o--> "1..*" Function : regroups
-  Component "1" o--> "0..*" Modality : regroups
   Component "1" o--> "1..*" Mechanism : regroups
   Component "1" o--> "0..*" Interaction : regroups
   Component "1" o--> "0..*" Interface : regroups

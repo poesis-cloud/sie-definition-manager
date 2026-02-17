@@ -14,7 +14,7 @@
             "0013": "Modality",
             "0020": "Function",
             "0030": "Principle",
-            "0031": "StructuralPolicy",
+            "0031": "Policy",
             "0040": "Rule",
             "0041": "Control",
             "0050": "Mechanism",
@@ -67,19 +67,19 @@
                 "dimension": "ADEQUACY",
                 "severity": "WARNING",
                 "trigger": "Policy",
-                "description": "FunctionalPolicy purpose grounding"
+                "description": "Policy → Purpose grounding"
             },
             "NA-POL-06": {
                 "dimension": "ADEQUACY",
                 "severity": "WARNING",
                 "trigger": "Policy",
-                "description": "ViabilityPolicy capacity grounding"
+                "description": "Policy metric→purposeQualifier path tracing (SUSPENDED)"
             },
             "NA-POL-07": {
                 "dimension": "ADEQUACY",
-                "severity": "ERROR",
+                "severity": "WARNING",
                 "trigger": "Policy",
-                "description": "StructuralPolicy component grounding"
+                "description": "Policy → Component grounding"
             },
             "NA-POL-08": {
                 "dimension": "COMPLETENESS",
@@ -97,13 +97,13 @@
                 "dimension": "ADEQUACY",
                 "severity": "WARNING",
                 "trigger": "Rule",
-                "description": "Rule functional policy scope containment"
+                "description": "Rule → Policy scope containment"
             },
             "NA-RULE-03": {
                 "dimension": "ADEQUACY",
                 "severity": "WARNING",
                 "trigger": "Rule",
-                "description": "Rule viability policy scope containment"
+                "description": "Rule viability policy scope containment (SUSPENDED — absorbed into NA-RULE-02)"
             },
             "NA-RULE-04": {
                 "dimension": "ADEQUACY",
@@ -802,18 +802,13 @@
                 "id": "00000000-0000-0000-0040-000000000001",
                 "name": "NormAppraisal-PrincipleChecks",
                 "status": "ACTIVE",
-                "applyingFunctionalPolicies": [],
-                "applyingViabilityPolicies": [],
-                "applyingStructuralPolicies": [
+                "applyingPolicies": [
                     "00000000-0000-0000-0031-000000000001",
                     "00000000-0000-0000-0031-000000000003"
                 ],
                 "scopedFunctions": [
                     "00000000-0000-0000-0020-000000000001",
                     "00000000-0000-0000-0020-000000000002"
-                ],
-                "scopedModalities": [
-                    "00000000-0000-0000-0013-000000000001"
                 ],
                 "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
                 "applicabilityConditions": {
@@ -844,9 +839,7 @@
                 "id": "00000000-0000-0000-0040-000000000002",
                 "name": "NormAppraisal-PolicyChecks",
                 "status": "ACTIVE",
-                "applyingFunctionalPolicies": [],
-                "applyingViabilityPolicies": [],
-                "applyingStructuralPolicies": [
+                "applyingPolicies": [
                     "00000000-0000-0000-0031-000000000001",
                     "00000000-0000-0000-0031-000000000002",
                     "00000000-0000-0000-0031-000000000003"
@@ -861,13 +854,10 @@
                     "00000000-0000-0000-0020-000000000009",
                     "00000000-0000-0000-0020-00000000000a"
                 ],
-                "scopedModalities": [
-                    "00000000-0000-0000-0013-000000000001"
-                ],
                 "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
                 "applicabilityConditions": {
                     "type": "ComparisonExpression",
-                    "operator": "IN",
+                    "operator": "EQUALS",
                     "left": {
                         "type": "ContextVariableReferenceExpression",
                         "name": "definitionPersistedReceptor",
@@ -877,12 +867,7 @@
                     },
                     "right": {
                         "type": "LiteralExpression",
-                        "value": [
-                            "Policy",
-                            "FunctionalPolicy",
-                            "ViabilityPolicy",
-                            "StructuralPolicy"
-                        ]
+                        "value": "Policy"
                     }
                 },
                 "iterationConditions": {
@@ -904,9 +889,7 @@
                 "id": "00000000-0000-0000-0040-000000000003",
                 "name": "NormAppraisal-RuleChecks",
                 "status": "ACTIVE",
-                "applyingFunctionalPolicies": [],
-                "applyingViabilityPolicies": [],
-                "applyingStructuralPolicies": [
+                "applyingPolicies": [
                     "00000000-0000-0000-0031-000000000002",
                     "00000000-0000-0000-0031-000000000003"
                 ],
@@ -916,9 +899,6 @@
                     "00000000-0000-0000-0020-00000000000d",
                     "00000000-0000-0000-0020-00000000000e",
                     "00000000-0000-0000-0020-00000000000f"
-                ],
-                "scopedModalities": [
-                    "00000000-0000-0000-0013-000000000001"
                 ],
                 "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
                 "applicabilityConditions": {
@@ -952,17 +932,12 @@
                 "id": "00000000-0000-0000-0040-000000000004",
                 "name": "NormAppraisal-ControlChecks",
                 "status": "ACTIVE",
-                "applyingFunctionalPolicies": [],
-                "applyingViabilityPolicies": [],
-                "applyingStructuralPolicies": [
+                "applyingPolicies": [
                     "00000000-0000-0000-0031-000000000001"
                 ],
                 "scopedFunctions": [
                     "00000000-0000-0000-0020-000000000010",
                     "00000000-0000-0000-0020-000000000011"
-                ],
-                "scopedModalities": [
-                    "00000000-0000-0000-0013-000000000001"
                 ],
                 "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
                 "applicabilityConditions": {
@@ -999,16 +974,11 @@
                 "id": "00000000-0000-0000-0040-000000000005",
                 "name": "NormAppraisal-PPRCChainCheck",
                 "status": "ACTIVE",
-                "applyingFunctionalPolicies": [],
-                "applyingViabilityPolicies": [],
-                "applyingStructuralPolicies": [
+                "applyingPolicies": [
                     "00000000-0000-0000-0031-000000000002"
                 ],
                 "scopedFunctions": [
                     "00000000-0000-0000-0020-000000000012"
-                ],
-                "scopedModalities": [
-                    "00000000-0000-0000-0013-000000000001"
                 ],
                 "triggeringReceptor": "00000000-0000-0000-0080-000000000004",
                 "applicabilityConditions": {
@@ -1026,9 +996,6 @@
                         "value": [
                             "Principle",
                             "Policy",
-                            "FunctionalPolicy",
-                            "ViabilityPolicy",
-                            "StructuralPolicy",
                             "Rule",
                             "Control"
                         ]
@@ -1046,15 +1013,10 @@
                 "id": "00000000-0000-0000-0040-000000000006",
                 "name": "TransitionGuard-NormAppraisal",
                 "status": "ACTIVE",
-                "applyingFunctionalPolicies": [],
-                "applyingViabilityPolicies": [],
-                "applyingStructuralPolicies": [
+                "applyingPolicies": [
                     "00000000-0000-0000-0031-000000000004"
                 ],
                 "scopedFunctions": [],
-                "scopedModalities": [
-                    "00000000-0000-0000-0013-000000000001"
-                ],
                 "triggeringReceptor": "00000000-0000-0000-0080-000000000005",
                 "applicabilityConditions": {
                     "type": "ComparisonExpression",
@@ -1993,7 +1955,7 @@
                     },
                     "right": {
                         "type": "LiteralExpression",
-                        "value": "FunctionalPolicy"
+                        "value": "Policy"
                     }
                 },
                 "iterationConditions": null,
@@ -2142,7 +2104,7 @@
                 "type": "CreationActuationControl",
                 "id": "00000000-0000-0000-0041-000000000008",
                 "name": "NA-POL-06",
-                "status": "ACTIVE",
+                "status": "SUSPENDED",
                 "applyingRule": "00000000-0000-0000-0040-000000000002",
                 "applicabilityConditions": {
                     "type": "ComparisonExpression",
@@ -2156,7 +2118,7 @@
                     },
                     "right": {
                         "type": "LiteralExpression",
-                        "value": "ViabilityPolicy"
+                        "value": "Policy"
                     }
                 },
                 "iterationConditions": null,
@@ -2319,7 +2281,7 @@
                     },
                     "right": {
                         "type": "LiteralExpression",
-                        "value": "StructuralPolicy"
+                        "value": "Policy"
                     }
                 },
                 "iterationConditions": null,
@@ -2915,7 +2877,7 @@
                 "type": "CreationActuationControl",
                 "id": "00000000-0000-0000-0041-00000000000d",
                 "name": "NA-RULE-03",
-                "status": "ACTIVE",
+                "status": "SUSPENDED",
                 "applyingRule": "00000000-0000-0000-0040-000000000003",
                 "applicabilityConditions": null,
                 "iterationConditions": null,
