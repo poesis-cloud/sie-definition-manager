@@ -1,4 +1,4 @@
-@startuml sie-gsm-v1
+@startuml sie-gsm
 
 ' ============================================================
 ' VISUAL THEME
@@ -234,133 +234,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     reason over definitions, detect definition–reality mismatch, and
     produce remediation or evolutionary change — autonomously.
 
-    **GSM and the two appraisal types (Norm Appraisal / Form Appraisal)**
-
-    The definition–description duality creates two distinct appraisal
-    boundaries. GSM structures serve as the normative reference for both.
-
-    Each checkpoint below is assigned a referenceable identifier
-    (NA-* for Norm Appraisal, FA-* for Form Appraisal).
-
-    **Norm Appraisal** — appraisal of the form of norms.
-    Boundary: definition ↔ definition (intra-normative).
-    Question: "Are our norms sound?"
-    Dimensions: consistency, completeness, adequacy.
-    Executed by: Governance and Regulation planes (Reflexive Layer).
-    Requires: GSM only — no DSM input.
-
-    Named checkpoints (Governance plane — Principle level):
-
-    - **NA-PRIN-01**: Principle ↔ Principle conflict detection.
-      Two Principles on the same purposeQualifier AND same Purpose with
-      overlapping applicability and directionally incompatible verbs are
-      flagged (consistency). Different Purposes on the same
-      purposeQualifier are NOT conflicts.
-    - **NA-PRIN-02**: Principle applicability guard validation.
-      Applicability conditions MUST be in G5 restricted guard normal
-      form: null | And(AxisPredicate, ...) with one-predicate-per-axis
-      invariant and allow-listed axes (adequacy).
-
-    Named checkpoints (Regulation plane — Policy level):
-
-    - **NA-POL-01**: Policy → Principle direction coherence.
-      Constraint operator direction MUST be compatible with the verb
-      direction of the operationalized Principle(s) (adequacy).
-      See Policy note: Operationalizes Link Validation Rules, Check 1.
-    - **NA-POL-02**: (SUSPENDED — Quality primitive dropped)
-      TODO: redesign metric → purposeQualifier path tracing to operate
-      without the Quality primitive and quality-influence graph (deferred).
-    - **NA-POL-03**: Policy → Principle applicability containment.
-      Policy applicability MUST be satisfiable only within the
-      Principle's applicability (adequacy).
-      See Policy note: Operationalizes Link Validation Rules, Check 3.
-    - **NA-POL-04**: Policy ↔ Policy conflict detection.
-      Two Policies imposing incompatible constraints on the same
-      target are flagged (consistency).
-      See Policy note: Policy ↔ Policy Conflict Detection Rules.
-    - **NA-POL-05**: Policy → Purpose grounding.
-      Constraint metric MUST be structurally reachable to
-      effectiveScopedPurposes via the PPRC structural graph
-      (adequacy).
-      See Policy note: Scoping Coherence Rules.
-    - **NA-POL-06**: (SUSPENDED — Capacity primitive dropped)
-      TODO: redesign metric → purposeQualifier path tracing to operate
-      without the Quality primitive and quality-influence graph (deferred).
-    - **NA-POL-07**: Policy → Component grounding.
-      Constraint selectors MUST target primitives within
-      Components that regroup Functions scoped by Rules
-      applying Policies governing the same
-      effectiveScopedPurposes (adequacy).
-      See Policy note: Scoping Coherence Rules.
-    - **NA-POL-08**: Policy operationalization coverage.
-      Every ACTIVE Policy SHOULD have at least one implementing Rule;
-      every Rule MUST apply at least one Policy (completeness).
-
-    Named checkpoints (Regulation plane — Rule level):
-
-    - **NA-RULE-01**: Rule → Policy application minimum.
-      A Rule MUST apply at least one Policy (completeness).
-      See Rule note: Consistency Rules.
-    - **NA-RULE-02**: (DROPPED — Function→Purpose direct link removed)
-      Function↔Purpose is now derived through the PPRC chain
-      (Rule scopes Functions AND applies Policies governing
-      Purposes). The independent adequacy check is subsumed by
-      PPRC chain definition (see NA-PPRC-01).
-    - **NA-RULE-04**: Rule → Function behavioral grounding.
-      Auto-defined Operator.realizes SHOULD intersect with
-      Rule.scopedFunctions (adequacy).
-      See Rule note: Behavioral Grounding Rules.
-    - **NA-RULE-05**: (SUSPENDED — Modality/Capacity primitives dropped)
-      TODO: redesign Modality behavioral grounding (deferred).
-
-    Named checkpoints (Regulation plane — Control level):
-
-    - **NA-CTRL-01**: Control → effector/receptor binding consistency.
-      Effector and feedback receptor event archetypes MUST be compatible
-      with the Rule's triggering event and control sequence (consistency).
-      See Control note: Consistency Rules.
-    - **NA-CTRL-02**: Control → source mapping type compatibility.
-      Each mapping value type MUST be compatible with the target
-      property type per archetype schema (consistency).
-      See SourceMapping note: Consistency Rules.
-
-    Named checkpoints (cross-PPRC):
-
-    - **NA-PPRC-01**: PPRC chain traversability.
-      The full Principle → Policy → Rule → Control chain MUST be
-      structurally traversable end-to-end (completeness).
-
-    **Form Appraisal** — appraisal of the form of reality.
-    Boundary: definition ↔ reality (trans-normative).
-    Question: "Is reality well-formed per our norms?"
-    Dimensions: fidelity, coverage, convergence.
-    Executed by: Supervision plane (Reflexive Layer).
-    Requires: both GSM (definitions) and DSM (observations).
-
-    Named checkpoints:
-
-    - **FA-MECH-01**: Mechanism definition ↔ observed behavior.
-      Rules and Controls define what a Mechanism MUST do; DSM observes
-      what Mechanisms actually do. Deviation is a fidelity finding.
-    - **FA-STATE-01**: StateObjectArchetype ↔ observed state.
-      GSM defines expected structure/constraints; DSM observes actual
-      instances. Missing, malformed, or uncovered state objects
-      produce coverage findings.
-    - **FA-POL-01**: Policy constraints ↔ measured metrics.
-      Threshold, invariant, cardinality, and dependency constraints
-      define the normative envelope; DSM measures reality against
-      them. Violations are fidelity findings.
-    - **FA-ACT-01**: Actuation feedback loop verification.
-      Actuator/Sensor auto-definitions close the observation loop;
-      Form Appraisal verifies actuations produced intended effects
-      (fidelity).
-    - **FA-CONV-01**: Normative envelope convergence tracking.
-      Trend toward or away from the normative envelope is tracked
-      across evaluation windows (convergence).
-
-    Neither appraisal type is a process sub-type — they are coherence
-    evaluations distinguished by *where* coherence is checked.
-
     **Specification: no free-form description fields**
 
     GSM primitives MUST NOT define free-form `description` fields.
@@ -448,8 +321,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Primitive Semantics**:
     - Every concept in GSM carries an archetype, optional qualifier
       archetypes, and optional qualifiers providing extensibility for
-      any domain-specific ontology and semantics (epistemic
-      extensibility).
+      any domain-specific ontology and semantics.
 
     **Validation Rules**:
     - Valid qualifier archetype schemas MUST conform to their archetype
@@ -473,25 +345,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       lifecycle stage and readiness for use in system definitions.
 
     **Attribute Semantics**:
-    - DRAFT: The artifact exists but is incomplete and not yet submitted for
+    - DRAFT: The definition exists but is incomplete and not yet submitted for
       governance review.
       - Not part of the system definition
       - Not visible to appraisal
       - Not binding
       - Editable without restriction
 
-    - PROPOSED: The artifact has been submitted for governance evaluation.
+    - PROPOSED: The definition has been submitted for governance evaluation.
       - Not yet binding
       - Not yet part of the system definition
       - Under review for correctness, coherence, and alignment.
 
-    - APPROVED: The artifact has passed governance validation but is not yet
+    - APPROVED: The definition has passed governance validation but is not yet
       activated.
       - Valid and correct
       - Ready for integration
       - Not yet constraining or executable
 
-    - ACTIVE: The artifact is fully integrated into the system definition and is
+    - ACTIVE: The definition is fully integrated into the system definition and is
       currently binding.
       - Principles constrain purpose quality dimensions
       - Policies constrain mechanisms
@@ -500,33 +372,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - Included in appraisal
       - Violations are meaningful
 
-    - SUSPENDED: The artifact is temporarily inactive but not deprecated or
+    - SUSPENDED: The definition is temporarily inactive but not deprecated or
       retired.
       - Not currently binding
       - Not executed or enforced
       - Still valid and may be reactivated
       - Appraisal ignores it
 
-    - DEPRECATED: The artifact is being phased out and should not be used for
+    - DEPRECATED: The definition is being phased out and should not be used for
       new design or behavior.
       - Still part of the system definition
       - Still binding unless also suspended
       - Marked for replacement
       - Appraisal still considers it unless suspended
 
-    - RETIRED: The artifact is no longer part of the system definition.
+    - RETIRED: The definition is no longer part of the system definition.
       - Not binding
       - Not executed
       - Not considered in appraisal
       - Preserved only for historical traceability
 
-    - REJECTED: The artifact was reviewed and explicitly not accepted.
+    - REJECTED: The definition was reviewed and explicitly not accepted.
       - Not part of the system definition
       - Not binding
       - Not considered in appraisal
       - May be revised and resubmitted
 
-    **Transition Rules**:
+    **Functional Rules**:
     The lifecycle transitions between statuses are constrained as follows:
     - DRAFT → PROPOSED
     - DRAFT → REJECTED
@@ -571,6 +443,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `name` MUST match the name of the archetyped class.
     - `name` MUST match the name of the schema.
     - `name` MUST be unique among all systemic primitive archetypes.
+
+    **Consistency Rules**:
     - `name` MUST be maximum 80 characters long.
   end note
 
@@ -597,6 +471,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Consistency Rules**:
     - `name` MUST match the name of the schema.
     - `name` MUST be unique among all qualifier archetype instances.
+
+    **Consistency Rules**:
     - `name` MUST be maximum 80 characters long.
   end note
 
@@ -980,7 +856,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       reference to a SystemicPrimitive).
     - `constraint`.purposeScope MUST be a SystemicPrimitiveSelectorExpression
       whose name is Purpose.
-    - **Applicability guard form (NA-PRIN-02):**
+    - **Applicability guard form:**
       `applicabilityConditions` MUST be either null/absent (universal),
       OR an AndExpression, OR a single atom. OrExpression and
       NotExpression MUST NOT be used. **One-predicate-per-axis
@@ -1070,71 +946,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - **Domain alignment:** If constraint uses selectors, the
         guard MUST NOT allow contexts where those archetypes cannot
         exist.
-    - **NA-POL-01: Policy → Principle Direction Coherence:**
-      Constraint operator direction MUST be compatible with the
-      Principle verb direction. Deterministic per constraint type:
-
-      *ThresholdConstraint direction coherence:*
-
-      | Verb     | Dir  | Compatible operators              | Incoherent              |
-      |----------|------|-----------------------------------|-------------------------|
-      | MAXIMIZE | ↑    | GREATER_THAN, GREATER_OR_EQUAL    | LESS_THAN, LESS_OR_EQUAL|
-      | MINIMIZE | ↓    | LESS_THAN, LESS_OR_EQUAL          | GREATER_THAN, GREATER_OR_EQUAL|
-      | PRESERVE | ↔    | BOTH upper AND lower bound        | Single bound            |
-      | BALANCE  | ↔s   | Any bound                         | —                       |
-      | ENSURE   | ✓    | GREATER_OR_EQUAL                  | —                       |
-      | AVOID    | ✗    | LESS_OR_EQUAL (0 or cap)          | —                       |
-      | PROMOTE  | ↑s   | GREATER_THAN, GREATER_OR_EQUAL    | — (warn)                |
-      | REDUCE   | ↓s   | LESS_THAN, LESS_OR_EQUAL          | — (warn)                |
-
-      *InvariantConstraint:* ENSURE → positive form; AVOID → negated;
-      MAXIMIZE/MINIMIZE → warn (boolean, not scalar).
-
-      *CardinalityConstraint:* MAXIMIZE → min set; MINIMIZE → max set;
-      PRESERVE → both; ENSURE → min ≥ 1; AVOID → max = 0.
-
-      *DependencyConstraint:* ENSURE → REQUIRES; AVOID → EXCLUDES.
-
-    - **NA-POL-03: Policy → Principle Applicability Containment:**
-      Policy applicabilityConditions MUST be satisfiable only within
-      the Principle's applicability scope.
-      - Structural (deterministic): guard axis set containment
-        check. Subset → pass. Superset → warning. Disjoint → error.
-      - Undecidable: complex guards → advisory.
-    - **Operationalizes Link Severity Summary:**
-
-      | Check       | Pass   | Fail (MUST) | Fail (SHOULD) | Undecidable |
-      |-------------|--------|-------------|---------------|-------------|
-      | NA-POL-01   | silent | error       | warning       | n/a         |
-      | NA-POL-02   | silent | warning     | warning       | advisory    |
-      | NA-POL-03   | silent | error/warn  | warning       | advisory    |
-
-    - **NA-POL-04: Policy ↔ Policy Conflict Detection:**
-      Two Policies conflict when they impose incompatible constraints:
-      - *Threshold (same metric):* P1 upper < P2 lower → infeasible.
-      - *Invariant:* P1 ∧ P2 unsatisfiable → contradiction.
-      - *Cardinality (same selector):* P1.min > P2.max → infeasible.
-      - *Dependency (same pair):* REQUIRES ∧ EXCLUDES → contradiction.
-      - *Cross-type:* Threshold cap + Cardinality minimum → flag.
-
-      Severity from operationalized Principles' modals:
-      MUST vs MUST → error; MUST vs SHOULD → warning (MUST wins);
-      SHOULD vs SHOULD → advisory; MAY vs any → no conflict.
-    - **NA-POL-05: Policy → Purpose grounding:**
-      Constraint references MUST be traceable to
-      effectiveScopedPurposes via the PPRC structural graph:
-      1) Resolve constraint metric/selector references.
-      2) Walk: Function → Rule → Policy → effectiveScopedPurposes.
-      3) Path found → pass. No path → warning.
-      Per constraint type: Threshold (metric ref → walk),
-      Invariant (extract refs → walk each),
-      Cardinality (target selector → walk),
-      Dependency (dependent/dependency selectors → walk).
-    - **NA-POL-07: Policy → Component grounding:**
-      Constraint selectors MUST target primitives within Components
-      that regroup Functions governed through PPRC for the same
-      effectiveScopedPurposes (adequacy).
-
     **Consistency Rules**:
     - A Policy MUST operationalize at least one Principle.
 
@@ -1268,11 +1079,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       mechanism receptor.
     - Condition operands representing a literal value MUST be
       validated against the corresponding event archetype schema.
-    - **NA-RULE-04 (Behavioral Grounding):** After Mechanism
-      Auto-Definition, the auto-defined Operator's realizes set
-      SHOULD intersect with Rule.scopedFunctions. Empty intersection
-      → warning. Partial intersection → advisory.
-
     **Consistency Rules**:
     - A rule MUST be triggered by exactly one event archetype.
     - A rule MUST have at least one control.
@@ -1597,7 +1403,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - This asymmetry is deliberate: each party may define its own
       Relationship instance with its own roles. When both agree,
       instances are coherent (reciprocal views). When they disagree,
-      Form Appraisal flags drift.
+      the disagreement constitutes drift (detectable by the
+      Supervision plane).
     - Heterarchy is natural: a system may have many relationships
       with many counterparties (and multiple with the same
       counterparty under different roles).
@@ -1620,8 +1427,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       extension is required.
     - **Canonical role pairing (non-blocking warnings):**
       Role pairs SHOULD match canonical pair hints defined in the
-      Role note. Non-matching pairs → coherence appraisal finding
-      (warning), not persistence blocking.
+      Role note. Non-matching pairs → coherence finding (warning),
+      not persistence blocking.
     - **Role/qualifier coherence:** role configuration SHOULD be
       semantically compatible with qualifiers asserting governance
       intent. Symmetric roles + unilateral mandate qualifiers →
@@ -1800,8 +1607,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       governance definitions (PPRC) and observable behavior.
       - **Definition side**: structure deterministically derived from
         PPRC (see Rule: Mechanism Auto-Definition Rule).
-      - **Observation side**: DSM observes behavior; Form Appraisal
-        (FA-MECH-01) compares observed vs. defined.
+      - **Observation side**: DSM observes behavior; the Supervision
+        plane compares observed vs. defined.
       - Unit of both **Realization** and **Observation**.
     - **Positional semantics (GRS&CO)**: GRS&CO labels are dynamic
       roles induced by plane execution context — positional, not
@@ -1878,7 +1685,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **Dual Definition Semantics** (same pattern as Mechanism):
       - **SIE Actuator**: SIE connector/adapter for state changes.
       - **Domain Actuator**: prescriptive definition; conformance
-        measured by Form Appraisal.
+        measured by the Supervision plane.
   end note
 
   Mechanism <|-- Actuator : is
@@ -1912,7 +1719,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **Dual Definition Semantics** (same pattern as Mechanism):
       - **SIE Sensor**: SIE polls/subscribes to tenant telemetry.
       - **Domain Sensor**: prescriptive definition; conformance
-        measured by Form Appraisal.
+        measured by the Supervision plane.
   end note
 
   Mechanism <|-- Sensor : is
@@ -2205,10 +2012,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' 2. Appraisal:    Evaluate (2 types, NOT sub-types):
   '    - Norm Appraisal: definition ↔ definition (intra-normative)
   '      Dimensions: consistency, completeness, adequacy
-  '      Checkpoints: NA-PRIN-*, NA-POL-*, NA-RULE-*, NA-CTRL-*, NA-PPRC-*
   '    - Form Appraisal: definition ↔ reality (trans-normative)
   '      Dimensions: fidelity, coverage, convergence
-  '      Checkpoints: FA-MECH-*, FA-STATE-*, FA-POL-*, FA-ACT-*, FA-CONV-*
   ' 3. Determination: Generative (3 sub-types):
   '    - Emergence: inductive (descriptions without definitions → proposals)
   '    - Adaptation: abductive (deviation evidence → rule adjustment)

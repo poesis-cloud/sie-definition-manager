@@ -41,9 +41,9 @@ GSM and DSM are therefore coupled at the structural layer — this is their shar
 
 ## Where to start
 
-- GSM model: `definition/sie-gsm-v1.puml`
-- DSM model (companion): `../sie-description-manager/definition/sie-dsm-v1.puml`
-- Supervision information model: `../sie-supervision/definition/sie-supervision-information-model-v1.puml`
+- GSM model: `definition/gsm.puml`
+- DSM model (companion): `../sie-description-manager/definition/dsm.puml`
+- Supervision information model: `../sie-supervision/definition/sie-supervision-information-model.puml`
 The canonical SIE overview README has been moved to:
 
 - ../README.md
@@ -133,7 +133,7 @@ Three options were evaluated:
 
 **DSL impact**: None. Existing `CardinalityPolicyConstraint` + `StateObjectSelectorExpression` + `StateObjectArchetypeReferenceExpression` express all guard constraints within the current SIE DSL. No new types, functions, or syntax needed.
 
-**Genesis seed**: `sie-genesis-seed-v1.json` (adjacent to `sie-gsm-v1.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as PPRC, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
+**Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as PPRC, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
 
 **Risks:**
 
