@@ -25,10 +25,7 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Reorganize notes so that they relate specifically to the elements they refer 
-'   to, as long as that doesnt make the note loose meaning, coherence, context.
 ' - Refer to DSL constructs for model attributes integrating them.
-' - Review notes coherence and content (especially the rules they integrate).
 ' - Add / update relationships between primitives.
 ' - Generate JSON schema for each systemic primitive archetype, and for generic
 '   events archetypes.
