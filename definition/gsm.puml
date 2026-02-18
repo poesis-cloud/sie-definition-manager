@@ -29,6 +29,7 @@ skinparam noteBorderColor #57606A
 ' - Add / update relationships between primitives.
 ' - Generate JSON schema for each systemic primitive archetype, and for generic
 '   events archetypes.
+' - Identify and generate rules of any kind for each class.
 ' - Challenge meta model, technically.
 ' ============================================================
 
@@ -78,15 +79,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **Constitution**: not an observation of identity — a *declaration*
       of identity.
     - **Organization**: not an observation of governance — a *definition*
-      of governance.
+      of governance (norms, behavioral logic, and information model).
     - **Infrastructure**: not an observation of structure — a
-      *specification* of structure.
+      *specification* of structure (mechanism topology only).
 
     Together these layers form the system's **generative envelope** —
     the complete definitional specification from which governance
     processes derive their runtime behavior. The generative envelope IS
     the reflexive layer: the system's self-definition, from which
     self-regulation, self-observation, and self-adaptation follow.
+
+    Infrastructure is inherited from Component (the base type that
+    carries first-order structural substrate). Constitution and
+    Organization are the System-specific reflexive layers (second-order
+    dynamics). A System IS-A Component with reflexive capacity; the
+    generative envelope spans both the inherited Infrastructure and the
+    System's own reflexive layers.
 
     Where classical systemics asks "what does this system look like?",
     GSM answers "what must this system be?" — and provides the
@@ -544,6 +552,125 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   ' ============================================================
+  ' COMPONENT
+  ' ============================================================
+
+  class Component {
+    +getName(): String
+    +getMechanisms(): Mechanism[]
+    +getReceptors(): Receptor[]
+    +getEffectors(): Effector[]
+    +getInteractions(): Interaction[]
+    +getChannels(): Channel[]
+    +getInterfaces(): Interface[]
+  }
+
+
+  note top of Component
+    **Primitive Semantics**:
+    - The **structural substrate** of a system: a functional, logical,
+      coherent agglomerate of interacting and interfaceable mechanisms.
+    - Defines the **Infrastructure layer** in GSM — the structural
+      topology upon which governance operates.
+    - A Component has **first-order dynamics** only: it processes
+      inputs and produces outputs through its mechanisms, but does not
+      reflect on or govern its own behavior.
+    - The absence of a **reflexive layer** (Constitution + Organization)
+      is what distinguishes a Component from a System. A System IS-A
+      Component with second-order dynamics (self-governance).
+    - All Systems are Components (they aggregate mechanisms), but not
+      all Components are Systems (only those with reflexive capacity).
+    - Components interact through their interfaces and interactions,
+      scoped to the System that composes them. Without a reflexive
+      layer, a Component has no identity boundary and cannot establish
+      Relationships with external entities.
+    - Components do NOT self-nest. Composition of Components is a
+      System-level governance decision (see System note). A Component
+      has no reflexive capacity to decide what is "inside" it.
+
+    **Composition conditions (all four MUST hold)**:
+
+    A Component is a **structural organ** of its owning System.
+    A thing is a Component (not a System) only when ALL of the
+    following conditions are true:
+
+    1. **Physical exclusivity**: the component materially exists in
+       one container. It cannot simultaneously be part of two
+       independent systems.
+    2. **Existential scoping**: the component has no identity outside
+       its parent System. Its existence is DEFINED by belonging to
+       that parent.
+    3. **Lifecycle coupling**: creating/destroying the parent
+       creates/destroys the component. The component does not
+       survive its parent.
+    4. **No sharing**: the component is never simultaneously used
+       by independent consumers.
+
+    If ANY condition fails — the thing has independent identity,
+    survives its consumer, or is shared — it is a System (with its
+    own reflexive layer) and its relationship to other Systems is
+    modeled via Relationship, not composition.
+
+    **Infrastructure — "What it is made of"**
+
+    The infrastructural layer specifies the structural substrate
+    upon which governance operates — the "arms" of the system.
+
+    - **Mechanism**: atomic causal units of behavior — each with at
+      least one receptor and one effector.
+    - **Receptor / Effector**: event I/O channels.
+    - **Interaction / Channel / Interface**: connectivity topology.
+
+    Infrastructure carries no semantic commitments: it does not define
+    what events mean (EventArchetype), what state looks like
+    (StateObjectArchetype), or what capabilities exist (Function).
+    Those are epistemic/logical constructs owned by Organization.
+
+    Infrastructure answers: WHAT structural resources exist for
+    governance to operate through?
+
+    **Layer invariant**: removing Infrastructure from a System makes
+    Organization inoperative (unable to act on reality), but NOT
+    incoherent (unable to think). Organization can still reason about
+    its information model, its rules, its constraints — it simply has
+    no operational substrate to execute through.
+
+    In GSM terms, Infrastructure is the *interaction topology* — the
+    material scaffolding that carries governance but does not define
+    it. Without infrastructure, governance definitions have nothing
+    to act through; without governance, infrastructure has no reason
+    to exist.
+
+    **Attributes Semantics**:
+    - `name`: Human-readable semantic identifier.
+    - `mechanisms`: Mechanisms belonging to the component.
+    - `receptors`: Receptors of the component's mechanisms.
+    - `effectors`: Effectors of the component's mechanisms.
+    - `interactions`: Interactions between mechanisms.
+    - `channels`: Channels carrying interactions through interfaces.
+    - `interfaces`: Interaction surfaces of the component.
+
+    **Consistency Rules**:
+    - `name` MUST be maximum 80 characters long.
+    - `name` MUST be unique among all components of the same system.
+
+    **Functional Rules**:
+    - `interfaces` MAY be computed from mechanisms grouped by the
+      component.
+    - `interactions` MAY be computed from interactions carried by
+      channels of those interfaces and/or interactions whose
+      effector/receptor is owned by those mechanisms.
+  end note
+
+  SystemicPrimitive <|-- Component : is
+  Component "1" *--> "0..*" Mechanism : has
+  Component "1" *--> "0..*" Receptor : has
+  Component "1" *--> "0..*" Effector : has
+  Component "1" *--> "0..*" Interaction : has
+  Component "1" *--> "0..*" Channel : has
+  Component "1" *--> "0..*" Interface : has
+
+  ' ============================================================
   ' SYSTEM
   ' ============================================================
 
@@ -570,9 +697,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getOperators(): Operator[]
     +getActuators(): Actuator[]
     +getSensors(): Sensor[]
+    +getEventArchetypes(): EventArchetype[]
+    +getStateObjectArchetypes(): StateObjectArchetype[]
+    +getComponents(): Component[]
 
     ' ============================================================
-    ' INFRASTRUCTURE
+    ' INFRASTRUCTURE (inherited from Component)
     ' ============================================================
     
     +getMechanisms(): Mechanism[]
@@ -581,9 +711,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getInteractions(): Interaction[]
     +getChannels(): Channel[]
     +getInterfaces(): Interface[]
-    +getComponents(): Component[]
-    +getEventArchetypes(): EventArchetype[]
-    +getStateObjectArchetypes(): StateObjectArchetype[]
 
     ' ============================================================
     ' BEHAVIOR (out of GSM scope)
@@ -592,16 +719,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   note top of System
     **Primitive Semantics**:
-    A System definition in GSM is the **reflexive layer** of a system —
-    the complete set of declarations through which the system knows and
-    governs itself. It is structured into three definitional layers:
-    **Constitution**, **Organization**, and **Infrastructure**.
+    A System in GSM is a **Component with a reflexive layer** —
+    the definitional layers through which the system knows and
+    governs itself: **Constitution** and **Organization**.
 
-    These layers are **active, generative definitions** from which
-    system identity, governance, behavior, and viability are derived.
-    Together they form the system's *definitional envelope* — the full
+    A Component (the base type) carries the **Infrastructure** layer:
+    the structural substrate of mechanisms topology. A System inherits
+    Infrastructure from Component and adds the reflexive layers that make it a
+    self-governing entity.
+
+    The distinction between System and Component is the presence of
+    **second-order dynamics**: a Component processes inputs and
+    produces outputs (first-order), while a System additionally
+    defines its own identity, constrains its own behavior, and
+    observes its own state (second-order).
+
+    All Systems are Components (they aggregate mechanisms), but not
+    all Components are Systems (only those with reflexive capacity).
+
+    Together, Constitution + Organization + (inherited) Infrastructure
+    form the system's *generative envelope* — the full definitional
     specification from which governance planes derive their runtime
-    processes.
+    processes (see CsdmNote for the full paradigm distinction).
 
     Behavior is explicitly out of GSM scope: behavior is the runtime
     effect of governance definitions, observed by DSM, not defined by
@@ -612,7 +751,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     The constitutional layer declares the system's identity: its reason
     for existence and the immovable quality commitments it upholds.
 
-    - **Name / Type**: semantic identity and classification.
+    - **Type**: semantic classification, enabling categorization and
+      generalization across systems.
     - **Purpose**: the system's reasons for existence — the intended
       outcomes or objectives. Purposes are the functional anchors to
       which all governance is traceable through the PPRC chain.
@@ -633,7 +773,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     The organizational layer defines how the system achieves its
     constitutional purposes while respecting its principles.
+    Organization is the **logical structure realizing Constitution,
+    by the means of its Infrastructure**.
 
+    Organization contains two kinds of constructs:
+
+    *Governance norms and behavioral logic (PPRC + relationships):*
     - **Policy**: measurable normative envelopes that operationalize
       Principles into bounded, falsifiable constraints.
     - **Rule**: behavioral logic — event-triggered control sequences.
@@ -641,53 +786,94 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       logical behavior unit.
     - **Control**: step-level execution specifications: effector +
       mapping + optional actuation.
-    - **Function**: activities or processes the system can perform.
     - **Relationship**: positional links to other systems, encoding
       role pairs and governance postures.
-    - **Operator / Actuator / Sensor**: Mechanism subtypes with role
-      semantics.
+    - **Operator / Actuator / Sensor**: Mechanism subtypes with
+      governance role semantics. These are Organization-level
+      definitions that extend the Infrastructure Mechanism base type
+      with governance ownership (they implement Rules, are auto-defined
+      from PPRC).
+
+    *Information model (epistemic constructs):*
+    - **Function**: an activity or process that the system can perform
+      — the logical capability that Rules scope and Mechanisms realize.
+    - **EventArchetype**: the structure and semantics of events that
+      flow through mechanisms — what events mean.
+    - **StateObjectArchetype**: the structure and semantics of state
+      objects — what observable/mutable state looks like.
+
+    These epistemic constructs are NOT Infrastructure: they define
+    *what reality looks like* for the system (information model),
+    not *how the system is wired* (mechanism topology). Removing them
+    would make Organization logically incoherent — unable to reason
+    about its own domain — rather than merely inoperative.
 
     Organization answers: HOW does the system constrain, structure, and
     supervise its own behavior to fulfill its Constitution?
 
     In GSM terms, Organization is the system's *governance
-    architecture*: the articulation of norms (PPRC), capabilities
-    (Functions), relationships (OrganizationalRelationships), and
-    operative mechanisms (Operator/Actuator/Sensor) that, together,
-    enable the system to regulate itself.
+    architecture*: the articulation of norms (PPRC), information model
+    (EventArchetype, StateObjectArchetype, Function), relationships,
+    and operative mechanisms (Operator/Actuator/Sensor) that, together,
+    enable the system to regulate itself. Organization governs
+    Infrastructure: Rules scope Functions, Controls command Effectors,
+    Policies constrain measurable properties — governance ACTS through
+    structure.
 
-    **Infrastructure — "What the system is made of"**
+    **Infrastructure — inherited from Component + System composition**
 
-    The infrastructural layer specifies the structural substrate and
-    information topology upon which governance operates.
+    The Infrastructure layer is defined by Component (see Component
+    note). System inherits it: mechanisms, receptors, effectors,
+    interactions, channels, and interfaces.
 
-    - **Mechanism**: atomic causal units of behavior — each with at
-      least one receptor and one effector.
-    - **Receptor / Effector**: event I/O.
-    - **Interaction / Channel / Interface**: connectivity topology.
-    - **Component**: structural grouping.
-    - **EventArchetype / StateObjectArchetype**: information contracts.
+    System ALSO composes Components (`getComponents()`). This is
+    NOT inherited from Component — it is a System-level governance
+    decision: the System defines its own structural boundary by
+    deciding which Components (including sub-Systems, since System
+    IS-A Component) are part of its mechanism topology. Components
+    themselves have no reflexive capacity to decide what is "inside"
+    them — only Systems make boundary decisions.
 
-    Infrastructure answers: WHAT structural and informational resources
-    exist for governance to operate through?
+    **Component composition semantics (strict)**: a Component is a
+    structural organ that belongs to exactly one System — existentially
+    scoped, lifecycle-coupled, physically exclusive, and never shared.
+    If a thing has independent identity, survives its consumer, or is
+    shared between systems, it is itself a System and its relationship
+    is modeled via Relationship, not composition. See the Component
+    note for the four composition conditions.
 
-    In GSM terms, Infrastructure is the system's *interaction
-    topology* — the material and informational scaffolding that carries
-    governance but does not define it. Without infrastructure, governance
-    definitions have nothing to act through; without governance,
-    infrastructure has no reason to exist.
+    Infrastructure carries no semantic commitments: it does not define
+    what events mean (EventArchetype), what state looks like
+    (StateObjectArchetype), or what capabilities exist (Function).
+    Those are epistemic/logical constructs owned by Organization.
+
+    Infrastructure answers: WHAT structural resources exist for
+    governance to operate through?
+
+    **Layer invariant**: removing Infrastructure from a System makes
+    Organization inoperative (unable to act on reality), but NOT
+    incoherent (unable to think). Organization can still reason about
+    its information model, its rules, its constraints — it simply has
+    no operational substrate to execute through.
+
+    **Three-layer summary**:
+
+    | Layer          | Semantic role           | What it IS               | What it knows                              | Without it, the layer above...          |
+    |----------------|-------------------------|--------------------------|--------------------------------------------|-----------------------------------------|
+    | Constitution   | Teleological            | WHY (identity, norms)    | Nothing operational                        | — (top layer)                           |
+    | Organization   | Epistemological+Logical  | HOW (info model + logic) | What reality looks like, what to do about it | Cannot operationalize itself            |
+    | Infrastructure | Operational             | WITH WHAT (topology)     | Nothing semantic — only structural capability | — (bottom layer, inherited from Component) |
 
     **PPRC — The System Definitional Grammar across layers**
 
     The PPRC chain (Principle → Policy → Rule → Control) is the
-    definitional spine that cross-cuts all three layers:
+    definitional spine that cross-cuts all layers:
 
     - Principles live in **Constitution**: they ARE identity.
     - Policies, Rules, Controls live in **Organization**: they ARE
       governance.
-    - Rules scope Functions and Controls command Effectors, both
-      reaching into **Infrastructure**: governance ACTS through
-      structure.
+    - Rules scope Functions (Organization) and Controls command
+      Effectors (Infrastructure): governance ACTS through structure.
 
     The PPRC chain operates as a **specificity gradient** (abstract →
     concrete) and a **modality transition** (declarative → imperative):
@@ -715,11 +901,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     supervision, and no purpose-alignment. PPRC makes the system a
     *system* rather than a collection of parts.
 
-    The three layers form the system's **generative envelope** (see
-    CsdmNote for the full paradigm distinction).
-
     **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier for the system.
+    - `name`: Human-readable semantic identifier (inherited from
+      Component).
     - `type`: Semantic classification, enabling categorization and
       generalization across systems.
 
@@ -729,7 +913,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `name` MUST be maximum 80 characters long.
   end note
 
-  SystemicPrimitive <|-- System : is
+  Component <|-- System : is
 
   System "0..*" o--> "0..1" Type : has
   System "1" *--> "0..*" Purpose : has
@@ -743,16 +927,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   System "1" *--> "0..*" Operator : has
   System "1" *--> "0..*" Actuator : has
   System "1" *--> "0..*" Sensor : has
-
-  System "1" *--> "0..*" Mechanism : has
-  System "1" *--> "0..*" Receptor : has
-  System "1" *--> "0..*" Effector : has
-  System "1" *--> "0..*" Interaction : has
-  System "1" *--> "0..*" Channel : has
-  System "1" *--> "0..*" Interface : has
-  System "1" *--> "0..*" Component : has
   System "1" *--> "0..*" EventArchetype : has
   System "1" *--> "0..*" StateObjectArchetype : has
+  System "1" *--> "0..*" Component : composes
 
   ' ============================================================
   ' TYPE
@@ -818,7 +995,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   class Principle {
     +getApplicabilityConditions(): String
     +getConstraint(): String
-    +getPriorityLevel(): Integer
   }
   
   note top of Principle
@@ -847,7 +1023,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       Subject × Modal × Verb × PurposeQualifier × Purpose.
       e.g., "System MUST ENSURE integrity OF order-processing when
       jurisdiction = EU"
-    - `priorityLevel`: Conflict-resolution rank (lower = higher priority).
 
     **Validation Rules**:
     - `constraint`.subject MUST be a SystemicPrimitiveSelectorExpression
@@ -901,7 +1076,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Different Purposes on the same purposeQualifier are NOT conflicts.
   end note
 
-
   SystemicPrimitive <|-- Principle : is
   Principle "0..*" o--> "1" System : constrains
 
@@ -912,7 +1086,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   class Policy {
     +getApplicabilityConditions(): String
     +getConstraint(): String
-    +getPrinciples(): Principle[]
+    +getOperationalizingPrinciples(): Principle[]
   }
 
   note top of Policy
@@ -920,9 +1094,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - A **measurable boundary condition** on one or more Purposes
       of the system, translating Principle directional intent into a
       bounded, falsifiable envelope.
-    - Constraint nature (functional, viability, structural) is
-      derivable from the Principle's purposeQualifier and the
-      constraint format — not encoded as a Policy subtype.
     - If a constraint is not measurable, it is not a Policy.
     - Policies are DEFINED by the regulation plane.
     - Policies are ENFORCED and OPERATED by the supervision plane.
@@ -930,7 +1101,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attributes Semantics**:
     - `applicabilityConditions`: Optional SIE DSL LogicalExpression
-      defining where/when the policy applies.
+      defining when the policy applies.
     - `constraint`: A declarative SIE DSL PolicyConstraintExpression.
 
     **Validation Rules**:
@@ -970,8 +1141,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **Deterministic Policy Importance (derived):**
       - effectiveModal = max(Principle.modal) over operationalized
         Principles.
-      - effectivePriorityLevel = min(Principle.priorityLevel) over
-        operationalized Principles.
     - **Conflict-Resolution Strategy (DB-seeded meta-policies):**
       SIE treats conflict-resolution as self-governance via DB-seeded
       preset Policy instances (ResolverPresetPolicyConstraint format;
@@ -979,67 +1148,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
       Presets MUST be deterministic. Default presets:
       - `SIE_CONFLICT_RESOLUTION_ORDER_V1`: tie-break order
-        (effectiveModal → effectivePriorityLevel →
-        applicabilitySpecificity → pprcLayerPrecedence →
-        stableFallback).
+        (effectiveModal → applicabilitySpecificity →
+        pprcLayerPrecedence → stableFallback).
       - `SIE_PRINCIPLE_POLICY_INCOHERENCE_HANDLING_V1`: MUST → block;
         SHOULD → warn; MAY → advisory.
       - `SIE_POLICY_CONFLICT_SEVERITY_MAPPING_V1`: modal × modal →
         severity matrix (ERROR/WARNING/ADVISORY/NONE).
   end note
 
-
   SystemicPrimitive <|-- Policy : is
+  Policy "0..*" o--> "1" System : constrains
   Policy "1" o--> "1..*" Principle : operationalizes
-
-  ' ============================================================
-  ' FUNCTION
-  ' ============================================================
-
-  class Function {
-    +getName(): String
-  }
-
-  note top of Function
-    **Primitive Semantics**:
-    - An activity or process that the system can perform.
-    - Functions are realized by mechanisms.
-    - Function↔Purpose is NOT a direct, stored relationship. It is
-      **derived through the PPRC chain**: Rules scope Functions AND
-      apply Policies whose effectiveScopedPurposes derive from
-      Principles governing Purposes.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all functions of the same system.
-  end note
-
-  SystemicPrimitive <|-- Function : is
-
-  ' ============================================================
-  ' MODALITY (DROPPED — see TODO)
-  ' Modality, Capacity, and Quality primitives have been removed
-  ' from GSM. The quality dimension is now captured as
-  ' "purposeQualifier" (String) in PrincipleConstraintExpression.
-  ' Policy subtypes (FunctionalPolicy, ViabilityPolicy,
-  ' StructuralPolicy) have been unified into a single Policy
-  ' whose scope is derived from its Principles' purposeScopes.
-  ' Constraint nature is derivable from Principle.purposeQualifier
-  ' and the constraint format.
-  ' ============================================================
 
   ' ============================================================
   ' RULE
   ' ============================================================
   
   class Rule {
-    +getName(): String
-    +getApplyingPolicies(): Policy[]
-    +getScopedFunctions(): Function[]
-    +getTriggeringReceptor(): Receptor
     +getApplicabilityConditions(): String
     +getIterationConditions(): String
+    +getTriggeringReceptor(): Receptor
     +getControlSequence(): Control[]
+    +getOperationalizingPolicies(): Policy[]
+    +getScopingFunctions(): Function[]
   }
 
   note top of Rule
@@ -1047,27 +1178,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - A behavioral rule is a constraint over the system's behavioral
       properties: how the system acts over time via mechanisms,
       sensors, and effectors.
-    - Rules operationalize policies via `applyingPolicies`.
+    - Rules realize functions while scoping policies.
     - Rules are DEFINED by the regulation plane.
-    - Rules are ENFORCED by the supervision plane via Controls.
-    - Rules are OPERATED by the operation plane via Operators.
+    - Rules are ENFORCED by the supervision plane.
+    - Rules are OPERATED by the operation plane.
     - Rule is the first imperative level in the PPRC chain.
       The declarative → imperative transition occurs here.
 
     **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `applyingPolicies`: Policies whose constraints this rule
-      enforces.
-    - `scopedFunctions`: Functions whose execution the rule may
-      impact when applied.
-    - `triggeringReceptor`: Receptor whose received events trigger
-      the rule.
     - `applicabilityConditions`: LogicalExpression that must evaluate
       to true for the rule to be applied.
     - `iterationConditions`: LogicalExpression that, if true, causes
       re-application of the rule.
+    - `triggeringReceptor`: Receptor whose received events trigger
+      the rule.
     - `controlSequence`: Ordered list of Controls defining effectors
       when the rule is applied.
+    - `operationalizingPolicies`: Policies whose constraints this rule enforces.
+    - `scopingFunctions`: Functions whose execution the rule may
+      impact when applied.
 
     **Validation Rules**:
     - `applicabilityConditions` MUST be a valid SIE DSL
@@ -1079,6 +1208,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       mechanism receptor.
     - Condition operands representing a literal value MUST be
       validated against the corresponding event archetype schema.
+
     **Consistency Rules**:
     - A rule MUST be triggered by exactly one event archetype.
     - A rule MUST have at least one control.
@@ -1108,23 +1238,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       execution).
   end note
 
-
   SystemicPrimitive <|-- Rule : is
-  Rule "0..*" o--> "0..*" Policy : applies
-  Rule "1" *--> "1..*" Control : has
+  Rule "0..*" o--> "1" System : constrains
+  Rule "1" o--> "1" Receptor : on
+  Rule "1" *--> "0..*" Control : defines
+  Rule "0..*" o--> "0..*" Policy : enforcing
+  Rule "0..*" o--> "0..*" Function : scoping
 
   ' ============================================================
   ' CONTROL
   ' ============================================================
 
   class Control {
-    +getName(): String
-    +getApplyingRule(): Rule
     +getApplicabilityConditions(): String
     +getIterationConditions(): String
     +getEffectorEventSourceMapping(): String
     +getEffector(): Effector
     +getFeedbackReceptor(): Receptor
+    +getConstitutingRule(): Rule
   }
 
   note top of Control
@@ -1136,35 +1267,42 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Lowest level of the PPRC chain (execution-level).
     - Controls are DEFINED by the regulation plane.
     - Controls are ENFORCED by the supervision plane.
-    - Controls are OPERATED by the supervision plane (activation)
-      and the operation plane via Operators (implementation).
+    - Controls are OPERATED by the supervision plane (checks)
+      and the operation plane (checked runtime).
 
     **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `applyingRule`: The enclosing Rule to which the control
-      belongs.
     - `applicabilityConditions`: LogicalExpression for when the
       control is applied within its rule's execution.
     - `iterationConditions`: LogicalExpression that, if true, causes
       re-execution of the control.
-    - `effector`: The effector activated when control is applied.
     - `effectorEventSourceMapping`: Mapping defining how the
-      produced event instance is constructed from source events.
+      produced event instance is mapped from source events or other sources.
+    - `effector`: The effector activated when control is applied.
     - `feedbackReceptor`: Receptor to receive feedback from the
       effect.
+    - `constitutingRule`: The enclosing Rule to which the control
+      belongs.
     - `actuation`: Optional actuation explicitly declared by the
       control, triggering auto-definition of actuator/sensor
       mechanisms.
 
     **Validation Rules**:
     - `applicabilityConditions` MUST be a valid SIE DSL
-      LogicalExpression.
+      LogicalExpression and is mandatory.
     - `iterationConditions` MUST be a valid SIE DSL
-      LogicalExpression.
-    - Condition operands referencing event properties MUST exist in
+      LogicalExpression and is optional.
+    - `effectorEventSourceMapping` MUST be a valid SIE DSL
+      EventMappingExpression and is mandatory.
+    - `effector` MUST reference an effector defined in the same system
+      and is mandatory.
+    - `feedbackReceptor`, MUST reference a receptor defined in
+      the same system and is optional.
+    - `constitutingRule` MUST reference a rule defined in the same system
+      and is mandatory.
+    - DSL condition operands referencing event properties MUST exist in
       the corresponding event archetype schemas borne by the
       mechanism receptor.
-    - Condition operands representing a literal value MUST be
+    - DSL condition operands representing a literal value MUST be
       validated against the corresponding event archetype schema.
 
     **Consistency Rules**:
@@ -1173,8 +1311,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - A control MUST have exactly one effector.
     - If a control is deleted, its effector MUST be deleted, and
       vice-versa.
-    - A control SHOULD be associated to zero or more supervision
-      rule definitions.
     - A control MUST have exactly one event mapping defining how
       the produced event instance is constructed from source
       receptor's events.
@@ -1206,11 +1342,360 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
           archetype.
   end note
 
-
   SystemicPrimitive <|-- Control : is
-  Control "1" o--> "1" Rule : belongsTo
+  Control "0..*" o--> "1" System : constrains
   Control "1" *--> "1" Effector : has
+  Control "1" *--> "0..1" Receptor : has
+  Control "0..*" o--> "1" Rule : constitutes
   Control "0..1" o--> "1" Actuation : declares
+
+  ' ============================================================
+  ' FUNCTION
+  ' ============================================================
+
+  class Function {
+    +getName(): String
+  }
+
+  note top of Function
+    **Primitive Semantics**:
+    - An activity or process that the system can perform.
+    - Functions are realized by mechanisms.
+    - Function↔Purpose is NOT a direct, stored relationship. It is
+      **derived through the PPRC chain**: Rules scope Functions AND
+      apply Policies whose effectiveScopedPurposes derive from
+      Principles governing Purposes.
+
+    **Consistency Rules**:
+    - `name` MUST be maximum 80 characters long.
+    - `name` MUST be unique among all functions of the same system.
+  end note
+
+  SystemicPrimitive <|-- Function : is
+
+  ' ============================================================
+  ' RELATIONSHIP
+  ' ============================================================
+
+  class Relationship {
+    +getDefiningSystem(): System
+    +getCounterpartySystem(): System
+    +getDefiningSystemRole(): Role
+    +getCounterpartyRole(): Role
+  }
+
+  note top of Relationship
+    **Primitive Semantics**:
+    - Captures a relationship between two systems.
+    - Defined FROM the perspective of the defining system (owner).
+      The counterparty is the other endpoint.
+    - Any counterparty is modeled as a **System** (preserves GSM
+      "everything is a System" coherence).
+    - This asymmetry is deliberate: each party may define its own
+      Relationship instance with its own roles. When both agree,
+      instances are coherent (reciprocal views). When they disagree,
+      the disagreement constitutes drift (detectable by the
+      Supervision plane).
+    - Heterarchy is natural: a system may have many relationships
+      with many counterparties (and multiple with the same
+      counterparty under different roles).
+
+    **Attributes Semantics**:
+    - `name`: Human-readable semantic identifier.
+    - `definingSystem`: System that defines this relationship
+      (owner of this primitive instance).
+    - `counterpartySystem`: The other endpoint system.
+    - `definingSystemRole`: Role assigned by the defining system
+      for itself in this relationship.
+    - `counterpartyRole`: Role assigned by the defining system
+      for the counterparty.
+
+    **Validation Rules**:
+    - `definingSystemRole` and `counterpartyRole` MUST resolve to
+      Role instances in the same SIE instance.
+    - For deterministic classification, both roles SHOULD be
+      canonical roles (DB-seeded), unless explicit domain/tenant
+      extension is required.
+    - **Canonical role pairing (non-blocking warnings):**
+      Role pairs SHOULD match canonical pair hints defined in the
+      Role note. Non-matching pairs → coherence finding (warning),
+      not persistence blocking.
+    - **Role/qualifier coherence:** role configuration SHOULD be
+      semantically compatible with qualifiers asserting governance
+      intent. Symmetric roles + unilateral mandate qualifiers →
+      flag for review.
+    - **Reciprocity:** if both parties assert governance intent,
+      MUST be represented as two Relationship instances (reciprocal
+      views, one from each system's defining perspective).
+    - Cycles in Relationship chains are allowed (heterarchy), but
+      SHOULD be flagged for review if they form tight loops.
+
+    **Consistency Rules**:
+    - `name` MUST be maximum 80 characters long.
+    - `definingSystem` MUST be defined.
+    - `counterpartySystem` MUST be defined.
+    - `definingSystem` MUST NOT be the same as `counterpartySystem`.
+    - `definingSystemRole` MUST be defined.
+    - `counterpartyRole` MUST be defined.
+    - A system MUST NOT have a Relationship where it is both
+      definingSystem and counterpartySystem (no direct self-loops).
+
+    **Functional Rules**:
+    - A relationship expresses governance posture when its role pair
+      encodes governance asymmetry (e.g., GOVERNING_AUTHORITY ↔
+      GOVERNED_SUBJECT), or when qualifiers declare governance intent.
+    - A relationship expresses non-governance posture when roles
+      encode symmetric/market posture (e.g., PARTNER ↔ PARTNER),
+      optionally refined by qualifiers.
+
+    **Notes**:
+    - **Examples** (Software Application as defining system):
+      1. HOST ↔ TENANT (hosting/resource allocation)
+      2. GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT (mandate/enforcement)
+      3. INTEGRATOR ↔ INTEGRATED_COMPONENT (lifecycle/substitution)
+      4. CUSTOMER ↔ VENDOR (commercial)
+      5. PARTNER ↔ PARTNER (peer collaboration)
+  end note
+
+
+  SystemicPrimitive <|-- Relationship : is
+  Relationship "0..*" o--> "1" System : definingSystem
+  Relationship "0..*" o--> "1" System : counterpartySystem
+  Relationship "0..*" o--> "1" Role : definingSystemRole
+  Relationship "0..*" o--> "1" Role : counterpartyRole
+
+  ' ============================================================
+  ' ROLE
+  ' ============================================================
+
+  class Role {
+    +getName(): String
+  }
+
+  note top of Role
+    **Primitive Semantics**:
+    - A **relational, positional label** naming how a System is
+      positioned in a specific Relationship.
+    - Roles are not intrinsic properties of a System in isolation:
+      the same System may play different roles in different
+      relationships (heterarchy).
+    - Roles enable deterministic relationship classification and
+      applicability axes for governance intent.
+
+    **Attributes Semantics**:
+    - `name`: Human-readable semantic identifier.
+
+    **Consistency Rules**:
+    - `name` MUST be mandatory and non-empty.
+    - `name` MUST be unique among all Role instances in the same
+      SIE instance.
+    - `name` MUST be maximum 80 characters long.
+
+    **Usage Rules**:
+    - Deterministic relationship classification SHOULD prefer
+      canonical roles (DB-seeded shared Role instances).
+    - Tenant/domain-specific nuance SHOULD be expressed via
+      qualifiers (schema-bound) rather than ad-hoc roles.
+
+    **Notes**:
+    - **Seed Semantics**: SIE initialization populates a global
+      Role table with one row per canonical role.
+    - **Canonical Roles (DB-seeded):**
+      - CUSTOMER: Pays for / commissions value delivery.
+      - CONSUMER: Direct user of a capability/interface.
+      - SUPPLIER: Provides a good/service/capability upstream.
+      - PROVIDER: Exposes an interface/capability depended on.
+      - VENDOR: SUPPLIER in commercial/procurement framing.
+      - PARTNER: Peer collaboration for mutual benefit.
+      - SPONSOR: Funds and authorizes an initiative/integration.
+      - BENEFICIARY: Receives outcomes/value, not necessarily user.
+      - OWNER: Accountable for lifecycle and correctness of asset.
+      - STEWARD: Custodian of definitional integrity over time.
+      - MAINTAINER: Performs changes/maintenance on integration.
+      - OPERATING_UNIT: Runs day-to-day operations (team-as-system).
+      - INTERNAL_UNIT: Internal to broader organization boundary.
+      - GOVERNING_AUTHORITY: Imposes constraints, may approve/audit.
+      - GOVERNED_SUBJECT: Target of governance constraints.
+      - AUDITOR: Independent assessor of conformance/compliance.
+      - CERTIFYING_AUTHORITY: Issues attestations for trust.
+      - STANDARDIZATION_BODY: Defines standards/norms for adoption.
+      - ACCREDITATION_BODY: Accredits certifiers/auditors.
+      - LEGISLATOR: Defines legally binding constraints.
+      - SUPERVISORY_AUTHORITY: Supervises compliance with law.
+      - ENFORCEMENT_AUTHORITY: Enforces with coercive powers.
+      - HOST: Provides hosting/execution substrate.
+      - TENANT: Occupies/uses shared HOST resources.
+      - INTEGRATOR: Composes/integrates other systems.
+      - INTEGRATED_COMPONENT: System being integrated.
+    - **Canonical Role Pair Hints (non-blocking):**
+      - HOST ↔ TENANT
+      - INTEGRATOR ↔ INTEGRATED_COMPONENT
+      - GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT
+      - LEGISLATOR ↔ GOVERNED_SUBJECT
+      - SUPERVISORY_AUTHORITY ↔ GOVERNED_SUBJECT
+      - ENFORCEMENT_AUTHORITY ↔ GOVERNED_SUBJECT
+      - CERTIFYING_AUTHORITY ↔ GOVERNED_SUBJECT
+      - AUDITOR ↔ GOVERNED_SUBJECT
+      - ACCREDITATION_BODY ↔ CERTIFYING_AUTHORITY or AUDITOR
+  end note
+
+
+  SystemicPrimitive <|-- Role : is
+
+  ' ============================================================
+  ' OPERATOR
+  ' ============================================================
+
+  class Operator {
+    +getFunctions(): Function[]
+    +getRules(): Rule[]
+  }
+
+  note top of Operator
+    **Primitive Semantics**:
+    - Implements Rules and executes their Control sequences,
+      executing behavioral definitions in or on the state plane.
+    - An Operator Mechanism is auto-defined from the Rules it
+      implements (see Rule: Mechanism Auto-Definition Rule).
+
+    **Notes**:
+    - **Dual Definition Semantics:**
+      - **SIE Operator**: SIE Operation plane instantiates and
+        executes. Agency: SIE acts (Observe → Decide → Act).
+      - **Domain Operator**: prescriptive definition of what a
+        domain mechanism MUST be and do. Agency: Tenant acts, SIE
+        oversees (Observe → Decide → Recommend).
+      - Both share the same PPRC chain, receptors/effectors, and
+        governance semantics. Distinction appears at realization.
+    - **Autonomy delegation (planned extension):**
+      Delegation scope bounded by measured impact classification.
+      Human governance always in the loop for decision authority.
+      Planned: impact dimension on Actuation/Control + delegation
+      Policy constraining autonomous execution by impact level.
+  end note
+
+
+  Mechanism <|-- Operator : is
+  Operator "0..*" o--> "0..*" Function : realizes
+  Operator "0..*" o--> "0..*" Rule : implements
+
+  ' ============================================================
+  ' ACTUATOR
+  ' ============================================================
+
+  class Actuator {
+    +getActuation(): Actuation
+  }
+
+  note top of Actuator
+    **Primitive Semantics**:
+    - A microscopic execution mechanism that performs a specific state
+      object mutation (CRUD) as declared by an Actuation.
+    - Auto-defined from an Actuation declared by a behavioral rule
+      control.
+    - Not redundant with Operators: Operator implements a complete Rule
+      and sequences Controls; Actuator executes one specific Actuation.
+
+    **Attributes Semantics**:
+    - `actuation`: The actuation declaration from which the actuator is
+      derived.
+
+    **Functional Rules**:
+    - The actuator MUST operate on a state object archetype owned by
+      the same System, or a subsystem that explicitly shares that state
+      object resource.
+
+    **Notes**:
+    - **Dual Definition Semantics** (same pattern as Mechanism):
+      - **SIE Actuator**: SIE connector/adapter for state changes.
+      - **Domain Actuator**: prescriptive definition; conformance
+        measured by the Supervision plane.
+  end note
+
+  Mechanism <|-- Actuator : is
+  Actuator "1" o--> "1" Actuation : implements
+
+  ' ============================================================
+  ' SENSOR
+  ' ============================================================
+
+  class Sensor
+
+  note top of Sensor
+    **Primitive Semantics**:
+    - A microscopic observation mechanism that captures the effect of a
+      specific Actuation and produces feedback events.
+    - Auto-defined from a Sensing linked to an Actuation, only when a
+      control feedback receptor exists.
+    - Not redundant with supervision plane: supervision macroscopically
+      evaluates policy/rule compliance; Sensor microscopically observes
+      one Actuation's outcome.
+
+    **Functional Rules**:
+    - For every event archetype E whose schema is a subtype of
+      ActuationEventSchema, the sensor MUST have (or derive) a
+      receptor bound to E.
+    - For every receptor bound to E, the sensor MUST have an effector
+      bound to event O whose schema is subtype of
+      ActuationFeedbackEventSchema.
+
+    **Notes**:
+    - **Dual Definition Semantics** (same pattern as Mechanism):
+      - **SIE Sensor**: SIE polls/subscribes to tenant telemetry.
+      - **Domain Sensor**: prescriptive definition; conformance
+        measured by the Supervision plane.
+  end note
+
+  Mechanism <|-- Sensor : is
+
+  ' ============================================================
+  ' EVENT ARCHETYPE
+  ' ============================================================
+
+  class EventArchetype {
+    +getName(): String
+    +getSchema(): ArchetypeSchema
+  }
+
+  note top of EventArchetype
+    **Primitive Semantics**:
+    - Defines the structure and semantics of an event that can be emitted or
+      received by a system via its effectors and receptors.
+
+    **Consistency Rules**:
+    - `name` MUST be maximum 80 characters long.
+    - `name` MUST be unique among all entities classified as "archetype".
+    - `name` MUST match the name of the schema.
+    - If its schema is deleted, the event archetype MUST be deleted.
+  end note
+
+  SystemicPrimitive <|-- EventArchetype : is
+  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
+  
+  ' ============================================================
+  ' STATE OBJECT ARCHETYPE
+  ' ============================================================
+
+  class StateObjectArchetype {
+    +getName(): String
+    +getSchema(): ArchetypeSchema
+  }
+
+  note top of StateObjectArchetype
+    **Primitive Semantics**:
+    - Defines the structure and semantics of a state object for
+      representing system state.
+    - Models observable/mutable state, whereas other SystemicPrimitives
+      model structural/definitional constructs.
+
+    **Consistency Rules**:
+    - `name` MUST match the name of the schema.
+    - `name` MUST be unique among all entities classified as "archetype".
+    - If its schema is deleted, the state object archetype MUST be deleted.
+  end note
+
+  SystemicPrimitive <|-- StateObjectArchetype : is
+  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
 
   class CreationActuationControl {
     +getStateObjectArchetype(): StateObjectArchetype
@@ -1382,211 +1867,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Sensing "1" o--> "1" EventArchetype : feedbackEvent
   Sensing "1" o--> "0..1" Receptor : controlFeedbackReceptor
 
-  ' ============================================================
-  ' RELATIONSHIP
-  ' ============================================================
-
-  class Relationship {
-    +getDefiningSystem(): System
-    +getCounterpartySystem(): System
-    +getDefiningSystemRole(): Role
-    +getCounterpartyRole(): Role
-  }
-
-  note top of Relationship
-    **Primitive Semantics**:
-    - Captures a relationship between two systems.
-    - Defined FROM the perspective of the defining system (owner).
-      The counterparty is the other endpoint.
-    - Any counterparty is modeled as a **System** (preserves GSM
-      "everything is a System" coherence).
-    - This asymmetry is deliberate: each party may define its own
-      Relationship instance with its own roles. When both agree,
-      instances are coherent (reciprocal views). When they disagree,
-      the disagreement constitutes drift (detectable by the
-      Supervision plane).
-    - Heterarchy is natural: a system may have many relationships
-      with many counterparties (and multiple with the same
-      counterparty under different roles).
-
-    **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `definingSystem`: System that defines this relationship
-      (owner of this primitive instance).
-    - `counterpartySystem`: The other endpoint system.
-    - `definingSystemRole`: Role assigned by the defining system
-      for itself in this relationship.
-    - `counterpartyRole`: Role assigned by the defining system
-      for the counterparty.
-
-    **Validation Rules**:
-    - `definingSystemRole` and `counterpartyRole` MUST resolve to
-      Role instances in the same SIE instance.
-    - For deterministic classification, both roles SHOULD be
-      canonical roles (DB-seeded), unless explicit domain/tenant
-      extension is required.
-    - **Canonical role pairing (non-blocking warnings):**
-      Role pairs SHOULD match canonical pair hints defined in the
-      Role note. Non-matching pairs → coherence finding (warning),
-      not persistence blocking.
-    - **Role/qualifier coherence:** role configuration SHOULD be
-      semantically compatible with qualifiers asserting governance
-      intent. Symmetric roles + unilateral mandate qualifiers →
-      flag for review.
-    - **Reciprocity:** if both parties assert governance intent,
-      MUST be represented as two Relationship instances (reciprocal
-      views, one from each system's defining perspective).
-    - Cycles in Relationship chains are allowed (heterarchy), but
-      SHOULD be flagged for review if they form tight loops.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `definingSystem` MUST be defined.
-    - `counterpartySystem` MUST be defined.
-    - `definingSystem` MUST NOT be the same as `counterpartySystem`.
-    - `definingSystemRole` MUST be defined.
-    - `counterpartyRole` MUST be defined.
-    - A system MUST NOT have a Relationship where it is both
-      definingSystem and counterpartySystem (no direct self-loops).
-
-    **Functional Rules**:
-    - A relationship expresses governance posture when its role pair
-      encodes governance asymmetry (e.g., GOVERNING_AUTHORITY ↔
-      GOVERNED_SUBJECT), or when qualifiers declare governance intent.
-    - A relationship expresses non-governance posture when roles
-      encode symmetric/market posture (e.g., PARTNER ↔ PARTNER),
-      optionally refined by qualifiers.
-
-    **Notes**:
-    - **Examples** (Software Application as defining system):
-      1. HOST ↔ TENANT (hosting/resource allocation)
-      2. GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT (mandate/enforcement)
-      3. INTEGRATOR ↔ INTEGRATED_COMPONENT (lifecycle/substitution)
-      4. CUSTOMER ↔ VENDOR (commercial)
-      5. PARTNER ↔ PARTNER (peer collaboration)
-  end note
-
-
-    SystemicPrimitive <|-- Relationship : is
-  Relationship "0..*" o--> "1" System : definingSystem
-  Relationship "0..*" o--> "1" System : counterpartySystem
-  Relationship "0..*" o--> "1" Role : definingSystemRole
-  Relationship "0..*" o--> "1" Role : counterpartyRole
-
-  ' ============================================================
-  ' ROLE
-  ' ============================================================
-
-  class Role {
-    +getName(): String
-  }
-
-  note top of Role
-    **Primitive Semantics**:
-    - A **relational, positional label** naming how a System is
-      positioned in a specific Relationship.
-    - Roles are not intrinsic properties of a System in isolation:
-      the same System may play different roles in different
-      relationships (heterarchy).
-    - Roles enable deterministic relationship classification and
-      applicability axes for governance intent.
-
-    **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-
-    **Consistency Rules**:
-    - `name` MUST be mandatory and non-empty.
-    - `name` MUST be unique among all Role instances in the same
-      SIE instance.
-    - `name` MUST be maximum 80 characters long.
-
-    **Usage Rules**:
-    - Deterministic relationship classification SHOULD prefer
-      canonical roles (DB-seeded shared Role instances).
-    - Tenant/domain-specific nuance SHOULD be expressed via
-      qualifiers (schema-bound) rather than ad-hoc roles.
-
-    **Notes**:
-    - **Seed Semantics**: SIE initialization populates a global
-      Role table with one row per canonical role.
-    - **Canonical Roles (DB-seeded):**
-      - CUSTOMER: Pays for / commissions value delivery.
-      - CONSUMER: Direct user of a capability/interface.
-      - SUPPLIER: Provides a good/service/capability upstream.
-      - PROVIDER: Exposes an interface/capability depended on.
-      - VENDOR: SUPPLIER in commercial/procurement framing.
-      - PARTNER: Peer collaboration for mutual benefit.
-      - SPONSOR: Funds and authorizes an initiative/integration.
-      - BENEFICIARY: Receives outcomes/value, not necessarily user.
-      - OWNER: Accountable for lifecycle and correctness of asset.
-      - STEWARD: Custodian of definitional integrity over time.
-      - MAINTAINER: Performs changes/maintenance on integration.
-      - OPERATING_UNIT: Runs day-to-day operations (team-as-system).
-      - INTERNAL_UNIT: Internal to broader organization boundary.
-      - GOVERNING_AUTHORITY: Imposes constraints, may approve/audit.
-      - GOVERNED_SUBJECT: Target of governance constraints.
-      - AUDITOR: Independent assessor of conformance/compliance.
-      - CERTIFYING_AUTHORITY: Issues attestations for trust.
-      - STANDARDIZATION_BODY: Defines standards/norms for adoption.
-      - ACCREDITATION_BODY: Accredits certifiers/auditors.
-      - LEGISLATOR: Defines legally binding constraints.
-      - SUPERVISORY_AUTHORITY: Supervises compliance with law.
-      - ENFORCEMENT_AUTHORITY: Enforces with coercive powers.
-      - HOST: Provides hosting/execution substrate.
-      - TENANT: Occupies/uses shared HOST resources.
-      - INTEGRATOR: Composes/integrates other systems.
-      - INTEGRATED_COMPONENT: System being integrated.
-    - **Canonical Role Pair Hints (non-blocking):**
-      - HOST ↔ TENANT
-      - INTEGRATOR ↔ INTEGRATED_COMPONENT
-      - GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT
-      - LEGISLATOR ↔ GOVERNED_SUBJECT
-      - SUPERVISORY_AUTHORITY ↔ GOVERNED_SUBJECT
-      - ENFORCEMENT_AUTHORITY ↔ GOVERNED_SUBJECT
-      - CERTIFYING_AUTHORITY ↔ GOVERNED_SUBJECT
-      - AUDITOR ↔ GOVERNED_SUBJECT
-      - ACCREDITATION_BODY ↔ CERTIFYING_AUTHORITY or AUDITOR
-  end note
-
-
-  SystemicPrimitive <|-- Role : is
-
-  ' ============================================================
-  ' OPERATOR
-  ' ============================================================
-
-  class Operator {
-    +getFunctions(): Function[]
-    +getRules(): Rule[]
-  }
-
-  note top of Operator
-    **Primitive Semantics**:
-    - Implements Rules and executes their Control sequences,
-      executing behavioral definitions in or on the state plane.
-    - An Operator Mechanism is auto-defined from the Rules it
-      implements (see Rule: Mechanism Auto-Definition Rule).
-
-    **Notes**:
-    - **Dual Definition Semantics:**
-      - **SIE Operator**: SIE Operation plane instantiates and
-        executes. Agency: SIE acts (Observe → Decide → Act).
-      - **Domain Operator**: prescriptive definition of what a
-        domain mechanism MUST be and do. Agency: Tenant acts, SIE
-        oversees (Observe → Decide → Recommend).
-      - Both share the same PPRC chain, receptors/effectors, and
-        governance semantics. Distinction appears at realization.
-    - **Autonomy delegation (planned extension):**
-      Delegation scope bounded by measured impact classification.
-      Human governance always in the loop for decision authority.
-      Planned: impact dimension on Actuation/Control + delegation
-      Policy constraining autonomous execution by impact level.
-  end note
-
-
-  Mechanism <|-- Operator : is
-  Operator "0..*" o--> "0..*" Function : realizes
-  Operator "0..*" o--> "0..*" Rule : implements
 
   ' ============================================================
   ' MECHANISM
@@ -1654,75 +1934,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   SystemicPrimitive <|-- Mechanism : is
   Mechanism "1" *--> "1..*" Receptor : has
   Mechanism "1" *--> "1..*" Effector : has
-
-  ' ============================================================
-  ' ACTUATOR
-  ' ============================================================
-
-  class Actuator {
-    +getActuation(): Actuation
-  }
-
-  note top of Actuator
-    **Primitive Semantics**:
-    - A microscopic execution mechanism that performs a specific state
-      object mutation (CRUD) as declared by an Actuation.
-    - Auto-defined from an Actuation declared by a behavioral rule
-      control.
-    - Not redundant with Operators: Operator implements a complete Rule
-      and sequences Controls; Actuator executes one specific Actuation.
-
-    **Attributes Semantics**:
-    - `actuation`: The actuation declaration from which the actuator is
-      derived.
-
-    **Functional Rules**:
-    - The actuator MUST operate on a state object archetype owned by
-      the same System, or a subsystem that explicitly shares that state
-      object resource.
-
-    **Notes**:
-    - **Dual Definition Semantics** (same pattern as Mechanism):
-      - **SIE Actuator**: SIE connector/adapter for state changes.
-      - **Domain Actuator**: prescriptive definition; conformance
-        measured by the Supervision plane.
-  end note
-
-  Mechanism <|-- Actuator : is
-  Actuator "1" o--> "1" Actuation : implements
-
-  ' ============================================================
-  ' SENSOR
-  ' ============================================================
-
-  class Sensor
-
-  note top of Sensor
-    **Primitive Semantics**:
-    - A microscopic observation mechanism that captures the effect of a
-      specific Actuation and produces feedback events.
-    - Auto-defined from a Sensing linked to an Actuation, only when a
-      control feedback receptor exists.
-    - Not redundant with supervision plane: supervision macroscopically
-      evaluates policy/rule compliance; Sensor microscopically observes
-      one Actuation's outcome.
-
-    **Functional Rules**:
-    - For every event archetype E whose schema is a subtype of
-      ActuationEventSchema, the sensor MUST have (or derive) a
-      receptor bound to E.
-    - For every receptor bound to E, the sensor MUST have an effector
-      bound to event O whose schema is subtype of
-      ActuationFeedbackEventSchema.
-
-    **Notes**:
-    - **Dual Definition Semantics** (same pattern as Mechanism):
-      - **SIE Sensor**: SIE polls/subscribes to tenant telemetry.
-      - **Domain Sensor**: prescriptive definition; conformance
-        measured by the Supervision plane.
-  end note
-
-  Mechanism <|-- Sensor : is
 
   ' ============================================================
   ' RECEPTOR
@@ -1908,100 +2119,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Interface "1" o--> "1..*" Receptor : regroups
   Interface "1" o--> "1..*" Effector : regroups
   Interface "1" *--> "0..*" Channel : has
-
-  ' ============================================================
-  ' COMPONENT
-  ' ============================================================
-
-  class Component {
-    +getName(): String
-    +getFunctions(): Function[]
-    +getMechanisms(): Mechanism[]
-    +getInteractions(): Interaction[]
-    +getInterfaces(): Interface[]
-  }
-
-  note top of Component
-    **Primitive Semantics**:
-    - A structural grouping primitive for presenting and managing
-      internal architecture.
-    - Not required to align with an external boundary; may be
-      entirely internal.
-
-    **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `functions`: Functions allocated to / realized by the component.
-    - `mechanisms`: Mechanisms belonging to the component.
-    - `interfaces`: Interfaces regrouped by the component (may be
-      internal or external).
-    - `interactions`: Interactions in which the component participates.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all components of the same system.
-
-    **Functional Rules**:
-    - `interfaces` MAY be computed from mechanisms grouped by the
-      component.
-    - `interactions` MAY be computed from interactions carried by
-      channels of those interfaces and/or interactions whose
-      effector/receptor is owned by those mechanisms.
-  end note
-
-  SystemicPrimitive <|-- Component : is
-  Component "1" o--> "1..*" Function : regroups
-  Component "1" o--> "1..*" Mechanism : regroups
-  Component "1" o--> "0..*" Interaction : regroups
-  Component "1" o--> "0..*" Interface : regroups
-
-  ' ============================================================
-  ' EVENT ARCHETYPE
-  ' ============================================================
-
-  class EventArchetype {
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-  }
-
-  note top of EventArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of an event that can be emitted or
-      received by a system via its effectors and receptors.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all entities classified as "archetype".
-    - `name` MUST match the name of the schema.
-    - If its schema is deleted, the event archetype MUST be deleted.
-  end note
-
-  SystemicPrimitive <|-- EventArchetype : is
-  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
-  
-  ' ============================================================
-  ' STATE OBJECT ARCHETYPE
-  ' ============================================================
-
-  class StateObjectArchetype {
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-  }
-
-  note top of StateObjectArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of a state object for
-      representing system state.
-    - Models observable/mutable state, whereas other SystemicPrimitives
-      model structural/definitional constructs.
-
-    **Consistency Rules**:
-    - `name` MUST match the name of the schema.
-    - `name` MUST be unique among all entities classified as "archetype".
-    - If its schema is deleted, the state object archetype MUST be deleted.
-  end note
-
-  SystemicPrimitive <|-- StateObjectArchetype : is
-  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
 
   ' ============================================================
   ' SYSTEMIC PROCESSES
