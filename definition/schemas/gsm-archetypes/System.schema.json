@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/gsm/v1/System.json",
+  "title": "System (GSM v1)",
+  "description": "A Component with a reflexive layer (Constitution + Organization). System IS-A Component with second-order dynamics (self-governance).",
+  "allOf": [
+    { "$ref": "sie://schemas/gsm/v1/Component.json" }
+  ],
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
+
+    "purposes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Constitution: reasons for the system's existence." },
+    "principles": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Constitution: identity-level normative constraints." },
+
+    "policies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: measurable boundary conditions." },
+    "rules": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: behavioral logic." },
+    "controls": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: step-level execution specs." },
+    "functions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: activities the system can perform." },
+    "relationships": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: positional links to other systems." },
+    "operationalizations": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: governance lineage paths (Principle→Policy→Rule)." },
+    "realizations": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: value delivery paths (Function→Rule→Purpose)." },
+    "eventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: event structure and semantics." },
+    "stateObjectArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: state object structure and semantics." },
+
+    "controllers": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: mechanism subtypes implementing Rules." },
+    "actuators": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: mechanism subtypes executing Actuations." },
+    "sensors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Organization: mechanism subtypes observing Actuations." },
+
+    "components": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }, "description": "Infrastructure: composed structural organs (including sub-Systems)." }
+  }
+}

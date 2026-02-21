@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/gsm/v1/Role.json",
+  "title": "Role (GSM v1)",
+  "description": "Relational, positional label naming how a System is positioned in a specific Relationship.",
+  "allOf": [
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+  ],
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    }
+  }
+}

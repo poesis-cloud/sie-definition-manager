@@ -11,7 +11,7 @@
   "type": "object",
   "required": [
     "name",
-    "applyingRule",
+    "constitutingRule",
     "applicabilityConditions",
     "iterationConditions",
     "effector",
@@ -21,8 +21,9 @@
     "name": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
     },
-    "applyingRule": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    "constitutingRule": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
+      "description": "The enclosing Rule to which the control belongs."
     },
     "applicabilityConditions": {
       "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression"

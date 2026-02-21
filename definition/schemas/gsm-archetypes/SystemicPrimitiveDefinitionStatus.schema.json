@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/gsm/v1/SystemicPrimitiveDefinitionStatus.json",
+  "title": "SystemicPrimitiveDefinitionStatus (GSM v1)",
+  "description": "Unified lifecycle status for all systemic primitive instances.",
+  "type": "string",
+  "enum": [
+    "DRAFT",
+    "PROPOSED",
+    "APPROVED",
+    "ACTIVE",
+    "SUSPENDED",
+    "DEPRECATED",
+    "RETIRED",
+    "REJECTED"
+  ]
+}

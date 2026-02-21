@@ -4,17 +4,11 @@
   "title": "Purpose (GSM v1)",
   "description": "A reason for the system's existence — an intended outcome or objective. Function↔Purpose is derived through Realization, not stored.",
   "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
-    }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
-  "required": [
-    "name"
-  ],
+  "required": ["name"],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    }
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" }
   }
 }

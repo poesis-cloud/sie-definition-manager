@@ -2,46 +2,124 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/System.json",
   "title": "System (GSM v1)",
-  "description": "System primitive: groups constitutive, organizational, structural, functional, behavioral, and viability properties.",
+  "description": "A Component with a reflexive layer (Constitution + Organization). System IS-A Component with second-order dynamics (self-governance).",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/Component.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "type", "boundary"],
+  "required": [
+    "name"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-
-    "type": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID", "description": "Reference to Type primitive." },
-    "boundary": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID", "description": "Reference to Boundary primitive." },
-
-    "purposes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "capacities": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "stateObjectArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "governors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "regulators": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "supervisors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "coordinators": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "operators": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "principles": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "functionalPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "viabilityPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "structuralPolicies": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "rules": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "controls": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "components": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "interfaces": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "channels": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "interactions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "functions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "mechanisms": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "receptors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "effectors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "eventArchetypes": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-
-    "modalities": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } }
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "purposes": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Constitution: reasons for the system's existence."
+    },
+    "principles": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Constitution: identity-level normative constraints."
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: measurable boundary conditions."
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: behavioral logic."
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: step-level execution specs."
+    },
+    "functions": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: activities the system can perform."
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: positional links to other systems."
+    },
+    "operationalizations": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: governance lineage paths (Principle→Policy→Rule)."
+    },
+    "realizations": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: value delivery paths (Function→Rule→Purpose)."
+    },
+    "eventArchetypes": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: event structure and semantics."
+    },
+    "stateObjectArchetypes": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: state object structure and semantics."
+    },
+    "controllers": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: mechanism subtypes implementing Rules."
+    },
+    "actuators": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: mechanism subtypes executing Actuations."
+    },
+    "sensors": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: mechanism subtypes observing Actuations."
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Infrastructure: composed structural organs (including sub-Systems)."
+    }
   }
 }

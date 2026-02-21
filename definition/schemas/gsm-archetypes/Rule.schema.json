@@ -4,21 +4,12 @@
   "title": "Rule (GSM v1)",
   "description": "Behavioral constraint: how the system acts over time via mechanisms, sensors, and effectors. First imperative level in the PPRC chain.",
   "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
-    }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
-  "required": [
-    "name",
-    "triggeringReceptor",
-    "applicabilityConditions",
-    "controlSequence"
-  ],
+  "required": ["name", "triggeringReceptor", "applicabilityConditions", "controlSequence"],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
     "triggeringReceptor": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
       "description": "Receptor whose received events trigger the rule."
@@ -33,9 +24,7 @@
     },
     "controlSequence": {
       "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      },
+      "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
       "description": "Ordered references to Control primitives defining effectors when the rule is applied."
     }
   }

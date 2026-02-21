@@ -4,20 +4,12 @@
   "title": "Policy (GSM v1)",
   "description": "Measurable boundary condition on one or more Purposes, translating Principle directional intent into a bounded, falsifiable envelope.",
   "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
-    }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
-  "required": [
-    "name",
-    "applicabilityConditions",
-    "constraint"
-  ],
+  "required": ["name", "applicabilityConditions", "constraint"],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
     "applicabilityConditions": {
       "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
       "description": "Optional SIE DSL LogicalExpression defining when the policy applies."

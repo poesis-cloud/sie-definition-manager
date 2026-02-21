@@ -4,19 +4,12 @@
   "title": "Principle (GSM v1)",
   "description": "Identity-level, long-term normative constraint that defines what the system fundamentally is and stands for.",
   "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
-    }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
   ],
   "type": "object",
-  "required": [
-    "name",
-    "constraint"
-  ],
+  "required": ["name", "constraint"],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
+    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
     "applicabilityConditions": {
       "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
       "description": "Optional applicability guard (SIE DSL LogicalExpression JSON AST). Absent/null means universal applicability. Restricted form: AndExpression or single atom only (no Or/Not). One-predicate-per-axis invariant."
