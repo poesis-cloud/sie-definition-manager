@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Rule.json",
   "title": "Rule (GSM v1)",
-  "description": "Behavioral constraint: how the system acts over time via mechanisms, sensors, and effectors. First imperative level in the PPRC chain.",
+  "description": "Behavioral logical atom: event-triggered program whose body is the single source of truth for imperative governance logic. First imperative level in the PPR chain.",
   "allOf": [
     {
       "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
@@ -11,32 +11,43 @@
   "type": "object",
   "required": [
     "name",
-    "triggeringReceptor",
-    "applicabilityConditions",
-    "controlSequence"
+    "body",
+    "language"
   ],
   "properties": {
     "name": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
     },
-    "triggeringReceptor": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Receptor whose received events trigger the rule."
+    "body": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source code in the declared language, conforming to the SIE Rule API contract for that language binding. Must begin with an on(\"EventArchetypeName\") call as its first executable statement."
     },
-    "applicabilityConditions": {
-      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
-      "description": "LogicalExpression that must evaluate to true for the rule to be applied."
+    "language": {
+      "type": "string",
+      "default": "starlark",
+      "description": "Language binding for the Rule body. The Definition Manager dispatches to the language-specific parser for validation and auto-derivation. Supported values are defined by available SIE Rule API language bindings.",
+      "examples": [
+        "starlark"
+      ]
+    }
+  },
+  "x-sie-api": {
+    "$ref": "sie://schemas/gsm/v1/RuleAPI.json",
+    "description": "Language-neutral SIE Rule API contract that all language bindings implement."
+  },
+  "x-sie-derived": {
+    "triggeringEventArchetype": {
+      "description": "Derived at save/parse time from the on() call argument in body. Not stored as user input.",
+      "derivedFrom": "body → on(\"...\") argument"
     },
-    "iterationConditions": {
-      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
-      "description": "LogicalExpression that, if true, causes re-application of the rule."
+    "operationalizingPolicies": {
+      "description": "Derived from Operationalization chains: SELECT DISTINCT o.policy FROM operationalization o WHERE o.rule = THIS.",
+      "derivedFrom": "Operationalization"
     },
-    "controlSequence": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      },
-      "description": "Ordered references to Control primitives defining effectors when the rule is applied."
+    "scopingFunctions": {
+      "description": "Derived from Realization chains: SELECT DISTINCT r.function FROM realization r WHERE r.rule = THIS.",
+      "derivedFrom": "Realization"
     }
   }
 }

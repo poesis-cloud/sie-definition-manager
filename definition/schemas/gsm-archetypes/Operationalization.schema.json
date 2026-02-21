@@ -2,37 +2,63 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Operationalization.json",
   "title": "Operationalization (GSM v1)",
-  "description": "Traced governance lineage path through the PPRC specificity gradient (Principle → Policy → Rule).",
+  "description": "Traced governance lineage path through the PPR specificity gradient (Principle → Policy → Rule).",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
   "properties": {
     "principle": {
       "anyOf": [
-        { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-        { "type": "null" }
+        {
+          "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+        },
+        {
+          "type": "null"
+        }
       ],
       "description": "Principle at the identity-level root (null = governance gap)."
     },
     "policy": {
       "anyOf": [
-        { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-        { "type": "null" }
+        {
+          "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+        },
+        {
+          "type": "null"
+        }
       ],
       "description": "Policy translating the Principle into a measurable boundary (null = gap or direct link)."
     },
     "rule": {
       "anyOf": [
-        { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-        { "type": "null" }
+        {
+          "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+        },
+        {
+          "type": "null"
+        }
       ],
       "description": "Rule operationalizing the Policy as behavioral logic (null = not yet operationalized)."
     }
   },
   "anyOf": [
-    { "required": ["principle"] },
-    { "required": ["policy"] },
-    { "required": ["rule"] }
+    {
+      "required": [
+        "principle"
+      ]
+    },
+    {
+      "required": [
+        "policy"
+      ]
+    },
+    {
+      "required": [
+        "rule"
+      ]
+    }
   ]
 }
