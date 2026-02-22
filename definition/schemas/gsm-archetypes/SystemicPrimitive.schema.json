@@ -8,7 +8,11 @@
   "properties": {
     "id": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
     "archetype": { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveArchetype.json" },
-    "definitionStatus": { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinitionStatus.json" },
+    "definitionStatus": {
+      "type": "string",
+      "enum": ["DRAFT", "PROPOSED", "APPROVED", "ACTIVE", "SUSPENDED", "DEPRECATED", "RETIRED", "REJECTED"],
+      "description": "Unified lifecycle status for all systemic primitive instances."
+    },
     "qualifierArchetypes": {
       "type": "array",
       "items": { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveQualifierArchetype.json" }

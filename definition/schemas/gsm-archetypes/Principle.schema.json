@@ -2,21 +2,43 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Principle.json",
   "title": "Principle (GSM v1)",
-  "description": "Identity-level, long-term normative constraint that defines what the system fundamentally is and stands for.",
+  "description": "Identity-level, long-term normative constraint. Grammar: Modal × Verb × PurposeQualifier × PurposeScope(Purpose). Subject is always the owning System. Unconditional by nature: applies universally within its owning System.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "constraint"],
+  "required": [
+    "name",
+    "modal",
+    "verb",
+    "purposeQualifier",
+    "purposeScope"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "applicabilityConditions": {
-      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
-      "description": "Optional applicability guard (SIE DSL LogicalExpression JSON AST). Absent/null means universal applicability. Restricted form: AndExpression or single atom only (no Or/Not). One-predicate-per-axis invariant."
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
     },
-    "constraint": {
-      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/PrincipleConstraintExpression",
-      "description": "SIE DSL PrincipleConstraintExpression encoding: Subject × Modal × Verb × PurposeQualifier × PurposeScope(Purpose)."
+    "modal": {
+      "type": "string",
+      "enum": ["MUST", "MUST_NOT", "SHOULD", "SHOULD_NOT", "MAY"],
+      "description": "Deontic obligation strength. Grounded in deontic logic: {Obligatory, Permitted, Forbidden}. Precedence: MUST > SHOULD > MAY."
+    },
+    "verb": {
+      "type": "string",
+      "enum": ["MAXIMIZE", "MINIMIZE", "PRESERVE", "BALANCE", "ENSURE", "AVOID", "PROMOTE", "REDUCE"],
+      "description": "Constrained verb set for deterministic principle appraisal. Direction semantics: {MAXIMIZE, PROMOTE, ENSURE} = positive; {MINIMIZE, REDUCE, AVOID} = negative; {PRESERVE, BALANCE} = neutral."
+    },
+    "purposeQualifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Free-form quality attribute name within the governance sentence (e.g., 'integrity', 'throughput', 'latency'). NOT a reference to a SystemicPrimitive."
+    },
+    "purposeScope": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
+      "description": "Reference to the Purpose being governed (value target). Must belong to the same System as the owning Principle."
     }
   }
 }

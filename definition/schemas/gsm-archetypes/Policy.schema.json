@@ -32,12 +32,12 @@
       "derivedFrom": "Operationalization"
     },
     "effectiveScopedPurposes": {
-      "description": "Derived: union(operationalizedPrinciples[*].constraint.purposeScope).",
-      "derivedFrom": "Operationalization → Principle.constraint.purposeScope"
+      "description": "Derived: union(operationalizedPrinciples[*].purposeScope).",
+      "derivedFrom": "Operationalization → Principle.purposeScope"
     },
     "effectiveModal": {
       "description": "Derived: max(Principle.modal) over operationalized Principles.",
-      "derivedFrom": "Operationalization → Principle.constraint.modal"
+      "derivedFrom": "Operationalization → Principle.modal"
     }
   }
 }

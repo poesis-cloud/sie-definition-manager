@@ -19,7 +19,9 @@
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
     },
     "type": {
-      "$ref": "sie://schemas/gsm/v1/ActuationType.json"
+      "type": "string",
+      "enum": ["CREATION", "MODIFICATION", "DELETION", "ACQUISITION"],
+      "description": "The kind of state mutation declared by this actuation."
     },
     "stateObjectArchetype": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",

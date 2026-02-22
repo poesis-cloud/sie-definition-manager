@@ -25,21 +25,9 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Maybe drop Actuator and Sensor, and make type Enum of Mechanism.
-' - InternalRelationship as Relationship specialization (both parties
-'   share the same parent System) — Phase 3.
-' - Refer to DSL constructs for model attributes integrating them.
-' - What about enablers which are not purposes/functions?
-'   Maybe they are just Principles with a qualifier "enabler"?
-' - PPR VS Beer's Viability's S4*S3 (innovation/conservatism)?
-'   RESOLVED: S3×S4 homeostat is a meta-governance pattern
-'   within PPR (meta-Principles about governance dynamics),
-'   not a new primitive. See CsdmNote.
 ' - Add / update relationships between primitives.
-' - Identify and generate rules of any kind for each class.
+' - Identify and generate functional rules of any kind for each class.
 ' - Challenge meta model, technically.
-' - Generate JSON schema for each systemic primitive archetype, and for generic
-'   events archetypes.
 ' - Update planes specifications.
 
 frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) - v1" {
@@ -833,9 +821,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       outcomes or objectives. Purposes are the functional anchors to
       which all governance is traceable through the PPR chain.
     - **Principle**: identity-level normative constraints expressed as
-      structured quality-attribute sentences (Subject × Modal × Verb ×
-      PurposeQualifier × Purpose). They are the normative root of the
-      PPR chain.
+      structured quality-attribute sentences (Modal × Verb ×
+      PurposeQualifier × Purpose). The subject is always the
+      owning System. They are the normative root of the PPR chain.
 
     Constitution answers: WHY does this system exist, and WHAT quality
     commitments does it make about that existence?
@@ -1054,91 +1042,265 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Principle {
-    +getApplicabilityConditions(): String
-    +getConstraint(): String
+    +getModal(): PrincipleModal
+    +getVerb(): PrincipleVerb
+    +getPurposeQualifier(): String
+    +getPurposeScope(): Purpose
   }
-  
+
   note top of Principle
     **Primitive Semantics**:
     - An identity-level, long-term normative constraint that defines what
       the system fundamentally is and stands for.
-    - A Principle constraint IS a **system quality attribute** — a
-      structured, directional governance statement that qualifies how
-      the system must operate with respect to its Purposes.
-    - The constraint grammar (Subject × Modal × Verb × PurposeQualifier
-      × Purpose) encodes: the quality dimension (purposeQualifier), the
-      governance direction (Verb), and the value target (Purpose).
+    - A Principle IS a **system quality attribute** — a structured,
+      directional governance statement that qualifies how the system
+      must operate with respect to its Purposes.
+    - Grammar: Modal × Verb × PurposeQualifier × PurposeScope
+    - Read: "System Modal Verb PurposeQualifier OF Purpose"
+      e.g., "System MUST ENSURE integrity OF order-processing"
+    - The subject is always the owning System — Principles are
+      unconditional identity-level commitments. Role-scoped or
+      context-specific governance belongs to Policy
+      (applicabilityConditions) or sub-System decomposition.
     - Without Principles, a system has Purposes but no declared stance
       on quality dimensions. Principles are the normative root of the
       PPR chain.
     - Principles are DEFINED and ENFORCED by the governance plane.
     - Principles are OPERATED by the regulation plane when designing
       and validating policies.
+    - **Unconditional by nature**: Principles are identity-level and
+      apply universally within their owning System. If a governance
+      statement is conditional (applies only in certain contexts),
+      it belongs as a Policy (which operationalizes Principles into
+      bounded, context-specific constraints) or requires sub-System
+      decomposition (each sub-System defines its own unconditional
+      Principles).
+
+    The Principle simultaneously declares:
+    - **Value axis** (Purpose): the system's reason for existence that
+      is governed — what the system does and why.
+    - **Viability axis** (purposeQualifier): the dimension along which
+      governance constrains the Purpose — what property must be
+      maintained/improved.
+
+    This encodes the value/viability duality: the verb acts on a
+    purposeQualifier (viability) **of** a Purpose (value). The
+    purposeQualifier is the *adjective* that qualifies Purpose
+    within the governance sentence.
+
+    This duality extends through the PPR chain: Principle scopes
+    Purpose (identity-level), Policy scopes Function (design-level),
+    and Functions serve Purposes. The constraint nature (functional,
+    viability, structural) is derivable from purposeQualifier and
+    the constraint format — no Policy subtypes needed.
 
     **Attributes Semantics**:
-    - `applicabilityConditions`: Optional SIE DSL LogicalExpression defining
-      where/when the principle applies (null = universal applicability).
-      When present, SHOULD be in restricted applicability guard form
-      (see Validation Rules).
-    - `constraint`: SIE DSL `PrincipleConstraintExpression` encoding:
-      Subject × Modal × Verb × PurposeQualifier × Purpose.
-      e.g., "System MUST ENSURE integrity OF order-processing when
-      jurisdiction = EU"
+    - `modal`: Deontic obligation strength (see PrincipleModal).
+    - `verb`: Governance direction/guarantee semantics
+      (see PrincipleVerb).
+    - `purposeQualifier`: A non-empty String naming the viability
+      dimension (e.g., "integrity", "throughput", "latency"). It is
+      NOT a reference to a SystemicPrimitive — it is a free-form
+      quality attribute name within the governance sentence.
+    - `purposeScope`: The Purpose being governed (value target).
 
     **Validation Rules**:
-    - `constraint`.subject MUST be a SystemicPrimitiveSelectorExpression
-      whose name is either System or Role.
-    - `constraint`.purposeQualifier MUST be a non-empty String (NOT a
-      reference to a SystemicPrimitive).
-    - `constraint`.purposeScope MUST be a SystemicPrimitiveSelectorExpression
-      whose name is Purpose.
-    - **Applicability guard form:**
-      `applicabilityConditions` MUST be either null/absent (universal),
-      OR an AndExpression, OR a single atom. OrExpression and
-      NotExpression MUST NOT be used. **One-predicate-per-axis
-      invariant**: at most one predicate per axis (use IN/NOT_IN for
-      multi-value, not multiple EQUALS).
-
-      *Allowed atoms:*
-      - FunctionCallExpression("exists", [SystemicPrimitiveReferenceExpression])
-        with empty propertyPath (axis presence check).
-      - ComparisonExpression(EQUALS|NOT_EQUALS): left = SystemicPrimitiveRef,
-        right = LiteralExpression. Left must resolve to scalar property;
-        literal must type-check.
-      - ComparisonExpression(IN): left = SystemicPrimitiveRef,
-        right = LiteralExpression (JSON array, ≥2 elements, unique,
-        type-compatible). Left must resolve to scalar property.
-      - ComparisonExpression(NOT_IN): same as IN but ≥1 element.
-
-      *Forbidden references (Principle applicability):*
-      EventArchetypeRef, ContextVariableRef, StateObjectArchetypeRef,
-      SelectorExpression — these are Rule/Policy-level constructs.
-
-      *Axis resolution:*
-      - Each SystemicPrimitiveReferenceExpression.name MUST resolve to a
-        SystemicPrimitive instance in the same System definition context.
-      - Resolved primitive's archetype MUST be in the allow-listed axis set:
-        {Relationship, Component} (extendable).
-      - Resolved primitive SHOULD have definitionStatus = ACTIVE.
-      - Enum-like properties: literal MUST be an accepted value.
-      - Boolean properties: literal MUST be boolean.
+    - `modal` MUST be a valid PrincipleModal value.
+    - `verb` MUST be a valid PrincipleVerb value.
+    - `purposeQualifier` MUST be a non-empty String.
+    - `purposeScope` MUST reference a Purpose owned by the same
+      System as the owning Principle.
 
     **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all principles of the same system.
-    - `constraint`.purposeQualifier MUST be a non-empty String.
-    - `constraint`.purposeScope MUST reference a Purpose owned by the same
-      system.
-    - Two principles with ENSURE and AVOID on the same purposeQualifier AND
-      same Purpose with overlapping applicability → contradiction.
+    - Two principles with ENSURE and AVOID on the same purposeQualifier
+      AND same Purpose → contradiction (error).
     - Two principles with opposing verb directions on the same
-      purposeQualifier AND same Purpose with overlapping applicability →
-      conflict.
+      purposeQualifier AND same Purpose → conflict. Resolved by
+      PrincipleModal precedence (MUST > SHOULD > MAY).
     - Different Purposes on the same purposeQualifier are NOT conflicts.
+
+    **Coverage gap detection**:
+    The Purpose × purposeQualifier matrix enables identification of
+    ungoverned gaps: Purposes without any purposeQualifier constraint,
+    or purposeQualifiers not applied to critical Purposes.
   end note
 
   SystemicPrimitive <|-- Principle : is
-  Principle "0..*" o--> "1" System : constrains
+  Principle "0..*" o--> "1" Purpose : scopesPurpose
+
+  enum PrincipleModal {
+    MUST
+    MUST_NOT
+    SHOULD
+    SHOULD_NOT
+    MAY
+  }
+
+  note top of PrincipleModal
+    **Semantics**:
+    - Deontic obligation strength for a Principle constraint.
+    - Grounded in deontic logic: {Obligatory, Permitted, Forbidden}.
+
+    **Modal precedence** (for conflict resolution):
+    MUST > SHOULD > MAY.
+
+    - MUST / MUST_NOT: Obligatory / Forbidden — hard constraints.
+      Appraisal treats violations as errors.
+    - SHOULD / SHOULD_NOT: Recommended / Discouraged — soft
+      constraints. Appraisal treats violations as warnings.
+    - MAY: Permitted — advisory. Appraisal treats as informational.
+
+    When two Principles conflict on the same purposeQualifier and
+    Purpose, the higher-precedence modal wins.
+  end note
+
+  enum PrincipleVerb {
+    MAXIMIZE
+    MINIMIZE
+    PRESERVE
+    BALANCE
+    ENSURE
+    AVOID
+    PROMOTE
+    REDUCE
+  }
+
+  note top of PrincipleVerb
+    **Constrained verb set for deterministic principle appraisal.**
+
+    PrincipleVerb is intentionally constrained to a finite, semantically
+    partitioned set. This enables the governance engine to deterministically
+    appraise principles against each other — detecting conflicts,
+    redundancies, and priority inversions — without free-form NLP
+    interpretation.
+
+    **Design Rationale:**
+    The expressiveness of a Principle is the product of four dimensions:
+    Modal × Verb × PurposeQualifier × PurposeScope(Purpose).
+    The subject is always the owning System (Principles are
+    unconditional identity commitments). Any governance intent
+    expressible as
+    "System <obligation> <direction> <purposeQualifier> OF <purpose>"
+    is covered. The verb carries *direction and commitment semantics* on
+    the purposeQualifier; it does NOT carry the full intent alone. Purpose
+    scopes the value target.
+
+    **Semantic Partition:**
+
+    | Category       | Absolute (hard)  | Relative (best-effort) |
+    |----------------|------------------|------------------------|
+    | Push upward    | MAXIMIZE         | PROMOTE                |
+    | Push downward  | MINIMIZE         | REDUCE                 |
+    | Stability      | PRESERVE         | BALANCE                |
+    | Positive guar. | ENSURE           | —                      |
+    | Negative guar. | AVOID            | —                      |
+
+    **Direction semantics** (for appraisal):
+    - MAXIMIZE, PROMOTE, ENSURE: **positive** — increase/maintain.
+    - MINIMIZE, REDUCE, AVOID:  **negative** — decrease/prevent.
+    - PRESERVE, BALANCE:        **neutral** — stabilize.
+
+    **Commitment semantics** (absolute vs. relative):
+    - Absolute verbs (MAXIMIZE, MINIMIZE, PRESERVE, ENSURE, AVOID)
+      express unconditional direction. Appraisal treats them as hard
+      constraints.
+    - Relative verbs (PROMOTE, REDUCE, BALANCE) express best-effort
+      directional intent. Appraisal treats them as soft constraints
+      (satisficed, not optimized).
+
+    **Verb Definitions:**
+    - MAXIMIZE: Drive the purposeQualifier to its highest feasible
+      level.
+      *e.g., "System MUST MAXIMIZE throughput OF order-processing"*
+    - MINIMIZE: Drive the purposeQualifier to its lowest feasible
+      level.
+      *e.g., "System MUST MINIMIZE latency OF payment-processing"*
+    - PRESERVE: Maintain the purposeQualifier at its current level;
+      resist change.
+      *e.g., "System MUST PRESERVE backward-compatibility OF
+      public-api"*
+    - BALANCE: Maintain the purposeQualifier within an acceptable
+      range relative to competing concerns; tolerate bounded
+      deviation.
+      *e.g., "System SHOULD BALANCE cost-efficiency OF
+      data-storage"*
+    - ENSURE: Guarantee the purposeQualifier is present, satisfied,
+      or holds true. Positive existential guarantee.
+      *e.g., "System MUST ENSURE data-integrity OF
+      order-processing"*
+    - AVOID: Guarantee the purposeQualifier (framed as a negative
+      property) does not manifest. Negative existential guarantee.
+      *e.g., "System MUST AVOID vendor-lock-in OF
+      identity-management"*
+      *e.g., "System MUST AVOID data-loss OF audit-logging"*
+    - PROMOTE: Actively contribute toward increasing the
+      purposeQualifier, without requiring maximization. Best-effort
+      positive direction.
+      *e.g., "System SHOULD PROMOTE observability OF
+      incident-response"*
+    - REDUCE: Actively contribute toward decreasing the
+      purposeQualifier, without requiring minimization. Best-effort
+      negative direction.
+      *e.g., "System SHOULD REDUCE operational-complexity OF
+      deployment"*
+
+    **ENSURE vs. AVOID (guarantee pair):**
+    ENSURE and AVOID are logical complements expressing existential
+    guarantees. They differ from directional verbs (MAXIMIZE/MINIMIZE)
+    in that they target a **boolean property** (holds / does not hold)
+    rather than a **scalar magnitude**.
+    - ENSURE(Q) ≡ "Q must hold" (Achieve + Maintain in KAOS terms).
+    - AVOID(Q)  ≡ "Q must not hold" (Avoid in KAOS terms).
+    Some principles are more naturally expressed with AVOID than by
+    reframing the purposeQualifier positively. Both are valid; AVOID
+    prevents forced reframing that can obscure intent.
+
+    **Appraisal Conflict Detection Rules:**
+    Two principles P1, P2 on the same purposeQualifier **AND the
+    same Purpose** conflict when their verbs are directionally
+    incompatible:
+    - P1.verb ∈ {MAXIMIZE, PROMOTE, ENSURE} and
+      P2.verb ∈ {MINIMIZE, REDUCE, AVOID} (opposing directions).
+    - P1.verb = ENSURE and P2.verb = AVOID on the same
+      purposeQualifier (logical contradiction).
+    - P1.verb = PRESERVE and P2.verb ∈ {MAXIMIZE, MINIMIZE}
+      (stability vs. extremization).
+
+    Conflicts are resolved by PrincipleModal precedence
+    (MUST > SHOULD > MAY).
+
+    **Purpose-scope precision:**
+    Two Principles on the SAME purposeQualifier but DIFFERENT
+    Purposes are NOT conflicts — they govern different value targets.
+    For example, "MAXIMIZE throughput OF order-processing" and
+    "MINIMIZE throughput OF logging" do not conflict, even though
+    both target the same purposeQualifier (throughput).
+
+    **Theoretical Grounding:**
+    - **KAOS** (van Lamsweerde): {Achieve, Maintain, Avoid, Cease}
+      — 4 canonical goal types proven sufficient for formal goal
+      reasoning. GSM's 8 verbs are a strict superset with finer
+      granularity.
+    - **GRL/URN** (ITU-T Z.151): contribution types {Make, Help,
+      SomePositive, Unknown, SomeNegative, Hurt, Break} —
+      comparable gradient from absolute to relative direction.
+    - **NFR Framework** (Chung et al.): {++, +, -, --} softgoal
+      contributions — enables automated conflict detection.
+    - **Deontic logic**: {Obligatory, Permitted, Forbidden} — mapped
+      to PrincipleModal, complementing constrained verbs.
+
+    **Completeness Argument:**
+    Any governance principle expressible in natural language as
+    "System <modal> <verb> <purposeQualifier> OF <purpose>" falls
+    into one of:
+    (a) directional scalar intent → MAXIMIZE/MINIMIZE/PROMOTE/REDUCE,
+    (b) stability intent → PRESERVE/BALANCE,
+    (c) existential guarantee → ENSURE/AVOID.
+    No fourth semantic category exists for purposeQualifier-directed
+    normative statements. The verb set is therefore complete. Purpose
+    scope adds value-target precision without expanding the verb
+    vocabulary.
+  end note
 
   ' ============================================================
   ' FUNCTION
@@ -1213,7 +1375,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       A Policy does NOT store its own scope. Its effective scope is
       derived deterministically:
         effectiveScopedPurposes =
-          union(operationalizedPrinciples[*].constraint.purposeScope)
+          union(operationalizedPrinciples[*].purposeScope)
     - **Derived navigability (from Operationalization):**
       `getOperationalizingPrinciples()` is derived from
       Operationalization chains:
@@ -1907,7 +2069,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Controller {
-    +getFunctions(): Function[]
     +getRules(): Rule[]
   }
 
@@ -1941,7 +2102,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   Mechanism <|-- Controller : is
-  Controller "0..*" o--> "0..*" Function : realizes
   Controller "0..*" o--> "0..*" Rule : implements
 
   ' ============================================================
