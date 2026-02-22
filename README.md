@@ -56,7 +56,7 @@ The Definition Manager is not a passive store. When definitions are created, mod
 |-------------------|------------------|-----------------|
 | Principle created/modified | **Governance** (`../sie-governance/`) | Constitutive Norm Appraisal: Principle ↔ Quality, scope validity, verb conflicts, governance plane coverage |
 | Policy created/modified | **Regulation** (`../sie-regulation/`) | Constraint Norm Appraisal: direction vs. Principle verb, metric→Quality path, scope containment, Policy↔Policy conflicts |
-| Rule created/modified | **Regulation** (`../sie-regulation/`) | Rule→Policy coverage, SIE DSL validity, CEL transcompilability |
+| Rule created/modified | **Regulation** (`../sie-regulation/`) | Rule→Policy coverage, CEL/Starlark validity |
 | Structural changes (Component, Interface, Channel) | **Regulation** (`../sie-regulation/`) | Structural Form Appraisal (CardinalityPolicyConstraint, DependencyPolicyConstraint) |
 | Any definition activated | **Supervision** (`../sie-supervision/`) | Re-appraise (Form Appraisal) existing observations against the new/updated definition |
 | Cross-system definition changes | **Coordination** (`../sie-coordination/`) | Inter-system coherence, collision detection, oscillation dampening (Stabilization) |
@@ -131,7 +131,7 @@ Three options were evaluated:
 - **Seed immutability via ownership.** Genesis seeds are owned by the SIE system. Tenants cannot modify primitives outside their governance authority. No explicit `mutable` flag needed — the existing ownership model handles it.
 - **Non-determinism support.** Checks can be deterministic, probabilistic, or undecidable. Determinism lives at the guard (controller/Policy) level; checks (sensor/Rule) can have any evaluation mode. Guard Policies define confidence thresholds for probabilistic check acceptance.
 
-**DSL impact**: None. Existing `CardinalityPolicyConstraint` + `StateObjectSelectorExpression` + `StateObjectArchetypeReferenceExpression` express all guard constraints within the current SIE DSL. No new types, functions, or syntax needed.
+**DSL impact**: None. Existing Policy guard/predicate CEL expressions and archetype-scoped selectors express all guard constraints. No new types, functions, or syntax needed.
 
 **Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as PPR, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
 

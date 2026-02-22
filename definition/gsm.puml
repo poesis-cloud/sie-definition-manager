@@ -1403,10 +1403,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       satisfied. Parsed by the Definition Manager at save time.
       E.g.: `Component.replicas >= 2`
       Population scoping (which instances are constrained) is
-      expressed within the predicate itself using SIE DSL
-      SelectorExpressions and comprehension macros (filter,
-      all, exists), or via the guard for simple instance-level
-      filtering in G5 axis-predicate normal form.
+      expressed within the predicate itself using CEL
+      comprehension macros (filter, all, exists) and
+      archetype-scoped selectors, or via the guard for simple
+      instance-level filtering in G5 axis-predicate normal form.
 
     *Tolerance mode:*
     - `toleranceMode`: The tolerance mode determining what
