@@ -1061,7 +1061,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - The subject is always the owning System — Principles are
       unconditional identity-level commitments. Role-scoped or
       context-specific governance belongs to Policy
-      (applicabilityConditions) or sub-System decomposition.
+      (guard) or sub-System decomposition.
     - Without Principles, a system has Purposes but no declared stance
       on quality dimensions. Principles are the normative root of the
       PPR chain.
@@ -1334,8 +1334,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Policy {
-    +getApplicabilityConditions(): String
-    +getConstraint(): String
+    +getGuard(): String
+    +getPredicate(): String
+    +getToleranceMode(): ToleranceMode
+    +getTemporalWindow(): String
+    +getTemporalAggregation(): AggregationType
+    +getSustainedThreshold(): Number
     +getOperationalizingPrinciples(): Principle[]
   }
 
@@ -1345,28 +1349,279 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       of the system, translating Principle directional intent into a
       bounded, falsifiable envelope.
     - If a constraint is not measurable, it is not a Policy.
+    - A Policy IS the combination of: predicate +
+      tolerance mode + tolerance envelope (temporal fields) +
+      applicability guard.
+      These are inseparable — each combination defines a distinct
+      violation boundary.
     - Policies are DEFINED by the regulation plane.
     - Policies are ENFORCED and OPERATED by the supervision plane.
     - Policies operationalize one or more Principles.
 
+    **Why these concerns are not separable:**
+    The tolerance envelope is **constraint specification**, not
+    measurement configuration. It defines **what constitutes a
+    violation** (the violation boundary):
+    - `predicate: Component.replicas >= 2` (INSTANTANEOUS) →
+      violation if false at ANY instant.
+    - Same predicate + SUSTAINED mode: `temporalAggregation: AVG,
+      sustainedThreshold: 0.99, temporalWindow: PT5M` → violation only
+      if false for >1% of 5 minutes.
+    - `predicate: Service.latency < 100` + AGGREGATED mode:
+      `temporalAggregation: P99, temporalWindow: PT5M` → violation
+      if the P99 over 5 min exceeds 100.
+    These produce **different violation sets on the same data**.
+    Without a tolerance mode and envelope, the predicate alone is
+    ambiguous: does a 1-second dip constitute a violation? The
+    tolerance mode + envelope resolves this ambiguity definitionally.
+    The Supervision plane determines HOW to measure (sampling rate,
+    data sources, telemetry pipeline); the Policy defines WHAT
+    constitutes compliance.
+
+    **Why constraint patterns are not subtypes:**
+    Every constraint is fundamentally a boolean predicate;
+    temporal aggregation is an orthogonal tolerance mode, not
+    a type distinction. Dependency semantics are reducible to
+    predicates over GSM structural primitives (Interaction,
+    Relationship, Interface). Cardinality is expressible via
+    `size()` in predicates. A single flat structure enables
+    uniform conflict detection.
+
     **Attributes Semantics**:
-    - `applicabilityConditions`: Optional SIE DSL LogicalExpression
-      defining when the policy applies.
-    - `constraint`: A declarative SIE DSL PolicyConstraintExpression.
+
+    *Applicability:*
+    - `guard`: Optional plain text CEL expression defining when
+      the policy applies. Conforms to the **applicability-guard
+      CEL profile** (see below). When null, the policy applies
+      unconditionally within its owning System. Parsed by the
+      Definition Manager at save time.
+
+    *Predicate:*
+    - `predicate`: Plain text CEL expression conforming to the
+      **property-assertion CEL profile** (see below). Always
+      required. Evaluates to true when the constraint is
+      satisfied. Parsed by the Definition Manager at save time.
+      E.g.: `Component.replicas >= 2`
+      Population scoping (which instances are constrained) is
+      expressed within the predicate itself using SIE DSL
+      SelectorExpressions and comprehension macros (filter,
+      all, exists), or via the guard for simple instance-level
+      filtering in G5 axis-predicate normal form.
+
+    *Tolerance mode:*
+    - `toleranceMode`: The tolerance mode determining what
+      constitutes a violation. See ToleranceMode enum. Required.
+      Determines which temporal fields are valid and how the
+      predicate is evaluated against reality.
+
+    *Tolerance envelope (temporal fields):*
+    All temporal fields are null for INSTANTANEOUS mode.
+    When toleranceMode is AGGREGATED or SUSTAINED, they define the
+    temporal tolerance specification:
+    - `temporalWindow`: ISO8601 duration string (e.g., "PT5M").
+      Required when toleranceMode is AGGREGATED or SUSTAINED.
+    - `temporalAggregation`: AggregationType. Required when
+      toleranceMode is AGGREGATED or SUSTAINED.
+      - AGGREGATED mode: Collect the numeric metric from predicate
+        over temporalWindow, aggregate, then compare against the
+        threshold from predicate. Predicate MUST be in
+        metric-comparison form (`Reference op Literal`).
+      - SUSTAINED mode: Evaluate predicate at each sample point
+        over temporalWindow, aggregate boolean results. Typically
+        AVG (= percentage of true samples) or MIN (= always
+        true).
+      The toleranceMode discriminates what is aggregated (numeric
+      value vs. compliance value); temporalAggregation specifies how.
+    - `sustainedThreshold`: Number in [0.0, 1.0]. Required when
+      toleranceMode = SUSTAINED. Minimum compliance ratio for the
+      constraint to be satisfied (e.g., 0.99 = "true 99% of
+      the time").
+
+    *Derived:*
+    - `operationalizingPrinciples`: Derived from Operationalization
+      chains (see Functional Rules).
+
+    **Tolerance Mode — Attribute Applicability Matrix:**
+
+    The tolerance mode is the primary discriminant of a Policy's
+    violation boundary. Field constraints follow from the mode:
+
+    | Attribute | INSTANTANEOUS | AGGREGATED | SUSTAINED |
+    |---|:---:|:---:|:---:|
+    | predicate | Required (any form) | Required (metric-comparison) | Required (any form) |
+    | guard | Optional | Optional | Optional |
+    | temporalWindow | Null | Required | Required |
+    | temporalAggregation | Null | Required | Required |
+    | sustainedThreshold | Null | Null | Required |
+
+    The same predicate with a different tolerance mode defines
+    a **different Policy** — a different violation boundary.
+    This is a governance concern, not an analytical distinction.
+
+    **Applicability-Guard CEL Profile (guard)**:
+    The guard expression MUST conform to a restricted CEL profile
+    called the **applicability-guard** profile. This restriction
+    enables deterministic overlap and containment detection for
+    conflict analysis.
+
+    **Structure — axis-predicate normal form:**
+    `guard` MUST be expressible as a conjunction
+    (AND) of single-axis predicates:
+      AND(pred₁, pred₂, ..., predₙ)
+    where each predᵢ is a comparison of the form:
+      Reference OP Literal
+
+    **Restrictions (applicability-guard profile):**
+    - **One predicate per axis:** at most one comparison per
+      (archetype, propertyPath) combination.
+    - **Allowed operators:** ==, !=, IN, NOT_IN, >, <, >=, <=,
+      MATCHES.
+    - **Left operand:** archetype property reference. No computed
+      values or function calls.
+    - **Right operand:** static literal value or array. No
+      computed values.
+    - **No nested connectives:** no OR within the guard. The guard
+      is a pure conjunction of axis predicates.
+    - **No function calls:** no size(), has(), exists(), or custom
+      functions.
+    - **No cross-property comparisons:** each predicate compares a
+      single property to a literal.
+    - **Multi-value atoms:** for set membership, use IN/NOT_IN
+      with arrays (e.g.,
+      `Component.tier IN ["Production", "Staging"]`).
+      IN array MUST have ≥ 2 elements (single value → use ==).
+      NOT_IN array MUST have ≥ 1 element.
+      Array elements MUST be unique and type-compatible.
+
+    **Why the restriction:**
+    The axis-predicate normal form enables **deterministic** overlap
+    and containment detection between any two applicability guards:
+    - Two guards **overlap** iff every shared axis has overlapping
+      value sets.
+    - Guard A **contains** Guard B iff for every axis in A, A's
+      predicate accepts all values that B's predicate accepts.
+    - Disjoint guards → no conflict possible between their Policies.
+    - Containment → the narrower Policy specializes the broader.
+    This is essential for conflict detection, coverage analysis, and
+    specificity-based conflict resolution.
+
+    **Overlap/containment detection rules (deterministic):**
+    - Two == on the same axis overlap iff same value.
+    - Two IN on the same axis overlap iff value arrays intersect.
+    - IN₁ contains IN₂ iff IN₂.values ⊆ IN₁.values.
+    - NOT_IN on axis A overlaps with IN on axis A iff the IN's
+      values are not entirely within the NOT_IN's excluded set.
+    - Two NOT_IN on the same axis always overlap (both exclude
+      finite sets from an open domain).
+    - Numeric range operators: interval intersection/containment.
+
+    **Property-Assertion CEL Profile (predicate)**:
+    The predicate expression MUST conform to the
+    **property-assertion CEL profile** — a deterministic,
+    side-effect-free subset of CEL for constraint predicates:
+    - Allowed operators: ==, !=, >, <, >=, <=, IN, NOT_IN
+    - Allowed connectives: AND (&&), OR (||), NOT (!)
+    - Allowed functions: size(), has(), exists()
+    - Allowed references: archetype property paths
+      (SystemicPrimitive, StateObjectArchetype, EventArchetype)
+    - Cross-property comparisons allowed (e.g., a.x > a.y)
+    - No non-deterministic functions (now(), uuid())
+    - No imperative constructs, no variable declarations
+    This profile ensures predicates are statically analyzable for
+    conflict detection and coverage analysis.
+
+    **Violation determination pipeline**:
+    1. If guard present: evaluate guard — if false, Policy does
+       not apply (skip).
+    2. Evaluate predicate according to toleranceMode:
+       a. INSTANTANEOUS: evaluate predicate NOW → boolean.
+       b. AGGREGATED: extract numeric metric from predicate,
+          collect over temporalWindow, aggregate using
+          temporalAggregation → compare against threshold
+          from predicate.
+       c. SUSTAINED: evaluate predicate at each sample point
+          over temporalWindow → aggregate compliance ratio using
+          temporalAggregation → compare against
+          sustainedThreshold.
+
+    **Value extraction rule (AGGREGATED mode)**:
+    When `toleranceMode` = AGGREGATED, the predicate MUST be in
+    **metric-comparison form**: `Reference ComparisonOp Literal`.
+    Metric = left operand, threshold = right operand, operator =
+    comparison. Validated at save time by the Definition Manager.
+
+    **Compositional Governance:**
+    A System MAY define Policies whose guard and predicate
+    reference its composed Components. This enables the owning
+    System to govern its structural organs' externally observable
+    properties (e.g., replicas, status, tier, resource usage).
+
+    **What compositional governance IS:**
+    - The owning System defines Policies constraining externally
+      observable properties of its Components.
+    - Guard and predicate reference archetypes within the
+      System's composition boundary.
+    - These Policies are evaluated by the Supervision plane like
+      any other Policy.
+
+    **What compositional governance is NOT:**
+    - NOT PPR inheritance: Components do not inherit their parent
+      System's PPR. Components have no reflexive layer.
+    - NOT deep governance: a System governs its Components as
+      black boxes — only through externally observable properties,
+      not through internal structure.
+    - NOT transitive: if Component C is composed by System S, and
+      S is composed by SuperSystem SS, then SS can ONLY govern S
+      (as a System, via Relationship), not C directly. Governance
+      follows composition hierarchy.
+
+    **If a Component needs independently governed PPR**, it should
+    be promoted to a sub-System (Component → System via IS-A) and
+    governed through Relationship, not composition.
+
+    **Quantification semantics**:
+    Quantification is expressed through guard and predicate:
+    - ∀ (for-all): guard filters the population; predicate
+      constrains each matching instance.
+    - ∃ (exists): expressible via `size(selector) > 0` or
+      ExistsExpression comprehension in predicate.
+
+    **Conflict detection**:
+    Two Policies conflict when their guards overlap AND their
+    predicates are directionally incompatible (derivable from
+    predicate structure analysis).
+    Disjoint guards → no conflict possible.
+
+    **Note on "implies" / "when" patterns:**
+    Use `guard` for conditional Policies:
+    - guard: `Component.criticality == "high"`
+    - predicate: `Component.replicas >= 2`
+    This achieves "when criticality is high, replicas >= 2."
 
     **Validation Rules**:
-    - `applicabilityConditions` MUST be a valid SIE DSL
-      LogicalExpression.
-    - `constraint` MUST be a valid SIE DSL
-      PolicyConstraintExpression.
-    - **Guard × Constraint Compatibility:**
-      - **Definedness:** For every context where guard is true, the
-        constraint evaluation MUST be defined.
-      - **Type soundness:** `constraint` MUST be type-consistent in
-        all applicable contexts.
-      - **Domain alignment:** If constraint uses selectors, the
-        guard MUST NOT allow contexts where those archetypes cannot
-        exist.
+    *Mode-independent:*
+    - `guard`, if present, MUST conform to the applicability-guard
+      CEL profile (axis-predicate normal form).
+    - `predicate` MUST be a valid CEL expression conforming to the
+      property-assertion CEL profile.
+    - `predicate` MUST evaluate to boolean at runtime.
+    - **Guard × Predicate Compatibility:**
+      - **Definedness:** For every context where guard evaluates
+        to true, the predicate MUST be defined.
+      - **Type soundness:** `predicate` MUST be type-consistent
+        in all applicable contexts.
+
+    *Mode-dependent (enforced by ToleranceMode):*
+    - INSTANTANEOUS: temporalWindow, temporalAggregation,
+      sustainedThreshold MUST all be null.
+    - AGGREGATED: temporalWindow + temporalAggregation MUST be set;
+      sustainedThreshold MUST be null.
+      Predicate MUST be in metric-comparison form.
+    - SUSTAINED: temporalWindow + temporalAggregation + sustainedThreshold
+      MUST be set.
+    - `temporalWindow` MUST be a valid ISO8601 duration string.
+    - `sustainedThreshold` MUST be in range [0.0, 1.0].
+
     **Consistency Rules**:
     - A Policy MUST operationalize at least one Principle.
 
@@ -1386,22 +1641,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       auto-define: a Sensor measuring the criteria, an EventArchetype
       for the measurement, and an Interaction to a governance-plane
       Receptor.
-    - **Evaluation Semantics (derived):**
-      Policy evaluation is derived deterministically from the
-      constraint format — no separate author-defined evaluation field:
-      - ThresholdConstraint: metric × aggregation × timeWindow.
-      - InvariantConstraint: boolean condition against state objects.
-      - DependencyConstraint: structural relation over state graph.
-      - CardinalityConstraint: count matching instances → check bounds.
+    - **Tolerance Semantics (derived from mode):**
+      Policy violation determination is derived deterministically
+      from `toleranceMode` + the corresponding temporal fields —
+      no separate author-defined evaluation specification. The
+      mode IS the tolerance specification.
     - **Deterministic Policy Importance (derived):**
       - effectiveModal = max(Principle.modal) over operationalized
         Principles.
-    - **Conflict-Resolution Strategy (DB-seeded meta-policies):**
+    - **Conflict-Resolution Strategy (DB-seeded configuration):**
       SIE treats conflict-resolution as self-governance via DB-seeded
-      preset Policy instances (ResolverPresetPolicyConstraint format;
-      see SIE DSL: ResolverPresetPolicyConstraint).
+      configuration (not modeled as Policy instances).
 
-      Presets MUST be deterministic. Default presets:
+      Resolver presets MUST be deterministic. Default presets:
       - `SIE_CONFLICT_RESOLUTION_ORDER_V1`: tie-break order
         (effectiveModal → applicabilitySpecificity →
         pprLayerPrecedence → stableFallback).
@@ -1409,11 +1661,152 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         SHOULD → warn; MAY → advisory.
       - `SIE_POLICY_CONFLICT_SEVERITY_MAPPING_V1`: modal × modal →
         severity matrix (ERROR/WARNING/ADVISORY/NONE).
+
+    **Definition Manager Validation Rules:**
+    The Definition Manager performs the following validations at
+    save/parse time:
+    1. `guard` conforms to the applicability-guard CEL profile
+       (axis-predicate normal form).
+    2. `predicate` conforms to the property-assertion CEL profile.
+    3. Guard × Predicate compatibility (definedness, type
+       soundness).
+    4. All archetype references in guard and predicate resolve to
+       declared archetypes in the same System.
+    5. Property paths exist in the referenced archetype's schema.
+    6. When toleranceMode = AGGREGATED, predicate is in
+       metric-comparison form (`Reference op Literal`).
+    7. ToleranceMode × field consistency: field presence/absence
+       matches mode constraints (see attribute applicability
+       matrix).
+    8. Schema-level type compatibility of comparison operands.
+    9. Operationalization chain: at least one Operationalization
+       instance links this Policy to a Principle (may be deferred
+       to PROPOSED → APPROVED transition).
+
+    **Prior art absorbed**:
+    - Google SLO definitions, Prometheus alerting → aggregated
+      value tolerance.
+    - OCL invariants, design-by-contract → instantaneous predicates.
+    - Terraform resource graphs, K8s dependencies → structural
+      predicates over GSM interaction topology.
+    - UML multiplicity, database constraints → `size()` predicates.
+    - Availability SLAs → sustained compliance tolerance.
   end note
 
   SystemicPrimitive <|-- Policy : is
   Policy "0..*" o--> "1" System : constrains
   Policy "1" o--> "1..*" Principle : operationalizes
+
+  ' ============================================================
+  ' TOLERANCE MODE
+  ' ============================================================
+
+  enum ToleranceMode {
+    INSTANTANEOUS
+    AGGREGATED
+    SUSTAINED
+  }
+
+  note top of ToleranceMode
+    **Tolerance mode — the primary discriminant of a Policy's
+    violation boundary.**
+
+    ToleranceMode determines what constitutes a violation for
+    a given predicate. The same predicate with a different
+    tolerance mode defines a different Policy — a different
+    violation boundary. This is a governance concern, not an
+    analytical distinction.
+
+    | Mode | Violation definition | Key field constraints |
+    |------|---------------------|----------------------|
+    | INSTANTANEOUS | Predicate fails at any observation point | No temporal fields |
+    | AGGREGATED | Aggregated numeric value exceeds threshold over temporal window | temporalWindow + temporalAggregation required |
+    | SUSTAINED | Compliance ratio falls below threshold over temporal window | temporalWindow + temporalAggregation + sustainedThreshold required |
+
+    **Mode semantics:**
+    - **INSTANTANEOUS**: The predicate is evaluated
+      instantaneously. Violation = predicate is false. No
+      temporal tolerance — any instant of non-compliance is a
+      violation.
+    - **AGGREGATED**: The numeric metric referenced by the predicate
+      is collected over temporalWindow, aggregated using
+      temporalAggregation, then compared against the threshold
+      from the predicate. Predicate MUST be in
+      metric-comparison form (`Reference ComparisonOp Literal`).
+      E.g.: P99 latency < 100ms over 5 minutes.
+    - **SUSTAINED**: The predicate is evaluated at each sample point
+      over temporalWindow, producing a boolean series. The compliance
+      ratio (fraction of true evaluations) is computed using
+      temporalAggregation and compared against sustainedThreshold.
+      E.g.: replicas >= 2 for 99% of the last 5 minutes.
+
+    **DB enforcement (CHECK constraint):**
+    ```
+    CHECK (
+      (tolerance_mode = 'INSTANTANEOUS'
+       AND temporal_window IS NULL
+       AND temporal_aggregation IS NULL
+       AND sustained_threshold IS NULL)
+      OR (tolerance_mode = 'AGGREGATED'
+       AND temporal_window IS NOT NULL
+       AND temporal_aggregation IS NOT NULL
+       AND sustained_threshold IS NULL)
+      OR (tolerance_mode = 'SUSTAINED'
+       AND temporal_window IS NOT NULL
+       AND temporal_aggregation IS NOT NULL
+       AND sustained_threshold IS NOT NULL)
+    )
+    ```
+
+    **Sourced from:**
+    - Google SLO definitions (aggregated mode)
+    - Prometheus alerting rules (aggregated mode)
+    - Availability SLAs (sustained mode)
+    - OCL invariants, design-by-contract (instantaneous mode)
+  end note
+
+  ' ============================================================
+  ' AGGREGATION TYPE
+  ' ============================================================
+
+  enum AggregationType {
+    AVG
+    MIN
+    MAX
+    SUM
+    COUNT
+    P50
+    P90
+    P95
+    P99
+  }
+
+  note top of AggregationType
+    Aggregation method for temporal aggregation.
+
+    | Type | Description |
+    |------|-------------|
+    | AVG | Arithmetic mean |
+    | MIN | Minimum value |
+    | MAX | Maximum value |
+    | SUM | Sum of values |
+    | COUNT | Number of observations |
+    | P50 | 50th percentile (median) |
+    | P90 | 90th percentile |
+    | P95 | 95th percentile |
+    | P99 | 99th percentile |
+
+    Used in:
+    - Policy.temporalAggregation (AGGREGATED mode — temporal numeric
+      aggregation; SUSTAINED mode — temporal compliance ratio
+      aggregation)
+
+    Instantaneous tolerance is expressed by
+    `toleranceMode = INSTANTANEOUS` on Policy, not by an
+    aggregation type value.
+
+    Sourced from: Prometheus, Datadog, standard statistics.
+  end note
 
   ' ============================================================
   ' RULE

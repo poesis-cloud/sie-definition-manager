@@ -11,19 +11,144 @@
   "type": "object",
   "required": [
     "name",
-    "constraint"
+    "predicate",
+    "toleranceMode"
   ],
   "properties": {
     "name": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
     },
-    "applicabilityConditions": {
-      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/LogicalExpression",
-      "description": "Optional SIE DSL LogicalExpression defining when the policy applies."
+    "guard": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional plain text CEL expression conforming to the applicability-guard CEL profile (axis-predicate normal form). When null, the policy applies unconditionally within its owning System. Parsed by the Definition Manager.",
+      "x-sie-cel-profile": "applicability-guard",
+      "x-sie-validation": {
+        "structure": "Conjunction (AND) of single-axis predicates: AND(pred1, pred2, ..., predN) where each predI is: Reference OP Literal.",
+        "allowedOperators": [
+          "==",
+          "!=",
+          "IN",
+          "NOT_IN",
+          ">",
+          "<",
+          ">=",
+          "<=",
+          "MATCHES"
+        ],
+        "restrictions": [
+          "One predicate per axis: at most one comparison per (archetype, propertyPath) combination.",
+          "Left operand: archetype property reference only — no computed values, no function calls.",
+          "Right operand: static literal value or array — no computed values.",
+          "No nested connectives: no OR within the guard (pure conjunction).",
+          "No function calls: no size(), has(), exists(), or custom functions.",
+          "No cross-property comparisons: each predicate compares a single property to a literal.",
+          "IN array MUST have >= 2 elements (single value: use ==). NOT_IN array MUST have >= 1 element.",
+          "Array elements MUST be unique and type-compatible."
+        ],
+        "rationale": "Axis-predicate normal form enables deterministic overlap and containment detection for conflict analysis and coverage checking."
+      }
     },
-    "constraint": {
-      "$ref": "sie://schemas/sie-dsl/v1/Expression.json#/definitions/PolicyConstraintExpression",
-      "description": "Declarative SIE DSL PolicyConstraintExpression."
+    "predicate": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plain text CEL expression conforming to the property-assertion CEL profile. Evaluates to boolean when the constraint is satisfied. Always required. Parsed by the Definition Manager.",
+      "x-sie-cel-profile": "property-assertion",
+      "x-sie-validation": {
+        "allowedOperators": [
+          "==",
+          "!=",
+          ">",
+          "<",
+          ">=",
+          "<=",
+          "IN",
+          "NOT_IN"
+        ],
+        "allowedConnectives": [
+          "AND (&&)",
+          "OR (||)",
+          "NOT (!)"
+        ],
+        "allowedFunctions": [
+          "size()",
+          "has()",
+          "exists()"
+        ],
+        "allowedReferences": [
+          "SystemicPrimitive archetype property paths",
+          "StateObjectArchetype property paths",
+          "EventArchetype property paths"
+        ],
+        "crossPropertyComparisons": true,
+        "restrictions": [
+          "No non-deterministic functions (now(), uuid()).",
+          "No imperative constructs, no variable declarations.",
+          "No side effects.",
+          "When toleranceMode = AGGREGATED, predicate MUST be in metric-comparison form: Reference ComparisonOp Literal."
+        ],
+        "rationale": "Property-assertion CEL profile ensures predicates are statically analyzable for conflict detection and coverage analysis."
+      }
+    },
+    "toleranceMode": {
+      "$ref": "#/definitions/ToleranceMode",
+      "description": "The tolerance mode determining what constitutes a violation. Required. Determines which temporal fields are valid."
+    },
+    "temporalWindow": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:[\\d.]+S)?)?$",
+      "description": "ISO8601 duration string (e.g., 'PT5M'). Required when toleranceMode is AGGREGATED or SUSTAINED. Null for INSTANTANEOUS mode."
+    },
+    "temporalAggregation": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/AggregationType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Temporal aggregation mode. Required when toleranceMode is AGGREGATED or SUSTAINED. Null for INSTANTANEOUS. AGGREGATED mode: collect numeric metric over temporalWindow, aggregate, compare against predicate threshold. SUSTAINED mode: evaluate predicate at each sample point, aggregate compliance ratio. The toleranceMode discriminates what is aggregated; temporalAggregation specifies how."
+    },
+    "sustainedThreshold": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Minimum compliance ratio (e.g., 0.99 = 'true 99% of the time'). Required when toleranceMode = SUSTAINED; must not be set otherwise."
+    }
+  },
+  "definitions": {
+    "ToleranceMode": {
+      "type": "string",
+      "enum": [
+        "INSTANTANEOUS",
+        "AGGREGATED",
+        "SUSTAINED"
+      ],
+      "description": "Tolerance mode — the primary discriminant of a Policy's violation boundary. INSTANTANEOUS: predicate fails at any observation point. AGGREGATED: aggregated numeric value exceeds threshold over temporal window. SUSTAINED: compliance ratio falls below threshold over temporal window."
+    },
+    "AggregationType": {
+      "type": "string",
+      "enum": [
+        "AVG",
+        "MIN",
+        "MAX",
+        "SUM",
+        "COUNT",
+        "P50",
+        "P90",
+        "P95",
+        "P99"
+      ],
+      "description": "Aggregation method for temporal aggregation."
     }
   },
   "x-sie-derived": {
