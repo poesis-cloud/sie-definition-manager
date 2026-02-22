@@ -4,14 +4,39 @@
   "title": "Interface (GSM v1)",
   "description": "Interaction surface of a system or component.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name"],
+  "required": [
+    "name",
+    "receptors",
+    "effectors"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "receptors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "effectors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "channels": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } }
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "receptors": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "minItems": 1
+    },
+    "effectors": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "minItems": 1
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    }
   }
 }

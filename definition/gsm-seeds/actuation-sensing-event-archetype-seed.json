@@ -1,0 +1,122 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "sie://schemas/events/v1/SensingFeedbackEvent.json",
+    "title": "SensingFeedbackEvent",
+    "description": "Generic event archetype for sensing feedback (Sensor → Controller). Emitted by a Sensor's Effector after observing an Actuator's ActuationEvent and verifying the mutation outcome. Carries structured verification: whether the mutation was confirmed, what was actually observed, and any deviations from expected state. The Controller's feedbackReceptor receives this event, populating the variable assigned to the sys.create/modify/delete/acquire return value — closing the homeostatic loop. This schema is the base contract for ActuationFeedbackEventSchema as referenced in GSM Sensing validation rules ('The feedback event archetype MUST be a subtype of ActuationFeedbackEventSchema'). SIE-seeded: one instance per SIE tenant, reused across all Sensings.",
+    "x-sie-seed": {
+        "primitive": "EventArchetype",
+        "name": "SensingFeedbackEvent",
+        "definitionStatus": "ACTIVE",
+        "seedScope": "per-tenant",
+        "reusable": true,
+        "cyberneticFlowStep": 6,
+        "flowDescription": "Sensor.Effector → Controller.feedbackReceptor"
+    },
+    "type": "object",
+    "required": [
+        "correlationId",
+        "actuationType",
+        "stateObjectArchetype",
+        "verified",
+        "actuationId",
+        "sensingId",
+        "ruleId"
+    ],
+    "properties": {
+        "correlationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Correlation identifier shared across the actuation chain. Same value as the originating ActuationControlEvent.correlationId, enabling end-to-end tracing from command through result to verification."
+        },
+        "actuationType": {
+            "type": "string",
+            "enum": [
+                "CREATION",
+                "MODIFICATION",
+                "DELETION",
+                "ACQUISITION"
+            ],
+            "description": "The kind of state mutation that was verified. Echoed from the ActuationEvent."
+        },
+        "stateObjectArchetype": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Name of the StateObjectArchetype whose mutation was verified."
+        },
+        "verified": {
+            "type": "boolean",
+            "description": "Whether the Sensor's observation confirms the mutation took effect as intended. true: observed state matches expected post-mutation state. false: observed state deviates from expectations (see deviations)."
+        },
+        "observedState": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "description": "Snapshot or projection of the state the Sensor actually observed after the mutation. For CREATION: the observed new instance properties. For MODIFICATION: the observed updated properties. For DELETION: null (instance should not exist) or observed residual state if deletion failed. For ACQUISITION: the observed read-only snapshot. Structure depends on the target StateObjectArchetype's schema.",
+            "additionalProperties": true
+        },
+        "deviations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "property",
+                    "expected",
+                    "observed"
+                ],
+                "properties": {
+                    "property": {
+                        "type": "string",
+                        "description": "Property path where deviation was detected (dot-separated for nested properties)."
+                    },
+                    "expected": {
+                        "description": "The expected value based on the Actuation's writtenProperties and ActuationControlEvent.data."
+                    },
+                    "observed": {
+                        "description": "The actual value the Sensor observed."
+                    },
+                    "deviationType": {
+                        "type": "string",
+                        "enum": [
+                            "VALUE_MISMATCH",
+                            "MISSING_PROPERTY",
+                            "UNEXPECTED_PROPERTY",
+                            "TYPE_MISMATCH",
+                            "INSTANCE_NOT_FOUND",
+                            "UNEXPECTED_SIDE_EFFECT"
+                        ],
+                        "description": "Classification of the deviation for automated governance analysis."
+                    }
+                }
+            },
+            "description": "List of property-level deviations between expected and observed state. Empty array when verified=true. Enables side-effect detection (comparing Actuation.writtenProperties with observed mutations) and governance audit trail."
+        },
+        "verificationLatency": {
+            "type": "string",
+            "format": "duration",
+            "description": "ISO8601 duration between the ActuationEvent timestamp and this SensingFeedbackEvent timestamp. Measures how long verification took — useful for Coordination plane pacing and Supervision plane SLA monitoring."
+        },
+        "actuationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the GSM Actuation definition that was verified."
+        },
+        "sensingId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the GSM Sensing definition linking the Actuation to its feedback observation."
+        },
+        "sensorId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the Sensor mechanism that performed the observation."
+        },
+        "ruleId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the GSM Rule whose body triggered the original actuation. Enables PPR lineage tracing: Operationalization → Rule → Actuation → Sensing → verified outcome."
+        }
+    },
+    "additionalProperties": false
+}

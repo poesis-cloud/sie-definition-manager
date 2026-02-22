@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/gsm/v1/ActuationSensingEventArchetype.json",
+  "title": "ActuationSensingEventArchetype (GSM v1)",
+  "description": "EventArchetype specialization for sensing feedback (Sensor → Controller). Cybernetic flow step 6: Sensor's Effector emits structured verification (SensingFeedbackEvent) that the Controller's feedbackReceptor receives, populating the variable assigned to the sys.* return value and closing the homeostatic loop. Base contract for ActuationFeedbackEventSchema as referenced in GSM Sensing validation rules. SIE-seeded: one instance per tenant, reused across all Sensings. Only derived for closed-loop actuations (return-value-assignment in Rule body).",
+  "allOf": [
+    { "$ref": "sie://schemas/gsm/v1/EventArchetype.json" }
+  ],
+  "type": "object",
+  "properties": {
+    "schema": {
+      "description": "Must reference the SensingFeedbackEvent payload schema (sie://schemas/events/v1/SensingFeedbackEvent.json).",
+      "allOf": [
+        { "$ref": "sie://schemas/gsm/v1/ArchetypeSchema.json" }
+      ]
+    }
+  },
+  "x-sie-seed": {
+    "seedFile": "gsm-seeds/actuation-sensing-event-archetype-seed.json",
+    "payloadSchema": "sie://schemas/events/v1/SensingFeedbackEvent.json",
+    "cyberneticFlowStep": 6,
+    "flowDescription": "Sensor.Effector → Controller.feedbackReceptor",
+    "autoDerivation": "Derived by Definition Manager ONLY when sys.create/modify/delete/acquire return value is assigned to a variable in the Rule body (closed-loop actuation)."
+  }
+}

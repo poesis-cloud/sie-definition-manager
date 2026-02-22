@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "sie://schemas/events/v1/ActuationControlEvent.json",
+    "title": "ActuationControlEvent",
+    "description": "Generic event archetype for actuation commands (Controller → Actuator). Emitted by a Controller's Effector when a Rule body encounters a sys.create/modify/delete/acquire call. Carries the mutation intent: what state object to target, what operation to perform, and what data to apply. The Actuator's Receptor receives this event and executes the mutation. This schema is the base contract for ActuationEventSchema as referenced in GSM Actuation validation rules ('The Rule effector's event archetype MUST be a subtype of ActuationEventSchema'). SIE-seeded: one instance per SIE tenant, reused across all Actuations.",
+    "x-sie-seed": {
+        "primitive": "EventArchetype",
+        "name": "ActuationControlEvent",
+        "definitionStatus": "ACTIVE",
+        "seedScope": "per-tenant",
+        "reusable": true,
+        "cyberneticFlowStep": 2,
+        "flowDescription": "Controller.Effector → Actuator.Receptor"
+    },
+    "type": "object",
+    "required": [
+        "correlationId",
+        "actuationType",
+        "stateObjectArchetype",
+        "actuationId",
+        "ruleId"
+    ],
+    "properties": {
+        "correlationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for this actuation execution. Traces across the full actuation chain (ActuationControlEvent → ActuationEvent → SensingFeedbackEvent) enabling end-to-end correlation."
+        },
+        "actuationType": {
+            "type": "string",
+            "enum": [
+                "CREATION",
+                "MODIFICATION",
+                "DELETION",
+                "ACQUISITION"
+            ],
+            "description": "The kind of state mutation commanded. Maps 1:1 to GSM ActuationType enum and the sys.* call that produced this command (sys.create → CREATION, sys.modify → MODIFICATION, sys.delete → DELETION, sys.acquire → ACQUISITION)."
+        },
+        "stateObjectArchetype": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Name of the target StateObjectArchetype being mutated. First argument of the sys.create/modify/delete/acquire call (e.g., 'Order' in sys.create('Order', {...}))."
+        },
+        "data": {
+            "type": "object",
+            "description": "Mutation payload: properties to write on the target state object. For CREATION: the full initial property set. For MODIFICATION: the properties to update. For DELETION and ACQUISITION: absent or empty (no write intent). Corresponds to the dict literal argument of the sys.* call.",
+            "additionalProperties": true
+        },
+        "filter": {
+            "type": "object",
+            "description": "Selection criteria identifying target state object instance(s). For MODIFICATION/DELETION/ACQUISITION: properties used to locate existing instances. For CREATION: absent (new instance, no selection). Corresponds to the filter/selector argument of the sys.* call.",
+            "additionalProperties": true
+        },
+        "actuationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the GSM Actuation definition from which this command was derived."
+        },
+        "ruleId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the GSM Rule whose body contains the sys.* call that triggered this command."
+        },
+        "controllerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to the Controller mechanism executing the Rule. The Controller's Effector emits this event."
+        }
+    },
+    "additionalProperties": false
+}

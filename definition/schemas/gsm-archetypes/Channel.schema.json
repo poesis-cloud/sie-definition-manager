@@ -4,15 +4,31 @@
   "title": "Channel (GSM v1)",
   "description": "Structural carrier mediating interactions between exactly two interfaces.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "protocol", "interfaceA", "interfaceB"],
+  "required": [
+    "name",
+    "interfaceA",
+    "interfaceB"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "protocol": { "type": "string" },
-    "interactions": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "interfaceA": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-    "interfaceB": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "interactions": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "interfaceA": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    },
+    "interfaceB": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    }
   }
 }

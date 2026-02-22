@@ -1259,7 +1259,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   
   class Rule {
     +getBody(): String
-    +getLanguage(): String
+    +getLanguage(): RuleLanguage
     +getOperationalizingPolicies(): Policy[]
     +getScopingFunctions(): Function[]
   }
@@ -1338,7 +1338,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - `sys.emit("A", data)` → Effector (on "A")
       - `sys.emit("A", data, response="B")` → Effector + Receptor
       - `sys.create/modify/delete/acquire("A", ...)` →
-        Effector + Receptor + Actuation + Actuator + Sensing + Sensor
+        Effector + Actuation + Actuator
+      - `var = sys.create/modify/delete/acquire("A", ...)` →
+        additionally: Sensing + Sensor + Receptor (feedback).
+        Return-value-assignment = closed-loop actuation
+        (verification); unassigned = open-loop (fire-and-forget).
       - All combined → Controller mechanism IMPLEMENTING the Rule.
       Auto-derived primitives carry: derived_from_rule_id, derived=true.
       Recomputed on body change (body_hash diff → delete old, derive new).
@@ -1361,9 +1365,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   SystemicPrimitive <|-- Rule : is
   Rule "0..*" o--> "1" System : constrains
-  Rule "1" o--> "1" EventArchetype : triggeredBy
   Rule "0..*" o--> "0..*" Policy : enforcing
   Rule "0..*" o--> "0..*" Function : scoping
+
+  enum RuleLanguage {
+    STARLARK
+    // Future language bindings can be added here (e.g., PYTHON, LUA).
+  }
+
+  note top of RuleLanguage
+    **Primitive Semantics**:
+    - An enumeration of supported language bindings for Rule bodies.
+    - Each value corresponds to a specific parser and execution environment
+      that the Definition Manager recognizes for validation and auto-derivation.
+  end note
 
   ' ============================================================
   ' OPERATIONALIZATION
@@ -1964,24 +1979,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   Mechanism <|-- Actuator : is
-  Actuator "1" o--> "1" Actuation : implements
+  Actuator "1" *--> "1" Actuation : implements
 
   ' ============================================================
   ' SENSOR
   ' ============================================================
 
-  class Sensor
+  class Sensor {
+    +getSensing(): Sensing
+  }
 
   note top of Sensor
     **Primitive Semantics**:
     - A microscopic observation mechanism that captures the effect of a
       specific Actuation and produces feedback events.
     - Auto-defined from a Sensing linked to an Actuation, only when
-      the Rule body declares a response receptor (via the `response`
-      parameter on `sys.create/modify/delete/acquire`).
+      the `sys.create/modify/delete/acquire` call's return value is
+      assigned to a variable in the Rule body (see Sensing note for
+      full derivation semantics).
     - Not redundant with supervision plane: supervision macroscopically
       evaluates policy/rule compliance; Sensor microscopically observes
-      one Actuation's outcome.
+      one Actuation's outcome. Supervision aggregates across Rules;
+      Sensor verifies one Actuation.
 
     **Functional Rules**:
     - For every event archetype E whose schema is a subtype of
@@ -2005,9 +2024,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Actuation {
-    +getName(): String
     +getType(): ActuationType
     +getStateObjectArchetype(): StateObjectArchetype
+    +getWrittenProperties(): String[]
+    +getReadProperties(): String[]
   }
 
   note top of Actuation
@@ -2017,6 +2037,54 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       a behavioral Rule body.
     - An Actuator is composed from this Actuation to execute the
       mutation on the target state object.
+    - Actuation is a **structural governance marker**: it tells the
+      governance engine *what is affected*, not *how the effect is
+      computed*. The "how" lives in the Rule body (single source
+      of truth for behavioral definitions).
+
+    **Attributes Semantics**:
+    - `type`: The kind of state mutation (CREATION, MODIFICATION,
+      DELETION, ACQUISITION).
+    - `stateObjectArchetype`: The target state object archetype
+      being mutated.
+    - `writtenProperties`: Derived. Property names (dict keys)
+      from the data argument of the `sys.*` call that produces
+      this Actuation. Represents which properties of the target
+      state object archetype are written by this actuation.
+    - `readProperties`: Derived. Property names (dict keys)
+      from the filter/selector argument of the `sys.*` call that
+      produces this Actuation. Represents which properties are
+      read to identify the target state object instance(s).
+
+    **Derivation by ActuationType**:
+
+    | ActuationType | writtenProperties      | readProperties         |
+    |---------------|------------------------|------------------------|
+    | CREATION      | dict keys from data    | empty (new instance)   |
+    | MODIFICATION  | dict keys from data    | dict keys from filter  |
+    | DELETION      | empty (whole instance) | dict keys from filter  |
+    | ACQUISITION   | empty (read-only)      | dict keys from filter  |
+
+    Derivation extracts **dict key names** from Starlark AST —
+    no expression transpilation. Keys are statically extractable
+    even when values are dynamic. For the rare case where dict
+    construction is fully dynamic (e.g., `**kwargs`), the array
+    is empty and governance relies on Rule body re-parsing.
+
+    **Governance usage** (why these fields exist):
+    - **Impact analysis**: "Which SOA properties does Rule R
+      affect?" → union of writtenProperties across R's
+      Actuations.
+    - **Conflict detection**: "Do Rules R1 and R2 write to the
+      same SOA properties?" → intersection of writtenProperties
+      on Actuations sharing the same stateObjectArchetype.
+    - **Coordination / sequencing**: readProperties reveal
+      whether two Actuations could target the same instance(s).
+    - For **expression-level** analysis (e.g., "do these Rules
+      write conflicting values?"), the Definition Manager
+      re-parses both Rule bodies and compares `sys.*` call
+      arguments directly — no intermediate representation
+      needed.
 
     **Functional Rules**:
     - When an Actuation is derived, the system MUST auto-define:
@@ -2025,6 +2093,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         event archetype.
       - An effector on the actuator bound to an auto-defined
         ActuationEvent archetype.
+    - `writtenProperties` and `readProperties` are derived
+      at save/parse time from the Rule body AST (dict key
+      extraction). Recomputed on body change (body_hash diff).
 
     **Validation Rules**:
     - The Rule effector's event archetype MUST be a subtype of
@@ -2034,6 +2105,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - The target state object archetype MUST belong to the same
       System as the actuator, or to a subsystem sharing that
       resource.
+    - `writtenProperties` entries SHOULD match property names in
+      the target stateObjectArchetype's schema (warning if not).
+    - `readProperties` entries SHOULD match property names in
+      the target stateObjectArchetype's schema (warning if not).
 
     **Notes**:
     - **Incoherences / Drifts**:
@@ -2041,6 +2116,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         receptor/effector bindings.
       - Target state object archetype outside actuator system
         boundary without sharing.
+      - writtenProperties referencing properties not in the
+        target archetype's schema.
+      - readProperties referencing properties not in the
+        target archetype's schema.
   end note
 
   SystemicPrimitive <|-- Actuation : is
@@ -2058,27 +2137,92 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Sensing {
-    +getName(): String
     +getActuation(): Actuation
-    +getSensor(): Sensor
-    +getActuationEventArchetype(): EventArchetype
-    +getFeedbackEventArchetype(): EventArchetype
-    +getFeedbackReceptor(): Receptor
   }
 
   note top of Sensing
     **Primitive Semantics**:
-    - Links actuation execution to feedback reception, enabling
-      homeostatic loops on actuations.
+    - The **microscopic homeostatic verification** primitive:
+      links an Actuation to its feedback observation, forming
+      a per-actuation closed-loop between Actuator and Sensor.
+    - Sensing distinguishes **closed-loop actuations** (verified:
+      the system knows whether the mutation took effect) from
+      **open-loop actuations** (fire-and-forget: the system
+      trusts the mutation but does not verify).
+    - Without Sensing, an Actuation is an assertion ("I mutated
+      state"). With Sensing, the assertion becomes verifiable
+      ("I mutated state, and here is evidence of what happened").
+    - Not redundant with Supervision: the Supervision plane
+      macroscopically evaluates Policy/Rule compliance across
+      the system; Sensing microscopically observes one specific
+      Actuation's outcome. Sensing provides per-actuation
+      evidence that Supervision aggregates into system-level
+      assessments.
+
+    **Cybernetic event flow** (closed-loop actuation):
+    1. Controller executes Rule body, encounters
+       `var = sys.create/modify/delete/acquire(...)`.
+    2. Controller's Effector emits an actuation command event.
+    3. Actuator's Receptor receives the command, executes
+       the mutation on the target StateObjectArchetype.
+    4. Actuator's Effector emits a completion event
+       (ActuationEvent: mutation result/status).
+    5. Sensor's Receptor receives the ActuationEvent
+       (observation of actuation completion).
+    6. Sensor's Effector emits a FeedbackEvent (structured
+       verification: what happened, what was affected).
+    7. Controller's feedbackReceptor receives the FeedbackEvent
+       — the `var` variable is populated, loop closed.
+
+    **Derivation trigger — return-value-assignment (AST)**:
+    A Sensing (and its Sensor) is auto-derived by the Definition
+    Manager ONLY when the `sys.create/modify/delete/acquire`
+    call's return value is **assigned to a variable** in the
+    Rule body. Determined by static AST analysis: the `sys.*`
+    call must be the value expression of an assignment statement.
+
+    Derivation examples:
+    - `result = sys.create("Order", {...})` →
+      Sensing + Sensor derived (return assigned: Rule
+      intends to consume feedback, closed-loop).
+    - `sys.create("Order", {...})` →
+      NO Sensing derived (return not assigned:
+      fire-and-forget, open-loop).
+
+    **Use cases** (why closed-loop matters):
+    - **Actuation verification**: did the state change
+      actually happen? (CREATION → instance exists?
+      MODIFICATION → properties updated? DELETION →
+      instance removed?)
+    - **Side-effect detection**: compare Actuation's
+      writtenProperties with Sensor's observed mutations
+      to detect unexpected changes.
+    - **Coordination fuel**: Actuations sharing the same
+      StateObjectArchetype with overlapping readProperties
+      may target the same instances — Sensing feedback
+      provides sequencing evidence for the Coordination
+      plane.
+    - **Governance audit trail**: Sensing provides a
+      machine-readable record linking PPR lineage
+      (Operationalization → Rule → Actuation →
+      Sensing feedback → verified outcome).
+    - **Governance verifiability metric**: the ratio of
+      closed-loop (Sensing-bearing) Actuations to total
+      Actuations measures governance verification depth.
+      A System where all Actuations are open-loop has no
+      mutation verification — detectable by the
+      Supervision plane as a governance gap.
 
     **Functional Rules**:
-    - A Sensing (and its Sensor) MUST be auto-defined only if the
-      Rule body declares a response receptor (via `response=`
-      parameter on `sys.create/modify/delete/acquire`).
-    - The sensor MUST have a receptor bound to the actuator
-      effector's actuation event archetype.
-    - The sensor MUST have an effector bound to the feedback
-      receptor's event archetype.
+    - A Sensing (and its Sensor) MUST be auto-derived only
+      when the `sys.create/modify/delete/acquire` call's
+      return value is assigned to a variable in the Rule body.
+    - The Sensor MUST have a Receptor bound to the Actuator
+      Effector's ActuationEvent archetype (observation input).
+    - The Sensor MUST have an Effector bound to an auto-derived
+      FeedbackEvent archetype (observation output).
+    - The feedbackReceptor on the originating Controller
+      receives the FeedbackEvent, closing the loop.
 
     **Validation Rules**:
     - The feedback event archetype MUST be a subtype of
@@ -2086,24 +2230,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Notes**:
     - **Incoherences / Drifts**:
-      - Sensing defined without a feedback receptor.
-      - Sensor mechanism missing receptor/effector bindings to
-        actuation/feedback event archetypes.
+      - Sensing defined without a feedbackReceptor.
+      - Sensor mechanism missing receptor/effector bindings
+        to actuation/feedback event archetypes.
+      - Actuation return assigned but no Sensing derived
+        (auto-derivation failure).
+      - Sensing exists but Actuation return was not assigned
+        (orphaned Sensing — should not exist).
   end note
 
   SystemicPrimitive <|-- Sensing : is
   Sensing "1" o--> "1" Actuation : observes
-  Sensing "1" *--> "1" Sensor : composes
-  Sensing "1" o--> "1" EventArchetype : actuationEvent
-  Sensing "1" o--> "1" EventArchetype : feedbackEvent
-  Sensing "1" o--> "0..1" Receptor : feedbackReceptor
 
   ' ============================================================
   ' MECHANISM
   ' ============================================================
 
   abstract class Mechanism {
-    +getName(): String
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
   }
@@ -2133,8 +2276,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       definitions.
 
     **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all mechanisms of the same system.
     - A mechanism MUST have at least one receptor and one effector.
     - If a mechanism is deleted, its receptors and effectors MUST be
       deleted.
@@ -2351,46 +2492,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Interface "1" o--> "1..*" Receptor : regroups
   Interface "1" o--> "1..*" Effector : regroups
   Interface "1" *--> "0..*" Channel : has
-
-  ' ============================================================
-  ' SYSTEMIC PROCESSES
-  '
-  ' GSM recognizes five canonical governance processes:
-  '
-  ' 1. Observation:  State → DSM (sense, describe)
-  ' 2. Appraisal:    Evaluate (2 types, NOT sub-types):
-  '    - Norm Appraisal: definition ↔ definition (intra-normative)
-  '      Dimensions: consistency, completeness, adequacy
-  '    - Form Appraisal: definition ↔ reality (trans-normative)
-  '      Dimensions: fidelity, coverage, convergence
-  ' 3. Determination: Generative (3 sub-types):
-  '    - Emergence: inductive (descriptions without definitions → proposals)
-  '    - Adaptation: abductive (deviation evidence → rule adjustment)
-  '    - Coherence restoration: corrective (contradiction → fix)
-  '    Arbitration (S3×S4 homeostat): meta-Principles (in a
-  '    System's PPR) constrain the balance between Adaptation
-  '    (S4/regulation-driven) and Coherence restoration
-  '    (S3/supervision-driven). Coordination plane dampens
-  '    oscillation between competing Determination proposals.
-  '    Evidence threshold, change velocity, and stabilization period
-  '    are governed by meta-Policies operationalized from meta-Principles.
-  ' 4. Realization:   GSM → State (actuate via Controller/Actuator mechanisms)
-  ' 5. Stabilization: Cross-loop dampening (Coordination plane)
-  '
-  ' Emergent properties (NOT processes):
-  ' - Homeostasis: operational loop stability
-  ' - Autopoiesis: self-definition (system defines its own governance)
-  ' - Viability: continued existence in environment
-  '
-  ' Governance dynamics (S3×S4 homeostat):
-  ' The permanent tension between supervision (conservation: "keep
-  ' current PPR stable") and regulation (innovation: "adapt PPR to
-  ' environment") is arbitrated by governance (identity: "evolve within
-  ' identity bounds"). This is not a sixth process — it is the
-  ' meta-governance pattern that constrains Determination's behavior
-  ' through reflexive PPR (meta-Principles about governance dynamics).
-  ' See CsdmNote: "S3×S4 Homeostat" section.
-  ' ============================================================
 }
 
 @enduml

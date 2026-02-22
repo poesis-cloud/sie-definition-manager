@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "sie://schemas/gsm/v1/ActuationEventArchetype.json",
+    "title": "ActuationEventArchetype (GSM v1)",
+    "description": "EventArchetype specialization for actuation results (Actuator → Sensor). Cybernetic flow step 4: Actuator's Effector emits mutation outcome (ActuationEvent) that the Sensor's Receptor receives as observation input. Base contract for ActuationEventSchema as referenced in GSM: Sensor functional rules, Actuation validation rules. SIE-seeded: one instance per tenant, reused across all Actuations.",
+    "allOf": [
+        {
+            "$ref": "sie://schemas/gsm/v1/EventArchetype.json"
+        }
+    ],
+    "type": "object",
+    "properties": {
+        "schema": {
+            "description": "Must reference the ActuationEvent payload schema (sie://schemas/events/v1/ActuationEvent.json).",
+            "allOf": [
+                {
+                    "$ref": "sie://schemas/gsm/v1/ArchetypeSchema.json"
+                }
+            ]
+        }
+    },
+    "x-sie-seed": {
+        "seedFile": "gsm-seeds/actuation-event-archetype-seed.json",
+        "payloadSchema": "sie://schemas/events/v1/ActuationEvent.json",
+        "cyberneticFlowStep": 4,
+        "flowDescription": "Actuator.Effector → Sensor.Receptor",
+        "autoDerivation": "Derived by Definition Manager when Rule body contains sys.create/modify/delete/acquire calls. The Actuator's Effector is bound to this archetype."
+    }
+}

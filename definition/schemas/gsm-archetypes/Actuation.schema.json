@@ -2,18 +2,54 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Actuation.json",
   "title": "Actuation (GSM v1)",
-  "description": "Operational intent to change a state object, declared by a Control.",
+  "description": "Structural governance marker declaring an operational intent to change a state object, derived from a sys.create/modify/delete/acquire call in a behavioral Rule body.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "type", "stateObjectArchetype"],
+  "required": [
+    "name",
+    "type",
+    "stateObjectArchetype"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "type": { "$ref": "sie://schemas/gsm/v1/ActuationType.json" },
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "type": {
+      "$ref": "sie://schemas/gsm/v1/ActuationType.json"
+    },
     "stateObjectArchetype": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
       "description": "Reference to StateObjectArchetype actuated by this actuation."
+    },
+    "writtenProperties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Derived. Property names (dict keys) from the data argument of the sys.* call that produces this Actuation. Represents which properties of the target state object archetype are written by this actuation. Recomputed on Rule body change."
+    },
+    "readProperties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Derived. Property names (dict keys) from the filter/selector argument of the sys.* call that produces this Actuation. Represents which properties are read to identify the target state object instance(s). Recomputed on Rule body change."
+    }
+  },
+  "x-sie-derived": {
+    "writtenProperties": {
+      "description": "Extracted from dict key names in the data argument of the sys.* call. Always derivable (keys are static even when values are dynamic). Empty array when dict construction is fully dynamic.",
+      "derivedFrom": "Rule body → sys.*() data argument dict keys"
+    },
+    "readProperties": {
+      "description": "Extracted from dict key names in the filter/selector argument of the sys.* call. Empty for CREATION (no filter). Empty array when dict construction is fully dynamic.",
+      "derivedFrom": "Rule body → sys.*() filter argument dict keys"
     }
   }
 }

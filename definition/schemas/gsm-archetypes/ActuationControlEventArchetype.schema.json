@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "sie://schemas/gsm/v1/ActuationControlEventArchetype.json",
+    "title": "ActuationControlEventArchetype (GSM v1)",
+    "description": "EventArchetype specialization for actuation commands (Controller → Actuator). Cybernetic flow step 2: Controller's Effector emits a mutation intent that the Actuator's Receptor receives and executes. SIE-seeded: one instance per tenant, reused across all Actuations. The payload schema is defined by the ActuationControlEvent seed.",
+    "allOf": [
+        {
+            "$ref": "sie://schemas/gsm/v1/EventArchetype.json"
+        }
+    ],
+    "type": "object",
+    "properties": {
+        "schema": {
+            "description": "Must reference the ActuationControlEvent payload schema (sie://schemas/events/v1/ActuationControlEvent.json).",
+            "allOf": [
+                {
+                    "$ref": "sie://schemas/gsm/v1/ArchetypeSchema.json"
+                }
+            ]
+        }
+    },
+    "x-sie-seed": {
+        "seedFile": "gsm-seeds/actuation-control-event-archetype-seed.json",
+        "payloadSchema": "sie://schemas/events/v1/ActuationControlEvent.json",
+        "cyberneticFlowStep": 2,
+        "flowDescription": "Controller.Effector → Actuator.Receptor",
+        "autoDerivation": "Derived by Definition Manager when Rule body contains sys.create/modify/delete/acquire calls."
+    }
+}

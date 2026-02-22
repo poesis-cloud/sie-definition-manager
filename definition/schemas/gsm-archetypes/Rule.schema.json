@@ -21,16 +21,36 @@
     "body": {
       "type": "string",
       "minLength": 1,
-      "description": "Source code in the declared language, conforming to the SIE Rule API contract for that language binding. Must begin with an on('EventArchetypeName') call as its first executable statement."
+      "description": "Source code in the declared language, conforming to the SIE Rule API contract for that language binding. Must begin with an on(\"EventArchetypeName\") call as its first executable statement."
     },
     "language": {
       "type": "string",
       "default": "starlark",
-      "description": "Language binding for the Rule body. The Definition Manager dispatches to the language-specific parser for validation and auto-derivation."
+      "enum": [
+        "starlark"
+      ],
+      "description": "Language binding for the Rule body. The Definition Manager dispatches to the language-specific parser for validation and auto-derivation. Supported values are defined by available SIE Rule API language bindings.",
+      "examples": [
+        "starlark"
+      ]
     }
   },
   "x-sie-api": {
     "$ref": "sie://schemas/gsm/v1/RuleAPI.json",
     "description": "Language-neutral SIE Rule API contract that all language bindings implement."
+  },
+  "x-sie-derived": {
+    "triggeringEventArchetype": {
+      "description": "Derived at save/parse time from the on() call argument in body. Not stored as user input.",
+      "derivedFrom": "body → on(\"...\") argument"
+    },
+    "operationalizingPolicies": {
+      "description": "Derived from Operationalization chains: SELECT DISTINCT o.policy FROM operationalization o WHERE o.rule = THIS.",
+      "derivedFrom": "Operationalization"
+    },
+    "scopingFunctions": {
+      "description": "Derived from Realization chains: SELECT DISTINCT r.function FROM realization r WHERE r.rule = THIS.",
+      "derivedFrom": "Realization"
+    }
   }
 }
