@@ -26,6 +26,19 @@ skinparam noteBorderColor #57606A
 ' ============================================================
 ' TODO:
 ' - Add / update relationships between primitives.
+' - Maybe call Directive -> Directive instead?
+' - Design a mechanism for replacing a primitive with another
+'   eg: New Rule replaces old Rule.
+' - Mechanisms and their relative infrastructure primitive hold definitions
+'   qualifiers that have derivating DPR. Hence they operationalize DPR
+'   directly. So maybe add Controller in the Operationalization chain?
+' - Challenge inter-system governance (Composition VS Relational) articulations
+'   mechanisms. Looks like relational governance governor produce Directives as
+'   state objects to consume and derivate by governed system's governor via its
+'   own designed policies adapted to its purposes.
+' - Functions may be just labels for Rules/Behavioral logic, their resultant,
+'   not their contraint (this is DP), not their definition (this is R).
+'   Function may belong to a mechanism implementing a Rule (resultant of Rule).
 ' - Identify and generate functional rules of any kind for each class.
 ' - Challenge meta model, technically.
 ' - Update planes specifications.
@@ -57,7 +70,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **active definitions** from which system structure, behavior, governance,
     and viability are *derived and produced*:
 
-    - A declared **Principle** generates identity constraints enforced
+    - A declared **Directive** generates identity constraints enforced
       by the governance plane; the regulation plane produces Policies
       and Rules from them.
     - A declared **Policy** constraint automatically derives its own
@@ -96,7 +109,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     Where classical systemics asks "what does this system look like?",
     GSM answers "what must this system be?" — and provides the
-    governance machinery (PPR through planes) to continuously make
+    governance machinery (DPR through planes) to continuously make
     it so.
 
     **DSM — the Descriptive System Model (planned, under
@@ -201,7 +214,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     The two models map onto the Reflexive Layer as complementary halves
     of the governance loop:
 
-    - **Governance + Regulation planes** (GSM): define principles,
+    - **Governance + Regulation planes** (GSM): define directives,
       policies, rules — the system's identity, constraints,
       and behavioral structure. These are the *controller* semantics
       of the loop.
@@ -250,8 +263,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Six governance planes — SIE's functional architecture:**
 
-    - **Governance plane**: Defines and enforces *principles*.
-    - **Regulation plane**: Interprets *principles* and defines
+    - **Governance plane**: Defines and enforces *directives*.
+    - **Regulation plane**: Interprets *directives* and defines
       *policies* and *rules*.
     - **Supervision plane**: Enforces *policies* and *rules*.
     - **Coordination plane**: Stabilizes interactions between
@@ -263,17 +276,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     GRS&CO are **SIE's own Systems** (SIE-as-System), not
     Components composed by every tenant System.
 
-    **PPR is the System's DNA** — a System's intrinsic identity
-    and organization is its PPR (Principles, Policies, Rules).
-    PPR defines what a system IS and how it governs itself.
+    **DPR is the System's DNA** — a System's intrinsic identity
+    and organization is its DPR (Directives, Policies, Rules).
+    DPR defines what a system IS and how it governs itself.
     SIE deploys its GRS&CO functions to operate on Systems'
-    PPR; the System itself does not compose or own GRS&CO
+    DPR; the System itself does not compose or own GRS&CO
     artifacts.
 
     Governance partitioning uses System recursion: if a System's
-    PPR scope grows too large, the System decomposes into
-    sub-Systems each with their own PPR. SIE's GRS&CO
-    operates on each sub-System's PPR independently.
+    DPR scope grows too large, the System decomposes into
+    sub-Systems each with their own DPR. SIE's GRS&CO
+    operates on each sub-System's DPR independently.
 
     **S3×S4 Homeostat — conservation vs. innovation
     balance (meta-governance pattern)**
@@ -284,10 +297,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     S5 (identity). In SIE plane terms:
 
     - **Supervision** (S3): "Current governance works.
-      PPR is consistent. Compliance is measured. Don't
+      DPR is consistent. Compliance is measured. Don't
       destabilize."
     - **Regulation** (S4): "Environment changed. Current
-      PPR is drifting from reality. We need adapted
+      DPR is drifting from reality. We need adapted
       constraints."
     - **Governance** (S5): "System identity is defined
       by Constitution. Change governance within that
@@ -298,15 +311,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     dominates: rules never change) or chaotic (regulation
     dominates: rules change too fast to stabilize).
 
-    **How PPR captures the S3×S4 homeostat:**
+    **How DPR captures the S3×S4 homeostat:**
 
-    PPR captures the *statics* of governance (what
+    DPR captures the *statics* of governance (what
     artifacts exist). The S3×S4 homeostat is about the
-    *dynamics* (when and how much should PPR evolve).
-    GSM resolves this without new primitives: PPR can
+    *dynamics* (when and how much should DPR evolve).
+    GSM resolves this without new primitives: DPR can
     be reflexively self-governing.
 
-    A System MAY define **meta-Principles** — Principles
+    A System MAY define **meta-Directives** — Directives
     whose Purpose targets governance evolution itself:
 
     - "System SHOULD BALANCE adaptiveness OF
@@ -316,12 +329,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - "System SHOULD PROMOTE responsiveness OF
       policy-adaptation" (innovation encouragement)
 
-    These meta-Principles operationalize through normal
-    PPR chains:
-    - Meta-Principle → meta-Policy (e.g., maximum PPR
+    These meta-Directives operationalize through normal
+    DPR chains:
+    - Meta-Directive → meta-Policy (e.g., maximum DPR
       change rate per governance cycle, minimum evidence
       threshold before Adaptation triggers)
-    - Meta-Policy → meta-Rule (e.g., if PPR changes >
+    - Meta-Policy → meta-Rule (e.g., if DPR changes >
       N per cycle → alert; if Form Appraisal drift > M
       cycles without Adaptation → escalate)
 
@@ -331,17 +344,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     process (governance process #3), which has three
     sub-types:
     - **Adaptation** (S4-driven): deviation evidence →
-      PPR adjustment.
-    - **Coherence restoration** (S3-driven): intra-PPR
+      DPR adjustment.
+    - **Coherence restoration** (S3-driven): intra-DPR
       contradiction → fix without changing direction.
     - **Emergence** (S4-driven): observations without
       definitions → propose new governance.
 
-    Meta-Principles arbitrate:
+    Meta-Directives arbitrate:
     - How much Adaptation vs. Coherence restoration?
     - At what evidence threshold does Adaptation trigger?
     - What is the minimum stabilization period after
-      PPR changes before new Adaptation is allowed?
+      DPR changes before new Adaptation is allowed?
 
     The coordination plane dampens oscillation between
     supervision's "keep stable" evidence and regulation's
@@ -350,7 +363,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **This is not a new primitive or mechanism.** It is
     a recognized governance pattern that uses existing
-    PPR reflexively: Principles about Principles,
+    DPR reflexively: Directives about Directives,
     Policies about policy-making velocity, Rules about
     governance-process behavior. GSM's generative nature
     supports this natively — the same definitional
@@ -363,7 +376,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     GSM deliberately excludes ALL classification or labeling
     primitives — whether for categorizing entities (Type) or
-    for organizing PPR into governance subsets (Domain,
+    for organizing DPR into governance subsets (Domain,
     Category, Tag).
 
     **Core argument — classification is descriptive, not
@@ -379,11 +392,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       opinion. A label "WebApp" does not produce governance,
       does not close any loop, does not auto-define anything.
       It is an observer's categorization imposed on a system
-      that already has Purpose, Principle, PPR, and
+      that already has Purpose, Directive, DPR, and
       Mechanisms producing governance independently of the
       label.
     - What makes a system THIS system is its Constitution
-      (Purpose + Principle) and its Organization (PPR +
+      (Purpose + Directive) and its Organization (DPR +
       Functions + Relationships). These are definitional.
       Classification adds nothing that these definitional
       constructs don't already provide — and risks drifting
@@ -396,16 +409,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **For entities (why no Type):**
 
-    - Purpose + Principle define constitutional identity
+    - Purpose + Directive define constitutional identity
       (WHY the system exists, WHAT quality commitments it
       makes). This IS the system's identity — generatively.
-    - Organization (PPR + Functions + Relationships) defines
+    - Organization (DPR + Functions + Relationships) defines
       behavioral structure. Infrastructure (Mechanisms,
       Interactions, Interfaces) defines structural topology.
     - Any query that a Type label would serve (all systems
       of kind Application) is a Description-plane analytics
       question: derivable from shared Purposes, common
-      Principle patterns, similar PPR topology, or
+      Directive patterns, similar DPR topology, or
       Relationship graph structure.
     - Two systems sharing a Purpose are more meaningfully
       "of the same kind" than two systems sharing a Type
@@ -413,17 +426,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       governance), while Type is opinion (it produces
       nothing).
 
-    **For PPR (why no Domain/Category/Tag):**
+    **For DPR (why no Domain/Category/Tag):**
 
     - **Operationalization IS the governance organization
-      axis.** It traces Principle → Policy → Rule, revealing
+      axis.** It traces Directive → Policy → Rule, revealing
       regulatory scope, normative lineage, and governance gaps
       — structurally, not by label.
-    - **Realization IS the value delivery axis.** Function →
-      Purpose through Rule, revealing capability coverage and
-      orphaned constructs — structurally, not by label.
+    - **The structural chain IS the value delivery axis.**
+      Function ← Mechanism/Controller → Rule →
+      Operationalization → Policy → Directive → Purpose,
+      revealing capability coverage and orphaned constructs
+      — structurally, not by label.
     - **Labels compete with — and eventually contradict —
-      structural truth.** A Principle labeled "Security" whose
+      structural truth.** A Directive labeled "Security" whose
       Operationalization chains fan into Policies classified
       "Compliance" and "Operations" creates a conflict between
       declared classification and actual governance topology.
@@ -433,13 +448,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Governance scope is structural containment, not
     classification:**
 
-    - SIE's governance plane governs ALL Principles of a
+    - SIE's governance plane governs ALL Directives of a
       System. If governance partitioning is needed, the
       system decomposes recursively (sub-Systems with their
-      own PPR), not by labeling PPR subsets within a flat
+      own DPR), not by labeling DPR subsets within a flat
       System.
     - Description-plane analytics can derive any clustering
-      from Operationalization/Realization graph topology
+      from Operationalization graph topology and structural
+      chains (Function ← Mechanism → Rule)
       (e.g., connectivity components, fan-out analysis,
       cross-cutting detection) — discovered from structure,
       not imposed by classification.
@@ -451,11 +467,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     What looks like categorization belongs to the observation
     side (DSM), not the definition side (GSM).
 
-    **PPR (SDG) — the System Definitional Grammar** — three
+    **DPR (SDG) — the System Definitional Grammar** — three
     universal governance artifacts:
 
-    - Principles: Identity-level, long-term normative constraints.
-    - Policies: Design-level constraints that operationalize principles.
+    - Directives: Identity-level, long-term normative constraints.
+    - Policies: Design-level constraints that operationalize directives.
     - Rules: Behavioral logic — event-triggered Starlark programs
       whose bodies define the system's imperative behavior.
 
@@ -466,11 +482,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     Receptors, Effectors) are auto-derived from it by the
     Definition Manager.
 
-    PPR IS the system's definitional structure:
+    DPR IS the system's definitional structure:
     - Rule = dynamic structure (behavioral logic).
-    - Policy and Principle = teleological structure (governance logic).
+    - Policy and Directive = teleological structure (governance logic).
 
-    A system without PPR has components but no behavior.
+    A system without DPR has components but no behavior.
   end note
 
   ' ============================================================
@@ -559,7 +575,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - ACTIVE: The definition is fully integrated into the system definition and is
       currently binding.
-      - Principles constrain purpose quality dimensions
+      - Directives constrain purpose quality dimensions
       - Policies constrain mechanisms
       - Rules articulate behavior
       - Included in appraisal
@@ -746,9 +762,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     ' CONSTITUTION
     ' ============================================================
 
-    +getName(): String
     +getPurposes(): Purpose[]
-    +getPrinciples(): Principle[]
+    +getDirectives(): Directive[]
 
     ' ============================================================
     ' ORGANIZATION
@@ -757,26 +772,32 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getFunctions(): Function[]
     +getPolicies(): Policy[]
     +getRules(): Rule[]
+    +getActuations(): Actuation[]
+    +getSensings(): Sensing[]
     +getOperationalizations(): Operationalization[]
-    +getRealizations(): Realization[]
     +getRelationships(): Relationship[]
     +getEventArchetypes(): EventArchetype[]
     +getStateObjectArchetypes(): StateObjectArchetype[]
+
+    ' ============================================================
+    ' INFRASTRUCTURE
+    ' ============================================================
+
     +getComponents(): Component[]
 
     ' ============================================================
     ' INFRASTRUCTURE (inherited from Component)
     ' ============================================================
-    
-    +getControllers(): Controller[]
-    +getActuators(): Actuator[]
-    +getSensors(): Sensor[]
-    +getMechanisms(): Mechanism[]
-    +getReceptors(): Receptor[]
-    +getEffectors(): Effector[]
-    +getInteractions(): Interaction[]
-    +getChannels(): Channel[]
-    +getInterfaces(): Interface[]
+
+    ' +getControllers(): Controller[]
+    ' +getActuators(): Actuator[]
+    ' +getSensors(): Sensor[]
+    ' +getMechanisms(): Mechanism[]
+    ' +getReceptors(): Receptor[]
+    ' +getEffectors(): Effector[]
+    ' +getInteractions(): Interaction[]
+    ' +getChannels(): Channel[]
+    ' +getInterfaces(): Interface[]
 
     ' ============================================================
     ' BEHAVIOR (out of GSM scope)
@@ -819,11 +840,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - **Purpose**: the system's reasons for existence — the intended
       outcomes or objectives. Purposes are the functional anchors to
-      which all governance is traceable through the PPR chain.
-    - **Principle**: identity-level normative constraints expressed as
+      which all governance is traceable through the DPR chain.
+    - **Directive**: identity-level normative constraints expressed as
       structured quality-attribute sentences (Modal × Verb ×
       PurposeQualifier × Purpose). The subject is always the
-      owning System. They are the normative root of the PPR chain.
+      owning System. They are the normative root of the DPR chain.
 
     Constitution answers: WHY does this system exist, and WHAT quality
     commitments does it make about that existence?
@@ -831,40 +852,43 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     In GSM terms, Constitution is the system's *constitutive
     definition* — what makes it THIS system rather than another. It
     carries both the *value axis* (Purpose: what the system does) and
-    the *viability axis* (Principle: how well it must do it).
+    the *viability axis* (Directive: how well it must do it).
 
     **Organization — "How the system governs itself"**
 
     The organizational layer defines how the system achieves its
-    constitutional purposes while respecting its principles.
+    constitutional purposes while respecting its directives.
     Organization is the **logical structure realizing Constitution,
     by the means of its Infrastructure**.
 
     Organization contains two kinds of constructs:
 
-    *Governance norms and behavioral logic (PPR + relationships):*
+    *Governance norms and behavioral logic (DPR + relationships):*
     - **Policy**: measurable normative envelopes that operationalize
-      Principles into bounded, falsifiable constraints.
+      Directives into bounded, falsifiable constraints.
     - **Rule**: behavioral logic — event-triggered Starlark programs.
       A Rule IS the atomic, compilable logical behavior unit; its
       body is the single source of truth for imperative definitions.
     - **Operationalization**: traced governance lineage path through
-      the PPR gradient (Principle → Policy → Rule). Each instance
-      pins one thread from the many-to-many PPR web.
-    - **Realization**: traced value delivery path (Function → Purpose)
-      anchored through Rule. Each instance pins one thread from the
-      many-to-many Function↔Purpose web.
+      the DPR gradient (Directive → Policy → Rule). Each instance
+      pins one thread from the many-to-many DPR web.
     - **Relationship**: positional links to other systems, encoding
       role pairs and governance postures.
-    - **Controller / Actuator / Sensor**: Mechanism subtypes with
-      governance role semantics. These are Organization-level
-      definitions that extend the Infrastructure Mechanism base type
-      with governance ownership (they implement Rules, are auto-derived
-      from Rule bodies by the Definition Manager).
+    - **Actuation**: declares an operational intent to mutate a
+      specific StateObjectArchetype (create/modify/delete/acquire).
+      Auto-derived from `sys.*` calls in Rule bodies. A structural
+      governance marker: it tells the governance engine *what is
+      affected*, enabling impact analysis and conflict detection
+      across Rules.
+    - **Sensing**: the microscopic homeostatic verification
+      primitive — links an Actuation to its feedback observation,
+      distinguishing closed-loop actuations (verified) from
+      open-loop actuations (fire-and-forget). Auto-derived when
+      a Rule body assigns the return value of a `sys.*` call.
 
     *Information model (epistemic constructs):*
     - **Function**: an activity or process that the system can perform
-      — the logical capability that Rules scope and Mechanisms realize.
+      — the logical capability that Mechanisms realize.
     - **EventArchetype**: the structure and semantics of events that
       flow through mechanisms — what events mean.
     - **StateObjectArchetype**: the structure and semantics of state
@@ -880,20 +904,30 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     supervise its own behavior to fulfill its Constitution?
 
     In GSM terms, Organization is the system's *governance
-    architecture*: the articulation of norms (PPR), information model
+    architecture*: the articulation of norms (DPR), information model
     (EventArchetype, StateObjectArchetype, Function), relationships,
-    and operative mechanisms (Controller/Actuator/Sensor) that,
+    and operational governance markers (Actuation/Sensing) that,
     together, enable the system to regulate itself.
-    Organization governs Infrastructure: Rules scope Functions,
+    Organization governs Infrastructure: Mechanisms realize Functions,
     Rule bodies command Effectors through auto-derived mechanisms,
     Policies constrain measurable properties — governance ACTS
     through structure.
 
-    **Infrastructure — inherited from Component + System composition**
+    **Infrastructure — inherited from Component**
 
     The Infrastructure layer is defined by Component (see Component
-    note). System inherits it: mechanisms, receptors, effectors,
-    interactions, channels, and interfaces.
+    note). System inherits it via IS-A: Mechanisms, Controllers,
+    Actuators, Sensors, Receptors, Effectors, Interactions, Channels,
+    and Interfaces.
+
+    System does NOT redeclare Infrastructure primitives — it
+    inherits them from Component. Controller, Actuator, and Sensor
+    are Mechanism subtypes with governance role semantics, but they
+    are structurally infrastructure — owned by Component, inherited
+    by System. Their governance linkage (implementing Rules,
+    Actuations, Sensings) is an Organization-level concern that
+    references Infrastructure primitives, not a reason to relocate
+    them out of Infrastructure.
 
     System ALSO composes Components (`getComponents()`). This is
     NOT inherited from Component — it is a System-level governance
@@ -906,10 +940,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Component composition semantics (strict)**: a Component is a
     structural organ that belongs to exactly one System — existentially
     scoped, lifecycle-coupled, physically exclusive, and never shared.
-    If a thing has independent identity, survives its consumer, or is
-    shared between systems, it is itself a System and its relationship
-    is modeled via Relationship, not composition. See the Component
-    note for the four composition conditions.
+    Both non-reflexive Components and sub-Systems (System IS-A
+    Component) satisfy these conditions: all Systems are
+    existentially embedded in exactly one supersystem (Beer's
+    recursion principle). The IS-A is ontologically sound — System
+    preserves all Component behavioral contracts and extends them
+    with reflexive capacity. See the Component note for the formal
+    distinction between existential composition and relational
+    connection.
 
     Infrastructure carries no semantic commitments: it does not define
     what events mean (EventArchetype), what state looks like
@@ -933,39 +971,39 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     | Organization   | Epistemological+Logical  | HOW (info model + logic) | What reality looks like, what to do about it | Cannot operationalize itself            |
     | Infrastructure | Operational             | WITH WHAT (topology)     | Nothing semantic — only structural capability | — (bottom layer, inherited from Component) |
 
-    **PPR — The System Definitional Grammar across layers**
+    **DPR — The System Definitional Grammar across layers**
 
-    The PPR chain (Principle → Policy → Rule) is the
+    The DPR chain (Directive → Policy → Rule) is the
     definitional spine that cross-cuts all layers:
 
-    - Principles live in **Constitution**: they ARE identity.
+    - Directives live in **Constitution**: they ARE identity.
     - Policies, Rules live in **Organization**: they ARE
       governance.
-    - Rules scope Functions (Organization) and Rule bodies
+    - Mechanisms realize Functions (Organization) and Rule bodies
       command Effectors (Infrastructure) through auto-derived
       mechanisms: governance ACTS through structure.
 
-    The PPR chain operates as a **specificity gradient** (abstract →
+    The DPR chain operates as a **specificity gradient** (abstract →
     concrete) and a **modality transition** (declarative → imperative):
 
-    | PPR Level  | Layer         | Scopes           | Modality    |
+    | DPR Level  | Layer         | Scopes           | Modality    |
     |------------|---------------|------------------|-------------|
-    | Principle  | Constitution  | Purpose          | Declarative |
+    | Directive  | Constitution  | Purpose          | Declarative |
     | Policy     | Organization  | Purpose (derived)| Declarative |
-    | Rule       | Organization  | Function         | Imperative  |
+    | Rule       | Organization  | Function (via Mechanism) | Imperative  |
 
-    The Principle→Policy transition is a **scope narrowing**: from
+    The Directive→Policy transition is a **scope narrowing**: from
     unbounded directional intent to measurable bounds — but both
     remain declarative. The Policy→Rule transition is the **modality
     step-down**: from declarative constraint to imperative behavioral
     logic.
 
-    PPR IS the system's structure:
+    DPR IS the system's structure:
     - Rule = **dynamic structure** (behavioral logic).
-    - Policy and Principle = **teleological structure** (governance).
+    - Policy and Directive = **teleological structure** (governance).
 
-    A system without PPR has components but no behavior, no
-    supervision, and no purpose-alignment. PPR makes the system a
+    A system without DPR has components but no behavior, no
+    supervision, and no purpose-alignment. DPR makes the system a
     *system* rather than a collection of parts.
 
     **Attributes Semantics**:
@@ -981,27 +1019,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Component <|-- System : is
 
   System "1" *--> "0..*" Purpose : has
-  System "1" *--> "0..*" Principle : has
+  System "1" *--> "0..*" Directive : has
 
   System "1" *--> "0..*" Function : has
   System "1" *--> "0..*" Policy : has
   System "1" *--> "0..*" Rule : has
+  System "1" *--> "0..*" Actuation : has
+  System "1" *--> "0..*" Sensing : has
   System "1" *--> "0..*" Operationalization : has
-  System "1" *--> "0..*" Realization : has
   System "1" *--> "0..*" Relationship : has
   System "1" *--> "0..*" EventArchetype : has
   System "1" *--> "0..*" StateObjectArchetype : has
-  System "1" *--> "0..*" Component : composes
-
-  System "1" *--> "0..*" Controller : has
-  System "1" *--> "0..*" Actuator : has
-  System "1" *--> "0..*" Sensor : has
-  System "1" *--> "0..*" Mechanism : has
-  System "1" *--> "0..*" Receptor : has
-  System "1" *--> "0..*" Effector : has
-  System "1" *--> "0..*" Interaction : has
-  System "1" *--> "0..*" Channel : has
-  System "1" *--> "0..*" Interface : has
+  System "1" *--> "0..*" Component : has
 
   ' ============================================================
   ' PURPOSE
@@ -1018,12 +1047,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Purposes are associated with functional policies, which constrain
       the system's functional envelope.
     - Function↔Purpose is NOT a direct, stored relationship. It is
-      **derived through the PPR chain**: Rules scope Functions AND
-      apply Policies whose effectiveScopedPurposes derive from
-      Principles governing Purposes.
-    - Function→Purpose delivery is explicitly captured via
-      **Realization** primitives, each pinning one delivery
-      path through a specific Rule.
+      **derivable through the structural chain**: Mechanism realizes
+      Function, Controller (a Mechanism subtype) implements Rule,
+      Rule operationalizes Policy (via Operationalization), Policy
+      operationalizes Directive, Directive scopes Purpose.
+      Function→Purpose delivery is therefore structurally traceable
+      through: Function ← Mechanism/Controller → Rule →
+      Operationalization → Policy → Directive → Purpose.
 
     **Attributes Semantics**:
     - `name`: Human-readable semantic identifier.
@@ -1038,45 +1068,45 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Purpose "0..*" o--> "1" System : functionallyRationalizes
 
   ' ============================================================
-  ' PRINCIPLE
+  ' DIRECTIVE
   ' ============================================================
 
-  class Principle {
-    +getModal(): PrincipleModal
-    +getVerb(): PrincipleVerb
+  class Directive {
+    +getModal(): DirectiveModal
+    +getVerb(): DirectiveVerb
     +getPurposeQualifier(): String
     +getPurposeScope(): Purpose
   }
 
-  note top of Principle
+  note top of Directive
     **Primitive Semantics**:
     - An identity-level, long-term normative constraint that defines what
       the system fundamentally is and stands for.
-    - A Principle IS a **system quality attribute** — a structured,
+    - A Directive IS a **system quality attribute** — a structured,
       directional governance statement that qualifies how the system
       must operate with respect to its Purposes.
     - Grammar: Modal × Verb × PurposeQualifier × PurposeScope
     - Read: "System Modal Verb PurposeQualifier OF Purpose"
       e.g., "System MUST ENSURE integrity OF order-processing"
-    - The subject is always the owning System — Principles are
+    - The subject is always the owning System — Directives are
       unconditional identity-level commitments. Role-scoped or
       context-specific governance belongs to Policy
       (guard) or sub-System decomposition.
-    - Without Principles, a system has Purposes but no declared stance
-      on quality dimensions. Principles are the normative root of the
-      PPR chain.
-    - Principles are DEFINED and ENFORCED by the governance plane.
-    - Principles are OPERATED by the regulation plane when designing
+    - Without Directives, a system has Purposes but no declared stance
+      on quality dimensions. Directives are the normative root of the
+      DPR chain.
+    - Directives are DEFINED and ENFORCED by the governance plane.
+    - Directives are OPERATED by the regulation plane when designing
       and validating policies.
-    - **Unconditional by nature**: Principles are identity-level and
+    - **Unconditional by nature**: Directives are identity-level and
       apply universally within their owning System. If a governance
       statement is conditional (applies only in certain contexts),
-      it belongs as a Policy (which operationalizes Principles into
+      it belongs as a Policy (which operationalizes Directives into
       bounded, context-specific constraints) or requires sub-System
       decomposition (each sub-System defines its own unconditional
-      Principles).
+      Directives).
 
-    The Principle simultaneously declares:
+    The Directive simultaneously declares:
     - **Value axis** (Purpose): the system's reason for existence that
       is governed — what the system does and why.
     - **Viability axis** (purposeQualifier): the dimension along which
@@ -1088,16 +1118,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     purposeQualifier is the *adjective* that qualifies Purpose
     within the governance sentence.
 
-    This duality extends through the PPR chain: Principle scopes
+    This duality extends through the DPR chain: Directive scopes
     Purpose (identity-level), Policy scopes Function (design-level),
     and Functions serve Purposes. The constraint nature (functional,
     viability, structural) is derivable from purposeQualifier and
     the constraint format — no Policy subtypes needed.
 
     **Attributes Semantics**:
-    - `modal`: Deontic obligation strength (see PrincipleModal).
+    - `modal`: Deontic obligation strength (see DirectiveModal).
     - `verb`: Governance direction/guarantee semantics
-      (see PrincipleVerb).
+      (see DirectiveVerb).
     - `purposeQualifier`: A non-empty String naming the viability
       dimension (e.g., "integrity", "throughput", "latency"). It is
       NOT a reference to a SystemicPrimitive — it is a free-form
@@ -1105,18 +1135,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `purposeScope`: The Purpose being governed (value target).
 
     **Validation Rules**:
-    - `modal` MUST be a valid PrincipleModal value.
-    - `verb` MUST be a valid PrincipleVerb value.
+    - `modal` MUST be a valid DirectiveModal value.
+    - `verb` MUST be a valid DirectiveVerb value.
     - `purposeQualifier` MUST be a non-empty String.
     - `purposeScope` MUST reference a Purpose owned by the same
-      System as the owning Principle.
+      System as the owning Directive.
 
     **Consistency Rules**:
-    - Two principles with ENSURE and AVOID on the same purposeQualifier
+    - Two directives with ENSURE and AVOID on the same purposeQualifier
       AND same Purpose → contradiction (error).
-    - Two principles with opposing verb directions on the same
+    - Two directives with opposing verb directions on the same
       purposeQualifier AND same Purpose → conflict. Resolved by
-      PrincipleModal precedence (MUST > SHOULD > MAY).
+      DirectiveModal precedence (MUST > SHOULD > MAY).
     - Different Purposes on the same purposeQualifier are NOT conflicts.
 
     **Coverage gap detection**:
@@ -1125,10 +1155,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     or purposeQualifiers not applied to critical Purposes.
   end note
 
-  SystemicPrimitive <|-- Principle : is
-  Principle "0..*" o--> "1" Purpose : scopesPurpose
+  SystemicPrimitive <|-- Directive : is
+  Directive "0..*" o--> "1" Purpose : scopesPurpose
 
-  enum PrincipleModal {
+  enum DirectiveModal {
     MUST
     MUST_NOT
     SHOULD
@@ -1136,9 +1166,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     MAY
   }
 
-  note top of PrincipleModal
+  note top of DirectiveModal
     **Semantics**:
-    - Deontic obligation strength for a Principle constraint.
+    - Deontic obligation strength for a Directive constraint.
     - Grounded in deontic logic: {Obligatory, Permitted, Forbidden}.
 
     **Modal precedence** (for conflict resolution):
@@ -1150,11 +1180,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       constraints. Appraisal treats violations as warnings.
     - MAY: Permitted — advisory. Appraisal treats as informational.
 
-    When two Principles conflict on the same purposeQualifier and
+    When two Directives conflict on the same purposeQualifier and
     Purpose, the higher-precedence modal wins.
   end note
 
-  enum PrincipleVerb {
+  enum DirectiveVerb {
     MAXIMIZE
     MINIMIZE
     PRESERVE
@@ -1165,19 +1195,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     REDUCE
   }
 
-  note top of PrincipleVerb
-    **Constrained verb set for deterministic principle appraisal.**
+  note top of DirectiveVerb
+    **Constrained verb set for deterministic directive appraisal.**
 
-    PrincipleVerb is intentionally constrained to a finite, semantically
+    DirectiveVerb is intentionally constrained to a finite, semantically
     partitioned set. This enables the governance engine to deterministically
-    appraise principles against each other — detecting conflicts,
+    appraise directives against each other — detecting conflicts,
     redundancies, and priority inversions — without free-form NLP
     interpretation.
 
     **Design Rationale:**
-    The expressiveness of a Principle is the product of four dimensions:
+    The expressiveness of a Directive is the product of four dimensions:
     Modal × Verb × PurposeQualifier × PurposeScope(Purpose).
-    The subject is always the owning System (Principles are
+    The subject is always the owning System (Directives are
     unconditional identity commitments). Any governance intent
     expressible as
     "System <obligation> <direction> <purposeQualifier> OF <purpose>"
@@ -1251,12 +1281,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     rather than a **scalar magnitude**.
     - ENSURE(Q) ≡ "Q must hold" (Achieve + Maintain in KAOS terms).
     - AVOID(Q)  ≡ "Q must not hold" (Avoid in KAOS terms).
-    Some principles are more naturally expressed with AVOID than by
+    Some directives are more naturally expressed with AVOID than by
     reframing the purposeQualifier positively. Both are valid; AVOID
     prevents forced reframing that can obscure intent.
 
     **Appraisal Conflict Detection Rules:**
-    Two principles P1, P2 on the same purposeQualifier **AND the
+    Two directives P1, P2 on the same purposeQualifier **AND the
     same Purpose** conflict when their verbs are directionally
     incompatible:
     - P1.verb ∈ {MAXIMIZE, PROMOTE, ENSURE} and
@@ -1266,11 +1296,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - P1.verb = PRESERVE and P2.verb ∈ {MAXIMIZE, MINIMIZE}
       (stability vs. extremization).
 
-    Conflicts are resolved by PrincipleModal precedence
+    Conflicts are resolved by DirectiveModal precedence
     (MUST > SHOULD > MAY).
 
     **Purpose-scope precision:**
-    Two Principles on the SAME purposeQualifier but DIFFERENT
+    Two Directives on the SAME purposeQualifier but DIFFERENT
     Purposes are NOT conflicts — they govern different value targets.
     For example, "MAXIMIZE throughput OF order-processing" and
     "MINIMIZE throughput OF logging" do not conflict, even though
@@ -1287,10 +1317,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **NFR Framework** (Chung et al.): {++, +, -, --} softgoal
       contributions — enables automated conflict detection.
     - **Deontic logic**: {Obligatory, Permitted, Forbidden} — mapped
-      to PrincipleModal, complementing constrained verbs.
+      to DirectiveModal, complementing constrained verbs.
 
     **Completeness Argument:**
-    Any governance principle expressible in natural language as
+    Any governance directive expressible in natural language as
     "System <modal> <verb> <purposeQualifier> OF <purpose>" falls
     into one of:
     (a) directional scalar intent → MAXIMIZE/MINIMIZE/PROMOTE/REDUCE,
@@ -1312,15 +1342,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   note top of Function
     **Primitive Semantics**:
-    - An activity or process that the system can perform.
-    - Functions are realized by mechanisms.
+    - An activity or process that the system can perform — the
+      name of what a Mechanism does.
+    - Each Mechanism references exactly one Function (1:1).
+      Multiple Mechanisms may share the same Function.
     - Function↔Purpose is NOT a direct, stored relationship. It is
-      **derived through the PPR chain**: Rules scope Functions AND
-      apply Policies whose effectiveScopedPurposes derive from
-      Principles governing Purposes.
-    - Function→Purpose delivery is explicitly captured via
-      **Realization** primitives, each pinning one delivery
-      path through a specific Rule.
+      **derivable through the structural chain**: Mechanism realizes
+      Function, Controller (a Mechanism subtype) implements Rule,
+      Rule operationalizes Policy (via Operationalization), Policy
+      operationalizes Directive, Directive scopes Purpose.
+      Function→Purpose delivery is therefore structurally traceable
+      through: Function ← Mechanism/Controller → Rule →
+      Operationalization → Policy → Directive → Purpose.
 
     **Consistency Rules**:
     - `name` MUST be maximum 80 characters long.
@@ -1340,13 +1373,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getTemporalWindow(): String
     +getTemporalAggregation(): AggregationType
     +getSustainedThreshold(): Number
-    +getOperationalizingPrinciples(): Principle[]
+    +getOperationalizingDirectives(): Directive[]
   }
 
   note top of Policy
     **Primitive Semantics**:
     - A **measurable boundary condition** on one or more Purposes
-      of the system, translating Principle directional intent into a
+      of the system, translating Directive directional intent into a
       bounded, falsifiable envelope.
     - If a constraint is not measurable, it is not a Policy.
     - A Policy IS the combination of: predicate +
@@ -1356,7 +1389,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       violation boundary.
     - Policies are DEFINED by the regulation plane.
     - Policies are ENFORCED and OPERATED by the supervision plane.
-    - Policies operationalize one or more Principles.
+    - Policies operationalize one or more Directives.
 
     **Why these concerns are not separable:**
     The tolerance envelope is **constraint specification**, not
@@ -1438,7 +1471,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       the time").
 
     *Derived:*
-    - `operationalizingPrinciples`: Derived from Operationalization
+    - `operationalizingDirectives`: Derived from Operationalization
       chains (see Functional Rules).
 
     **Tolerance Mode — Attribute Applicability Matrix:**
@@ -1565,8 +1598,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       any other Policy.
 
     **What compositional governance is NOT:**
-    - NOT PPR inheritance: Components do not inherit their parent
-      System's PPR. Components have no reflexive layer.
+    - NOT DPR inheritance: Components do not inherit their parent
+      System's DPR. Components have no reflexive layer.
     - NOT deep governance: a System governs its Components as
       black boxes — only through externally observable properties,
       not through internal structure.
@@ -1575,7 +1608,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (as a System, via Relationship), not C directly. Governance
       follows composition hierarchy.
 
-    **If a Component needs independently governed PPR**, it should
+    **If a Component needs independently governed DPR**, it should
     be promoted to a sub-System (Component → System via IS-A) and
     governed through Relationship, not composition.
 
@@ -1623,19 +1656,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `sustainedThreshold` MUST be in range [0.0, 1.0].
 
     **Consistency Rules**:
-    - A Policy MUST operationalize at least one Principle.
+    - A Policy MUST operationalize at least one Directive.
 
     **Functional Rules**:
-    - **Derived Scope (Purpose-level, from Principles):**
+    - **Derived Scope (Purpose-level, from Directives):**
       A Policy does NOT store its own scope. Its effective scope is
       derived deterministically:
         effectiveScopedPurposes =
-          union(operationalizedPrinciples[*].purposeScope)
+          union(operationalizedDirectives[*].purposeScope)
     - **Derived navigability (from Operationalization):**
-      `getOperationalizingPrinciples()` is derived from
+      `getOperationalizingDirectives()` is derived from
       Operationalization chains:
-        SELECT DISTINCT o.principle FROM operationalization o
-        WHERE o.policy = THIS AND o.principle IS NOT NULL.
+        SELECT DISTINCT o.directive FROM operationalization o
+        WHERE o.policy = THIS AND o.directive IS NOT NULL.
     - **Homeostatic Auto-Definition Rule (Sensor):**
       When a Policy constraint is measurable, the system SHOULD
       auto-define: a Sensor measuring the criteria, an EventArchetype
@@ -1647,8 +1680,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       no separate author-defined evaluation specification. The
       mode IS the tolerance specification.
     - **Deterministic Policy Importance (derived):**
-      - effectiveModal = max(Principle.modal) over operationalized
-        Principles.
+      - effectiveModal = max(Directive.modal) over operationalized
+        Directives.
     - **Conflict-Resolution Strategy (DB-seeded configuration):**
       SIE treats conflict-resolution as self-governance via DB-seeded
       configuration (not modeled as Policy instances).
@@ -1680,7 +1713,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
        matrix).
     8. Schema-level type compatibility of comparison operands.
     9. Operationalization chain: at least one Operationalization
-       instance links this Policy to a Principle (may be deferred
+       instance links this Policy to a Directive (may be deferred
        to PROPOSED → APPROVED transition).
 
     **Prior art absorbed**:
@@ -1695,11 +1728,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   SystemicPrimitive <|-- Policy : is
   Policy "0..*" o--> "1" System : constrains
-  Policy "1" o--> "1..*" Principle : operationalizes
-
-  ' ============================================================
-  ' TOLERANCE MODE
-  ' ============================================================
+  Policy "1" o--> "1..*" Directive : operationalizes
 
   enum ToleranceMode {
     INSTANTANEOUS
@@ -1765,10 +1794,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - OCL invariants, design-by-contract (instantaneous mode)
   end note
 
-  ' ============================================================
-  ' AGGREGATION TYPE
-  ' ============================================================
-
   enum AggregationType {
     AVG
     MIN
@@ -1816,7 +1841,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getBody(): String
     +getLanguage(): RuleLanguage
     +getOperationalizingPolicies(): Policy[]
-    +getScopingFunctions(): Function[]
   }
 
   note top of Rule
@@ -1824,11 +1848,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - A behavioral rule is a constraint over the system's behavioral
       properties: how the system acts over time via mechanisms,
       sensors, and effectors.
-    - Rules scope functions while operationalizing policies.
+    - Rules operationalize policies into behavioral logic.
     - Rules are DEFINED by the regulation plane.
     - Rules are ENFORCED by the supervision plane.
     - Rules are OPERATED by the operation plane.
-    - Rule is the first imperative level in the PPR chain.
+    - Rule is the first imperative level in the DPR chain.
       The declarative → imperative transition occurs here.
     - Rule IS the **behavioral logical atom**: the atomic,
       compilable/executable governance logic. Its Starlark body
@@ -1851,8 +1875,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       SIE Rule API language bindings.
     - `operationalizingPolicies`: Policies whose constraints this
       rule enforces (derived from Operationalization chains).
-    - `scopingFunctions`: Functions whose execution the rule may
-      impact when applied (derived from Realization chains).
 
     **Validation Rules**:
     - `body` MUST be valid Starlark (parseable by StarlarkFile.parse()).
@@ -1901,27 +1923,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - All combined → Controller mechanism IMPLEMENTING the Rule.
       Auto-derived primitives carry: derived_from_rule_id, derived=true.
       Recomputed on body change (body_hash diff → delete old, derive new).
-      The resulting Mechanism is the **PPR ↔ behavior anchor**:
+      The resulting Mechanism is the **DPR ↔ behavior anchor**:
       it bridges governance definitions and observable behavior.
-    - **Derived PPR navigability (from Operationalization):**
+    - **Derived DPR navigability (from Operationalization):**
       The following existing accessors are derived from
       Operationalization chains:
-      - `Policy.getOperationalizingPrinciples()` =
-        SELECT DISTINCT o.principle FROM operationalization o
-        WHERE o.policy = THIS AND o.principle IS NOT NULL.
+      - `Policy.getOperationalizingDirectives()` =
+        SELECT DISTINCT o.directive FROM operationalization o
+        WHERE o.policy = THIS AND o.directive IS NOT NULL.
       - `Rule.getOperationalizingPolicies()` =
         SELECT DISTINCT o.policy FROM operationalization o
         WHERE o.rule = THIS AND o.policy IS NOT NULL.
-    - **Derived navigability (from Realization):**
-      - `Rule.getScopingFunctions()` =
-        SELECT DISTINCT r.function FROM realization r
-        WHERE r.rule = THIS AND r.function IS NOT NULL.
   end note
 
   SystemicPrimitive <|-- Rule : is
   Rule "0..*" o--> "1" System : constrains
   Rule "0..*" o--> "0..*" Policy : enforcing
-  Rule "0..*" o--> "0..*" Function : scoping
 
   enum RuleLanguage {
     STARLARK
@@ -1934,643 +1951,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Each value corresponds to a specific parser and execution environment
       that the Definition Manager recognizes for validation and auto-derivation.
   end note
-
-  ' ============================================================
-  ' OPERATIONALIZATION
-  ' ============================================================
-
-  class Operationalization {
-    +getPrinciple(): Principle
-    +getPolicy(): Policy
-    +getRule(): Rule
-  }
-
-  note top of Operationalization
-    **Primitive Semantics**:
-    - A **traced governance lineage path** through the PPR
-      specificity gradient (Principle → Policy → Rule).
-    - Each instance pins down exactly one normative thread from
-      the many-to-many-to-many PPR web: one Principle, one Policy,
-      one Rule (each nullable).
-    - Captures governance maturity: partial chains (null fields)
-      reveal governance gaps, under-construction lineages, and
-      orphaned artifacts.
-    - Both Operationalization and Realization **find anchor on
-      Rule**: Rule is the nexus where governance lineage (PPR)
-      meets value delivery (Function→Purpose). Together they
-      express: "this Rule exists because of this governance
-      lineage, and delivers this value."
-
-    **Systemics term mapping**:
-    - **Governance lineage** / normative traceability path.
-    - In cybernetics: the **control authority trace** — why does
-      this controller (Rule) exist?
-
-    **Attributes Semantics**:
-    - `principle`: The Principle at the identity-level root of this
-      governance lineage (nullable — null = governance gap).
-    - `policy`: The Policy translating the Principle into a
-      measurable boundary (nullable — null = gap or direct link).
-    - `rule`: The Rule operationalizing the Policy as behavioral
-      logic (nullable — null = not yet operationalized).
-
-    **Validation Rules**:
-    - At least one of `principle`, `policy`, `rule` MUST be
-      non-null.
-    - When `definitionStatus` = ACTIVE:
-      - All three SHOULD be non-null (complete chain).
-      - `principle` + `policy` without `rule` → gap finding
-        (Policy exists but no Rule operationalizes it for this
-        Principle).
-      - `policy` + `rule` without `principle` → gap finding
-        (Policy lacks principled grounding for this Rule).
-      - `principle` + `rule` without `policy` → PPR chain
-        violation (Rule cannot directly operationalize a
-        Principle without a Policy intermediary).
-    - When set, `principle` MUST reference a Principle owned by
-      the same System.
-    - When set, `policy` MUST reference a Policy owned by the
-      same System.
-    - When set, `rule` MUST reference a Rule owned by the same
-      System.
-
-    **Consistency Rules**:
-    - No duplicate Operationalization per System (unique
-      combination of principle, policy, rule — treating nulls
-      as distinct).
-    - When `principle` and `policy` are both set, the Policy
-      SHOULD be governance-compatible with the Principle
-      (purposeQualifier alignment).
-    - When `policy` and `rule` are both set, the Rule SHOULD
-      operationalize the Policy (constraint coverage).
-
-    **Functional Rules**:
-    - **Derived PPR navigability**:
-      The following existing accessors are derived from
-      Operationalization chains:
-      - `Policy.getOperationalizingPrinciples()` =
-        SELECT DISTINCT o.principle FROM operationalization o
-        WHERE o.policy = THIS AND o.principle IS NOT NULL.
-      - `Rule.getOperationalizingPolicies()` =
-        SELECT DISTINCT o.policy FROM operationalization o
-        WHERE o.rule = THIS AND o.policy IS NOT NULL.
-    - **Governance maturity reporting**: Principles, Policies, or
-      Rules not appearing in any Operationalization chain are
-      ungoverned/untraced — detectable by the Supervision plane.
-    - **SQL enforcement semantics**:
-      - System FK: CASCADE (delete System → delete its chains).
-      - Principle, Policy, Rule FKs: RESTRICT (cannot delete an
-        artifact while it participates in a chain).
-  end note
-
-  SystemicPrimitive <|-- Operationalization : is
-  Operationalization "0..*" o--> "0..1" Principle : fromPrinciple
-  Operationalization "0..*" o--> "0..1" Policy : throughPolicy
-  Operationalization "0..*" o--> "0..1" Rule : toRule
-
-  ' ============================================================
-  ' REALIZATION
-  ' ============================================================
-
-  class Realization {
-    +getRule(): Rule
-    +getFunction(): Function
-    +getPurpose(): Purpose
-  }
-
-  note top of Realization
-    **Primitive Semantics**:
-    - A **traced value delivery path** linking a Function to a
-      Purpose through the Rule that enables the delivery.
-    - Each instance pins down exactly one thread from the
-      many-to-many Function↔Purpose web, grounded by the
-      specific Rule that makes the delivery happen.
-    - Captures value delivery maturity: partial realizations
-      (null fields) reveal orphaned functions (capability
-      without purpose), unfulfilled purposes (intent without
-      capability), or ungrounded deliveries (no Rule yet).
-    - Together with Operationalization, anchored on Rule:
-      "Rule R exists because of governance lineage
-      (Operationalization), and delivers value by realizing
-      Function F for Purpose P (Realization)."
-
-    **Systemics term mapping**:
-    - **Value delivery path** / functional justification.
-    - In cybernetics: the **purpose justification** — what value
-      does this controller (Rule) produce?
-
-    **Note on naming**:
-    GSM also recognizes "Realization" as a governance process
-    (process #4: GSM → State via Controller/Actuator actuation).
-    The process and the primitive are related: the Realization
-    process USES Realization primitives — it actuates through
-    the Function→Purpose paths that Realization instances
-    define. The Realization primitive is the **definitional
-    specification**; the Realization process is the **runtime
-    execution** of that specification.
-
-    **Attributes Semantics**:
-    - `rule`: The Rule through which the Function→Purpose
-      delivery is enabled (nullable — null = ungrounded).
-    - `function`: The Function being realized (nullable —
-      null = purpose without capability).
-    - `purpose`: The Purpose being served (nullable —
-      null = capability without purpose).
-
-    **Validation Rules**:
-    - At least two of `rule`, `function`, `purpose` MUST be
-      non-null (a Realization is a LINK, not a pointer).
-    - When `definitionStatus` = ACTIVE:
-      - All three SHOULD be non-null (complete delivery path).
-      - `function` + `purpose` without `rule` → gap finding
-        (delivery not grounded in behavioral logic).
-      - `rule` + `function` without `purpose` → gap finding
-        (function realized but for what purpose?).
-      - `rule` + `purpose` without `function` → gap finding
-        (purpose served but through which capability?).
-    - When set, `rule` MUST reference a Rule owned by the same
-      System.
-    - When set, `function` MUST reference a Function owned by
-      the same System.
-    - When set, `purpose` MUST reference a Purpose owned by the
-      same System.
-
-    **Consistency Rules**:
-    - No duplicate Realization per System (unique combination of
-      rule, function, purpose — treating nulls as distinct).
-
-    **Functional Rules**:
-    - **Derived navigability**:
-      The following existing accessor is now derived from
-      Realization chains:
-      - `Rule.getScopingFunctions()` =
-        SELECT DISTINCT r.function FROM realization r
-        WHERE r.rule = THIS AND r.function IS NOT NULL.
-    - **Value delivery reporting**: Functions or Purposes not
-      appearing in any Realization are orphaned capabilities
-      or unfulfilled intents — detectable by the Supervision
-      plane.
-    - **SQL enforcement semantics**:
-      - System FK: CASCADE (delete System → delete its
-        realizations).
-      - Rule, Function, Purpose FKs: RESTRICT (cannot delete
-        an artifact while it participates in a realization).
-  end note
-
-  SystemicPrimitive <|-- Realization : is
-  Realization "0..*" o--> "0..1" Rule : throughRule
-  Realization "0..*" o--> "0..1" Function : realizesFunction
-  Realization "0..*" o--> "0..1" Purpose : servesPurpose
-
-  ' ============================================================
-  ' RELATIONSHIP
-  ' ============================================================
-
-  class Relationship {
-    +getDefiningSystem(): System
-    +getCounterpartySystem(): System
-    +getDefiningSystemRole(): Role
-    +getCounterpartyRole(): Role
-  }
-
-  note top of Relationship
-    **Primitive Semantics**:
-    - Captures a relationship between two systems.
-    - Defined FROM the perspective of the defining system (owner).
-      The counterparty is the other endpoint.
-    - Any counterparty is modeled as a **System** (preserves GSM
-      "everything is a System" coherence).
-    - This asymmetry is deliberate: each party may define its own
-      Relationship instance with its own roles. When both agree,
-      instances are coherent (reciprocal views). When they disagree,
-      the disagreement constitutes drift (detectable by the
-      Supervision plane).
-    - Heterarchy is natural: a system may have many relationships
-      with many counterparties (and multiple with the same
-      counterparty under different roles).
-
-    **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `definingSystem`: System that defines this relationship
-      (owner of this primitive instance).
-    - `counterpartySystem`: The other endpoint system.
-    - `definingSystemRole`: Role assigned by the defining system
-      for itself in this relationship.
-    - `counterpartyRole`: Role assigned by the defining system
-      for the counterparty.
-
-    **Validation Rules**:
-    - `definingSystemRole` and `counterpartyRole` MUST resolve to
-      Role instances in the same SIE instance.
-    - For deterministic classification, both roles SHOULD be
-      canonical roles (DB-seeded), unless explicit domain/tenant
-      extension is required.
-    - **Canonical role pairing (non-blocking warnings):**
-      Role pairs SHOULD match canonical pair hints defined in the
-      Role note. Non-matching pairs → coherence finding (warning),
-      not persistence blocking.
-    - **Role/qualifier coherence:** role configuration SHOULD be
-      semantically compatible with qualifiers asserting governance
-      intent. Symmetric roles + unilateral mandate qualifiers →
-      flag for review.
-    - **Reciprocity:** if both parties assert governance intent,
-      MUST be represented as two Relationship instances (reciprocal
-      views, one from each system's defining perspective).
-    - Cycles in Relationship chains are allowed (heterarchy), but
-      SHOULD be flagged for review if they form tight loops.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `definingSystem` MUST be defined.
-    - `counterpartySystem` MUST be defined.
-    - `definingSystem` MUST NOT be the same as `counterpartySystem`.
-    - `definingSystemRole` MUST be defined.
-    - `counterpartyRole` MUST be defined.
-    - A system MUST NOT have a Relationship where it is both
-      definingSystem and counterpartySystem (no direct self-loops).
-
-    **Functional Rules**:
-    - A relationship expresses governance posture when its role pair
-      encodes governance asymmetry (e.g., GOVERNING_AUTHORITY ↔
-      GOVERNED_SUBJECT), or when qualifiers declare governance intent.
-    - A relationship expresses non-governance posture when roles
-      encode symmetric/market posture (e.g., PARTNER ↔ PARTNER),
-      optionally refined by qualifiers.
-
-    **Notes**:
-    - **Examples** (Software Application as defining system):
-      1. HOST ↔ TENANT (hosting/resource allocation)
-      2. GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT (mandate/enforcement)
-      3. INTEGRATOR ↔ INTEGRATED_COMPONENT (lifecycle/substitution)
-      4. CUSTOMER ↔ VENDOR (commercial)
-      5. PARTNER ↔ PARTNER (peer collaboration)
-  end note
-
-
-  SystemicPrimitive <|-- Relationship : is
-  Relationship "0..*" o--> "1" System : definingSystem
-  Relationship "0..*" o--> "1" System : counterpartySystem
-  Relationship "0..*" o--> "1" Role : definingSystemRole
-  Relationship "0..*" o--> "1" Role : counterpartyRole
-
-  ' ============================================================
-  ' ROLE
-  ' ============================================================
-
-  class Role {
-    +getName(): String
-  }
-
-  note top of Role
-    **Primitive Semantics**:
-    - A **relational, positional label** naming how a System is
-      positioned in a specific Relationship.
-    - Roles are not intrinsic properties of a System in isolation:
-      the same System may play different roles in different
-      relationships (heterarchy).
-    - Roles enable deterministic relationship classification and
-      applicability axes for governance intent.
-
-    **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-
-    **Consistency Rules**:
-    - `name` MUST be mandatory and non-empty.
-    - `name` MUST be unique among all Role instances in the same
-      SIE instance.
-    - `name` MUST be maximum 80 characters long.
-
-    **Usage Rules**:
-    - Deterministic relationship classification SHOULD prefer
-      canonical roles (DB-seeded shared Role instances).
-    - Tenant/domain-specific nuance SHOULD be expressed via
-      qualifiers (schema-bound) rather than ad-hoc roles.
-
-    **Notes**:
-    - **Seed Semantics**: SIE initialization populates a global
-      Role table with one row per canonical role.
-    - **Canonical Roles (DB-seeded):**
-      - CUSTOMER: Pays for / commissions value delivery.
-      - CONSUMER: Direct user of a capability/interface.
-      - SUPPLIER: Provides a good/service/capability upstream.
-      - PROVIDER: Exposes an interface/capability depended on.
-      - VENDOR: SUPPLIER in commercial/procurement framing.
-      - PARTNER: Peer collaboration for mutual benefit.
-      - SPONSOR: Funds and authorizes an initiative/integration.
-      - BENEFICIARY: Receives outcomes/value, not necessarily user.
-      - OWNER: Accountable for lifecycle and correctness of asset.
-      - STEWARD: Custodian of definitional integrity over time.
-      - MAINTAINER: Performs changes/maintenance on integration.
-      - OPERATING_UNIT: Runs day-to-day operations (team-as-system).
-      - INTERNAL_UNIT: Internal to broader organization boundary.
-      - GOVERNING_AUTHORITY: Imposes constraints, may approve/audit.
-      - GOVERNED_SUBJECT: Target of governance constraints.
-      - AUDITOR: Independent assessor of conformance/compliance.
-      - CERTIFYING_AUTHORITY: Issues attestations for trust.
-      - STANDARDIZATION_BODY: Defines standards/norms for adoption.
-      - ACCREDITATION_BODY: Accredits certifiers/auditors.
-      - LEGISLATOR: Defines legally binding constraints.
-      - SUPERVISORY_AUTHORITY: Supervises compliance with law.
-      - ENFORCEMENT_AUTHORITY: Enforces with coercive powers.
-      - HOST: Provides hosting/execution substrate.
-      - TENANT: Occupies/uses shared HOST resources.
-      - INTEGRATOR: Composes/integrates other systems.
-      - INTEGRATED_COMPONENT: System being integrated.
-    - **Canonical Role Pair Hints (non-blocking):**
-      - HOST ↔ TENANT
-      - INTEGRATOR ↔ INTEGRATED_COMPONENT
-      - GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT
-      - LEGISLATOR ↔ GOVERNED_SUBJECT
-      - SUPERVISORY_AUTHORITY ↔ GOVERNED_SUBJECT
-      - ENFORCEMENT_AUTHORITY ↔ GOVERNED_SUBJECT
-      - CERTIFYING_AUTHORITY ↔ GOVERNED_SUBJECT
-      - AUDITOR ↔ GOVERNED_SUBJECT
-      - ACCREDITATION_BODY ↔ CERTIFYING_AUTHORITY or AUDITOR
-  end note
-
-  SystemicPrimitive <|-- Role : is
-
-  ' ============================================================
-  ' EVENT ARCHETYPE
-  ' ============================================================
-
-  class EventArchetype {
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-  }
-
-  note top of EventArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of an event that can be emitted or
-      received by a system via its effectors and receptors.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all entities classified as "archetype".
-    - `name` MUST match the name of the schema.
-    - If its schema is deleted, the event archetype MUST be deleted.
-  end note
-
-  SystemicPrimitive <|-- EventArchetype : is
-  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
-  
-  ' ============================================================
-  ' STATE OBJECT ARCHETYPE
-  ' ============================================================
-
-  class StateObjectArchetype {
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-  }
-
-  note top of StateObjectArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of a state object for
-      representing system state.
-    - Models observable/mutable state, whereas other SystemicPrimitives
-      model structural/definitional constructs.
-
-    **Consistency Rules**:
-    - `name` MUST match the name of the schema.
-    - `name` MUST be unique among all entities classified as "archetype".
-    - If its schema is deleted, the state object archetype MUST be deleted.
-  end note
-
-  SystemicPrimitive <|-- StateObjectArchetype : is
-  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
-
-  ' ============================================================
-  ' COMPONENT
-  ' ============================================================
-
-  class Component {
-    +getName(): String
-    +getMechanisms(): Mechanism[]
-    +getReceptors(): Receptor[]
-    +getEffectors(): Effector[]
-    +getInteractions(): Interaction[]
-    +getChannels(): Channel[]
-    +getInterfaces(): Interface[]
-  }
-
-  note top of Component
-    **Primitive Semantics**:
-    - The **structural substrate** of a system: a functional, logical,
-      coherent agglomerate of interacting and interfaceable mechanisms.
-    - Defines the **Infrastructure layer** in GSM — the structural
-      topology upon which governance operates.
-    - A Component has **first-order dynamics** only: it processes
-      inputs and produces outputs through its mechanisms, but does not
-      reflect on or govern its own behavior.
-    - The absence of a **reflexive layer** (Constitution + Organization)
-      is what distinguishes a Component from a System. A System IS-A
-      Component with second-order dynamics (self-governance).
-    - All Systems are Components (they aggregate mechanisms), but not
-      all Components are Systems (only those with reflexive capacity).
-    - Components interact through their interfaces and interactions,
-      scoped to the System that composes them. Without a reflexive
-      layer, a Component has no identity boundary and cannot establish
-      Relationships with external entities.
-    - Components do NOT self-nest. Composition of Components is a
-      System-level governance decision (see System note). A Component
-      has no reflexive capacity to decide what is "inside" it.
-
-    **Composition conditions (all four MUST hold)**:
-
-    A Component is a **structural organ** of its owning System.
-    A thing is a Component (not a System) only when ALL of the
-    following conditions are true:
-
-    1. **Physical exclusivity**: the component materially exists in
-       one container. It cannot simultaneously be part of two
-       independent systems.
-    2. **Existential scoping**: the component has no identity outside
-       its parent System. Its existence is DEFINED by belonging to
-       that parent.
-    3. **Lifecycle coupling**: creating/destroying the parent
-       creates/destroys the component. The component does not
-       survive its parent.
-    4. **No sharing**: the component is never simultaneously used
-       by independent consumers.
-
-    If ANY condition fails — the thing has independent identity,
-    survives its consumer, or is shared — it is a System (with its
-    own reflexive layer) and its relationship to other Systems is
-    modeled via Relationship, not composition.
-
-    **Infrastructure — "What it is made of"**
-
-    The infrastructural layer specifies the structural substrate
-    upon which governance operates — the "arms" of the system.
-
-    - **Mechanism**: atomic causal units of behavior — each with at
-      least one receptor and one effector.
-    - **Receptor / Effector**: event I/O channels.
-    - **Interaction / Channel / Interface**: connectivity topology.
-
-    Infrastructure carries no semantic commitments: it does not define
-    what events mean (EventArchetype), what state looks like
-    (StateObjectArchetype), or what capabilities exist (Function).
-    Those are epistemic/logical constructs owned by Organization.
-
-    Infrastructure answers: WHAT structural resources exist for
-    governance to operate through?
-
-    **Layer invariant**: removing Infrastructure from a System makes
-    Organization inoperative (unable to act on reality), but NOT
-    incoherent (unable to think). Organization can still reason about
-    its information model, its rules, its constraints — it simply has
-    no operational substrate to execute through.
-
-    In GSM terms, Infrastructure is the *interaction topology* — the
-    material scaffolding that carries governance but does not define
-    it. Without infrastructure, governance definitions have nothing
-    to act through; without governance, infrastructure has no reason
-    to exist.
-
-    **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `mechanisms`: Mechanisms belonging to the component.
-    - `receptors`: Receptors of the component's mechanisms.
-    - `effectors`: Effectors of the component's mechanisms.
-    - `interactions`: Interactions between mechanisms.
-    - `channels`: Channels carrying interactions through interfaces.
-    - `interfaces`: Interaction surfaces of the component.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all components of the same system.
-
-    **Functional Rules**:
-    - `interfaces` MAY be computed from mechanisms grouped by the
-      component.
-    - `interactions` MAY be computed from interactions carried by
-      channels of those interfaces and/or interactions whose
-      effector/receptor is owned by those mechanisms.
-  end note
-
-  SystemicPrimitive <|-- Component : is
-  Component "1" *--> "0..*" Mechanism : has
-  Component "1" *--> "0..*" Receptor : has
-  Component "1" *--> "0..*" Effector : has
-  Component "1" *--> "0..*" Interaction : has
-  Component "1" *--> "0..*" Channel : has
-  Component "1" *--> "0..*" Interface : has
-
-  ' ============================================================
-  ' CONTROLLER
-  ' ============================================================
-
-  class Controller {
-    +getRules(): Rule[]
-  }
-
-  note top of Controller
-    **Primitive Semantics**:
-    - Implements Rules and executes their behavioral logic,
-      executing behavioral definitions in or on the state plane.
-    - A Controller Mechanism is auto-derived from the Rules it
-      implements (see Rule: Mechanism Auto-Definition Rule).
-    - **Naming distinction**: the GSM closed-loop paradigm uses
-      "controller" for the Definition plane's cybernetic role
-      (the plane that defines/adjusts governance). This class is
-      a Mechanism-level construct: the infrastructure unit that
-      executes a specific Rule's behavioral logic. The two usages
-      operate at different abstraction levels (plane vs. mechanism).
-
-    **Notes**:
-    - **Dual Definition Semantics:**
-      - **SIE Controller**: SIE Operation plane instantiates and
-        executes. Agency: SIE acts (Observe → Decide → Act).
-      - **Domain Controller**: prescriptive definition of what a
-        domain mechanism MUST be and do. Agency: Tenant acts, SIE
-        oversees (Observe → Decide → Recommend).
-      - Both share the same PPR chain, receptors/effectors, and
-        governance semantics. Distinction appears at realization.
-    - **Autonomy delegation (planned extension):**
-      Delegation scope bounded by measured impact classification.
-      Human governance always in the loop for decision authority.
-      Planned: impact dimension on Actuation + delegation
-      Policy constraining autonomous execution by impact level.
-  end note
-
-  Mechanism <|-- Controller : is
-  Controller "0..*" o--> "0..*" Rule : implements
-
-  ' ============================================================
-  ' ACTUATOR
-  ' ============================================================
-
-  class Actuator {
-    +getActuation(): Actuation
-  }
-
-  note top of Actuator
-    **Primitive Semantics**:
-    - A microscopic execution mechanism that performs a specific state
-      object mutation (CRUD) as declared by an Actuation.
-    - Auto-defined from an Actuation derived from a behavioral
-      Rule body.
-    - Not redundant with Controllers: Controller implements a complete
-      Rule; Actuator executes one specific
-      Actuation.
-
-    **Attributes Semantics**:
-    - `actuation`: The actuation declaration from which the actuator is
-      derived.
-
-    **Functional Rules**:
-    - The actuator MUST operate on a state object archetype owned by
-      the same System, or a subsystem that explicitly shares that state
-      object resource.
-
-    **Notes**:
-    - **Dual Definition Semantics** (same pattern as Mechanism):
-      - **SIE Actuator**: SIE connector/adapter for state changes.
-      - **Domain Actuator**: prescriptive definition; conformance
-        measured by the Supervision plane.
-  end note
-
-  Mechanism <|-- Actuator : is
-  Actuator "1" *--> "1" Actuation : implements
-
-  ' ============================================================
-  ' SENSOR
-  ' ============================================================
-
-  class Sensor {
-    +getSensing(): Sensing
-  }
-
-  note top of Sensor
-    **Primitive Semantics**:
-    - A microscopic observation mechanism that captures the effect of a
-      specific Actuation and produces feedback events.
-    - Auto-defined from a Sensing linked to an Actuation, only when
-      the `sys.create/modify/delete/acquire` call's return value is
-      assigned to a variable in the Rule body (see Sensing note for
-      full derivation semantics).
-    - Not redundant with supervision plane: supervision macroscopically
-      evaluates policy/rule compliance; Sensor microscopically observes
-      one Actuation's outcome. Supervision aggregates across Rules;
-      Sensor verifies one Actuation.
-
-    **Functional Rules**:
-    - For every event archetype E whose schema is a subtype of
-      ActuationEventSchema, the sensor MUST have (or derive) a
-      receptor bound to E.
-    - For every receptor bound to E, the sensor MUST have an effector
-      bound to event O whose schema is subtype of
-      ActuationFeedbackEventSchema.
-
-    **Notes**:
-    - **Dual Definition Semantics** (same pattern as Mechanism):
-      - **SIE Sensor**: SIE polls/subscribes to tenant telemetry.
-      - **Domain Sensor**: prescriptive definition; conformance
-        measured by the Supervision plane.
-  end note
-
-  Mechanism <|-- Sensor : is
 
   ' ============================================================
   ' ACTUATION
@@ -2722,10 +2102,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
        (ActuationEvent: mutation result/status).
     5. Sensor's Receptor receives the ActuationEvent
        (observation of actuation completion).
-    6. Sensor's Effector emits a FeedbackEvent (structured
-       verification: what happened, what was affected).
-    7. Controller's feedbackReceptor receives the FeedbackEvent
-       — the `var` variable is populated, loop closed.
+    6. Sensor's Effector emits an ActuationSensingEvent
+       (structured verification: what happened, what was
+       affected).
+    7. Controller's sensingReceptor receives the
+       ActuationSensingEvent — the `var` variable is
+       populated, loop closed.
 
     **Derivation trigger — return-value-assignment (AST)**:
     A Sensing (and its Sensor) is auto-derived by the Definition
@@ -2756,7 +2138,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       provides sequencing evidence for the Coordination
       plane.
     - **Governance audit trail**: Sensing provides a
-      machine-readable record linking PPR lineage
+      machine-readable record linking DPR lineage
       (Operationalization → Rule → Actuation →
       Sensing feedback → verified outcome).
     - **Governance verifiability metric**: the ratio of
@@ -2773,19 +2155,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - The Sensor MUST have a Receptor bound to the Actuator
       Effector's ActuationEvent archetype (observation input).
     - The Sensor MUST have an Effector bound to an auto-derived
-      FeedbackEvent archetype (observation output).
-    - The feedbackReceptor on the originating Controller
-      receives the FeedbackEvent, closing the loop.
+      ActuationSensingEvent archetype (observation output).
+    - The sensingReceptor on the originating Controller
+      receives the ActuationSensingEvent, closing the loop.
 
     **Validation Rules**:
-    - The feedback event archetype MUST be a subtype of
-      ActuationFeedbackEventSchema.
+    - The actuation sensing event archetype MUST be a subtype
+      of ActuationSensingEventSchema.
 
     **Notes**:
     - **Incoherences / Drifts**:
-      - Sensing defined without a feedbackReceptor.
+      - Sensing defined without a sensingReceptor.
       - Sensor mechanism missing receptor/effector bindings
-        to actuation/feedback event archetypes.
+        to actuation/sensing event archetypes.
       - Actuation return assigned but no Sensing derived
         (auto-derivation failure).
       - Sensing exists but Actuation return was not assigned
@@ -2796,10 +2178,663 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   Sensing "1" o--> "1" Actuation : observes
 
   ' ============================================================
+  ' OPERATIONALIZATION
+  ' ============================================================
+
+  class Operationalization {
+    +getDirective(): Directive
+    +getPolicy(): Policy
+    +getRule(): Rule
+  }
+
+  note top of Operationalization
+    **Primitive Semantics**:
+    - A **traced governance lineage path** through the DPR
+      specificity gradient (Directive → Policy → Rule).
+    - Each instance pins down exactly one normative thread from
+      the many-to-many-to-many DPR web: one Directive, one Policy,
+      one Rule (each nullable).
+    - Captures governance maturity: partial chains (null fields)
+      reveal governance gaps, under-construction lineages, and
+      orphaned artifacts.
+
+    **Systemics term mapping**:
+    - **Governance lineage** / normative traceability path.
+    - In cybernetics: the **control authority trace** — why does
+      this controller (Rule) exist?
+
+    **Attributes Semantics**:
+    - `directive`: The Directive at the identity-level root of this
+      governance lineage (nullable — null = governance gap).
+    - `policy`: The Policy translating the Directive into a
+      measurable boundary (nullable — null = gap or direct link).
+    - `rule`: The Rule operationalizing the Policy as behavioral
+      logic (nullable — null = not yet operationalized).
+
+    **Validation Rules**:
+    - At least one of `directive`, `policy`, `rule` MUST be
+      non-null.
+    - When `definitionStatus` = ACTIVE:
+      - All three SHOULD be non-null (complete chain).
+      - `directive` + `policy` without `rule` → gap finding
+        (Policy exists but no Rule operationalizes it for this
+        Directive).
+      - `policy` + `rule` without `directive` → gap finding
+        (Policy lacks principled grounding for this Rule).
+      - `directive` + `rule` without `policy` → DPR chain
+        violation (Rule cannot directly operationalize a
+        Directive without a Policy intermediary).
+    - When set, `directive` MUST reference a Directive owned by
+      the same System.
+    - When set, `policy` MUST reference a Policy owned by the
+      same System.
+    - When set, `rule` MUST reference a Rule owned by the same
+      System.
+
+    **Consistency Rules**:
+    - No duplicate Operationalization per System (unique
+      combination of directive, policy, rule — treating nulls
+      as distinct).
+    - When `directive` and `policy` are both set, the Policy
+      SHOULD be governance-compatible with the Directive
+      (purposeQualifier alignment).
+    - When `policy` and `rule` are both set, the Rule SHOULD
+      operationalize the Policy (constraint coverage).
+
+    **Functional Rules**:
+    - **Derived DPR navigability**:
+      The following existing accessors are derived from
+      Operationalization chains:
+      - `Policy.getOperationalizingDirectives()` =
+        SELECT DISTINCT o.directive FROM operationalization o
+        WHERE o.policy = THIS AND o.directive IS NOT NULL.
+      - `Rule.getOperationalizingPolicies()` =
+        SELECT DISTINCT o.policy FROM operationalization o
+        WHERE o.rule = THIS AND o.policy IS NOT NULL.
+    - **Governance maturity reporting**: Directives, Policies, or
+      Rules not appearing in any Operationalization chain are
+      ungoverned/untraced — detectable by the Supervision plane.
+    - **SQL enforcement semantics**:
+      - System FK: CASCADE (delete System → delete its chains).
+      - Directive, Policy, Rule FKs: RESTRICT (cannot delete an
+        artifact while it participates in a chain).
+  end note
+
+  SystemicPrimitive <|-- Operationalization : is
+  Operationalization "0..*" o--> "0..1" Directive : fromDirective
+  Operationalization "0..*" o--> "0..1" Policy : throughPolicy
+  Operationalization "0..*" o--> "0..1" Rule : toRule
+
+  ' ============================================================
+  ' RELATIONSHIP
+  ' ============================================================
+
+  class Relationship {
+    +getDefiningSystem(): System
+    +getCounterpartySystem(): System
+    +getDefiningSystemRole(): Role
+    +getCounterpartyRole(): Role
+  }
+
+  note top of Relationship
+    **Primitive Semantics**:
+    - Captures a relationship between two systems.
+    - Defined FROM the perspective of the defining system (owner).
+      The counterparty is the other endpoint.
+    - Any counterparty is modeled as a **System** (preserves GSM
+      "everything is a System" coherence).
+    - This asymmetry is deliberate: each party may define its own
+      Relationship instance with its own roles. When both agree,
+      instances are coherent (reciprocal views). When they disagree,
+      the disagreement constitutes drift (detectable by the
+      Supervision plane).
+    - Heterarchy is natural: a system may have many relationships
+      with many counterparties (and multiple with the same
+      counterparty under different roles).
+
+    **Attributes Semantics**:
+    - `definingSystem`: System that defines this relationship
+      (owner of this primitive instance).
+    - `counterpartySystem`: The other endpoint system.
+    - `definingSystemRole`: Role assigned by the defining system
+      for itself in this relationship.
+    - `counterpartyRole`: Role assigned by the defining system
+      for the counterparty.
+
+    **Validation Rules**:
+    - `definingSystemRole` and `counterpartyRole` MUST resolve to
+      Role instances in the same SIE instance.
+    - For deterministic classification, both roles SHOULD be
+      canonical roles (DB-seeded), unless explicit domain/tenant
+      extension is required.
+    - **Canonical role pairing (non-blocking warnings):**
+      Role pairs SHOULD match canonical pair hints defined in the
+      Role note. Non-matching pairs → coherence finding (warning),
+      not persistence blocking.
+    - **Role/qualifier coherence:** role configuration SHOULD be
+      semantically compatible with qualifiers asserting governance
+      intent. Symmetric roles + unilateral mandate qualifiers →
+      flag for review.
+    - **Reciprocity:** if both parties assert governance intent,
+      MUST be represented as two Relationship instances (reciprocal
+      views, one from each system's defining perspective).
+    - Cycles in Relationship chains are allowed (heterarchy), but
+      SHOULD be flagged for review if they form tight loops.
+
+    **Consistency Rules**:
+    - `definingSystem` MUST be defined.
+    - `counterpartySystem` MUST be defined.
+    - `definingSystem` MUST NOT be the same as `counterpartySystem`.
+    - `definingSystemRole` MUST be defined.
+    - `counterpartyRole` MUST be defined.
+    - A system MUST NOT have a Relationship where it is both
+      definingSystem and counterpartySystem (no direct self-loops).
+
+    **Functional Rules**:
+    - A relationship expresses governance posture when its role pair
+      encodes governance asymmetry (e.g., GOVERNING_AUTHORITY ↔
+      GOVERNED_SUBJECT), or when qualifiers declare governance intent.
+    - A relationship expresses non-governance posture when roles
+      encode symmetric/market posture (e.g., PARTNER ↔ PARTNER),
+      optionally refined by qualifiers.
+
+    **Structural realization (derived, not stored)**:
+    A Relationship's structural realization is derivable from the
+    ownership graph — no explicit Relationship→Channel link needed.
+
+    Given Relationship R(definingSystem=A, counterpartySystem=B),
+    the realizing Channels are:
+      realizingChannels(R) = { C ∈ Channel |
+        ∃ interaction ∈ C.interactions :
+          (interaction.effector ∈ A.effectors AND
+           interaction.receptor ∈ B.receptors)
+          OR
+          (interaction.effector ∈ B.effectors AND
+           interaction.receptor ∈ A.receptors) }
+
+    This is a many-to-many correlation: multiple Channels may
+    structurally support one Relationship; one Channel may support
+    multiple Relationships between the same System pair. The
+    semantic granularity (which Relationship a specific Interaction
+    "serves") lives in the EventArchetypes, not in explicit pinning.
+
+    **Why no stored link (unlike Operationalization)**:
+    Operationalization stores "this Policy exists because of this
+    Directive" — a governance decision that is NOT derivable from
+    the artifacts themselves. Relationship↔Channel is a structural
+    correlation derivable from the ownership graph. GSM stores
+    decisions; the Supervision plane derives correlations.
+
+    **Cross-system coherence findings (Supervision-derived)**:
+    - **Unrealized Relationship**: Relationship(A, B) exists but
+      realizingChannels(R) = ∅ → warning.
+    - **Ungoverned Channel**: cross-system Channel exists but no
+      Relationship(A, B) or Relationship(B, A) → warning.
+    - **Orphaned external Interface**: Interface participates in
+      cross-system Channels but owning System has no Relationship
+      with counterparty → informational.
+    - **Reciprocal Channel drift**: both Systems define Channels
+      between the same Interface pair with inconsistent carried
+      Interactions → warning.
+
+    **Notes**:
+    - **Examples** (Software Application as defining system):
+      1. HOST ↔ TENANT (hosting/resource allocation)
+      2. GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT (mandate/enforcement)
+      3. INTEGRATOR ↔ INTEGRATED_COMPONENT (lifecycle/substitution)
+      4. CUSTOMER ↔ VENDOR (commercial)
+      5. PARTNER ↔ PARTNER (peer collaboration)
+  end note
+
+
+  SystemicPrimitive <|-- Relationship : is
+  Relationship "0..*" o--> "1" System : definingSystem
+  Relationship "0..*" o--> "1" System : counterpartySystem
+  Relationship "0..*" o--> "1" Role : definingSystemRole
+  Relationship "0..*" o--> "1" Role : counterpartyRole
+
+  ' ============================================================
+  ' ROLE
+  ' ============================================================
+
+  class Role {
+    +getName(): String
+  }
+
+  note top of Role
+    **Primitive Semantics**:
+    - A **relational, positional label** naming how a System is
+      positioned in a specific Relationship.
+    - Roles are not intrinsic properties of a System in isolation:
+      the same System may play different roles in different
+      relationships (heterarchy).
+    - Roles enable deterministic relationship classification and
+      applicability axes for governance intent.
+
+    **Attributes Semantics**:
+    - `name`: Human-readable semantic identifier.
+
+    **Consistency Rules**:
+    - `name` MUST be mandatory and non-empty.
+    - `name` MUST be unique among all Role instances in the same
+      SIE instance.
+    - `name` MUST be maximum 80 characters long.
+
+    **Usage Rules**:
+    - Deterministic relationship classification SHOULD prefer
+      canonical roles (DB-seeded shared Role instances).
+    - Tenant/domain-specific nuance SHOULD be expressed via
+      qualifiers (schema-bound) rather than ad-hoc roles.
+
+    **Notes**:
+    - **Seed Semantics**: SIE initialization populates a global
+      Role table with one row per canonical role.
+    - **Canonical Roles (DB-seeded):**
+      - CUSTOMER: Pays for / commissions value delivery.
+      - CONSUMER: Direct user of a capability/interface.
+      - SUPPLIER: Provides a good/service/capability upstream.
+      - PROVIDER: Exposes an interface/capability depended on.
+      - VENDOR: SUPPLIER in commercial/procurement framing.
+      - PARTNER: Peer collaboration for mutual benefit.
+      - SPONSOR: Funds and authorizes an initiative/integration.
+      - BENEFICIARY: Receives outcomes/value, not necessarily user.
+      - OWNER: Accountable for lifecycle and correctness of asset.
+      - STEWARD: Custodian of definitional integrity over time.
+      - MAINTAINER: Performs changes/maintenance on integration.
+      - OPERATING_UNIT: Runs day-to-day operations (team-as-system).
+      - INTERNAL_UNIT: Internal to broader organization boundary.
+      - GOVERNING_AUTHORITY: Imposes constraints, may approve/audit.
+      - GOVERNED_SUBJECT: Target of governance constraints.
+      - AUDITOR: Independent assessor of conformance/compliance.
+      - CERTIFYING_AUTHORITY: Issues attestations for trust.
+      - STANDARDIZATION_BODY: Defines standards/norms for adoption.
+      - ACCREDITATION_BODY: Accredits certifiers/auditors.
+      - LEGISLATOR: Defines legally binding constraints.
+      - SUPERVISORY_AUTHORITY: Supervises compliance with law.
+      - ENFORCEMENT_AUTHORITY: Enforces with coercive powers.
+      - HOST: Provides hosting/execution substrate.
+      - TENANT: Occupies/uses shared HOST resources.
+      - INTEGRATOR: Composes/integrates other systems.
+      - INTEGRATED_COMPONENT: System being integrated.
+    - **Canonical Role Pair Hints (non-blocking):**
+      - HOST ↔ TENANT
+      - INTEGRATOR ↔ INTEGRATED_COMPONENT
+      - GOVERNING_AUTHORITY ↔ GOVERNED_SUBJECT
+      - LEGISLATOR ↔ GOVERNED_SUBJECT
+      - SUPERVISORY_AUTHORITY ↔ GOVERNED_SUBJECT
+      - ENFORCEMENT_AUTHORITY ↔ GOVERNED_SUBJECT
+      - CERTIFYING_AUTHORITY ↔ GOVERNED_SUBJECT
+      - AUDITOR ↔ GOVERNED_SUBJECT
+      - ACCREDITATION_BODY ↔ CERTIFYING_AUTHORITY or AUDITOR
+  end note
+
+  SystemicPrimitive <|-- Role : is
+
+  ' ============================================================
+  ' EVENT ARCHETYPE
+  ' ============================================================
+
+  class EventArchetype {
+    +getName(): String
+    +getSchema(): ArchetypeSchema
+  }
+
+  note top of EventArchetype
+    **Primitive Semantics**:
+    - Defines the structure and semantics of an event that can be emitted or
+      received by a system via its effectors and receptors.
+
+    **Auto-derivation**:
+    EventArchetype instances MAY be auto-derived by the Definition
+    Manager as part of the Rule Mechanism Auto-Definition process:
+    - **ActuationEvent archetype**: auto-derived when a Rule body
+      contains a `sys.create/modify/delete/acquire("A", ...)`
+      call. The archetype's schema is a subtype of
+      ActuationEventSchema. See Actuation note.
+    - **ActuationSensingEvent archetype**: auto-derived when a
+      Sensing is derived (closed-loop actuation:
+      return-value-assignment pattern). The archetype's schema
+      is a subtype of ActuationSensingEventSchema. See Sensing
+      note.
+    Auto-derived EventArchetypes carry `derived_from_rule_id` and
+    `derived=true`. Recomputed on Rule body change (body_hash diff).
+
+    **Consistency Rules**:
+    - `name` MUST be maximum 80 characters long.
+    - `name` MUST be unique among all entities classified as "archetype".
+    - `name` MUST match the name of the schema.
+    - If its schema is deleted, the event archetype MUST be deleted.
+  end note
+
+  SystemicPrimitive <|-- EventArchetype : is
+  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
+  
+  ' ============================================================
+  ' STATE OBJECT ARCHETYPE
+  ' ============================================================
+
+  class StateObjectArchetype {
+    +getName(): String
+    +getSchema(): ArchetypeSchema
+  }
+
+  note top of StateObjectArchetype
+    **Primitive Semantics**:
+    - Defines the structure and semantics of a state object for
+      representing system state.
+    - Models observable/mutable state, whereas other SystemicPrimitives
+      model structural/definitional constructs.
+
+    **Consistency Rules**:
+    - `name` MUST match the name of the schema.
+    - `name` MUST be unique among all entities classified as "archetype".
+    - If its schema is deleted, the state object archetype MUST be deleted.
+  end note
+
+  SystemicPrimitive <|-- StateObjectArchetype : is
+  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
+
+  ' ============================================================
+  ' COMPONENT
+  ' ============================================================
+
+  class Component {
+    +getName(): String
+    +getControllers(): Controller[]
+    +getActuators(): Actuator[]
+    +getSensors(): Sensor[]
+    +getMechanisms(): Mechanism[]
+    +getReceptors(): Receptor[]
+    +getEffectors(): Effector[]
+    +getInteractions(): Interaction[]
+    +getChannels(): Channel[]
+    +getInterfaces(): Interface[]
+  }
+
+  note top of Component
+    **Primitive Semantics**:
+    - The **structural substrate** of a system: a functional, logical,
+      coherent agglomerate of interacting and interfaceable mechanisms.
+    - Defines the **Infrastructure layer** in GSM — the structural
+      topology upon which governance operates.
+    - A Component has **first-order dynamics** only: it processes
+      inputs and produces outputs through its mechanisms, but does not
+      reflect on or govern its own behavior.
+    - The absence of a **reflexive layer** (Constitution + Organization)
+      is what distinguishes a Component from a System. A System IS-A
+      Component with second-order dynamics (self-governance).
+    - All Systems are Components (they aggregate mechanisms), but not
+      all Components are Systems (only those with reflexive capacity).
+    - Components interact through their interfaces and interactions,
+      scoped to the System that composes them. Without a reflexive
+      layer, a Component has no identity boundary and cannot establish
+      Relationships with external entities.
+    - Components do NOT self-nest. Composition of Components is a
+      System-level governance decision (see System note). A Component
+      has no reflexive capacity to decide what is "inside" it.
+
+    **Two kinds of inter-system connection (existential vs.
+    relational)**:
+
+    GSM formally distinguishes two ontologically different ways
+    systems are connected:
+
+    1. **Existential composition** (`System *--> Component`):
+       One system is an existential part of another — a structural
+       organ. The child's existence DEPENDS on the parent. This is
+       Beer's recursion: every viable system is embedded in exactly
+       one parent viable system for governance accountability.
+       Existential composition satisfies the four conditions below.
+       Both Components and sub-Systems can be existentially
+       composed — System IS-A Component is sound because all
+       Systems existentially depend on exactly one supersystem
+       (Beer's recursion principle, GST open-system embedding,
+       Ashby's environment dependency). A System's Constitution
+       (Purpose + Directives) is contextually defined: Purpose
+       is meaningful relative to the supersystem's context;
+       Directives target viability within that context. Remove
+       the supersystem and Constitution becomes vacuous.
+
+    2. **Relational connection** (`Relationship`):
+       Two *independently governed* systems declare a positional
+       posture toward each other (roles, governance asymmetry).
+       No lifecycle coupling, no existential dependency, no
+       physical exclusivity. Each party retains its own DPR,
+       its own supersystem. Relationships are Organization-layer
+       governance decisions; composition is Infrastructure-layer
+       structural fact.
+
+    The distinction is fundamental: composition answers "what is
+    this system made of?" (first-order, structural); Relationship
+    answers "how does this system relate to other systems?"
+    (second-order, governance). They are different layers, different
+    concerns, and MUST NOT be conflated.
+
+    A System participating in Relationships with many Systems is
+    NOT "shared" — it belongs to exactly one parent. Relationships
+    are interactions between independent Systems, not ownership.
+
+    **Composition conditions (all four MUST hold)**:
+
+    A Component is a **structural organ** of its owning System.
+    A thing is composed (not merely related) only when ALL of the
+    following conditions are true:
+
+    1. **Physical exclusivity**: the component materially exists in
+       one container. It cannot simultaneously be part of two
+       independent systems.
+    2. **Existential scoping**: the component has no identity outside
+       its parent System. Its existence is DEFINED by belonging to
+       that parent.
+    3. **Lifecycle coupling**: creating/destroying the parent
+       creates/destroys the component. The component does not
+       survive its parent.
+    4. **No sharing**: the component is never simultaneously used
+       by independent consumers.
+
+    If ANY condition fails — the thing has independent identity,
+    survives its consumer, or is shared — it is itself a System
+    and its connection to other Systems is modeled via
+    Relationship, not composition.
+
+    **Infrastructure — "What it is made of"**
+
+    The infrastructural layer specifies the structural substrate
+    upon which governance operates — the "arms" of the system.
+
+    - **Mechanism**: atomic causal units of behavior — each with at
+      least one receptor and one effector.
+    - **Controller / Actuator / Sensor**: Mechanism subtypes with
+      governance role semantics — auto-derived from Rule bodies by
+      the Definition Manager. Controller implements Rules; Actuator
+      executes Actuations; Sensor observes Sensings.
+    - **Receptor / Effector**: event I/O channels.
+    - **Interaction**: atomic causal coupling (what flows).
+    - **Channel**: declared exchange medium (how it flows).
+    - **Interface**: named I/O surface — a curated selection of
+      Receptors/Effectors grouped into a coherent, addressable
+      contact point.
+
+    Infrastructure carries no semantic commitments: it does not define
+    what events mean (EventArchetype), what state looks like
+    (StateObjectArchetype), or what capabilities exist (Function).
+    Those are epistemic/logical constructs owned by Organization.
+
+    Infrastructure answers: WHAT structural resources exist for
+    governance to operate through?
+
+    **Layer invariant**: removing Infrastructure from a System makes
+    Organization inoperative (unable to act on reality), but NOT
+    incoherent (unable to think). Organization can still reason about
+    its information model, its rules, its constraints — it simply has
+    no operational substrate to execute through.
+
+    In GSM terms, Infrastructure is the *interaction topology* — the
+    material scaffolding that carries governance but does not define
+    it. Without infrastructure, governance definitions have nothing
+    to act through; without governance, infrastructure has no reason
+    to exist.
+
+    **Attributes Semantics**:
+    - `name`: Human-readable semantic identifier.
+    - `mechanisms`: Mechanisms belonging to the component.
+    - `controllers`: Controllers belonging to the component
+      (Mechanism subtypes implementing Rules).
+    - `actuators`: Actuators belonging to the component
+      (Mechanism subtypes executing Actuations).
+    - `sensors`: Sensors belonging to the component
+      (Mechanism subtypes observing Sensings).
+    - `receptors`: Receptors of the component's mechanisms.
+    - `effectors`: Effectors of the component's mechanisms.
+    - `interactions`: Interactions between mechanisms.
+    - `channels`: Channels carrying interactions.
+    - `interfaces`: Named I/O surfaces of the component.
+
+    **Consistency Rules**:
+    - `name` MUST be maximum 80 characters long.
+    - `name` MUST be unique among all components of the same system.
+
+    **Functional Rules**:
+    - `interfaces` MAY be computed from mechanisms grouped by the
+      component.
+    - `interactions` MAY be computed from interactions carried by
+      channels of those interfaces and/or interactions whose
+      effector/receptor is owned by those mechanisms.
+  end note
+
+  SystemicPrimitive <|-- Component : is
+  Component "1" *--> "0..*" Mechanism : has
+  Component "1" *--> "0..*" Receptor : has
+  Component "1" *--> "0..*" Effector : has
+  Component "1" *--> "0..*" Interaction : has
+  Component "1" *--> "0..*" Channel : has
+  Component "1" *--> "0..*" Interface : has
+  Component "1" *--> "0..*" Controller : has
+  Component "1" *--> "0..*" Actuator : has
+  Component "1" *--> "0..*" Sensor : has
+
+  ' ============================================================
+  ' CONTROLLER
+  ' ============================================================
+
+  class Controller {
+    +getRules(): Rule[]
+  }
+
+  note top of Controller
+    **Primitive Semantics**:
+    - Implements Rules and executes their behavioral logic,
+      executing behavioral definitions in or on the state plane.
+    - A Controller Mechanism is auto-derived from the Rules it
+      implements (see Rule: Mechanism Auto-Definition Rule).
+    - **Naming distinction**: the GSM closed-loop paradigm uses
+      "controller" for the Definition plane's cybernetic role
+      (the plane that defines/adjusts governance). This class is
+      a Mechanism-level construct: the infrastructure unit that
+      executes a specific Rule's behavioral logic. The two usages
+      operate at different abstraction levels (plane vs. mechanism).
+
+    **Notes**:
+    - **Dual Definition Semantics:**
+      - **SIE Controller**: SIE Operation plane instantiates and
+        executes. Agency: SIE acts (Observe → Decide → Act).
+      - **Domain Controller**: prescriptive definition of what a
+        domain mechanism MUST be and do. Agency: Tenant acts, SIE
+        oversees (Observe → Decide → Recommend).
+      - Both share the same DPR chain, receptors/effectors, and
+        governance semantics. Distinction appears at realization.
+    - **Autonomy delegation (planned extension):**
+      Delegation scope bounded by measured impact classification.
+      Human governance always in the loop for decision authority.
+      Planned: impact dimension on Actuation + delegation
+      Policy constraining autonomous execution by impact level.
+  end note
+
+  Mechanism <|-- Controller : is
+  Controller "0..1" o--> "0..*" Rule : implements
+
+  ' ============================================================
+  ' ACTUATOR
+  ' ============================================================
+
+  class Actuator {
+    +getActuation(): Actuation
+  }
+
+  note top of Actuator
+    **Primitive Semantics**:
+    - A microscopic execution mechanism that performs a specific state
+      object mutation (CRUD) as declared by an Actuation.
+    - Auto-defined from an Actuation derived from a behavioral
+      Rule body.
+    - Not redundant with Controllers: Controller implements a complete
+      Rule; Actuator executes one specific
+      Actuation.
+
+    **Attributes Semantics**:
+    - `actuation`: The actuation declaration from which the actuator is
+      derived.
+
+    **Functional Rules**:
+    - The actuator MUST operate on a state object archetype owned by
+      the same System, or a subsystem that explicitly shares that state
+      object resource.
+
+    **Notes**:
+    - **Dual Definition Semantics** (same pattern as Mechanism):
+      - **SIE Actuator**: SIE connector/adapter for state changes.
+      - **Domain Actuator**: prescriptive definition; conformance
+        measured by the Supervision plane.
+  end note
+
+  Mechanism <|-- Actuator : is
+  Actuator "0..1" o--> "1" Actuation : implements
+
+  ' ============================================================
+  ' SENSOR
+  ' ============================================================
+
+  class Sensor {
+    +getSensing(): Sensing
+  }
+
+  note top of Sensor
+    **Primitive Semantics**:
+    - A microscopic observation mechanism that captures the effect of a
+      specific Actuation and produces feedback events.
+    - Auto-defined from a Sensing linked to an Actuation, only when
+      the `sys.create/modify/delete/acquire` call's return value is
+      assigned to a variable in the Rule body (see Sensing note for
+      full derivation semantics).
+    - Not redundant with supervision plane: supervision macroscopically
+      evaluates policy/rule compliance; Sensor microscopically observes
+      one Actuation's outcome. Supervision aggregates across Rules;
+      Sensor verifies one Actuation.
+
+    **Functional Rules**:
+    - For every event archetype E whose schema is a subtype of
+      ActuationEventSchema, the sensor MUST have (or derive) a
+      receptor bound to E.
+    - For every receptor bound to E, the sensor MUST have an effector
+      bound to event O whose schema is subtype of
+      ActuationSensingEventSchema.
+
+    **Notes**:
+    - **Dual Definition Semantics** (same pattern as Mechanism):
+      - **SIE Sensor**: SIE polls/subscribes to tenant telemetry.
+      - **Domain Sensor**: prescriptive definition; conformance
+        measured by the Supervision plane.
+  end note
+
+  Mechanism <|-- Sensor : is
+  Sensor "0..1" o--> "1" Sensing : implements
+
+  ' ============================================================
   ' MECHANISM
   ' ============================================================
 
   abstract class Mechanism {
+    +getFunction(): Function
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
   }
@@ -2809,13 +2844,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Represents a system's capability to process input events
       (receptors) and produce output events (effectors).
     - An atomic causal unit of behavior within a system.
-    - **PPR ↔ Behavior Anchor**: the correlation point between
-      governance definitions (PPR) and observable behavior.
+    - **DPR ↔ Behavior Anchor**: the correlation point between
+      governance definitions (DPR) and observable behavior.
       - **Definition side**: structure deterministically derived from
-        PPR (see Rule: Mechanism Auto-Definition Rule).
+        DPR (see Rule: Mechanism Auto-Definition Rule).
       - **Observation side**: DSM observes behavior; the Supervision
         plane compares observed vs. defined.
-      - Unit of both **Realization** and **Observation**.
+      - Unit of **Observation** (DSM compares observed vs.
+        defined behavior).
     - **Positional semantics (GRS&CO)**: GRS&CO labels (Governor,
       Regulator, Supervisor, Coordinator, Operator) name **SIE's
       positional governance functions** — one per plane. They are
@@ -2823,9 +2859,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       by tenant Systems. The Mechanism subtypes (Controller,
       Actuator, Sensor) are operational infrastructure owned by
       tenant Systems.
-    - **Governance authority (not composition)**: PPR artifacts are
+    - **Governance authority (not composition)**: DPR artifacts are
       NOT structurally composed by Mechanisms — the generative
-      direction reverses: PPR definitions → auto-define Mechanism
+      direction reverses: DPR definitions → auto-define Mechanism
       definitions.
 
     **Consistency Rules**:
@@ -2861,6 +2897,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
 
   SystemicPrimitive <|-- Mechanism : is
+  Mechanism "1" o--> "1" Function : realizes
   Mechanism "1" *--> "1..*" Receptor : has
   Mechanism "1" *--> "1..*" Effector : has
 
@@ -2869,7 +2906,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Receptor {
-    +getName(): String
     +getReceivedEventArchetype(): EventArchetype
   }
 
@@ -2881,9 +2917,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Multiple receptors can listen to the same EventArchetype, enabling
       fan-out patterns and cross-component coordination.
 
+    **Auto-derivation**:
+    Receptors MAY be auto-derived by the Definition Manager from
+    Rule bodies (see Rule: Mechanism Auto-Definition Rule):
+    - `on("A")` in Rule body → Receptor on the auto-derived
+      Controller, bound to EventArchetype "A".
+    - `sys.emit("A", data, response="B")` → Receptor on the
+      auto-derived Controller, bound to response EventArchetype "B".
+    - Closed-loop actuation (`var = sys.create/modify/delete/
+      acquire(...)`) → sensing Receptor on the auto-derived
+      Controller, bound to the ActuationSensingEvent archetype
+      emitted by the auto-derived Sensor (see Sensing note).
+    Auto-derived Receptors carry `derived_from_rule_id` and
+    `derived=true`. Recomputed on Rule body change (body_hash diff).
+
     **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all receptors of the same system.
     - A receptor MUST be bound to exactly one event archetype.
     - An event archetype MAY be bound to multiple receptors (sharing
       allowed).
@@ -2901,21 +2949,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Effector {
-    +getName(): String
-    +getProducedEventArchetype(): EventArchetype
+    +getEmittedEventArchetype(): EventArchetype
   }
 
   note top of Effector
     **Primitive Semantics**:
-    - Represents a mechanism's capability to produce events.
-    - Produced events represent the effect of a mechanism's operation
+    - Represents a mechanism's capability to emit events.
+    - Emitted events represent the effect of a mechanism's operation
       on the system.
-    - Multiple effectors can produce the same EventArchetype, enabling
-      distributed event production and consistent event contracts.
+    - Multiple effectors can emit the same EventArchetype, enabling
+      distributed event emission and consistent event contracts.
+
+    **Auto-derivation**:
+    Effectors MAY be auto-derived by the Definition Manager from
+    Rule bodies (see Rule: Mechanism Auto-Definition Rule):
+    - `sys.emit("A", data)` → Effector on the auto-derived
+      Controller, bound to EventArchetype "A".
+    - `sys.create/modify/delete/acquire("A", ...)` → Effector
+      on the auto-derived Controller, bound to an ActuationEvent
+      archetype targeting StateObjectArchetype "A".
+    Auto-derived Effectors carry `derived_from_rule_id` and
+    `derived=true`. Recomputed on Rule body change (body_hash diff).
 
     **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all effectors of the same system.
     - An effector MUST be bound to exactly one event archetype.
     - An event archetype MAY be bound to multiple effectors (sharing
       allowed).
@@ -2926,83 +2982,119 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   SystemicPrimitive <|-- Effector : is
-  Effector "0..*" o--> "1" EventArchetype : produces
+  Effector "0..*" o--> "1" EventArchetype : emits
 
   ' ============================================================
   ' INTERACTION
   ' ============================================================
 
   class Interaction {
-    +getName(): String
     +getEffector(): Effector
     +getReceptor(): Receptor
   }
 
   note top of Interaction
     **Primitive Semantics**:
-    - An event exchange relationship between mechanisms.
-    - May be internal (no channel) or external (carried by channels
-      bound to interfaces).
-    - An atomic causal coupling from a producing effector to a
-      receiving receptor.
-    - Meaning is about *what* is exchanged, not the transport.
+    - An **atomic causal coupling** from a producing effector to a
+      receiving receptor — the primitive of causality in the system.
+    - Every Interaction is carried by exactly one Channel. There is
+      no channelless interaction: every causal influence requires a
+      mediating medium (Shannon: Source→Transmitter→Channel→Receiver;
+      Ashby: variety transmission requires coupling; physics: no
+      action at a distance).
+    - Interaction is medium-agnostic in its API: it declares *what*
+      flows (Effector→Receptor), not *how* it flows. The Channel
+      carries the Interaction, not the other way around. In DB
+      terms, Interaction bears the FK to Channel; in the API,
+      Channel navigates to its carried Interactions.
+    - The Interaction API does not expose its Channel directly.
+      Channel access to Interaction, not Interaction access to
+      Channel. This preserves the semantic separation: Interaction
+      is about causal coupling (what); Channel is about medium
+      (how). Consumers that need to know the medium navigate from
+      Channel.
+    - An Interaction may be **intra-system** (both endpoints owned
+      by the same System — internal coupling) or **cross-system**
+      (endpoints owned by different Systems — requiring a
+      Relationship as governance context). Both always have a
+      Channel.
+
+    **Cross-system Interaction semantics**:
+    - The defining System owns the Interaction instance.
+    - Both endpoints are referenced via aggregation (the Effector
+      and Receptor may belong to different Systems).
+    - The counterparty System MAY define a reciprocal Interaction
+      from its perspective.
+    - Cross-system Interactions without a Relationship between the
+      owning Systems constitute a Supervision finding
+      (ungoverned exchange).
 
     **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `effector`: The producing endpoint emitting an event instance.
+    - `effector`: The emitting endpoint producing an event instance.
     - `receptor`: The receiving endpoint consuming an event instance.
 
     **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all interactions of the same system.
     - `effector` MUST be defined.
     - `receptor` MUST be defined.
-    - The event archetype produced by `effector` MUST be compatible
-      with the event archetype received by `receptor`.
   end note
 
   SystemicPrimitive <|-- Interaction : is
-  Interaction "1" o--> "1" Effector : has
-  Interaction "1" o--> "1" Receptor :  has
+  Interaction "0..*" o--> "1" Effector : has
+  Interaction "0..*" o--> "1" Receptor :  has
 
   ' ============================================================
   ' CHANNEL
   ' ============================================================
 
   class Channel {
-    +getName(): String
     +getInteractions(): Interaction[]
-    +getInterfaceA(): Interface
-    +getInterfaceB(): Interface
   }
 
   note top of Channel
     **Primitive Semantics**:
-    - A structural carrier that mediates interactions.
-    - Connects exactly two interfaces (A and B).
-    - Endpoints intentionally unordered; directionality is a property
-      of specific interactions carried by the channel.
-    - Models *how* exchanges are carried (transport/medium), not their
-      meaning.
+    - A **declared medium** through which Interactions are carried —
+      the constraint on variety/information flow between endpoints.
+    - Grounded in Shannon (channel capacity, noise), Ashby (variety
+      transmission coupling), and Beer (organizational communication
+      pathways with finite capacity and variety engineering).
+    - Models *how* exchanges are carried (transport, capacity,
+      protocol, reliability), not their meaning (*what* flows
+      belongs to Interaction and EventArchetype).
+    - Every Interaction is carried by exactly one Channel. A Channel
+      carries one or more Interactions (multiplexing: one medium,
+      many signals).
+    - Directionality is a property of specific Interactions carried
+      by the Channel, not of the Channel itself.
+
+    **Cross-system Channel semantics**:
+    - The defining System owns the Channel instance.
+    - The counterparty System MAY define a reciprocal Channel
+      from its perspective.
+    - Cross-system Channels without a Relationship between the
+      endpoint Systems constitute a Supervision finding
+      (ungoverned connectivity).
 
     **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `interactions`: Interactions carried by the channel.
-    - `interfaceA`: One endpoint interface.
-    - `interfaceB`: The other endpoint interface.
+    - `interactions`: Interactions carried by the channel (stored;
+      in DB, Interaction bears FK to Channel).
 
     **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all channels of the same system.
-    - `interfaceA` MUST be defined.
-    - `interfaceB` MUST be defined.
-    - `interfaceA` MUST NOT be the same as `interfaceB`.
+    - A Channel MUST carry at least one Interaction.
+
+    **Derived content**:
+    - **Interfaces**: derived from the Channel's Interactions.
+      A Channel "connects to" the Interfaces that expose the
+      Effectors/Receptors used by its Interactions:
+        channelInterfaces(C) = { I ∈ Interface |
+          ∃ interaction ∈ C.interactions :
+          I.exposes(interaction.effector) OR
+          I.exposes(interaction.receptor) }
+    - **Cross-system**: derived from whether the Channel's
+      Interactions have endpoints owned by different Systems.
   end note
 
   SystemicPrimitive <|-- Channel : is
-  Channel "1" o--> "0..*" Interaction : carries
-  Channel "1" o--> "1" Interface : interfaceA
-  Channel "1" o--> "1" Interface : interfaceB
+  Channel "1" *--> "0..*" Interaction : carries
 
   ' ============================================================
   ' INTERFACE
@@ -3012,39 +3104,1032 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getName(): String
     +getReceptors(): Receptor[]
     +getEffectors(): Effector[]
-    +getChannels(): Channel[]
   }
 
   note top of Interface
     **Primitive Semantics**:
-    - An interaction surface of a system or component.
-    - Can be purely internal (structuring architecture) or external
-      (participating in a system boundary).
-    - Groups receptors and effectors to make interaction points explicit.
+    - A **named I/O surface** — a curated selection of Receptors
+      and Effectors grouped into a coherent, addressable contact
+      point on a Component.
+    - Interface answers: WHICH of a Component's I/O ports form a
+      coherent surface for external interaction, and what is that
+      surface called?
+    - This is a **structural design decision** — an explicit
+      declaration of what is exposed, not a derivable consequence
+      of wiring. Without Interface, there is no way to express
+      "these Receptors/Effectors constitute my REST API" vs.
+      "these are internal processing ports" prior to any
+      Interaction being wired.
+    - Interface is NOT a boundary or governance primitive.
+      Governance boundaries are emergent from Constitution
+      (Purpose + Directive define identity; identity implies
+      boundary). Boundary governance semantics (what may cross,
+      how variety is transformed) belong to DPR (Policies
+      constraining exchange, Rules implementing crossing logic).
+      Interface is purely structural: a named group of I/O ports.
+    - **Boundary significance is supervision-derived**: an
+      Interface becomes a governance-relevant boundary surface
+      when it participates in cross-system Channels (derived
+      from Interactions). This is an observation (Supervision
+      plane), not a declaration.
 
     **Attributes Semantics**:
-    - `name`: Human-readable semantic identifier.
-    - `receptors`: Receptors regrouped by the interface.
-    - `effectors`: Effectors regrouped by the interface.
-    - `channels`: Channels for which this interface is an endpoint.
+    - `name`: Human-readable semantic identifier for the I/O
+      surface (e.g., "REST API", "Event Bus Listener",
+      "Database Wire Protocol").
+    - `receptors`: The Receptors selected for this surface.
+    - `effectors`: The Effectors selected for this surface.
 
     **Consistency Rules**:
+    - `name` MUST be mandatory and non-empty.
     - `name` MUST be maximum 80 characters long.
-    - `name` MUST be unique among all interfaces of the same system.
-    - An interface MUST regroup at least one receptor.
-    - An interface MUST regroup at least one effector.
+    - `name` MUST be unique among all interfaces of the same
+      Component.
+    - An Interface MUST contain at least one Receptor or one
+      Effector (an empty surface is meaningless).
+    - A Receptor/Effector MAY belong to multiple Interfaces
+      (the same port can participate in multiple surfaces).
+    - All Receptors/Effectors in an Interface MUST belong to
+      Mechanisms owned by the same Component that owns the
+      Interface.
 
-    **Functional Rules**:
-    - `receptors` and `effectors` MAY be computed from interactions
-      carried by the interface's channels.
-    - `channels` MAY be computed as all channels for which this
-      interface is an endpoint.
+    **Derived content**:
+    - **Channels**: Channels whose Interactions reference
+      Effectors/Receptors exposed by this Interface:
+        interfaceChannels(I) = { C ∈ Channel |
+          ∃ interaction ∈ C.interactions :
+          I.exposes(interaction.effector) OR
+          I.exposes(interaction.receptor) }
+    - **Interactions**: the subset of those Channels'
+      Interactions whose Effector or Receptor is exposed
+      by this Interface.
+    - **Internal vs. external**: derived from whether this
+      Interface's Channels have Interactions with endpoints
+      owned by different Systems.
+
+    **Supervision-derived coherence findings**:
+    - Interface with no participating Channels → orphaned I/O
+      surface (warning).
+    - External Interface (cross-system Channels) on a System
+      with no Relationship to the counterparty System →
+      ungoverned external surface (warning).
+    - Receptor/Effector participating in cross-system
+      Interactions but not selected by any Interface →
+      undeclared external exposure (warning).
   end note
 
   SystemicPrimitive <|-- Interface : is
-  Interface "1" o--> "1..*" Receptor : regroups
-  Interface "1" o--> "1..*" Effector : regroups
-  Interface "1" *--> "0..*" Channel : has
+  Interface "1" o--> "0..*" Receptor : exposes
+  Interface "1" o--> "0..*" Effector : exposes
+
+  ' ============================================================
+  ' GSM GOVERNANCE ARCHITECTURE ANALYSIS
+  '
+  ' Constraining vs Defining, Governance Axes, Qualifier
+  ' Duality, and the Integrated Picture
+  ' ============================================================
+
+  note as GsmArchitectureAnalysis
+    **GSM Governance Architecture Analysis**
+
+    This note captures the design analysis of GSM's governance
+    paradigm: the distinction between constraining and defining,
+    the governance axes across all layers, the relationship
+    between Qualifiers and Policies, and the resolution of
+    whether structural definition requires new primitives.
+
+    ════════════════════════════════════════════════════════════
+    **1. CONSTRAINING vs DEFINING — foundational distinction**
+    ════════════════════════════════════════════════════════════
+
+    These are two orthogonal governance modes, not synonyms:
+
+    **Constraining** = declaring bounds on a possibility space
+    (reducing variety, Ashby). Declarative. "This property must
+    hold." Does NOT produce the thing — only bounds its
+    acceptable range. The thing must exist independently.
+
+    **Defining** = establishing existence, content, or logic
+    (selecting specific variety). Generative. "This IS."
+    Produces the thing itself.
+
+    They compose orthogonally: you can constrain something
+    that is defined, and define something that is constrained.
+
+    **Where DPR sits:**
+
+    | DPR Level   | Mode        | What it does                    |
+    |-------------|-------------|---------------------------------|
+    | Directive   | Constrains  | Quality direction on Purpose    |
+    | Policy      | Constrains  | Measurable bound/spec (any axis)|
+    | Rule        | Defines     | Behavioral logic (imperative)   |
+
+    The Policy → Rule transition is simultaneously:
+    - A **modality step-down** (declarative → imperative)
+    - A **mode transition** (constraining → defining)
+    - An **axis narrowing** (any axis → behavioral axis only)
+
+    ════════════════════════════════════════════════════════════
+    **2. GOVERNANCE AXES — what kinds of things are governed**
+    ════════════════════════════════════════════════════════════
+
+    GSM recognizes six governance axes, each targeting a
+    different kind of system property:
+
+    | Axis         | Question                               | Primitives                                      |
+    |--------------|-----------------------------------------|-------------------------------------------------|
+    | Teleological | WHY does the system exist?              | Purpose, Directive                               |
+    | Functional   | WHAT can the system do?                 | Function                                         |
+    | Behavioral   | HOW does the system act on events?      | Rule, Actuation, Sensing                         |
+    | Structural   | WITH WHAT is the system built?          | Component, Mechanism, Interface, Channel, R/E    |
+    | Relational   | WITH WHOM does the system connect?      | Relationship, Role                               |
+    | Epistemic    | WHAT does the system know about?        | EventArchetype, StateObjectArchetype             |
+
+    Policy predicates can reference properties across ALL axes
+    (structural, behavioral, epistemic, relational). This is
+    why Policy is the **universal constraining construct**:
+    axis-agnostic, measurable, declarative.
+
+    Rule operates on ONE axis only: behavioral. Its Starlark
+    body is a process definition, not a property assertion.
+
+    ════════════════════════════════════════════════════════════
+    **3. POLICY IS THE UNIVERSAL CONSTRAINING CONSTRUCT**
+    ════════════════════════════════════════════════════════════
+
+    Policy constrains properties across ALL governance axes.
+    The difference between constraining and specifying a
+    property reduces to the operator:
+
+    - **Constraint**: `Component.replicas >= 2` (inequality)
+    - **Specification**: `Component.replicas == 3` (equality)
+
+    Both are valid Policy predicates. Both are declarative,
+    measurable, appraised by Supervision, and traceable through
+    Operationalization.
+
+    Policy constraining examples (axis-agnostic):
+    - Quality constraints: `Service.integrity >= 0.99`
+    - Structural bounds: `Component.replicas >= 2`
+    - Configuration bounds: `Controller.maxRetries >= 2`
+    - Relational properties: `Relationship.sla.uptime >= 0.99`
+    - Epistemic properties: `EventArchetype.schema.version ==
+      "2.0"`
+
+    No axis-specific constraint primitives are needed.
+
+    **Conflation warning — Policy `==` as disguised definition:**
+
+    When Policy uses equality (`Controller.maxRetries == 3`),
+    it conflates constraint and definition in one artifact.
+    The operator `==` is formally a constraint (bounds the
+    acceptable space to a single point), but functionally acts
+    as a definition (specifies the value). This causes:
+    - **Change velocity mismatch**: changing a value ("set
+      retries to 5" — operational) requires changing a Policy
+      (governance-plane artifact with Regulation review).
+    - **Ownership confusion**: "minimum retries for
+      reliability" is a governance decision (slow); "how many
+      retries" is an operational decision (fast).
+    - **Loss of orthogonality**: constraining and defining
+      become inseparable in the same artifact.
+
+    See §9 (DPQ exploration) for a resolution that preserves
+    the constraining/defining separation.
+
+    ════════════════════════════════════════════════════════════
+    **4. WHY NO "STRUCTURAL RULE" IS NEEDED**
+    ════════════════════════════════════════════════════════════
+
+    **Behavior is a PROCESS** — it requires imperative
+    definition (event trigger → conditional logic → sys.* calls
+    → state mutation). Only executable logic can define behavior.
+    Hence Rule exists: an imperative, computational body.
+
+    **Structure is STATE** — expressible as declarative property
+    assertions. "This Mechanism MUST have 3 replicas" is a
+    property statement, not a computation. There is no event
+    trigger, no conditional branch, no execution step. A
+    "structural Rule" would be a degenerate Rule with no
+    computational body — just a property assignment.
+
+    That degenerate form already exists: it is a Policy with an
+    equality predicate. `Controller.maxRetries == 3` IS the
+    "structural definition" — it specifies the exact value
+    without imperative logic.
+
+    **The declarative/imperative boundary applies ONLY to
+    behavior:**
+    - Constitution: declarative (Purpose, Directive)
+    - Organization: declarative (Policy) + imperative (Rule,
+      for behavior only)
+    - Infrastructure: governed by Policy predicates targeting
+      structural properties (declarative)
+
+    The DPR chain therefore has two sub-chains with different
+    terminal modalities:
+    - **DP** (Directive → Policy): constraining gradient.
+      Declarative. Axis-agnostic. Terminates at Policy for
+      structural governance.
+    - **DPR** (Directive → Policy → Rule): constraining-then-
+      defining gradient. Declarative → imperative. Terminates
+      at Rule for behavioral governance.
+
+    ════════════════════════════════════════════════════════════
+    **5. THE QUALIFIER DUALITY — governance gap**
+    ════════════════════════════════════════════════════════════
+
+    **The semantic family of "qualifier":**
+
+    Three concepts share the root "qualifier" / "quality":
+
+    | Concept                   | Level        | Function                                |
+    |---------------------------|--------------|-----------------------------------------|
+    | purposeQualifier (String) | Constitution | **Names** a quality dimension            |
+    | Policy predicate          | Organization | **Constrains** the dimension             |
+    | SystemicPrimitiveQualifier| Meta-model   | **Defines** a value on a primitive       |
+
+    These form a governance gradient on the SAME quality
+    property:
+      purposeQualifier (names it) → Policy (bounds it)
+      → Qualifier.value (defines it)
+
+    **The governance gap**: only the first two steps are
+    connected via Operationalization. Qualifier.value is
+    disconnected from DPR — no governance lineage, no
+    appraisal, no coherence check against Policies constraining
+    the same property.
+
+    Example of the gap:
+    - Policy: `Controller.maxRetries >= 2` (DPR-governed)
+    - Qualifier: `{"maxRetries": 3}` (ungoverned, parallel)
+    - Same property, two representations, no coherence link.
+
+    **Coexistence of constraining and defining:**
+
+    The gap reveals that constraining (Policy) and defining
+    (Qualifier) are orthogonal operations on the same property.
+    All four combinations are valid:
+
+    | Constrained? | Defined? | Meaning                     |
+    |:---:|:---:|--------------------------------------------|
+    | No  | No  | Property in schema but unused              |
+    | No  | Yes | Value defined, ungoverned → gap finding    |
+    | Yes | No  | Bounds set, no value yet → spec gap        |
+    | Yes | Yes | **Complete governance**: bound + value      |
+
+    Defining without constraining is legitimate (the system
+    HAS this value; governance hasn't opined yet). Constraining
+    without defining is legitimate (governance says "at least
+    2" but no operational value chosen yet).
+
+    **Two competing resolutions (evaluated):**
+
+    The SystemicPrimitiveQualifier mechanism serves TWO
+    distinct functions:
+
+    (a) **Ontological extension** (schema extensibility):
+        QualifierArchetype schemas define WHAT PROPERTIES CAN
+        EXIST on a primitive — domain-specific vocabulary.
+        NOT governance-active; it is structural vocabulary.
+        **This remains as is in both resolutions.**
+
+    (b) **Governance-active property values**:
+        Qualifier.value stores property values that may carry
+        governance intent (retryPolicy, maxRetries, timeoutMs).
+
+    **Resolution A — migrate to Policy `==`:**
+    Governance-active configuration expressed as Policy
+    equality predicates (`Controller.maxRetries == 3`).
+    Qualifier retains only purely epistemic metadata.
+    - Pro: simple, no new mechanism.
+    - Con: conflates constraint and definition (see §3
+      conflation warning). Operational value changes
+      require governance-plane Policy changes.
+
+    **Resolution B — DPQ (Directive → Policy → Qualifier):**
+    Qualifier values stay as first-class definition atoms,
+    governed through DPQ chains (see §9). Policy constrains;
+    Qualifier defines. Each follows its own governance
+    process with its own change velocity.
+    - Pro: preserves constraining/defining orthogonality.
+    - Pro: different change dynamics (governance vs.
+      operational).
+    - Con: more complex model; requires Qualifier governance
+      lifecycle and Operationalization linkage.
+
+    **Resolution B is more systemics-aligned** (separation of
+    governance and operational concerns, different change
+    velocities) but requires model evolution. See §9 for full
+    exploration.
+
+    **Definitional relevance test (all GSM qualifiers):**
+    GSM is the definition model. All content SHOULD be
+    definitionally relevant. Test: would this property produce
+    governance effects (be referenced by a Policy)?
+    - YES → definitional → GSM (e.g., technology, maxRetries)
+    - NO → classificatory → DSM (e.g., industry, department)
+    This aligns with the existing "no classification in GSM"
+    argument. Purely classificatory qualifiers should migrate to
+    DSM; definitionally relevant qualifiers stay in GSM.
+
+    ════════════════════════════════════════════════════════════
+    **6. CONTROLLER IN OPERATIONALIZATION — RESOLVED: NO**
+    ════════════════════════════════════════════════════════════
+
+    The TODO question asked: "Should Controller be added to the
+    Operationalization chain (Directive → Policy → Rule →
+    Controller)?"
+
+    **Answer: No.** With governance-active qualifier
+    configuration migrating to Policies:
+
+    1. **Controller properties are already governed by
+       Policies** that target Controller archetype properties
+       in their predicates. Those Policies ARE in the
+       Operationalization chain (Directive → Policy).
+
+    2. **Controller.implements(Rule)** provides structural
+       traceability from governance to infrastructure. This
+       is a realization link (HOW), not a governance lineage
+       link (WHY).
+
+    3. **Extending Operationalization** would conflate the
+       governance lineage axis (WHY: Directive → Policy →
+       Rule) with the structural realization axis (HOW: Rule
+       → auto-derives → Controller). These are different
+       questions that use different navigation paths.
+
+    4. **"What Policies govern this Controller?"** is
+       answerable by: find Policies whose predicates reference
+       Controller archetype properties. No Operationalization
+       extension needed.
+
+    Operationalization remains: Directive → Policy → Rule.
+    The Controller is the TARGET of governance, not a node
+    in the governance lineage.
+
+    ════════════════════════════════════════════════════════════
+    **7. INTEGRATED PICTURE — the complete GSM governance map**
+    ════════════════════════════════════════════════════════════
+
+    **Layers × Axes × Modes:**
+
+    | Layer          | Governance Mode            | Primitives                                    |
+    |----------------|----------------------------|-----------------------------------------------|
+    | Constitution   | Anchoring (teleological)   | Purpose (defines), Directive (constrains)     |
+    | Organization   | Constraining (declarative) | Policy (any axis), Operationalization (trace) |
+    |                | Defining (imperative)      | Rule (behavioral)                             |
+    |                | Defining (authored)        | Function, Relationship, Component (compose)   |
+    |                | Defining (epistemic)       | EventArchetype, StateObjectArchetype          |
+    |                | Defining (auto-derived)    | Actuation, Sensing                            |
+    | Infrastructure | Realizing (auto-derived)   | Controller, Actuator, Sensor, R/E             |
+    |                | Realizing (authored)       | Mechanism, Interaction, Channel, Interface    |
+
+    **The three navigation paths:**
+
+    1. **Operationalization** (governance lineage — WHY):
+       Directive → Policy → Rule
+       "Why does this Rule exist?"
+       Traces normative authority from identity to behavior.
+
+    2. **Auto-derivation** (structural production — HOW built):
+       Rule body → Controller + Actuator + Sensor + R/E
+       "What infrastructure does this Rule produce?"
+       Traces behavioral definition to structural realization.
+
+    3. **Policy targeting** (structural governance — governed):
+       Policy predicate → any archetype property
+       "What constraints apply to this infrastructure?"
+       Traces governance to structural targets.
+
+    **Rule is the nexus** where:
+    - Path 1 terminates (governance lineage arrives)
+    - Path 2 departs (infrastructure auto-derives)
+    - Path 3 connects laterally (Policies constrain both
+      Mechanism-realized Functions and auto-derived infrastructure)
+    - Value delivery is structurally traceable: Function ←
+      Mechanism/Controller → Rule → Operationalization →
+      Directive → Purpose
+
+    **The complete DPR governance chain:**
+
+    For BEHAVIOR (declarative → imperative):
+      Purpose ← Directive → Policy → Rule → (auto-derives)
+      Controller → Actuator/Sensor → R/E → Mechanism
+
+    For STRUCTURE (declarative throughout):
+      Purpose ← Directive → Policy → (predicates target)
+      Component, Mechanism, Interface, Channel properties
+
+    The same Directive can operationalize through BOTH
+    sub-chains: one Policy constraining behavior (via Rule),
+    another Policy specifying structural properties directly.
+    Both appear in Operationalization. Both are appraised.
+
+    ════════════════════════════════════════════════════════════
+    **8. REMAINING DESIGN FRONTIERS (open)**
+    ════════════════════════════════════════════════════════════
+
+    (a) **Relationship teleological traceability**: Relationship
+        has no explicit DPR lineage — "why does this
+        Relationship exist?" is not traceable through
+        Operationalization. Acceptable for now;
+        Supervision detects Relationships without corresponding
+        cross-system Channels.
+
+    (b) **Function → Mechanism derivability**: Function is now
+        directly referenced by Mechanism (1:1). The structural
+        chain Function ← Mechanism/Controller → Rule provides
+        value delivery traceability without a dedicated
+        primitive.
+
+    (c) **Qualifier scope reduction**: if governance-active
+        configuration migrates to Policy (Resolution A) or
+        becomes a governed DPQ atom (Resolution B), the
+        residual ungoverned Qualifier scope (purely epistemic
+        metadata) may overlap with the existing "no
+        classification in GSM" principle. Evaluate whether
+        the remaining Qualifier use cases are consistent with
+        GSM's generative nature or should migrate to DSM.
+
+    (d) **Policy predicate property resolution**: Policy
+        predicates reference archetype property paths. The
+        Definition Manager must resolve property references
+        against both archetype schemas AND qualifier archetype
+        schemas. This is an engineering requirement, not a
+        model change.
+
+    (e) **DPQ model decision**: §9 explores DPQ but does not
+        resolve it. Key remaining questions:
+        - How does Operationalization accommodate a Qualifier
+          terminal? (extend existing or new tracing primitive?)
+        - Does Qualifier need its own definition lifecycle
+          (SystemicPrimitiveDefinitionStatus) or inherit from
+          its parent primitive?
+        - Engineering: how does the Definition Manager validate
+          Qualifier values against Policy predicates at save
+          time?
+
+    (f) **Policy classification by predicate target**: §11
+        formalizes the deterministic triple classification
+        (behavioral / structural-defined / structural-emergent).
+        Remaining questions:
+        - Should Policy carry a derived `governanceCategory`
+          field (BEHAVIORAL / STRUCTURAL_DEFINED /
+          STRUCTURAL_EMERGENT) or is this purely a query-time
+          derivation?
+        - How does dual governance (same Policy in both DPR
+          and DPQ) interact with Operationalization? Does the
+          same Policy appear in two chains with different
+          terminals?
+
+    ════════════════════════════════════════════════════════════
+    **9. DPQ EXPLORATION — structural/property definition atom**
+    **(OPEN — design exploration, not resolved)**
+    ════════════════════════════════════════════════════════════
+
+    **The gap in the current model:**
+
+    The DPR chain has a behavioral definition atom (Rule) but
+    no structural/property definition atom. For structural
+    governance, the chain is:
+      Directive → Policy → ??? (where is the value?)
+
+    The current §4 resolved this as "Policy `==` handles
+    structural specification." But §3 identified that this
+    conflates constraint and definition. The gap:
+
+    | Governance need       | Constraining                | Defining                  |
+    |-----------------------|-----------------------------|---------------------------|
+    | Behavior              | Policy (declarative)        | Rule (imperative)         |
+    | Structure / property  | Policy (declarative)        | **??? (gap)**             |
+
+    **DPQ fills the gap with Qualifier as definition atom:**
+
+    | Chain | Terminal atom | Atom modality | Produces          |
+    |-------|---------------|---------------|-------------------|
+    | DPR   | Rule          | Imperative    | Behavioral logic  |
+    | DPQ   | Qualifier     | Declarative   | Property value    |
+
+    Both share the **DP** constraining root
+    (Directive → Policy). They fork at the definition level:
+    - Rule: behavioral definition (event-triggered logic)
+    - Qualifier: structural/property definition (JSON value)
+
+    **Concrete example — DPQ in action:**
+
+    - Directive: "System MUST ENSURE availability OF
+      data-persistence"
+    - Policy: `Database.replicas >= 3` (bounds)
+    - Qualifier: `{"replicas": 5}` (value within bounds)
+    - Supervision: checks `5 >= 3` → compliant ✓
+
+    If operational needs change (scale to 7 replicas):
+    - Change Qualifier only (operational decision, fast)
+    - Policy unchanged (governance decision, stable)
+    - Supervision re-checks: `7 >= 3` → still compliant ✓
+
+    Compare with Policy-only model (Resolution A):
+    - Policy: `Database.replicas == 5`
+    - Scale to 7 → change Policy (governance process, slow)
+    - Or: two Policies `>= 3` (constraint) and `== 5` (spec)
+      — redundant and conflict-prone.
+
+    **DP → {R, Q} — the complete definitional grammar:**
+
+    ```
+    DP (constraining gradient — declarative, universal):
+      Directive → Policy
+
+    DPR (behavioral definition — imperative, code):
+      DP → Rule → (auto-derives) Controller/Actuator/Sensor
+
+    DPQ (structural/property definition — imperative, data):
+      DP → Qualifier.value → (stored on) SystemicPrimitive
+    ```
+
+    DP is the common constraining root. It forks into two
+    definition atoms:
+    - **Rule**: what to DO on events (behavioral axis)
+    - **Qualifier**: what this IS (all non-behavioral axes)
+
+    Both are **governance-imperative**: acts of definition that
+    select specific variety within Policy bounds. They differ
+    only in technical representation (Starlark code vs. JSON
+    data) and governance axis (behavioral vs. structural).
+
+    Together, Rule + Qualifier cover the full axis space for
+    DEFINITION, while Policy covers it universally for
+    CONSTRAINING.
+
+    Note: §11 extends this binary fork into a triple
+    classification (DPR / DPQ / DP-only) and shows that the
+    fork is **deterministic** — determined by static analysis
+    of the Policy predicate target. It also identifies a
+    third category (structural-emergent) where DP terminates
+    at Policy with no definition atom needed.
+
+    **Qualifier definitional scope in this model:**
+
+    Under DPQ, Qualifier content falls into three categories:
+
+    | Category | Example                       | In GSM? | Governed? |
+    |----------|-------------------------------|:-------:|:---------:|
+    | Governance-active  | {"replicas": 3}     | Yes     | Yes (DPQ) |
+    | Definitional but   | {"technology": "PG"} | Yes     | Maybe     |
+    | ungoverned         |                       |         | (gap)     |
+    | Classificatory     | {"industry": "fin"} | **No**  | No → DSM  |
+
+    **The "no classification in GSM" argument still holds:**
+    classificatory qualifiers are descriptive opinion, not
+    definitional — they belong to DSM. All remaining GSM
+    qualifiers should be definitionally relevant (would a
+    Policy reference this property?).
+
+    **§4 update — still no "structural Rule":**
+
+    DPQ does NOT contradict §4. There is still no need for a
+    "structural Rule" (imperative executable logic for
+    structural definition). Qualifier defines values as JSON
+    data, not executable logic — but this is a **technical
+    modality** difference, not a governance modality
+    difference.
+
+    Both DPR and DPQ share the same governance modality
+    transition:
+    - DP (declarative: constraining) → Rule (imperative:
+      defining behavior — expressed as code)
+    - DP (declarative: constraining) → Qualifier (imperative:
+      defining value — expressed as data)
+
+    The constraining → defining transition occurs at the
+    SAME structural point in both chains: the fork from
+    Policy to the terminal atom.
+
+    ════════════════════════════════════════════════════════════
+    **10. RULE↔POLICY vs QUALIFIER↔POLICY — relationship types**
+    **(OPEN — design exploration)**
+    ════════════════════════════════════════════════════════════
+
+    **Policy→Rule: ENFORCEMENT relationship**
+
+    - Policy declares a constraint
+    - Rule defines behavioral logic that operationalizes the
+      constraint as imperative system behavior
+    - The Rule's body is NOT derivable from the Policy
+    - The Rule adds entirely new information (event trigger,
+      conditional logic, state mutations)
+    - Verification is **indirect**: the Supervision plane
+      observes behavioral outcomes and compares with Policy
+      (observation-time — requires runtime evidence)
+    - Multiple radically different Rules could operationalize
+      the same Policy
+    - Rule may operationalize zero, one, or multiple Policies
+
+    Concrete mapping:
+    - Policy: `Order.total == sum(lineItems[*].subtotal)`
+    - Rule: on("OrderSubmitted") → validate → reject
+    - The Rule DEFINES the behavioral response to an event.
+      The Rule exists because the Policy exists — without the
+      Policy, there is no reason for the validation logic.
+      But the Rule is a design-time definition, not a runtime
+      enforcement mechanism. The Operation plane executes the
+      Rule; the Supervision plane verifies Policy compliance.
+
+    **Policy→Qualifier: SATISFACTION relationship**
+
+    - Policy declares a constraint on a property's value space
+    - Qualifier provides a specific value **within those bounds**
+    - The Qualifier's content IS partially constrained by the
+      Policy (must satisfy the predicate)
+    - Verification is **direct**: evaluate Policy predicate
+      with Qualifier value → boolean (definition-time —
+      value is known at save/parse)
+    - Multiple values could satisfy the same Policy (bounded
+      set)
+    - A Qualifier value may satisfy zero, one, or multiple
+      Policies
+
+    Concrete mapping:
+    - Policy: `Database.replicas >= 3`
+    - Qualifier: `{"replicas": 5}`
+    - The value 5 EXISTS within the bound ≥ 3. Without the
+      Policy, the value can be anything (ungoverned).
+
+    **Comparison summary:**
+
+    | Aspect            | Rule ← Policy      | Qualifier ← Policy  |
+    |-------------------|---------------------|----------------------|
+    | Relationship type | ENFORCEMENT         | SATISFACTION         |
+    | Axis relation     | Cross-axis          | Same-axis            |
+    | Content derivable | No (new info)       | Partially (bounded)  |
+    | Verification      | Observation-time    | Definition-time      |
+    | Change coupling   | Loose               | Tight (value space)  |
+
+    Both are **governance lineage** — both answer "why does
+    this definition exist?" Both are traceable through
+    Operationalization. Both are appraised by Supervision.
+    Both are **design-time definitions** — neither enforces
+    anything at runtime. The Operation plane executes; the
+    Supervision plane verifies.
+    They capture different KINDS of definitional
+    relationships: enforcement (behavioral) vs. satisfaction
+    (structural/property).
+
+    ════════════════════════════════════════════════════════════
+    **11. POLICY CLASSIFICATION BY PREDICATE TARGET**
+    **(deterministic routing to governance terminal)**
+    ════════════════════════════════════════════════════════════
+
+    The DP → {R, Q} fork (§9) is not arbitrary — it is
+    **determined by what the Policy's predicate targets**.
+    The predicate target dictates the governance response:
+    what kind of definition atom (if any) is needed to
+    satisfy or enforce the constraint.
+
+    **Critical framing — all chains are definition-time:**
+
+    DPR, DPQ, and DP-only are ALL Definition-plane artifacts.
+    None of them "enforce at runtime." The distinction is
+    NOT when things happen (all definition-time), but:
+    - What KIND of definitional response does the constraint
+      require? (Rule / Qualifier / none)
+    - When can the Supervision plane VERIFY compliance?
+      (observation-time / definition-time)
+
+    The Operation plane executes (realizes definitions).
+    The Supervision plane verifies (evaluates Policies
+    against evidence). DPR and DPQ only DEFINE — they
+    produce the artifacts that Operation realizes and
+    Supervision verifies. Confusing Definition with
+    Operation or Supervision breaks the closed-loop plane
+    boundaries.
+
+    **Three Policy categories (deterministic):**
+
+    | Category | Predicate targets | Definitional response | Verification availability | Chain |
+    |---|---|---|---|---|
+    | Behavioral | SOA properties, event dynamics | Rule (imperative) | Observation-time | DPR |
+    | Structural-defined | Qualifier properties on any SP | Qualifier (declarative) | Definition-time | DPQ |
+    | Structural-emergent | Graph properties (cardinality, topology) | — (none) | Definition-time | DP |
+
+    **Verification availability** clarifies WHEN the
+    Supervision plane has sufficient evidence to evaluate:
+    - **Observation-time**: requires evidence from the State
+      plane (state object instances, event flow). Supervision
+      cannot verify until the system is operating.
+    - **Definition-time**: verifiable at save/parse time from
+      the definition graph (Qualifier values or structural
+      properties are known when authored).
+
+    This is a SUPERVISION concern, not a Definition concern.
+    Both DPR and DPQ are definition-time. The Policy does
+    not "know" when it will be verified — it only declares
+    what must hold.
+
+    **Category 1 — Behavioral Policies (DPR)**
+
+    Target: **StateObjectArchetype properties** and runtime
+    dynamics (event flow, sequencing, mutation invariants).
+
+    These constrain properties that **exist only at runtime**
+    — state object instances in the state plane. The
+    Supervision plane cannot verify at definition-time
+    because the governed property depends on event-driven
+    dynamics that require runtime evidence.
+
+    Governance response: **Rule** (imperative behavioral
+    logic), which DEFINES how the system acts on events —
+    what triggers it, what conditions it evaluates, what
+    state mutations it performs.
+
+    Why Rule: the constraint requires **creative behavioral
+    information** — which event triggers it, what conditional
+    logic applies, which sys.* calls define behavior. This
+    information is NOT derivable from the Policy. The Rule
+    adds entirely new information (§10: ENFORCEMENT).
+
+    **The Rule does NOT "enforce" the Policy at runtime.**
+    The Rule DEFINES behavioral logic (Definition plane).
+    The Operation plane EXECUTES the Rule (Ontic layer).
+    The Supervision plane VERIFIES whether the executed
+    behavior satisfies the Policy (Reflexive layer,
+    observation-time). These are three distinct functions
+    across three distinct planes — conflating them breaks
+    the closed-loop governance boundaries.
+
+    Examples:
+    - `Order.total == sum(lineItems[*].subtotal)` →
+      Rule: on("OrderSubmitted") → validate → reject
+    - `Payment.status != "processed" UNTIL
+      Validation.status == "passed"` →
+      Rule: on("PaymentRequest") → check validation →
+      block/proceed
+
+    Change dynamics: Policy changes slowly (governance
+    decision); Rule changes at behavioral-logic velocity
+    (how to act). Different concerns, different owners.
+
+    **Category 2 — Structural-Defined Policies (DPQ)**
+
+    Target: **Qualifier properties** on any SystemicPrimitive
+    (not limited to infrastructure — qualifiers exist on
+    Components, Functions, Purposes, Relationships, etc.).
+
+    These constrain properties that **are authored at
+    definition-time** as Qualifier values (JSON). The
+    Supervision plane can verify at save/parse time by
+    evaluating the Policy predicate against the Qualifier
+    value.
+
+    Governance response: **Qualifier** (declarative value),
+    which provides a specific value within the bounds set by
+    the Policy.
+
+    Why Qualifier: the constraint requires only a **parametric
+    value selection** within a bounded space — no event
+    trigger, no conditional logic, no imperative computation.
+    The value partially follows from the constraint
+    (§10: SATISFACTION).
+
+    Examples:
+    - `Database.replicas >= 3` →
+      Qualifier: {"replicas": 5} (value within bounds)
+    - `Controller.maxRetries >= 2` →
+      Qualifier: {"maxRetries": 3} (value within bounds)
+    - `Function.maxConcurrency <= 100` →
+      Qualifier: {"maxConcurrency": 50}
+
+    Change dynamics: Policy changes slowly (governance
+    constraint); Qualifier changes at operational velocity
+    (which value to choose within bounds). This IS the
+    change-velocity separation that motivated DPQ (§9).
+
+    **Why NOT "functional" and "infrastructure":**
+
+    The initial framing used "functional policies → Rule"
+    and "infrastructure qualifier → Qualifier." This is
+    directionally correct but imprecise:
+
+    - "Functional" collides with the GSM `Function`
+      primitive. These Policies are not about Functions
+      specifically — they are about **behavioral dynamics**
+      (state mutations, event processing, sequencing).
+      Functions are reached indirectly through Mechanism
+      reference.
+      **Behavioral** is the precise term.
+
+    - "Infrastructure qualifier" is too narrow. Qualifiers
+      exist on ALL SystemicPrimitives across ALL layers:
+      Component (infrastructure), Function (organization),
+      Purpose (constitution), Relationship (organization).
+      The structural-defined category encompasses **any**
+      primitive's Qualifier properties, not just
+      infrastructure. **Primitive qualifier** is the
+      precise scope.
+
+    **However**: Organization IS the logical structuring OF
+    Infrastructure. Structural properties on Organization-
+    level primitives (e.g., maxConcurrency on Function,
+    slaUptime on Relationship) are ultimately properties of
+    the Infrastructure primitives that realize them
+    (Mechanism, Channel). The meta-model allows Qualifiers
+    on any SystemicPrimitive, but the structural truth lives
+    at the Infrastructure layer. Organization-level
+    structural Qualifiers are governance projections of
+    Infrastructure properties.
+
+    Properties that seem "organizational" but are really
+    structural (maxConcurrency, slaUptime) CAN and arguably
+    SHOULD be expressed on the Infrastructure primitives
+    that carry them (Mechanism, Channel), not on the
+    Organization-level abstractions (Function, Relationship)
+    that govern them. This aligns with the vertical
+    governance axes: governance constraints flow downward,
+    structural reality flows upward.
+
+    **Properties that are NOT qualifiers:**
+    Some properties belong as encoded attributes of their
+    primitive, not as qualifiers. Example: priority on
+    Purpose — priority is an intrinsic definitional property
+    of Purpose, not an extensible domain attribute. It
+    should be a first-class property of Purpose if it is
+    universally meaningful.
+
+    **Category 3 — Structural-Emergent Policies (DP only)**
+
+    Target: **model graph properties** — cardinality,
+    existence, topology, composition structure. These are
+    NOT Qualifier values and NOT runtime state. They are
+    emergent properties derivable from the definition graph.
+
+    Governance response: **none** (no definition atom). The
+    DP chain terminates at Policy. Supervision evaluates the
+    predicate directly against the model graph.
+
+    Why no terminal: the governed property is not authored
+    (unlike Qualifier values) and not maintained at runtime
+    (unlike state objects). It is **structurally emergent**
+    from governance decisions already made (composing
+    Components, defining Purposes, wiring Interactions).
+    No additional definition atom bridges the gap — the
+    gap doesn't exist.
+
+    Examples:
+    - `size(System.components) >= 3` (composition cardinality)
+    - `System.purposes.exists(p, p.name == "monitoring")`
+      (constitutional completeness)
+    - `size(Interface.receptors) >= 1` (interface coverage
+      — already a consistency rule in the Interface note)
+
+    **Partial DPQ absorption (open question):**
+    Some structural-emergent constraints COULD become DPQ
+    if the INTENT is made explicit via Qualifier:
+    - Qualifier: {"minComponents": 3} on the System
+    - Policy: `size(System.components) >= System.minComponents`
+    This separates intent (what we want — Qualifier) from
+    reality (what we have — graph property). Supervision
+    verifies both: does intent satisfy bounds? does reality
+    match intent? This gives governance signals earlier in
+    the definitional process — before composition is
+    actually articulated.
+
+    **Dual governance — same constraint, both terminals:**
+
+    A single Policy MAY produce BOTH a DPR chain (behavioral
+    definition) AND a DPQ chain (structural definition).
+    These are complementary, not alternative:
+
+    - Policy: `Database.replicas >= 3`
+    - DPQ: Qualifier {"replicas": 5} — structural
+      DEFINITION (what we want the system to be)
+    - DPR: Rule on("DatabaseProvisioned") → sys.create(
+      "Database", {"replicas": qualifier.replicas}) —
+      behavioral DEFINITION (how the system acts to realize
+      the structural intent)
+
+    Both are design-time definitions:
+    - The Qualifier defines structural intent (authored
+      value, verifiable at definition-time).
+    - The Rule defines operational behavior (what happens
+      when a provisioning event occurs).
+    - The Supervision plane verifies Policy compliance:
+      - Definition-time: does Qualifier value ≥ 3? ✓
+      - Observation-time: does observed state match
+        defined intent? (requires runtime evidence)
+
+    The earlier framing ("DPQ for design-time definition,
+    DPR for runtime enforcement") was incorrect: both are
+    design-time definitions. The difference is what they
+    define (structure vs. behavior) and when the Supervision
+    plane can verify compliance (definition-time vs.
+    observation-time).
+
+    **Governance velocity — the unifying distinction:**
+
+    Rule and Qualifier occupy the SAME governance velocity
+    position relative to Policy:
+
+    | Artifact  | Gov. velocity | Authority    | Gov. modality          | Technical modality |
+    |-----------|---------------|--------------|------------------------|--------------------|
+    | Policy    | Slow (gov.)   | Regulatory   | Declarative (constrains) | CEL predicate    |
+    | Rule      | Fast (oper.)  | Operational  | Imperative (defines)     | Starlark code    |
+    | Qualifier | Fast (oper.)  | Operational  | Imperative (defines)     | JSON data        |
+
+    **Two modality axes (orthogonal):**
+    - **Governance modality**: constraining (declarative) vs.
+      defining (imperative). This is the governance-relevant
+      distinction. Policy constrains — it declares bounds.
+      Rule and Qualifier both define — they select specific
+      variety within those bounds. Both are governance-
+      imperative: acts of definition, not acts of constraint.
+    - **Technical modality**: how the artifact is expressed
+      (executable code vs. static data vs. predicate). This
+      is an implementation concern, not a governance concern.
+
+    Qualifier is governance-imperative despite being
+    technically expressed as static JSON data. "This value
+    IS 5" is an act of definition — it commands reality
+    toward a specific configuration, just as "on this event,
+    DO this" does. Neither constrains; both define.
+
+    Policy is the governance-level constraint (changes
+    slowly, regulatory authority, reviewed by governance
+    processes). Rule and Qualifier are operational-level
+    definitions (change faster, operational authority,
+    different review processes).
+
+    This velocity separation IS the core argument for DPQ:
+    structural values (Qualifier) should have the same
+    governance velocity independence from Policy as
+    behavioral logic (Rule) has. Different profiles author
+    them, in different temporal rhythms and system scopes.
+
+    Collapsing Qualifier into Policy `==` (Resolution A,
+    §5) conflates governance-velocity artifacts (Policy,
+    slow) with operational-velocity artifacts (Qualifier,
+    fast) in the same primitive — mixing two governance
+    authorities in one artifact.
+
+    **Both DPR and DPQ share the same governance modality
+    transition:** DP (declarative: constraining) → terminal
+    atom (imperative: defining). The fork from Policy to
+    Rule or Qualifier is — in both chains — the declarative
+    → imperative transition. They differ only in technical
+    modality (code vs. data) and governance axis (behavioral
+    vs. structural).
+
+    **Determinism of the classification:**
+
+    The category is determined by **static analysis of the
+    Policy predicate** at save/parse time:
+
+    1. Resolve all archetype property references in the
+       predicate.
+    2. If ANY reference targets a StateObjectArchetype
+       property → **Behavioral** (DPR).
+    3. If ALL references target Qualifier-bound properties
+       on SystemicPrimitives → **Structural-defined** (DPQ).
+    4. If ALL references target model graph properties
+       (size(), exists(), cardinality on composition/
+       relationship links) → **Structural-emergent** (DP).
+    5. Mixed references → Policy may participate in
+       multiple chains (dual governance).
+
+    The Definition Manager can classify Policies
+    automatically. No author-declared category needed —
+    the predicate target IS the category.
+
+    **Summary — the complete DP → {R, Q, —} grammar:**
+
+    ```
+    DP (constraining gradient — declarative, universal):
+      Directive → Policy
+
+    DPR (behavioral definition — imperative, code):
+      DP → Rule (defines behavior) → Controller/Actuator/Sensor
+
+    DPQ (structural definition — imperative, data):
+      DP → Qualifier (defines value) → SystemicPrimitive
+
+    DP-only (structural-emergent — no definition atom):
+      DP → (Supervision verifies directly)
+    ```
+
+    This triple classification exhausts the Policy
+    predicate target space. Every Policy predicate
+    references either state-plane objects (behavioral),
+    qualifier-defined properties (structural-defined), or
+    model-graph properties (structural-emergent) — or a
+    combination (dual governance).
+
+    **Mapping to §10 relationship types:**
+    - DPR: ENFORCEMENT (Rule ← Policy)
+    - DPQ: SATISFACTION (Qualifier ← Policy)
+    - DP-only: EVALUATION (no definition atom; Supervision
+      evaluates predicate against definition graph)
+  end note
 }
 
 @enduml

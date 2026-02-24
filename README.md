@@ -54,8 +54,8 @@ The Definition Manager is not a passive store. When definitions are created, mod
 
 | Definition change | Appraising plane | What is checked |
 |-------------------|------------------|-----------------|
-| Principle created/modified | **Governance** (`../sie-governance/`) | Constitutive Norm Appraisal: Principle ↔ Quality, scope validity, verb conflicts, governance plane coverage |
-| Policy created/modified | **Regulation** (`../sie-regulation/`) | Constraint Norm Appraisal: direction vs. Principle verb, metric→Quality path, scope containment, Policy↔Policy conflicts |
+| Directive created/modified | **Governance** (`../sie-governance/`) | Constitutive Norm Appraisal: Directive ↔ Quality, scope validity, verb conflicts, governance plane coverage |
+| Policy created/modified | **Regulation** (`../sie-regulation/`) | Constraint Norm Appraisal: direction vs. Directive verb, metric→Quality path, scope containment, Policy↔Policy conflicts |
 | Rule created/modified | **Regulation** (`../sie-regulation/`) | Rule→Policy coverage, CEL/Starlark validity |
 | Structural changes (Component, Interface, Channel) | **Regulation** (`../sie-regulation/`) | Structural Form Appraisal (CardinalityPolicyConstraint, DependencyPolicyConstraint) |
 | Any definition activated | **Supervision** (`../sie-supervision/`) | Re-appraise (Form Appraisal) existing observations against the new/updated definition |
@@ -69,9 +69,9 @@ The Definition Manager is the primary trigger for **Norm Appraisal** — the app
 
 | Dimension | What it checks | Definition Manager triggers |
 |-----------|----------------|----------------------------|
-| **Consistency** | No contradictions between norms | Principle verb conflict detection (NA-PRIN-01); Policy↔Policy constraint conflicts (NA-POL-04) |
-| **Completeness** | No gaps within declared normative scope | PPR chain traversability (NA-PPR-01); Policy operationalization coverage (NA-POL-08); Rule→Policy minimum (NA-RULE-01) |
-| **Adequacy** | Norms fit for declared purpose | Policy→Principle direction coherence (NA-POL-01); metric→purposeQualifier path tracing (NA-POL-02, SUSPENDED); scope containment (NA-POL-03); Principle applicability guard validation (NA-PRIN-02); Policy→Purpose grounding (NA-POL-05); Policy→purposeQualifier path tracing (NA-POL-06, SUSPENDED); Policy→Component grounding (NA-POL-07); Rule→Policy scope containment (NA-RULE-02); Rule behavioral grounding (NA-RULE-04, NA-RULE-05) |
+| **Consistency** | No contradictions between norms | Directive verb conflict detection (NA-DIR-01); Policy↔Policy constraint conflicts (NA-POL-04) |
+| **Completeness** | No gaps within declared normative scope | DPR chain traversability (NA-DPR-01); Policy operationalization coverage (NA-POL-08); Rule→Policy minimum (NA-RULE-01) |
+| **Adequacy** | Norms fit for declared purpose | Policy→Directive direction coherence (NA-POL-01); metric→purposeQualifier path tracing (NA-POL-02, SUSPENDED); scope containment (NA-POL-03); Directive applicability guard validation (NA-DIR-02); Policy→Purpose grounding (NA-POL-05); Policy→purposeQualifier path tracing (NA-POL-06, SUSPENDED); Policy→Component grounding (NA-POL-07); Rule→Policy scope containment (NA-RULE-02); Rule behavioral grounding (NA-RULE-04, NA-RULE-05) |
 
 Norm Appraisal is executed by the **Governance** and **Regulation** planes. The Definition Manager sends definition-change events; those planes evaluate and return appraisal findings. Findings at `ERROR` severity block lifecycle transitions; `WARNING` severity allows advancement but flags the finding for review.
 
@@ -89,30 +89,30 @@ Form Appraisal is executed by the **Supervision** plane. On definition activatio
 
 ## Mode behavior
 
-- **Discovery mode**: Definition Manager receives definition proposals from Governance Determination: Emergence (inductive: observations → definition drafts). Definitions enter as DRAFT, progress through governance review. Plane appraisals apply as definitions advance toward ACTIVE — even in discovery, a proposed Policy must be coherent with its Principle (Regulation Norm Appraisal), and a proposed Principle must not conflict with existing Principles (Governance Norm Appraisal).
+- **Discovery mode**: Definition Manager receives definition proposals from Governance Determination: Emergence (inductive: observations → definition drafts). Definitions enter as DRAFT, progress through governance review. Plane appraisals apply as definitions advance toward ACTIVE — even in discovery, a proposed Policy must be coherent with its Directive (Regulation Norm Appraisal), and a proposed Directive must not conflict with existing Directives (Governance Norm Appraisal).
 - **Steady-State mode**: Definition Manager handles the full lifecycle. Definition modifications trigger re-appraisal by all relevant planes. Determination: Adaptation (Regulation adjusting Rules/Policies from deviation evidence) produces definition changes that are themselves appraised before activation. The loop is: Deviation evidence → Determination: Adaptation proposes change → plane appraisals validate → Definition Manager persists if coherent.
 
 ## Aggregates Endpoints to expose (WIP)
 
-- Create/read/update(status) Principle (includes operations on Quality it is composed of)
-- Create/read/update(status) Policy (includes operations on Functions it scopes, and attachment to Principles it operationalizes)
+- Create/read/update(status) Directive (includes operations on Quality it is composed of)
+- Create/read/update(status) Policy (includes operations on Functions it scopes, and attachment to Directives it operationalizes)
 - Create/read/update(status) Rule (includes body and language)
 
 ## Decision Records
 
-### ADR-001: Appraisal as Meta-PPR (Option B — Decoupled Status + Genesis Seeds)
+### ADR-001: Appraisal as Meta-DPR (Option B — Decoupled Status + Genesis Seeds)
 
 **Status**: Accepted (2026-02-16)
 
-**Context**: SIE's Definition Manager governs lifecycle transitions of systemic primitives via `SystemicPrimitiveDefinitionStatus` (DRAFT → PROPOSED → APPROVED → ACTIVE → ...). The question is how norm appraisal checkpoints (NA-PRIN-\*, NA-POL-\*, NA-RULE-\*, NA-PPR-\*) integrate with this lifecycle.
+**Context**: SIE's Definition Manager governs lifecycle transitions of systemic primitives via `SystemicPrimitiveDefinitionStatus` (DRAFT → PROPOSED → APPROVED → ACTIVE → ...). The question is how norm appraisal checkpoints (NA-DIR-\*, NA-POL-\*, NA-RULE-\*, NA-DPR-\*) integrate with this lifecycle.
 
 Three options were evaluated:
 
 - **Option A (Integrate)**: Embed appraisal semantics directly into `SystemicPrimitiveDefinitionStatus`. Rejected — status instability with probabilistic checks; mixes lifecycle with evaluation.
-- **Option B (Decouple)**: Model checkpoints as native PPR artifacts; status remains a pure lifecycle state machine. **Selected.**
+- **Option B (Decouple)**: Model checkpoints as native DPR artifacts; status remains a pure lifecycle state machine. **Selected.**
 - **Option C (Hybrid)**: Split status into lifecycle + appraisal sub-states. Rejected — accidental complexity, unclear ownership.
 
-**Decision**: Option B — decouple status from appraisal. Model norm appraisal checkpoints as native PPR artifacts owned by the SIE genesis system.
+**Decision**: Option B — decouple status from appraisal. Model norm appraisal checkpoints as native DPR artifacts owned by the SIE genesis system.
 
 **Core constructs:**
 
@@ -125,7 +125,7 @@ Three options were evaluated:
 **Key design corrections:**
 
 - **No `ContextVariableReferenceExpression` in Policies.** Policies are declarative state constraints with no receptor context. Per-instance scoping (matching findings to the primitive being transitioned) is handled by Rules, which have receptor context. The Policy states the normative goal; the Rule enforces it behaviorally.
-- **Policy is used with structural constraint types.** Transition guards constrain *what definitions MUST BE* (structural invariants of the PPR set). The constraint nature (structural) is derived from the constraint type (CardinalityPolicyConstraint) and the Principle's purposeQualifier, not from a Policy subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
+- **Policy is used with structural constraint types.** Transition guards constrain *what definitions MUST BE* (structural invariants of the DPR set). The constraint nature (structural) is derived from the constraint type (CardinalityPolicyConstraint) and the Directive's purposeQualifier, not from a Policy subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
 - **NormAppraisal is a Purpose; each checkpoint is a Function.** The Purpose is *why* (appraise normative coherence); each checkpoint Function is *what* (the specific check activity). Functions serve the Purpose.
 - **Findings are `StateObjectArchetype`** (persisted, queryable), not transient events. Rule execution produces AppraisalFinding instances.
 - **Seed immutability via ownership.** Genesis seeds are owned by the SIE system. Tenants cannot modify primitives outside their governance authority. No explicit `mutable` flag needed — the existing ownership model handles it.
@@ -133,25 +133,25 @@ Three options were evaluated:
 
 **DSL impact**: None. Existing Policy guard/predicate CEL expressions and archetype-scoped selectors express all guard constraints. No new types, functions, or syntax needed.
 
-**Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as PPR, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
+**Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as DPR, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
 
 **Risks:**
 
 | ID | Risk | Severity | Mitigation |
 |---|---|---|---|
-| R1 | Bootstrap complexity — seed PPR validated outside the lifecycle it governs | Medium | Design-time validation; SIE upgrades are the only path to modify seeds |
-| R2 | Cognitive load — two PPR layers (meta + tenant) | Medium | UI separation; `SIE_*` namespace prefix; platform vs. system governance sections |
+| R1 | Bootstrap complexity — seed DPR validated outside the lifecycle it governs | Medium | Design-time validation; SIE upgrades are the only path to modify seeds |
+| R2 | Cognitive load — two DPR layers (meta + tenant) | Medium | UI separation; `SIE_*` namespace prefix; platform vs. system governance sections |
 | R3 | Performance — every lifecycle transition triggers checkpoint evaluation | Low | Batch evaluation; lazy evaluation on transition request; checkpoint parallelization |
 | R4 | Meta-governance escape hatch — seed checkpoint blocks legitimate work | Low | SUSPEND checkpoint Rule; admin force-transition with audit event; SIE platform override |
-| R5 | Recursive governance depth — meta-PPR governs itself | Low | Exactly 2 layers (meta + tenant); meta-layer seeds are axiomatic (bypass lifecycle) |
+| R5 | Recursive governance depth — meta-DPR governs itself | Low | Exactly 2 layers (meta + tenant); meta-layer seeds are axiomatic (bypass lifecycle) |
 
 **Consequences:**
 
 | Aspect | Pro | Con |
 |---|---|---|
-| Coherence | SIE governs itself with its own PPR constructs (maximal alignment) | Two PPR layers increase indirection |
+| Coherence | SIE governs itself with its own DPR constructs (maximal alignment) | Two DPR layers increase indirection |
 | Extensibility | Tenants add custom checkpoint Rules without SIE code changes | Tenant mistakes in custom Rules require escape hatches |
-| Auditability | Full PPR chain for every governance decision (compliance-grade trail) | — |
+| Auditability | Full DPR chain for every governance decision (compliance-grade trail) | — |
 | Future-proofing | LLM/probabilistic checks integrate cleanly via `evaluationMode` + `confidence` | Performance cost scales with checkpoint count |
 | Non-determinism | Determinism at guard level; checks can be probabilistic | Need confidence thresholds for probabilistic guard evaluation |
 | Ownership model | Existing governance authority handles seed immutability | Tenants must understand they cannot modify `SIE_*` seeds |

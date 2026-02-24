@@ -10,13 +10,6 @@
   ],
   "type": "object",
   "properties": {
-    "functions": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      },
-      "description": "References to Function primitives realized by this controller."
-    },
     "rules": {
       "type": "array",
       "items": {

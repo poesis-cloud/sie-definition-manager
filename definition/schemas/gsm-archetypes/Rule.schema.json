@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Rule.json",
   "title": "Rule (GSM v1)",
-  "description": "Behavioral logical atom: event-triggered program whose body is the single source of truth for imperative governance logic. First imperative level in the PPR chain.",
+  "description": "Behavioral logical atom: event-triggered program whose body is the single source of truth for imperative governance logic. First imperative level in the DPR chain.",
   "allOf": [
     {
       "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
@@ -47,10 +47,6 @@
     "operationalizingPolicies": {
       "description": "Derived from Operationalization chains: SELECT DISTINCT o.policy FROM operationalization o WHERE o.rule = THIS.",
       "derivedFrom": "Operationalization"
-    },
-    "scopingFunctions": {
-      "description": "Derived from Realization chains: SELECT DISTINCT r.function FROM realization r WHERE r.rule = THIS.",
-      "derivedFrom": "Realization"
     }
   }
 }

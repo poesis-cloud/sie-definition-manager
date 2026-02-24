@@ -4,15 +4,22 @@
   "title": "Effector (GSM v1)",
   "description": "Mechanism capability to produce events of one EventArchetype.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "producedEventArchetype"],
+  "required": [
+    "name",
+    "emittedEventArchetype"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "producedEventArchetype": {
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "emittedEventArchetype": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to EventArchetype primitive produced by this effector."
+      "description": "Reference to EventArchetype primitive emitted by this effector."
     }
   }
 }

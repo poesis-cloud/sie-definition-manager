@@ -4,13 +4,34 @@
   "title": "Mechanism (GSM v1)",
   "description": "Atomic causal unit of behavior: receives events via receptors and produces events via effectors.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+    }
   ],
   "type": "object",
-  "required": ["name"],
+  "required": [
+    "name",
+    "function"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "receptors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } },
-    "effectors": { "type": "array", "items": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" } }
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "function": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
+      "description": "Reference to the Function this Mechanism realizes. Each Mechanism realizes exactly one Function."
+    },
+    "receptors": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    },
+    "effectors": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      }
+    }
   }
 }

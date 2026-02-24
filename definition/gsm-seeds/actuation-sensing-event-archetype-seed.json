@@ -115,7 +115,7 @@
         "ruleId": {
             "type": "string",
             "format": "uuid",
-            "description": "Reference to the GSM Rule whose body triggered the original actuation. Enables PPR lineage tracing: Operationalization → Rule → Actuation → Sensing → verified outcome."
+            "description": "Reference to the GSM Rule whose body triggered the original actuation. Enables DPR lineage tracing: Operationalization → Rule → Actuation → Sensing → verified outcome."
         }
     },
     "additionalProperties": false

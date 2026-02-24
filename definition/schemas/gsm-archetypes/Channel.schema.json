@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Channel.json",
   "title": "Channel (GSM v1)",
-  "description": "Structural carrier mediating interactions between exactly two interfaces.",
+  "description": "A declared medium through which Interactions are carried — the constraint on variety/information flow between endpoints. Models how exchanges are carried (transport, capacity, protocol, reliability), not their meaning. Every Interaction is carried by exactly one Channel.",
   "allOf": [
     {
       "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
@@ -10,25 +10,26 @@
   ],
   "type": "object",
   "required": [
-    "name",
-    "interfaceA",
-    "interfaceB"
+    "interactions"
   ],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
     "interactions": {
       "type": "array",
       "items": {
         "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      }
+      },
+      "minItems": 1,
+      "description": "Interactions carried by this channel."
+    }
+  },
+  "x-sie-derived": {
+    "interfaces": {
+      "description": "Interfaces connected by this Channel. Derived from the Channel's Interactions: channelInterfaces(C) = { I ∈ Interface | ∃ interaction ∈ C.interactions : I.exposes(interaction.effector) OR I.exposes(interaction.receptor) }.",
+      "derivedFrom": "Channel.interactions → Effector/Receptor ownership → Interface.exposes"
     },
-    "interfaceA": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-    },
-    "interfaceB": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    "crossSystem": {
+      "description": "Whether this Channel's Interactions have endpoints owned by different Systems.",
+      "derivedFrom": "Channel.interactions → Effector/Receptor Component ownership → System composition"
     }
   }
 }

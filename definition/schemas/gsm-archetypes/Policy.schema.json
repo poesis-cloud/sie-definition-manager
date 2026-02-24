@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Policy.json",
   "title": "Policy (GSM v1)",
-  "description": "Measurable boundary condition on one or more Purposes, translating Principle directional intent into a bounded, falsifiable envelope.",
+  "description": "Measurable boundary condition on one or more Purposes, translating Directive directional intent into a bounded, falsifiable envelope.",
   "allOf": [
     {
       "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
@@ -152,17 +152,17 @@
     }
   },
   "x-sie-derived": {
-    "operationalizingPrinciples": {
-      "description": "Derived from Operationalization chains: SELECT DISTINCT o.principle FROM operationalization o WHERE o.policy = THIS AND o.principle IS NOT NULL.",
+    "operationalizingDirectives": {
+      "description": "Derived from Operationalization chains: SELECT DISTINCT o.directive FROM operationalization o WHERE o.policy = THIS AND o.directive IS NOT NULL.",
       "derivedFrom": "Operationalization"
     },
     "effectiveScopedPurposes": {
-      "description": "Derived: union(operationalizedPrinciples[*].purposeScope).",
-      "derivedFrom": "Operationalization → Principle.purposeScope"
+      "description": "Derived: union(operationalizedDirectives[*].purposeScope).",
+      "derivedFrom": "Operationalization → Directive.purposeScope"
     },
     "effectiveModal": {
-      "description": "Derived: max(Principle.modal) over operationalized Principles.",
-      "derivedFrom": "Operationalization → Principle.modal"
+      "description": "Derived: max(Directive.modal) over operationalized Directives.",
+      "derivedFrom": "Operationalization → Directive.modal"
     }
   }
 }

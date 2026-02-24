@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Sensing.json",
   "title": "Sensing (GSM v1)",
-  "description": "Links actuation execution to feedback reception, enabling homeostatic loops on actuations.",
+  "description": "The microscopic homeostatic verification primitive: links an Actuation to its feedback observation, forming a per-actuation closed-loop between Actuator and Sensor. Only exists for closed-loop actuations (return-value-assignment in Rule body).",
   "allOf": [
     {
       "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
@@ -10,34 +10,12 @@
   ],
   "type": "object",
   "required": [
-    "name",
-    "actuation",
-    "sensor",
-    "actuationEventArchetype",
-    "feedbackEventArchetype",
-    "feedbackReceptor"
+    "actuation"
   ],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
     "actuation": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to Actuation observed."
-    },
-    "sensor": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to Sensor mechanism composed by this sensing."
-    },
-    "actuationEventArchetype": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-    },
-    "feedbackEventArchetype": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-    },
-    "feedbackReceptor": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to the Controller's Receptor that receives the SensingFeedbackEvent, closing the homeostatic loop. Mandatory: Sensing only exists for closed-loop actuations (return-value-assignment in Rule body)."
+      "description": "Reference to the Actuation observed by this Sensing."
     }
   },
   "x-sie-derived": {
@@ -47,15 +25,15 @@
     },
     "actuationEventArchetype": {
       "description": "EventArchetype of the ActuationEvent (Actuator → Sensor flow, cybernetic step 4).",
-      "derivedFrom": "Actuation → Actuator.Effector.producedEventArchetype"
+      "derivedFrom": "Actuation → Actuator.Effector.emittedEventArchetype"
     },
-    "feedbackEventArchetype": {
-      "description": "EventArchetype of the SensingFeedbackEvent (Sensor → Controller flow, cybernetic step 6).",
-      "derivedFrom": "Sensing derivation → auto-defined FeedbackEvent archetype"
+    "actuationSensingEventArchetype": {
+      "description": "EventArchetype of the ActuationSensingEvent (Sensor → Controller flow, cybernetic step 6).",
+      "derivedFrom": "Sensing derivation → auto-defined ActuationSensingEvent archetype"
     },
-    "feedbackReceptor": {
-      "description": "Controller's Receptor that receives the SensingFeedbackEvent, closing the loop.",
-      "derivedFrom": "Rule body → return-value-assignment → Controller feedbackReceptor derivation"
+    "sensingReceptor": {
+      "description": "Controller's Receptor that receives the ActuationSensingEvent, closing the loop.",
+      "derivedFrom": "Rule body → return-value-assignment → Controller sensingReceptor derivation"
     }
   }
 }

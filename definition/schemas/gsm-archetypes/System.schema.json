@@ -23,7 +23,7 @@
       },
       "description": "Constitution: reasons for the system's existence."
     },
-    "principles": {
+    "directives": {
       "type": "array",
       "items": {
         "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
@@ -44,6 +44,20 @@
       },
       "description": "Organization: behavioral logic."
     },
+    "actuations": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: operational intents to mutate state objects (auto-derived from Rule bodies)."
+    },
+    "sensings": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: homeostatic verification primitives linking Actuations to feedback observation (auto-derived from Rule bodies)."
+    },
     "functions": {
       "type": "array",
       "items": {
@@ -63,14 +77,7 @@
       "items": {
         "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
       },
-      "description": "Organization: governance lineage paths (Principle→Policy→Rule)."
-    },
-    "realizations": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      },
-      "description": "Organization: value delivery paths (Function→Rule→Purpose)."
+      "description": "Organization: governance lineage paths (Directive→Policy→Rule)."
     },
     "eventArchetypes": {
       "type": "array",

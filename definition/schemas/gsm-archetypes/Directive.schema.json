@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/gsm/v1/Principle.json",
-  "title": "Principle (GSM v1)",
+  "$id": "sie://schemas/gsm/v1/Directive.json",
+  "title": "Directive (GSM v1)",
   "description": "Identity-level, long-term normative constraint. Grammar: Modal × Verb × PurposeQualifier × PurposeScope(Purpose). Subject is always the owning System. Unconditional by nature: applies universally within its owning System.",
   "allOf": [
     {
@@ -22,13 +22,28 @@
     },
     "modal": {
       "type": "string",
-      "enum": ["MUST", "MUST_NOT", "SHOULD", "SHOULD_NOT", "MAY"],
+      "enum": [
+        "MUST",
+        "MUST_NOT",
+        "SHOULD",
+        "SHOULD_NOT",
+        "MAY"
+      ],
       "description": "Deontic obligation strength. Grounded in deontic logic: {Obligatory, Permitted, Forbidden}. Precedence: MUST > SHOULD > MAY."
     },
     "verb": {
       "type": "string",
-      "enum": ["MAXIMIZE", "MINIMIZE", "PRESERVE", "BALANCE", "ENSURE", "AVOID", "PROMOTE", "REDUCE"],
-      "description": "Constrained verb set for deterministic principle appraisal. Direction semantics: {MAXIMIZE, PROMOTE, ENSURE} = positive; {MINIMIZE, REDUCE, AVOID} = negative; {PRESERVE, BALANCE} = neutral."
+      "enum": [
+        "MAXIMIZE",
+        "MINIMIZE",
+        "PRESERVE",
+        "BALANCE",
+        "ENSURE",
+        "AVOID",
+        "PROMOTE",
+        "REDUCE"
+      ],
+      "description": "Constrained verb set for deterministic directive appraisal. Direction semantics: {MAXIMIZE, PROMOTE, ENSURE} = positive; {MINIMIZE, REDUCE, AVOID} = negative; {PRESERVE, BALANCE} = neutral."
     },
     "purposeQualifier": {
       "type": "string",
@@ -38,7 +53,7 @@
     },
     "purposeScope": {
       "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to the Purpose being governed (value target). Must belong to the same System as the owning Principle."
+      "description": "Reference to the Purpose being governed (value target). Must belong to the same System as the owning Directive."
     }
   }
 }
