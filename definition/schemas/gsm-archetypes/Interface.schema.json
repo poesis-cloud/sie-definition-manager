@@ -5,7 +5,7 @@
   "description": "A named I/O surface — a curated selection of Receptors and Effectors grouped into a coherent, addressable contact point on a Component. Interface is purely structural: a named group of I/O ports declaring exposure.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

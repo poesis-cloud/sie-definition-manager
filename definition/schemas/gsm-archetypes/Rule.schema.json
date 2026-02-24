@@ -2,10 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sie://schemas/gsm/v1/Rule.json",
   "title": "Rule (GSM v1)",
-  "description": "Behavioral logical atom: event-triggered program whose body is the single source of truth for imperative governance logic. First imperative level in the DPR chain.",
+  "description": "Behavioral logical atom: event-triggered program whose body is the single source of truth for imperative governance logic. First imperative level in the DPQR chain.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

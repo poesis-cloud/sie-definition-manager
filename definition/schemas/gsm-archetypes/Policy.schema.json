@@ -5,7 +5,7 @@
   "description": "Measurable boundary condition on one or more Purposes, translating Directive directional intent into a bounded, falsifiable envelope.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",
@@ -78,7 +78,7 @@
           "exists()"
         ],
         "allowedReferences": [
-          "SystemicPrimitive archetype property paths",
+          "SystemicPrimitiveDefinition archetype property paths",
           "StateObjectArchetype property paths",
           "EventArchetype property paths"
         ],

@@ -44,6 +44,13 @@
       },
       "description": "Organization: behavioral logic."
     },
+    "qualifiers": {
+      "type": "array",
+      "items": {
+        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+      },
+      "description": "Organization: structural/property definition atoms (DPQ terminal)."
+    },
     "actuations": {
       "type": "array",
       "items": {
@@ -77,7 +84,7 @@
       "items": {
         "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
       },
-      "description": "Organization: governance lineage paths (Directive→Policy→Rule)."
+      "description": "Organization: governance lineage paths (Directive→Policy→{Rule, Qualifier})."
     },
     "eventArchetypes": {
       "type": "array",

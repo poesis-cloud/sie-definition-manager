@@ -25,23 +25,26 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Add / update relationships between primitives.
-' - Maybe call Directive -> Directive instead?
+' - Make Mechanism implement a single Rule. Maybe extend Rule with Actuation
+'   and Sensing.
 ' - Design a mechanism for replacing a primitive with another
 '   eg: New Rule replaces old Rule.
-' - Mechanisms and their relative infrastructure primitive hold definitions
-'   qualifiers that have derivating DPR. Hence they operationalize DPR
-'   directly. So maybe add Controller in the Operationalization chain?
+' - Extract and formalize all Principles/Directives, Policies, and Rules of GSM
+'   itself... Applying a pertinent/pragamatical way its own model. Many Rules
+'   are already present in GSM notes.
 ' - Challenge inter-system governance (Composition VS Relational) articulations
 '   mechanisms. Looks like relational governance governor produce Directives as
 '   state objects to consume and derivate by governed system's governor via its
 '   own designed policies adapted to its purposes.
-' - Functions may be just labels for Rules/Behavioral logic, their resultant,
-'   not their contraint (this is DP), not their definition (this is R).
-'   Function may belong to a mechanism implementing a Rule (resultant of Rule).
 ' - Identify and generate functional rules of any kind for each class.
-' - Challenge meta model, technically.
 ' - Update planes specifications.
+' - Design the Justificational System Model (?SM) — a third model completing
+'   the GSM/DSM duality into a triad: GSM (what must be), DSM (what is),
+'   ?SM (why governance decisions are made). ?SM delivers justifications from
+'   description to definition — the reasoning that connects DSM evidence to
+'   GSM governance changes, making the Determination process's rationale
+'   persistent, auditable, and machine-interpretable. Analogies: KAOS
+'   rationale, argumentation frameworks (claims + evidence + reasoning).
 
 frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) - v1" {
 
@@ -94,6 +97,36 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - **Infrastructure**: not an observation of structure — a
       *specification* of structure (mechanism topology only).
 
+    **DPQR across layers — visual grammar:**
+
+    CONSTITUTION (identity — WHY)
+    +---------+          +--------------------------+
+    | Purpose |<---------+        Directive         |
+    |         |  scopes  | Modal x Verb x Qual x P  |
+    +---------+          +------------+-------------+
+    . . . . . . . . . . . . . . . . .|. . . . . . . .
+    ORGANIZATION (governance — HOW)   | operationalizes
+                           +----------+----------+
+                           |       Policy        |
+                           |  guard + predicate  |
+                           +---+-------+------+--+
+                               |       |      |
+                +--------------+       |      +-----------+
+          DPR   |         DP-only      |             DPQ  |
+          +-----+------+        (no terminal)    +--------+---+
+          |    Rule    |       Supervision       | Qualifier  |
+          |  Starlark  |        evaluates        |    JSON    |
+          +-----+------+        directly         +------------+
+          . . . | . . . . auto-derives . . . . . . . . . . .
+    INFRASTRUCTURE (substrate — WITH WHAT)
+          +-----+------+
+          | Controller +---> Actuator ---> Sensor
+          +------------+   Mechanism, R/E, Channel
+
+    Specificity: Directive --> Policy --> {Rule, Qualifier}
+    Modality:    constraining (DP) --> defining (R, Q)
+    Velocity:    slow (DP) ---------> fast (R, Q)
+
     Together these layers form the system's **generative envelope** —
     the complete definitional specification from which governance
     processes derive their runtime behavior. The generative envelope IS
@@ -109,7 +142,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     Where classical systemics asks "what does this system look like?",
     GSM answers "what must this system be?" — and provides the
-    governance machinery (DPR through planes) to continuously make
+    governance machinery (DPQR through planes) to continuously make
     it so.
 
     **DSM — the Descriptive System Model (planned, under
@@ -276,17 +309,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     GRS&CO are **SIE's own Systems** (SIE-as-System), not
     Components composed by every tenant System.
 
-    **DPR is the System's DNA** — a System's intrinsic identity
-    and organization is its DPR (Directives, Policies, Rules).
-    DPR defines what a system IS and how it governs itself.
+    **DPQR is the System's DNA** — a System's intrinsic identity
+    and organization is its DPQR (Directives, Policies,
+    Rules, Qualifiers).
+    DPQR defines what a system IS and how it governs itself.
     SIE deploys its GRS&CO functions to operate on Systems'
-    DPR; the System itself does not compose or own GRS&CO
+    DPQR; the System itself does not compose or own GRS&CO
     artifacts.
 
     Governance partitioning uses System recursion: if a System's
-    DPR scope grows too large, the System decomposes into
-    sub-Systems each with their own DPR. SIE's GRS&CO
-    operates on each sub-System's DPR independently.
+    DPQR scope grows too large, the System decomposes into
+    sub-Systems each with their own DPQR. SIE's GRS&CO
+    operates on each sub-System's DPQR independently.
 
     **S3×S4 Homeostat — conservation vs. innovation
     balance (meta-governance pattern)**
@@ -297,10 +331,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     S5 (identity). In SIE plane terms:
 
     - **Supervision** (S3): "Current governance works.
-      DPR is consistent. Compliance is measured. Don't
+      DPQR is consistent. Compliance is measured. Don't
       destabilize."
     - **Regulation** (S4): "Environment changed. Current
-      DPR is drifting from reality. We need adapted
+      DPQR is drifting from reality. We need adapted
       constraints."
     - **Governance** (S5): "System identity is defined
       by Constitution. Change governance within that
@@ -311,12 +345,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     dominates: rules never change) or chaotic (regulation
     dominates: rules change too fast to stabilize).
 
-    **How DPR captures the S3×S4 homeostat:**
+    **How DPQR captures the S3×S4 homeostat:**
 
-    DPR captures the *statics* of governance (what
+    DPQR captures the *statics* of governance (what
     artifacts exist). The S3×S4 homeostat is about the
-    *dynamics* (when and how much should DPR evolve).
-    GSM resolves this without new primitives: DPR can
+    *dynamics* (when and how much should DPQR evolve).
+    GSM resolves this without new primitives: DPQR can
     be reflexively self-governing.
 
     A System MAY define **meta-Directives** — Directives
@@ -330,11 +364,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       policy-adaptation" (innovation encouragement)
 
     These meta-Directives operationalize through normal
-    DPR chains:
-    - Meta-Directive → meta-Policy (e.g., maximum DPR
+    DPQR chains:
+    - Meta-Directive → meta-Policy (e.g., maximum DPQR
       change rate per governance cycle, minimum evidence
       threshold before Adaptation triggers)
-    - Meta-Policy → meta-Rule (e.g., if DPR changes >
+    - Meta-Policy → meta-Rule (e.g., if DPQR changes >
       N per cycle → alert; if Form Appraisal drift > M
       cycles without Adaptation → escalate)
 
@@ -344,8 +378,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     process (governance process #3), which has three
     sub-types:
     - **Adaptation** (S4-driven): deviation evidence →
-      DPR adjustment.
-    - **Coherence restoration** (S3-driven): intra-DPR
+      DPQR adjustment.
+    - **Coherence restoration** (S3-driven): intra-DPQR
       contradiction → fix without changing direction.
     - **Emergence** (S4-driven): observations without
       definitions → propose new governance.
@@ -354,7 +388,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - How much Adaptation vs. Coherence restoration?
     - At what evidence threshold does Adaptation trigger?
     - What is the minimum stabilization period after
-      DPR changes before new Adaptation is allowed?
+      DPQR changes before new Adaptation is allowed?
 
     The coordination plane dampens oscillation between
     supervision's "keep stable" evidence and regulation's
@@ -363,7 +397,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **This is not a new primitive or mechanism.** It is
     a recognized governance pattern that uses existing
-    DPR reflexively: Directives about Directives,
+    DPQR reflexively: Directives about Directives,
     Policies about policy-making velocity, Rules about
     governance-process behavior. GSM's generative nature
     supports this natively — the same definitional
@@ -376,7 +410,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     GSM deliberately excludes ALL classification or labeling
     primitives — whether for categorizing entities (Type) or
-    for organizing DPR into governance subsets (Domain,
+    for organizing DPQR into governance subsets (Domain,
     Category, Tag).
 
     **Core argument — classification is descriptive, not
@@ -392,11 +426,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       opinion. A label "WebApp" does not produce governance,
       does not close any loop, does not auto-define anything.
       It is an observer's categorization imposed on a system
-      that already has Purpose, Directive, DPR, and
+      that already has Purpose, Directive, DPQR, and
       Mechanisms producing governance independently of the
       label.
     - What makes a system THIS system is its Constitution
-      (Purpose + Directive) and its Organization (DPR +
+      (Purpose + Directive) and its Organization (DPQR +
       Functions + Relationships). These are definitional.
       Classification adds nothing that these definitional
       constructs don't already provide — and risks drifting
@@ -412,13 +446,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Purpose + Directive define constitutional identity
       (WHY the system exists, WHAT quality commitments it
       makes). This IS the system's identity — generatively.
-    - Organization (DPR + Functions + Relationships) defines
+    - Organization (DPQR + Functions + Relationships) defines
       behavioral structure. Infrastructure (Mechanisms,
       Interactions, Interfaces) defines structural topology.
     - Any query that a Type label would serve (all systems
       of kind Application) is a Description-plane analytics
       question: derivable from shared Purposes, common
-      Directive patterns, similar DPR topology, or
+      Directive patterns, similar DPQR topology, or
       Relationship graph structure.
     - Two systems sharing a Purpose are more meaningfully
       "of the same kind" than two systems sharing a Type
@@ -426,10 +460,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       governance), while Type is opinion (it produces
       nothing).
 
-    **For DPR (why no Domain/Category/Tag):**
+    **For DPQR (why no Domain/Category/Tag):**
 
     - **Operationalization IS the governance organization
-      axis.** It traces Directive → Policy → Rule, revealing
+      axis.** It traces Directive → Policy → {Rule, Qualifier},
+      revealing
       regulatory scope, normative lineage, and governance gaps
       — structurally, not by label.
     - **The structural chain IS the value delivery axis.**
@@ -451,7 +486,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - SIE's governance plane governs ALL Directives of a
       System. If governance partitioning is needed, the
       system decomposes recursively (sub-Systems with their
-      own DPR), not by labeling DPR subsets within a flat
+      own DPQR), not by labeling DPQR subsets within a flat
       System.
     - Description-plane analytics can derive any clustering
       from Operationalization graph topology and structural
@@ -467,13 +502,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     What looks like categorization belongs to the observation
     side (DSM), not the definition side (GSM).
 
-    **DPR (SDG) — the System Definitional Grammar** — three
+    **DPQR (SDG) — the System Definitional Grammar** — four
     universal governance artifacts:
 
     - Directives: Identity-level, long-term normative constraints.
     - Policies: Design-level constraints that operationalize directives.
     - Rules: Behavioral logic — event-triggered Starlark programs
       whose bodies define the system's imperative behavior.
+    - Qualifiers: Structural/property definitions — JSON values
+      within Policy bounds that define specific system properties.
 
     A Rule IS the **behavioral logical atom**: the atomic,
     compilable/executable governance logic. Its Starlark body
@@ -484,58 +521,55 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     DPR IS the system's definitional structure:
     - Rule = dynamic structure (behavioral logic).
+    - Qualifier = static structure (property values).
     - Policy and Directive = teleological structure (governance logic).
 
-    A system without DPR has components but no behavior.
+    A system without DPQR has components but no behavior,
+    no structural intent, no supervision, and no
+    purpose-alignment.
   end note
 
   ' ============================================================
   ' META MODEL
-  '
-  ' (systemic primitives, qualifiers, archetypes, schemas)
   ' ============================================================
 
   ' ============================================================
-  ' ARCHETYPE SCHEMA
+  ' SCHEMA
   ' ============================================================
 
-  class ArchetypeSchema {
+  class Schema {
     +getId(): UUID
     +getUri(): URI
   }
 
-  note top of ArchetypeSchema
-    **Primitive Semantics**:
-    - Defines the structure and semantics of archetypes.
+  note top of Schema
+    **Systemic Semantics**:
+    - Defines the structure and semantics of domain-extensible
+      primitives (EventArchetype, StateObjectArchetype, Qualifier).
     - Schemas enable informational extensibility for cross-domain,
-      global systemic automatic reasoning to capture domain specific
+      global systemic automatic reasoning to capture domain-specific
       knowledge and semantics.
+    - Schema is NOT a SystemicPrimitiveDefinition — it is a meta-model
+      construct that defines the property vocabulary of extensible
+      primitives.
 
     **Consistency Rules**:
-    - `uri` MUST be unique among all archetype schemas.
+    - `uri` MUST be unique among all schemas.
   end note
 
   ' ============================================================
   ' SYSTEMIC PRIMITIVE
   ' ============================================================
 
-  abstract class SystemicPrimitive {
+  abstract class SystemicPrimitiveDefinition {
     +getId(): UUID
-    +getArchetype(): SystemicPrimitiveArchetype
-    +getQualifierArchetypes(): SystemicPrimitiveQualifierArchetype[]
-    +getQualifiers(): Qualifier[]
     +getDefinitionStatus(): SystemicPrimitiveDefinitionStatus
   }
 
-  note top of SystemicPrimitive
-    **Primitive Semantics**:
-    - Every concept in GSM carries an archetype, optional qualifier
-      archetypes, and optional qualifiers providing extensibility for
-      any domain-specific ontology and semantics.
-
-    **Validation Rules**:
-    - Valid qualifier archetype schemas MUST conform to their archetype
-      schema definitions.
+  note top of SystemicPrimitiveDefinition
+    **Systemic Semantics**:
+    - Base type for all GSM concepts. Carries a unique identity
+      and a definition status reflecting its lifecycle stage.
   end note
 
   enum SystemicPrimitiveDefinitionStatus {
@@ -550,7 +584,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   }
 
   note top of SystemicPrimitiveDefinitionStatus
-    **Primitive Semantics**:
+    **Systemic Semantics**:
     - The definitional status of a systemic primitive instance, reflecting its
       lifecycle stage and readiness for use in system definitions.
 
@@ -629,127 +663,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - REJECTED → DRAFT (if reworked)
   end note
 
-  SystemicPrimitive "1" o--> "1" SystemicPrimitiveArchetype : has
-  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifierArchetype : has
-  SystemicPrimitive "1" *--> "0..*" SystemicPrimitiveQualifier : has
-
   ' ============================================================
-  ' SYSTEMIC PRIMITIVE ARCHETYPE
-  ' ============================================================
-
-  class SystemicPrimitiveArchetype {
-    +getId(): UUID
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-    +getQualifierArchetypes(): SystemicPrimitiveArchetypeQualifierArchetype[]
-  }
-
-  note top of SystemicPrimitiveArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of a systemic primitive.
-
-    **Consistency Rules**:
-    - `name` MUST match the name of the archetyped class.
-    - `name` MUST match the name of the schema.
-    - `name` MUST be unique among all systemic primitive archetypes.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-  end note
-
-  SystemicPrimitiveArchetype "1" *--> "1" ArchetypeSchema : has
-  SystemicPrimitiveArchetype "1" *--> "0..*" SystemicPrimitiveArchetypeQualifierArchetype : has
-
-  ' ============================================================
-  ' QUALIFIER ARCHETYPE
-  ' ============================================================
-
-  abstract class QualifierArchetype {
-    +getId(): UUID
-    +getName(): String
-    +getSchema(): ArchetypeSchema
-  }
-
-  note top of SystemicPrimitiveArchetypeQualifierArchetype
-    **Primitive Semantics**:
-    - A qualifier is a logical extra attribute attached to a class. This
-      enables informational extensibility for cross-domain, global systemic
-      automatic reasoning to capture domain specific ontology and semantics
-      (epistemic).
-
-    **Consistency Rules**:
-    - `name` MUST match the name of the schema.
-    - `name` MUST be unique among all qualifier archetype instances.
-
-    **Consistency Rules**:
-    - `name` MUST be maximum 80 characters long.
-  end note
-
-  QualifierArchetype "1" *--> "1" ArchetypeSchema : has
-
-  ' ============================================================
-  ' SYSTEMIC PRIMITIVE ARCHETYPE QUALIFIER ARCHETYPE
-  ' ============================================================
-
-  class SystemicPrimitiveArchetypeQualifierArchetype {
-    +getSystemicPrimitiveArchetype(): SystemicPrimitiveArchetype
-  }
-
-  note top of SystemicPrimitiveArchetypeQualifierArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of a qualifier that belongs to a
-      systemic primitive archetype instance - meaning to all instances of a
-      systemic primitive subtype.
-  end note
-
-  QualifierArchetype <|-- SystemicPrimitiveArchetypeQualifierArchetype : is
-  SystemicPrimitiveArchetypeQualifierArchetype "1" o--> "1" SystemicPrimitiveArchetype : belongsTo
-
-  ' ============================================================
-  ' SYSTEMIC PRIMITIVE QUALIFIER ARCHETYPE
-  ' ============================================================
-
-  class SystemicPrimitiveQualifierArchetype {
-    +getSystemicPrimitive(): SystemicPrimitive
-  }
-
-  note top of SystemicPrimitiveQualifierArchetype
-    **Primitive Semantics**:
-    - Defines the structure and semantics of a qualifier that belongs to a
-      systemic primitive instance specifically.
-  end note
-
-  QualifierArchetype <|-- SystemicPrimitiveQualifierArchetype : is
-  SystemicPrimitiveQualifierArchetype "1" o--> "1" SystemicPrimitive : belongsTo
-
-  ' ============================================================
-  ' SYSTEMIC PRIMITIVE QUALIFIER
-  ' ============================================================
-
-  class SystemicPrimitiveQualifier {
-    +getId(): UUID
-    +getName(): String
-    +getArchetype(): QualifierArchetype
-    +getSystemicPrimitive(): SystemicPrimitive
-    +getValue(): String
-  }
-
-  note top of SystemicPrimitiveQualifier
-    **Primitive Semantics**:
-    - A qualifier applied to a systemic primitive instance, providing
-      additional semantic metadata about the primitive.
-
-    **Consistency Rules**:
-    - `value` MUST be formatted as JSON.
-    - `value` MUST conform to the structure, semantics, and types
-      defined in the archetype's schema of the qualifier.
-  end note
-
-  SystemicPrimitiveQualifier "1" *--> "1" QualifierArchetype : has
-  SystemicPrimitiveQualifier "1" o--> "1" SystemicPrimitive : belongsTo
-
-  ' ============================================================
-  ' MAIN MODEL (systemic primitives)
+  ' MAIN MODEL
   ' ============================================================
 
   ' ============================================================
@@ -769,8 +684,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     ' ORGANIZATION
     ' ============================================================
     
-    +getFunctions(): Function[]
     +getPolicies(): Policy[]
+    +getQualifiers(): Qualifier[]
     +getRules(): Rule[]
     +getActuations(): Actuation[]
     +getSensings(): Sensing[]
@@ -778,11 +693,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getRelationships(): Relationship[]
     +getEventArchetypes(): EventArchetype[]
     +getStateObjectArchetypes(): StateObjectArchetype[]
-
-    ' ============================================================
-    ' INFRASTRUCTURE
-    ' ============================================================
-
+    +getFunctions(): Function[]
     +getComponents(): Component[]
 
     ' ============================================================
@@ -800,7 +711,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     ' +getInterfaces(): Interface[]
 
     ' ============================================================
-    ' BEHAVIOR (out of GSM scope)
+    ' BEHAVIOR (ontic, not reflexive => out of GSM scope)
     ' ============================================================
   }
 
@@ -840,11 +751,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - **Purpose**: the system's reasons for existence — the intended
       outcomes or objectives. Purposes are the functional anchors to
-      which all governance is traceable through the DPR chain.
+      which all governance is traceable through the DPQR chain.
     - **Directive**: identity-level normative constraints expressed as
       structured quality-attribute sentences (Modal × Verb ×
       PurposeQualifier × Purpose). The subject is always the
-      owning System. They are the normative root of the DPR chain.
+      owning System. They are the normative root of the DPQR chain.
 
     Constitution answers: WHY does this system exist, and WHAT quality
     commitments does it make about that existence?
@@ -863,15 +774,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     Organization contains two kinds of constructs:
 
-    *Governance norms and behavioral logic (DPR + relationships):*
+    *Governance norms and behavioral logic (DPQR + relationships):*
     - **Policy**: measurable normative envelopes that operationalize
       Directives into bounded, falsifiable constraints.
     - **Rule**: behavioral logic — event-triggered Starlark programs.
       A Rule IS the atomic, compilable logical behavior unit; its
       body is the single source of truth for imperative definitions.
+    - **Qualifier**: structural/property definition — JSON values
+      within Policy bounds. A Qualifier IS the atomic, declarative
+      structural set point; its value is the single source of truth
+      for structural property definitions.
     - **Operationalization**: traced governance lineage path through
-      the DPR gradient (Directive → Policy → Rule). Each instance
-      pins one thread from the many-to-many DPR web.
+      the DP gradient (Directive → Policy → {Rule, Qualifier}).
+      Each instance pins one thread from the many-to-many web.
     - **Relationship**: positional links to other systems, encoding
       role pairs and governance postures.
     - **Actuation**: declares an operational intent to mutate a
@@ -904,10 +819,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     supervise its own behavior to fulfill its Constitution?
 
     In GSM terms, Organization is the system's *governance
-    architecture*: the articulation of norms (DPR), information model
-    (EventArchetype, StateObjectArchetype, Function), relationships,
-    and operational governance markers (Actuation/Sensing) that,
-    together, enable the system to regulate itself.
+    architecture*: the articulation of norms (DPQR), information
+    model (EventArchetype, StateObjectArchetype, Function),
+    relationships, and operational governance markers
+    (Actuation/Sensing) that, together, enable the system to
+    regulate itself.
     Organization governs Infrastructure: Mechanisms realize Functions,
     Rule bodies command Effectors through auto-derived mechanisms,
     Policies constrain measurable properties — governance ACTS
@@ -971,40 +887,44 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     | Organization   | Epistemological+Logical  | HOW (info model + logic) | What reality looks like, what to do about it | Cannot operationalize itself            |
     | Infrastructure | Operational             | WITH WHAT (topology)     | Nothing semantic — only structural capability | — (bottom layer, inherited from Component) |
 
-    **DPR — The System Definitional Grammar across layers**
+    **DPQR — The System Definitional Grammar across layers**
 
-    The DPR chain (Directive → Policy → Rule) is the
-    definitional spine that cross-cuts all layers:
+    The DPQR grammar (Directive → Policy → {Rule, Qualifier}) is
+    the definitional spine that cross-cuts all layers:
 
     - Directives live in **Constitution**: they ARE identity.
-    - Policies, Rules live in **Organization**: they ARE
-      governance.
+    - Policies, Rules, Qualifiers live in **Organization**: they
+      ARE governance.
     - Mechanisms realize Functions (Organization) and Rule bodies
       command Effectors (Infrastructure) through auto-derived
       mechanisms: governance ACTS through structure.
 
-    The DPR chain operates as a **specificity gradient** (abstract →
-    concrete) and a **modality transition** (declarative → imperative):
+    The DPQR grammar operates as a **specificity gradient**
+    (abstract → concrete) with a **modality fork** at the
+    definition level:
 
-    | DPR Level  | Layer         | Scopes           | Modality    |
-    |------------|---------------|------------------|-------------|
-    | Directive  | Constitution  | Purpose          | Declarative |
-    | Policy     | Organization  | Purpose (derived)| Declarative |
-    | Rule       | Organization  | Function (via Mechanism) | Imperative  |
+    | DPQR Level | Layer         | Scopes           | Gov. modality |
+    |------------|---------------|------------------|---------------|
+    | Directive  | Constitution  | Purpose          | Declarative   |
+    | Policy     | Organization  | Purpose (derived)| Declarative   |
+    | Rule       | Organization  | Function (via Mechanism) | Imperative |
+    | Qualifier  | Organization  | Property group   | Imperative    |
 
     The Directive→Policy transition is a **scope narrowing**: from
     unbounded directional intent to measurable bounds — but both
-    remain declarative. The Policy→Rule transition is the **modality
-    step-down**: from declarative constraint to imperative behavioral
-    logic.
+    remain declarative. The Policy→{Rule,Qualifier} transition
+    is the **definition fork**: Policy bounds, Rule or Qualifier
+    defines (behavioral logic vs. structural value).
 
-    DPR IS the system's structure:
+    DPQR IS the system's structure:
     - Rule = **dynamic structure** (behavioral logic).
+    - Qualifier = **static structure** (property values).
     - Policy and Directive = **teleological structure** (governance).
 
-    A system without DPR has components but no behavior, no
-    supervision, and no purpose-alignment. DPR makes the system a
-    *system* rather than a collection of parts.
+    A system without DPQR has components but no behavior, no
+    structural intent, no supervision, and no purpose-alignment.
+    DPQR makes the system a *system* rather than a collection
+    of parts.
 
     **Attributes Semantics**:
     - `name`: Human-readable semantic identifier (inherited from
@@ -1023,6 +943,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   System "1" *--> "0..*" Function : has
   System "1" *--> "0..*" Policy : has
+  System "1" *--> "0..*" Qualifier : has
   System "1" *--> "0..*" Rule : has
   System "1" *--> "0..*" Actuation : has
   System "1" *--> "0..*" Sensing : has
@@ -1044,6 +965,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Primitive Semantics**:
     - A reason for the system's existence — an intended outcome or
       objective that the system is designed to achieve.
+    - Purposes are **intrinsic ends** — each Purpose is an
+      independent reason for the system's existence, not a means
+      to achieve another Purpose.
     - Purposes are associated with functional policies, which constrain
       the system's functional envelope.
     - Function↔Purpose is NOT a direct, stored relationship. It is
@@ -1055,6 +979,55 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       through: Function ← Mechanism/Controller → Rule →
       Operationalization → Policy → Directive → Purpose.
 
+    **Ontological constraint — Purposes are ends, not means:**
+
+    A Purpose is an **intrinsic end-goal** of the system —
+    something the system exists to achieve for its own sake
+    within its constitutional identity.
+
+    If a candidate Purpose B only exists to serve another
+    Purpose A within the same System, then B is NOT an
+    intrinsic end. It is either:
+    (a) A **Function** of the System — a capability (means)
+        that the system performs to achieve Purpose A.
+        Functions are WHAT the system CAN DO; Purposes are
+        WHY it exists. Means and ends must not be conflated.
+    (b) A **Purpose of a sub-System** — a Component (or
+        sub-System) is composed by the owning System to
+        provide the capability that serves Purpose A. The
+        sub-System has its own Constitution declaring B as
+        its Purpose.
+
+    This constraint preserves ontological clarity:
+    - Purposes within the same System are **independent ends**
+      (parallel, never dependent).
+    - Dependencies between capabilities are modeled at the
+      **Function/Infrastructure level** (Mechanism Interactions,
+      Channel topology) — not at the Purpose level.
+    - Cross-Purpose structural dependencies are **derivable**
+      from the Infrastructure graph: if Functions serving
+      Purpose A require (via Mechanism Interactions) Functions
+      serving Purpose B, the dependency is structural, not
+      constitutional.
+
+    **Effective criticality (derived, not intrinsic):**
+
+    Purpose does not carry an intrinsic priority attribute.
+    The effective criticality of a Purpose is derived from
+    its Directive distribution:
+    - effectiveCriticality(P) = max(D.modal) over all
+      Directives D where D.purposeScope = P.
+    - A Purpose governed by MUST Directives is de facto
+      critical. A Purpose governed by only MAY Directives
+      is de facto supporting.
+    - A Purpose with zero Directives has no criticality
+      signal — this IS the governance gap (ungoverned
+      Purpose), detectable by the Supervision plane.
+
+    This means criticality is a constitutional DIRECTIVE
+    decision, not a Purpose attribute. Directive modal
+    precedence IS the priority mechanism.
+
     **Attributes Semantics**:
     - `name`: Human-readable semantic identifier.
 
@@ -1064,7 +1037,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `name` MUST be maximum 80 characters long.
   end note
 
-  SystemicPrimitive <|-- Purpose : is
+  SystemicPrimitiveDefinition <|-- Purpose : is
   Purpose "0..*" o--> "1" System : functionallyRationalizes
 
   ' ============================================================
@@ -1094,7 +1067,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (guard) or sub-System decomposition.
     - Without Directives, a system has Purposes but no declared stance
       on quality dimensions. Directives are the normative root of the
-      DPR chain.
+      DPQR chain.
     - Directives are DEFINED and ENFORCED by the governance plane.
     - Directives are OPERATED by the regulation plane when designing
       and validating policies.
@@ -1118,7 +1091,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     purposeQualifier is the *adjective* that qualifies Purpose
     within the governance sentence.
 
-    This duality extends through the DPR chain: Directive scopes
+    This duality extends through the DPQR chain: Directive scopes
     Purpose (identity-level), Policy scopes Function (design-level),
     and Functions serve Purposes. The constraint nature (functional,
     viability, structural) is derivable from purposeQualifier and
@@ -1130,7 +1103,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (see DirectiveVerb).
     - `purposeQualifier`: A non-empty String naming the viability
       dimension (e.g., "integrity", "throughput", "latency"). It is
-      NOT a reference to a SystemicPrimitive — it is a free-form
+      NOT a reference to a SystemicPrimitiveDefinition — it is a free-form
       quality attribute name within the governance sentence.
     - `purposeScope`: The Purpose being governed (value target).
 
@@ -1155,7 +1128,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     or purposeQualifiers not applied to critical Purposes.
   end note
 
-  SystemicPrimitive <|-- Directive : is
+  SystemicPrimitiveDefinition <|-- Directive : is
   Directive "0..*" o--> "1" Purpose : scopesPurpose
 
   enum DirectiveModal {
@@ -1360,7 +1333,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `name` MUST be unique among all functions of the same system.
   end note
 
-  SystemicPrimitive <|-- Function : is
+  SystemicPrimitiveDefinition <|-- Function : is
 
   ' ============================================================
   ' POLICY
@@ -1556,7 +1529,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Allowed connectives: AND (&&), OR (||), NOT (!)
     - Allowed functions: size(), has(), exists()
     - Allowed references: archetype property paths
-      (SystemicPrimitive, StateObjectArchetype, EventArchetype)
+      (SystemicPrimitiveDefinition, StateObjectArchetype, EventArchetype)
     - Cross-property comparisons allowed (e.g., a.x > a.y)
     - No non-deterministic functions (now(), uuid())
     - No imperative constructs, no variable declarations
@@ -1598,8 +1571,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       any other Policy.
 
     **What compositional governance is NOT:**
-    - NOT DPR inheritance: Components do not inherit their parent
-      System's DPR. Components have no reflexive layer.
+    - NOT DPQR inheritance: Components do not inherit their parent
+      System's DPQR. Components have no reflexive layer.
     - NOT deep governance: a System governs its Components as
       black boxes — only through externally observable properties,
       not through internal structure.
@@ -1608,7 +1581,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (as a System, via Relationship), not C directly. Governance
       follows composition hierarchy.
 
-    **If a Component needs independently governed DPR**, it should
+    **If a Component needs independently governed DPQR**, it should
     be promoted to a sub-System (Component → System via IS-A) and
     governed through Relationship, not composition.
 
@@ -1726,7 +1699,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Availability SLAs → sustained compliance tolerance.
   end note
 
-  SystemicPrimitive <|-- Policy : is
+  SystemicPrimitiveDefinition <|-- Policy : is
   Policy "0..*" o--> "1" System : constrains
   Policy "1" o--> "1..*" Directive : operationalizes
 
@@ -1852,7 +1825,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Rules are DEFINED by the regulation plane.
     - Rules are ENFORCED by the supervision plane.
     - Rules are OPERATED by the operation plane.
-    - Rule is the first imperative level in the DPR chain.
+    - Rule is the first imperative level in the DPQR chain.
       The declarative → imperative transition occurs here.
     - Rule IS the **behavioral logical atom**: the atomic,
       compilable/executable governance logic. Its Starlark body
@@ -1923,9 +1896,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - All combined → Controller mechanism IMPLEMENTING the Rule.
       Auto-derived primitives carry: derived_from_rule_id, derived=true.
       Recomputed on body change (body_hash diff → delete old, derive new).
-      The resulting Mechanism is the **DPR ↔ behavior anchor**:
+      The resulting Mechanism is the **DPQR ↔ behavior anchor**:
       it bridges governance definitions and observable behavior.
-    - **Derived DPR navigability (from Operationalization):**
+    - **Derived DPQR navigability (from Operationalization):**
       The following existing accessors are derived from
       Operationalization chains:
       - `Policy.getOperationalizingDirectives()` =
@@ -1936,7 +1909,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         WHERE o.rule = THIS AND o.policy IS NOT NULL.
   end note
 
-  SystemicPrimitive <|-- Rule : is
+  SystemicPrimitiveDefinition <|-- Rule : is
   Rule "0..*" o--> "1" System : constrains
   Rule "0..*" o--> "0..*" Policy : enforcing
 
@@ -1951,6 +1924,141 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Each value corresponds to a specific parser and execution environment
       that the Definition Manager recognizes for validation and auto-derivation.
   end note
+
+  ' ============================================================
+  ' QUALIFIER
+  ' ============================================================
+
+  class Qualifier {
+    +getName(): String
+    +getSchema(): Schema
+    +getValue(): String
+    +getSatisfiedPolicies(): Policy[]
+  }
+
+  note top of Qualifier
+    **Primitive Semantics**:
+    - The **structural/property definition atom** — the DPQ terminal
+      that defines a specific property value within the bounds set
+      by a Policy.
+    - Qualifier is the structural counterpart of Rule: Rule defines
+      BEHAVIOR (imperative, event-triggered Starlark); Qualifier
+      defines STRUCTURE/PROPERTIES (declarative, JSON).
+    - Both share the same governance modality transition:
+      DP (declarative constraining) → terminal atom (imperative
+      defining). They differ only in technical modality (code vs.
+      data) and governance axis (behavioral vs. structural).
+    - A Qualifier IS a **structural set point** — in cybernetics,
+      the reference value that the controller (Definition plane)
+      specifies, the actuator (Operation plane) realizes, and
+      the sensor (Supervision plane) compares against observed
+      state.
+    - Without Qualifier, structural governance terminates at
+      Policy (constraining only); the system knows WHAT bounds
+      must hold but not WHAT specific values it intends.
+      Qualifier closes the gap: Policy bounds, Qualifier defines.
+    - Qualifiers are DEFINED by the regulation plane.
+    - Qualifiers are VERIFIED by the supervision plane (at
+      definition-time: does the value satisfy its constraining
+      Policies?).
+
+    **DPQ chain — the structural governance lineage:**
+
+      Directive → Policy → Qualifier
+
+    - Directive: identity-level quality direction
+      ("MUST ENSURE availability OF data-persistence")
+    - Policy: measurable bound
+      (`Database.replicas >= 3`)
+    - Qualifier: specific value within bounds
+      (`{"replicas": 5}`)
+
+    Operationalization traces this chain: an Operationalization
+    instance with directive + policy + qualifier pins one
+    structural governance thread.
+
+    **Governance velocity (fast, operational):**
+    - Policy changes slowly (governance/regulatory authority).
+    - Qualifier changes at operational velocity (which value
+      to choose within the bounds set by Policy).
+    - This velocity separation is the core argument for DPQ:
+      changing "replicas from 5 to 7" is an operational
+      decision that should not require a governance-plane
+      Policy change (as long as 7 ≥ 3).
+
+    **Attributes Semantics**:
+    - `name`: Human-readable semantic identifier for the property
+      group (e.g., "database-infrastructure", "retry-config",
+      "channel-resilience").
+    - `schema`: Schema defining the property vocabulary
+      — what property names exist and their types. Enables
+      cross-domain extensibility (domain-specific property
+      schemas). The schema is the structural vocabulary that
+      makes Qualifier values machine-interpretable.
+    - `value`: JSON string conforming to the schema. The
+      structural set point — the specific property values
+      this Qualifier defines. This is the DPQ definition atom:
+      the value that satisfies Policy bounds and that the
+      Operation plane realizes.
+    - `satisfiedPolicies`: Derived from Operationalization
+      chains (see Functional Rules).
+
+    **Validation Rules**:
+    - `name` MUST be mandatory and non-empty.
+    - `name` MUST be maximum 80 characters long.
+    - `name` MUST be unique among all Qualifiers of the same
+      System.
+    - `schema` MUST reference a valid Schema.
+    - `value` MUST be valid JSON.
+    - `value` MUST conform to the structure, semantics, and
+      types defined by the referenced schema.
+    - When `definitionStatus` = ACTIVE or APPROVED: for every
+      Policy P that this Qualifier satisfies (via
+      Operationalization), the value SHOULD satisfy P's
+      predicate (definition-time verification).
+
+    **Consistency Rules**:
+    - A Qualifier SHOULD satisfy at least one Policy (via
+      Operationalization). A Qualifier without any
+      Operationalization chain is ungoverned — detectable
+      as a governance gap finding.
+    - Schema changes MUST trigger re-validation of value
+      against the new schema.
+
+    **Functional Rules**:
+    - **Derived navigability (from Operationalization):**
+      `getSatisfiedPolicies()` is derived from
+      Operationalization chains:
+        SELECT DISTINCT o.policy FROM operationalization o
+        WHERE o.qualifier = THIS AND o.policy IS NOT NULL.
+    - **Definition-time verification:**
+      When a Qualifier is persisted or modified, the Definition
+      Manager evaluates the constraining Policies' predicates
+      against the Qualifier's value. Violations are reported
+      as definition-time findings (not runtime).
+    - **Governance maturity reporting**: Qualifiers not
+      appearing in any Operationalization chain are
+      ungoverned — detectable by the Supervision plane.
+
+    **Dual governance (DPR + DPQ on the same Policy):**
+
+    A single Policy MAY produce BOTH a DPR chain (behavioral
+    definition) AND a DPQ chain (structural definition):
+
+    - Policy: `Database.replicas >= 3`
+    - DPQ: Qualifier `{"replicas": 5}` — structural intent
+    - DPR: Rule on("DatabaseProvisioned") → sys.create(
+      "Database", {"replicas": qualifier.replicas}) —
+      behavioral logic to realize the intent
+
+    Both are design-time definitions. The Qualifier defines
+    structural intent (verifiable at definition-time); the
+    Rule defines operational behavior (verifiable at
+    observation-time).
+  end note
+
+  SystemicPrimitiveDefinition <|-- Qualifier : is
+  Qualifier "1" *--> "1" Schema : has
 
   ' ============================================================
   ' ACTUATION
@@ -2055,7 +2163,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         target archetype's schema.
   end note
 
-  SystemicPrimitive <|-- Actuation : is
+  SystemicPrimitiveDefinition <|-- Actuation : is
   Actuation "1" o--> "1" StateObjectArchetype : actuates
 
   enum ActuationType {
@@ -2174,7 +2282,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         (orphaned Sensing — should not exist).
   end note
 
-  SystemicPrimitive <|-- Sensing : is
+  SystemicPrimitiveDefinition <|-- Sensing : is
   Sensing "1" o--> "1" Actuation : observes
 
   ' ============================================================
@@ -2185,23 +2293,36 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     +getDirective(): Directive
     +getPolicy(): Policy
     +getRule(): Rule
+    +getQualifier(): Qualifier
   }
 
   note top of Operationalization
     **Primitive Semantics**:
-    - A **traced governance lineage path** through the DPR
-      specificity gradient (Directive → Policy → Rule).
+    - A **traced governance lineage path** through the DPQR
+      specificity gradient (Directive → Policy → {Rule, Qualifier}).
     - Each instance pins down exactly one normative thread from
-      the many-to-many-to-many DPR web: one Directive, one Policy,
-      one Rule (each nullable).
+      the many-to-many DPQR web: one Directive, one Policy, and
+      at most one terminal atom (Rule or Qualifier). All fields
+      are nullable.
     - Captures governance maturity: partial chains (null fields)
       reveal governance gaps, under-construction lineages, and
       orphaned artifacts.
 
+    **Mutual exclusivity of terminal atoms**:
+    An Operationalization instance carries at most ONE terminal
+    atom — either a Rule OR a Qualifier, never both:
+    - **DPR chain**: directive + policy + rule (behavioral)
+    - **DPQ chain**: directive + policy + qualifier (structural)
+    - **DP-only**: directive + policy (structural-emergent, no
+      terminal atom)
+    Rule and Qualifier are both governance-imperative definition
+    atoms that fork from the same Policy; an Operationalization
+    instance traces ONE thread through ONE fork.
+
     **Systemics term mapping**:
     - **Governance lineage** / normative traceability path.
     - In cybernetics: the **control authority trace** — why does
-      this controller (Rule) exist?
+      this controller (Rule) or set point (Qualifier) exist?
 
     **Attributes Semantics**:
     - `directive`: The Directive at the identity-level root of this
@@ -2209,20 +2330,35 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `policy`: The Policy translating the Directive into a
       measurable boundary (nullable — null = gap or direct link).
     - `rule`: The Rule operationalizing the Policy as behavioral
-      logic (nullable — null = not yet operationalized).
+      logic (nullable — null = not yet operationalized or DPQ
+      chain).
+    - `qualifier`: The Qualifier satisfying the Policy with a
+      specific property value (nullable — null = not yet defined
+      or DPR chain).
 
     **Validation Rules**:
-    - At least one of `directive`, `policy`, `rule` MUST be
-      non-null.
+    - At least one of `directive`, `policy`, `rule`, `qualifier`
+      MUST be non-null.
+    - `rule` and `qualifier` MUST NOT both be non-null on the
+      same instance (mutual exclusivity of terminal atoms).
     - When `definitionStatus` = ACTIVE:
-      - All three SHOULD be non-null (complete chain).
-      - `directive` + `policy` without `rule` → gap finding
-        (Policy exists but no Rule operationalizes it for this
-        Directive).
+      - A DPR chain SHOULD have all of directive + policy + rule
+        non-null (complete behavioral lineage).
+      - A DPQ chain SHOULD have all of directive + policy +
+        qualifier non-null (complete structural lineage).
+      - `directive` + `policy` without `rule` or `qualifier` →
+        gap finding (Policy exists but no terminal atom
+        operationalizes it for this Directive — DP-only, or
+        under-construction).
       - `policy` + `rule` without `directive` → gap finding
         (Policy lacks principled grounding for this Rule).
-      - `directive` + `rule` without `policy` → DPR chain
+      - `policy` + `qualifier` without `directive` → gap finding
+        (Policy lacks principled grounding for this Qualifier).
+      - `directive` + `rule` without `policy` → DPQR chain
         violation (Rule cannot directly operationalize a
+        Directive without a Policy intermediary).
+      - `directive` + `qualifier` without `policy` → DPQR chain
+        violation (Qualifier cannot directly satisfy a
         Directive without a Policy intermediary).
     - When set, `directive` MUST reference a Directive owned by
       the same System.
@@ -2230,20 +2366,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       same System.
     - When set, `rule` MUST reference a Rule owned by the same
       System.
+    - When set, `qualifier` MUST reference a Qualifier owned by
+      the same System.
 
     **Consistency Rules**:
     - No duplicate Operationalization per System (unique
-      combination of directive, policy, rule — treating nulls
-      as distinct).
+      combination of directive, policy, rule, qualifier —
+      treating nulls as distinct).
     - When `directive` and `policy` are both set, the Policy
       SHOULD be governance-compatible with the Directive
       (purposeQualifier alignment).
     - When `policy` and `rule` are both set, the Rule SHOULD
       operationalize the Policy (constraint coverage).
+    - When `policy` and `qualifier` are both set, the Qualifier’s
+      value SHOULD satisfy the Policy’s predicate
+      (definition-time verification).
 
     **Functional Rules**:
-    - **Derived DPR navigability**:
-      The following existing accessors are derived from
+    - **Derived DPQR navigability**:
+      The following accessors are derived from
       Operationalization chains:
       - `Policy.getOperationalizingDirectives()` =
         SELECT DISTINCT o.directive FROM operationalization o
@@ -2251,19 +2392,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - `Rule.getOperationalizingPolicies()` =
         SELECT DISTINCT o.policy FROM operationalization o
         WHERE o.rule = THIS AND o.policy IS NOT NULL.
-    - **Governance maturity reporting**: Directives, Policies, or
-      Rules not appearing in any Operationalization chain are
-      ungoverned/untraced — detectable by the Supervision plane.
+      - `Qualifier.getSatisfiedPolicies()` =
+        SELECT DISTINCT o.policy FROM operationalization o
+        WHERE o.qualifier = THIS AND o.policy IS NOT NULL.
+    - **Governance maturity reporting**: Directives, Policies,
+      Rules, or Qualifiers not appearing in any
+      Operationalization chain are ungoverned/untraced —
+      detectable by the Supervision plane.
     - **SQL enforcement semantics**:
       - System FK: CASCADE (delete System → delete its chains).
-      - Directive, Policy, Rule FKs: RESTRICT (cannot delete an
-        artifact while it participates in a chain).
+      - Directive, Policy, Rule, Qualifier FKs: RESTRICT (cannot
+        delete an artifact while it participates in a chain).
+      - CHECK constraint: NOT (rule IS NOT NULL AND qualifier IS
+        NOT NULL) (mutual exclusivity).
   end note
 
-  SystemicPrimitive <|-- Operationalization : is
+  SystemicPrimitiveDefinition <|-- Operationalization : is
   Operationalization "0..*" o--> "0..1" Directive : fromDirective
   Operationalization "0..*" o--> "0..1" Policy : throughPolicy
   Operationalization "0..*" o--> "0..1" Rule : toRule
+  Operationalization "0..*" o--> "0..1" Qualifier : toQualifier
 
   ' ============================================================
   ' RELATIONSHIP
@@ -2387,7 +2535,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
 
-  SystemicPrimitive <|-- Relationship : is
+  SystemicPrimitiveDefinition <|-- Relationship : is
   Relationship "0..*" o--> "1" System : definingSystem
   Relationship "0..*" o--> "1" System : counterpartySystem
   Relationship "0..*" o--> "1" Role : definingSystemRole
@@ -2468,7 +2616,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       - ACCREDITATION_BODY ↔ CERTIFYING_AUTHORITY or AUDITOR
   end note
 
-  SystemicPrimitive <|-- Role : is
+  SystemicPrimitiveDefinition <|-- Role : is
 
   ' ============================================================
   ' EVENT ARCHETYPE
@@ -2476,7 +2624,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class EventArchetype {
     +getName(): String
-    +getSchema(): ArchetypeSchema
+    +getSchema(): Schema
   }
 
   note top of EventArchetype
@@ -2506,8 +2654,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - If its schema is deleted, the event archetype MUST be deleted.
   end note
 
-  SystemicPrimitive <|-- EventArchetype : is
-  EventArchetype "0..*" o--> "1" ArchetypeSchema : has
+  SystemicPrimitiveDefinition <|-- EventArchetype : is
+  EventArchetype "0..*" o--> "1" Schema : has
   
   ' ============================================================
   ' STATE OBJECT ARCHETYPE
@@ -2515,14 +2663,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   class StateObjectArchetype {
     +getName(): String
-    +getSchema(): ArchetypeSchema
+    +getSchema(): Schema
   }
 
   note top of StateObjectArchetype
     **Primitive Semantics**:
     - Defines the structure and semantics of a state object for
       representing system state.
-    - Models observable/mutable state, whereas other SystemicPrimitives
+    - Models observable/mutable state, whereas other SystemicPrimitiveDefinitions
       model structural/definitional constructs.
 
     **Consistency Rules**:
@@ -2531,8 +2679,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - If its schema is deleted, the state object archetype MUST be deleted.
   end note
 
-  SystemicPrimitive <|-- StateObjectArchetype : is
-  StateObjectArchetype "1" *--> "1" ArchetypeSchema : has
+  SystemicPrimitiveDefinition <|-- StateObjectArchetype : is
+  StateObjectArchetype "1" *--> "1" Schema : has
 
   ' ============================================================
   ' COMPONENT
@@ -2702,7 +2850,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       effector/receptor is owned by those mechanisms.
   end note
 
-  SystemicPrimitive <|-- Component : is
+  SystemicPrimitiveDefinition <|-- Component : is
   Component "1" *--> "0..*" Mechanism : has
   Component "1" *--> "0..*" Receptor : has
   Component "1" *--> "0..*" Effector : has
@@ -2896,7 +3044,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
 
-  SystemicPrimitive <|-- Mechanism : is
+  SystemicPrimitiveDefinition <|-- Mechanism : is
   Mechanism "1" o--> "1" Function : realizes
   Mechanism "1" *--> "1..*" Receptor : has
   Mechanism "1" *--> "1..*" Effector : has
@@ -2941,7 +3089,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       deleted (other receptors may still reference it).
   end note
 
-  SystemicPrimitive <|-- Receptor : is
+  SystemicPrimitiveDefinition <|-- Receptor : is
   Receptor "0..*" o--> "1" EventArchetype : receives
 
   ' ============================================================
@@ -2981,7 +3129,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       deleted (other effectors may still reference it).
   end note
 
-  SystemicPrimitive <|-- Effector : is
+  SystemicPrimitiveDefinition <|-- Effector : is
   Effector "0..*" o--> "1" EventArchetype : emits
 
   ' ============================================================
@@ -3038,7 +3186,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `receptor` MUST be defined.
   end note
 
-  SystemicPrimitive <|-- Interaction : is
+  SystemicPrimitiveDefinition <|-- Interaction : is
   Interaction "0..*" o--> "1" Effector : has
   Interaction "0..*" o--> "1" Receptor :  has
 
@@ -3093,7 +3241,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       Interactions have endpoints owned by different Systems.
   end note
 
-  SystemicPrimitive <|-- Channel : is
+  SystemicPrimitiveDefinition <|-- Channel : is
   Channel "1" *--> "0..*" Interaction : carries
 
   ' ============================================================
@@ -3178,7 +3326,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       undeclared external exposure (warning).
   end note
 
-  SystemicPrimitive <|-- Interface : is
+  SystemicPrimitiveDefinition <|-- Interface : is
   Interface "1" o--> "0..*" Receptor : exposes
   Interface "1" o--> "0..*" Effector : exposes
 
@@ -3326,18 +3474,47 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Infrastructure: governed by Policy predicates targeting
       structural properties (declarative)
 
-    The DPR chain therefore has two sub-chains with different
+    The DPQR chain therefore has three sub-chains with different
     terminal modalities:
     - **DP** (Directive → Policy): constraining gradient.
       Declarative. Axis-agnostic. Terminates at Policy for
-      structural governance.
+      structural-emergent governance.
     - **DPR** (Directive → Policy → Rule): constraining-then-
       defining gradient. Declarative → imperative. Terminates
       at Rule for behavioral governance.
+    - **DPQ** (Directive → Policy → Qualifier): constraining-then-
+      defining gradient. Declarative → declarative (JSON).
+      Terminates at Qualifier for structural/property governance.
 
     ════════════════════════════════════════════════════════════
-    **5. THE QUALIFIER DUALITY — governance gap**
+    **5. THE QUALIFIER DUALITY — RESOLVED (Option A: DPQ)**
     ════════════════════════════════════════════════════════════
+
+    **Resolution**: The governance gap identified below has
+    been eliminated by implementing **Option A (DPQ)** —
+    Qualifier is now a first-class Organization-level
+    primitive, fully independent of the per-instance
+    qualifier meta-model (which has been removed).
+
+    - Qualifier IS-A SystemicPrimitiveDefinition with its own
+      Schema (property vocabulary), JSON value (structural
+      set point), and DPQ governance lineage through
+      Operationalization.
+    - The per-instance qualifier meta-model
+      (QualifierArchetype, SystemicPrimitiveQualifier,
+      SystemicPrimitiveQualifierArchetype,
+      SystemicPrimitiveArchetypeQualifierArchetype) and
+      SystemicPrimitiveArchetype have been entirely removed.
+    - Operationalization now supports 4 nullable fields
+      (directive, policy, rule, qualifier) with mutual
+      exclusivity: at most one of {rule, qualifier} per
+      instance.
+    - The governance gap is eliminated by construction:
+      Qualifier values are traceable through DPQR chains
+      and verifiable against Policy predicates at
+      definition-time.
+
+    **Historical analysis (kept as rationale record):**
 
     **The semantic family of "qualifier":**
 
@@ -3465,7 +3642,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
        Controller archetype properties. No Operationalization
        extension needed.
 
-    Operationalization remains: Directive → Policy → Rule.
+    Operationalization remains: Directive → Policy →
+    {Rule, Qualifier}.
     The Controller is the TARGET of governance, not a node
     in the governance lineage.
 
@@ -3480,18 +3658,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     | Constitution   | Anchoring (teleological)   | Purpose (defines), Directive (constrains)     |
     | Organization   | Constraining (declarative) | Policy (any axis), Operationalization (trace) |
     |                | Defining (imperative)      | Rule (behavioral)                             |
+    |                | Defining (declarative)     | Qualifier (structural/property)               |
     |                | Defining (authored)        | Function, Relationship, Component (compose)   |
     |                | Defining (epistemic)       | EventArchetype, StateObjectArchetype          |
     |                | Defining (auto-derived)    | Actuation, Sensing                            |
     | Infrastructure | Realizing (auto-derived)   | Controller, Actuator, Sensor, R/E             |
     |                | Realizing (authored)       | Mechanism, Interaction, Channel, Interface    |
 
-    **The three navigation paths:**
+    **The four navigation paths:**
 
     1. **Operationalization** (governance lineage — WHY):
-       Directive → Policy → Rule
-       "Why does this Rule exist?"
-       Traces normative authority from identity to behavior.
+       Directive → Policy → {Rule, Qualifier}
+       "Why does this Rule/Qualifier exist?"
+       Traces normative authority from identity to definition.
 
     2. **Auto-derivation** (structural production — HOW built):
        Rule body → Controller + Actuator + Sensor + R/E
@@ -3503,36 +3682,48 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
        "What constraints apply to this infrastructure?"
        Traces governance to structural targets.
 
-    **Rule is the nexus** where:
-    - Path 1 terminates (governance lineage arrives)
-    - Path 2 departs (infrastructure auto-derives)
+    4. **DPQ satisfaction** (structural definition — set point):
+       Qualifier value → Policy predicate → definition-time
+       verification
+       "Does this structural intent satisfy governance bounds?"
+       Traces structural definition to constraint compliance.
+
+    **Rule and Qualifier are the dual nexus** where:
+    - Path 1 terminates (governance lineage arrives at both)
+    - Path 2 departs from Rule (infrastructure auto-derives)
     - Path 3 connects laterally (Policies constrain both
       Mechanism-realized Functions and auto-derived infrastructure)
+    - Path 4 connects from Qualifier (values satisfy Policies)
     - Value delivery is structurally traceable: Function ←
       Mechanism/Controller → Rule → Operationalization →
       Directive → Purpose
 
-    **The complete DPR governance chain:**
+    **The complete DPQR governance chain:**
 
-    For BEHAVIOR (declarative → imperative):
+    For BEHAVIOR (declarative → imperative — DPR):
       Purpose ← Directive → Policy → Rule → (auto-derives)
       Controller → Actuator/Sensor → R/E → Mechanism
 
-    For STRUCTURE (declarative throughout):
-      Purpose ← Directive → Policy → (predicates target)
-      Component, Mechanism, Interface, Channel properties
+    For STRUCTURE (declarative → declarative — DPQ):
+      Purpose ← Directive → Policy → Qualifier
+      (value within Policy bounds, verified at definition-time)
 
-    The same Directive can operationalize through BOTH
+    For EMERGENT STRUCTURE (declarative only — DP):
+      Purpose ← Directive → Policy → (Supervision evaluates
+      predicate directly against model graph)
+
+    The same Directive can operationalize through ALL
     sub-chains: one Policy constraining behavior (via Rule),
-    another Policy specifying structural properties directly.
-    Both appear in Operationalization. Both are appraised.
+    another bounding structural properties (via Qualifier),
+    another verifying graph topology (DP-only).
+    All appear in Operationalization. All are appraised.
 
     ════════════════════════════════════════════════════════════
     **8. REMAINING DESIGN FRONTIERS (open)**
     ════════════════════════════════════════════════════════════
 
     (a) **Relationship teleological traceability**: Relationship
-        has no explicit DPR lineage — "why does this
+        has no explicit DPQR lineage — "why does this
         Relationship exist?" is not traceable through
         Operationalization. Acceptable for now;
         Supervision detects Relationships without corresponding
@@ -3544,32 +3735,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
         value delivery traceability without a dedicated
         primitive.
 
-    (c) **Qualifier scope reduction**: if governance-active
-        configuration migrates to Policy (Resolution A) or
-        becomes a governed DPQ atom (Resolution B), the
-        residual ungoverned Qualifier scope (purely epistemic
-        metadata) may overlap with the existing "no
-        classification in GSM" principle. Evaluate whether
-        the remaining Qualifier use cases are consistent with
-        GSM's generative nature or should migrate to DSM.
+    (c) **RESOLVED** — Qualifier is now a first-class
+        Organization-level primitive (DPQ). The per-instance
+        qualifier meta-model has been removed. Only
+        definitionally relevant Qualifiers exist in GSM;
+        classificatory metadata belongs to DSM.
 
     (d) **Policy predicate property resolution**: Policy
         predicates reference archetype property paths. The
         Definition Manager must resolve property references
-        against both archetype schemas AND qualifier archetype
-        schemas. This is an engineering requirement, not a
-        model change.
+        against archetype schemas. This is an engineering
+        requirement, not a model change.
 
-    (e) **DPQ model decision**: §9 explores DPQ but does not
-        resolve it. Key remaining questions:
-        - How does Operationalization accommodate a Qualifier
-          terminal? (extend existing or new tracing primitive?)
-        - Does Qualifier need its own definition lifecycle
-          (SystemicPrimitiveDefinitionStatus) or inherit from
-          its parent primitive?
-        - Engineering: how does the Definition Manager validate
-          Qualifier values against Policy predicates at save
-          time?
+    (e) **RESOLVED** — Qualifier is a first-class primitive
+        with its own Schema, JSON value, and DPQ
+        governance lineage through Operationalization (4
+        nullable fields with mutual exclusivity). Qualifier
+        inherits SystemicPrimitiveDefinitionStatus from
+        SystemicPrimitiveDefinition. Definition Manager validates
+        Qualifier values against Policy predicates at
+        save time (definition-time verification).
 
     (f) **Policy classification by predicate target**: §11
         formalizes the deterministic triple classification
@@ -3579,15 +3764,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
           field (BEHAVIORAL / STRUCTURAL_DEFINED /
           STRUCTURAL_EMERGENT) or is this purely a query-time
           derivation?
-        - How does dual governance (same Policy in both DPR
-          and DPQ) interact with Operationalization? Does the
-          same Policy appear in two chains with different
-          terminals?
+        - Dual governance (same Policy in both DPR and DPQ)
+          is handled by Operationalization: the same Policy
+          can appear in two chains with different terminals
+          (one DPR instance with rule, one DPQ instance with
+          qualifier).
 
     ════════════════════════════════════════════════════════════
     **9. DPQ EXPLORATION — structural/property definition atom**
-    **(OPEN — design exploration, not resolved)**
+    **(RESOLVED — DPQ implemented as Qualifier primitive)**
     ════════════════════════════════════════════════════════════
+
+    **Resolution**: DPQ is now implemented. Qualifier is a
+    first-class Organization-level primitive (IS-A
+    SystemicPrimitiveDefinition) with its own Schema, JSON
+    value, and DPQR governance lineage through
+    Operationalization. The per-instance qualifier meta-model
+    has been entirely removed. See §5 for resolution summary.
+
+    **Historical exploration (kept as rationale):**
 
     **The gap in the current model:**
 
@@ -3607,10 +3802,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **DPQ fills the gap with Qualifier as definition atom:**
 
-    | Chain | Terminal atom | Atom modality | Produces          |
+    | Chain | Terminal atom | Gov. modality | Produces          |
     |-------|---------------|---------------|-------------------|
     | DPR   | Rule          | Imperative    | Behavioral logic  |
-    | DPQ   | Qualifier     | Declarative   | Property value    |
+    | DPQ   | Qualifier     | Imperative    | Property value    |
 
     Both share the **DP** constraining root
     (Directive → Policy). They fork at the definition level:
@@ -3646,7 +3841,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       DP → Rule → (auto-derives) Controller/Actuator/Sensor
 
     DPQ (structural/property definition — imperative, data):
-      DP → Qualifier.value → (stored on) SystemicPrimitive
+      DP → Qualifier.value → (stored on) SystemicPrimitiveDefinition
     ```
 
     DP is the common constraining root. It forks into two
@@ -3709,7 +3904,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     ════════════════════════════════════════════════════════════
     **10. RULE↔POLICY vs QUALIFIER↔POLICY — relationship types**
-    **(OPEN — design exploration)**
     ════════════════════════════════════════════════════════════
 
     **Policy→Rule: ENFORCEMENT relationship**
@@ -3811,7 +4005,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     | Category | Predicate targets | Definitional response | Verification availability | Chain |
     |---|---|---|---|---|
     | Behavioral | SOA properties, event dynamics | Rule (imperative) | Observation-time | DPR |
-    | Structural-defined | Qualifier properties on any SP | Qualifier (declarative) | Definition-time | DPQ |
+    | Structural-defined | Qualifier properties on any SP | Qualifier (imperative) | Definition-time | DPQ |
     | Structural-emergent | Graph properties (cardinality, topology) | — (none) | Definition-time | DP |
 
     **Verification availability** clarifies WHEN the
@@ -3873,9 +4067,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Category 2 — Structural-Defined Policies (DPQ)**
 
-    Target: **Qualifier properties** on any SystemicPrimitive
-    (not limited to infrastructure — qualifiers exist on
-    Components, Functions, Purposes, Relationships, etc.).
+    Target: **Qualifier properties** on any SystemicPrimitiveDefinition
+    (Qualifiers are Organization-level primitives owned by
+    the System, each with its own Schema defining
+    a property vocabulary).
 
     These constrain properties that **are authored at
     definition-time** as Qualifier values (JSON). The
@@ -3921,12 +4116,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       **Behavioral** is the precise term.
 
     - "Infrastructure qualifier" is too narrow. Qualifiers
-      exist on ALL SystemicPrimitives across ALL layers:
-      Component (infrastructure), Function (organization),
-      Purpose (constitution), Relationship (organization).
+      are Organization-level primitives whose schemas can
+      define properties across any governance axis:
+      infrastructure, functional, relational, etc.
       The structural-defined category encompasses **any**
-      primitive's Qualifier properties, not just
-      infrastructure. **Primitive qualifier** is the
+      Qualifier-defined property, not just
+      infrastructure. **Qualifier property** is the
       precise scope.
 
     **However**: Organization IS the logical structuring OF
@@ -3934,8 +4129,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     level primitives (e.g., maxConcurrency on Function,
     slaUptime on Relationship) are ultimately properties of
     the Infrastructure primitives that realize them
-    (Mechanism, Channel). The meta-model allows Qualifiers
-    on any SystemicPrimitive, but the structural truth lives
+    (Mechanism, Channel). Qualifiers are System-level
+    Organization primitives, but the structural truth lives
     at the Infrastructure layer. Organization-level
     structural Qualifiers are governance projections of
     Infrastructure properties.
@@ -4090,7 +4285,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     2. If ANY reference targets a StateObjectArchetype
        property → **Behavioral** (DPR).
     3. If ALL references target Qualifier-bound properties
-       on SystemicPrimitives → **Structural-defined** (DPQ).
+       on SystemicPrimitiveDefinitions → **Structural-defined** (DPQ).
     4. If ALL references target model graph properties
        (size(), exists(), cardinality on composition/
        relationship links) → **Structural-emergent** (DP).
@@ -4111,7 +4306,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       DP → Rule (defines behavior) → Controller/Actuator/Sensor
 
     DPQ (structural definition — imperative, data):
-      DP → Qualifier (defines value) → SystemicPrimitive
+      DP → Qualifier (defines value) → SystemicPrimitiveDefinition
 
     DP-only (structural-emergent — no definition atom):
       DP → (Supervision verifies directly)
@@ -4129,6 +4324,143 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - DPQ: SATISFACTION (Qualifier ← Policy)
     - DP-only: EVALUATION (no definition atom; Supervision
       evaluates predicate against definition graph)
+
+    ════════════════════════════════════════════════════════════
+    **12. QUALITY AS PURPOSE OPERATIONALIZATION EFFECTIVENESS**
+    ════════════════════════════════════════════════════════════
+
+    **The paradigm:**
+
+    The quality level of a system IS the effectiveness
+    of its Purpose operationalization through DPQR.
+
+    Quality is not an external metric imposed on the system.
+    It is an intrinsic structural property of the DPQR graph
+    itself: how completely, coherently, and effectively the
+    system's Purposes are operationalized through Directives,
+    Policies, Rules, and Qualifiers.
+
+    DPQR does not merely *support* quality — DPQR *is*
+    quality made structural. The system's quality model is
+    its Constitution (Purpose × Directive matrix). The
+    system's quality level is the operationalization
+    effectiveness of that Constitution through Organization
+    and Infrastructure.
+
+    **Why this follows from GSM semantics:**
+
+    1. **Directive IS a quality attribute.** The Directive
+       note explicitly states: "A Directive IS a system
+       quality attribute." Its grammar
+       (Modal × Verb × PurposeQualifier × PurposeScope)
+       simultaneously declares the value axis (Purpose)
+       and the viability axis (purposeQualifier: a quality
+       dimension). Quality is constitutive identity, not
+       external metadata.
+
+    2. **Operationalization IS the quality lineage.** The
+       Operationalization primitive traces
+       Directive → Policy → {Rule, Qualifier}.
+       This IS the operationalization of Purpose through
+       governance artifacts. The structural chain
+       Function ← Mechanism/Controller → Rule →
+       Operationalization → Policy → Directive → Purpose
+       makes Function→Purpose delivery traceable.
+       Quality operationalization is a graph property
+       of the DPQR.
+
+    3. **Quality level IS operationalization effectiveness.**
+       A system with complete, coherent, adequate DPQR
+       chains has high quality (its Purposes are fully
+       operationalized). A system with gaps, contradictions,
+       or unenforced Directives has low quality. This is
+       already what Norm Appraisal (definition ↔ definition)
+       and Form Appraisal (definition ↔ reality) measure —
+       they are quality assessment processes.
+
+    **Quality dimensions (all derivable from DPQR graph):**
+
+    | Dimension | Question | Source |
+    |-----------|----------|--------|
+    | Governance coverage | What fraction of the Purpose × purposeQualifier space has DPQR chains? | Operationalization graph |
+    | Governance depth | What ratio of chains reach terminal atoms (DPR/DPQ) vs. DP-only? | Operationalization completeness |
+    | Normative integrity | Are DPQR chains free of contradictions? | Norm Appraisal (consistency) |
+    | Normative adequacy | Do Policies adequately translate Directives? | Norm Appraisal (adequacy) |
+    | Operational fidelity | Does observed state satisfy defined Policies? | Form Appraisal (fidelity) |
+    | Governance velocity | How quickly does governance adapt when deviation is detected? | S3×S4 homeostat dynamics |
+
+    All six dimensions are computable from existing GSM
+    constructs + Supervision (Norm/Form Appraisal). No new
+    GSM primitives are required.
+
+    **Effective criticality as the weighting function:**
+
+    Not all Purposes are equally important. The effective
+    criticality of a Purpose is derived from its Directive
+    distribution (see Purpose note):
+
+      effectiveCriticality(P) = max(D.modal)
+        over all Directives D where D.purposeScope = P
+
+    A Purpose governed by MUST Directives is de facto
+    critical. A Purpose governed by only MAY Directives
+    is de facto supporting. A Purpose with zero Directives
+    has no criticality signal — this IS the governance gap
+    (ungoverned Purpose).
+
+    Quality assessment is therefore **weighted by effective
+    criticality**: governance gaps on critical Purposes are
+    more severe than gaps on supporting Purposes.
+
+    **Quality as meta-governance (no new primitive):**
+
+    Quality-as-operationalization-effectiveness is naturally
+    expressible through the S3×S4 homeostat meta-Directives
+    pattern (see CsdmNote). A System MAY define
+    meta-Directives about its own governance quality:
+
+    - "System MUST ENSURE governance-coverage OF
+      governance-evolution" — every Purpose must have
+      DPQR chains.
+    - "System SHOULD MAXIMIZE operationalization-depth OF
+      regulatory-framework" — critical Purposes should
+      have full DPR + DPQ chains.
+    - "System MUST PRESERVE normative-integrity OF
+      governance-evolution" — DPQR chains must pass
+      Norm Appraisal.
+
+    These meta-Directives operationalize through normal
+    DPQR: meta-Policy → meta-Rule (e.g., a governance-
+    audit Rule that checks DPQR completeness). The quality
+    assessment ITSELF becomes a governable concern —
+    autopoietic: the system governs its own quality
+    governance.
+
+    **Justificational gap (tracked design frontier):**
+
+    This paradigm reveals a gap between GSM and DSM:
+    the REASONING that connects DSM evidence to GSM
+    governance changes. Quality assessment answers "how
+    well is Purpose operationalized?" — but not "WHY
+    was this governance decision made?" The rationale
+    for governance decisions (why this Directive was
+    chosen, why this Policy was formulated this way) is
+    neither definition (GSM) nor description (DSM).
+    This calls for a third model completing the
+    GSM/DSM duality into a triad — tracked as a design
+    TODO (see file header).
+
+    **Key insight — no new quality primitives needed:**
+
+    GSM already IS the quality model. DPQR already IS the
+    quality grammar. What was missing was the explicit
+    recognition that quality is not a separate concern
+    imposed on the system, but an intrinsic structural
+    property of the DPQR graph: Purpose operationalization
+    effectiveness, weighted by effective criticality
+    (derived from Directive modal precedence), measured
+    through Norm and Form Appraisal, and governable
+    through meta-Directives.
   end note
 }
 

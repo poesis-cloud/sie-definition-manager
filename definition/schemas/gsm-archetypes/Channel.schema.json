@@ -5,7 +5,7 @@
   "description": "A declared medium through which Interactions are carried — the constraint on variety/information flow between endpoints. Models how exchanges are carried (transport, capacity, protocol, reliability), not their meaning. Every Interaction is carried by exactly one Channel.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

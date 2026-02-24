@@ -4,7 +4,7 @@
   "title": "Role (GSM v1)",
   "description": "Relational, positional label naming how a System is positioned in a specific Relationship.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json" }
   ],
   "type": "object",
   "required": ["name"],

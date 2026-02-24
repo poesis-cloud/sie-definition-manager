@@ -14,7 +14,7 @@
             "description": "Must reference the ActuationControlEvent payload schema (sie://schemas/events/v1/ActuationControlEvent.json).",
             "allOf": [
                 {
-                    "$ref": "sie://schemas/gsm/v1/ArchetypeSchema.json"
+                    "$ref": "sie://schemas/gsm/v1/Schema.json"
                 }
             ]
         }

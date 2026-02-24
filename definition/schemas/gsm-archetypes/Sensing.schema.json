@@ -5,7 +5,7 @@
   "description": "The microscopic homeostatic verification primitive: links an Actuation to its feedback observation, forming a per-actuation closed-loop between Actuator and Sensor. Only exists for closed-loop actuations (return-value-assignment in Rule body).",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

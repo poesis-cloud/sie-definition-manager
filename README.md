@@ -1,30 +1,202 @@
 # SIE Definition Manager
 
-SIE (Systemic Intelligence Engine) is an **AI Context Platform**: it turns “context” into a governed, typed, provenance-backed asset (observations + definitions + evaluations) that can be assembled for AI reasoning, deterministic checks, and remediation decisions.
+SIE (Systemic Intelligence Engine) is an **AI Context Platform**: it turns "context" into a governed, typed, provenance-backed asset (observations + definitions + evaluations) that can be assembled for AI reasoning, deterministic checks, and remediation decisions.
+
 This module hosts the **Definition plane** conceptual models, primarily the **GSM (Generative System Model)** — SIE's generative/definitional system model.
 
-## GSM ↔ DSM (Definition–Description Duality)
+## GSM — the Generative System Model
+
+GSM is a fundamental departure from classical systemic models such as Beer's Viable System Model (VSM) or von Bertalanffy's General System Theory (GST). Those models are *descriptive*: they provide analytical frameworks for observing and reasoning about systems that already exist. GSM, by contrast, is *generative* (equivalently: *definitional*). Its primitives are not passive descriptions of an observed reality; they are **active definitions** from which system structure, behavior, governance, and viability are *derived and produced*:
+
+- A declared **Directive** generates identity constraints enforced by the governance plane; the regulation plane produces Policies and Rules from them.
+- A declared **Policy** constraint automatically derives its own evaluation semantics, closing the homeostatic cycle.
+- An **Actuation** derived from a Rule body auto-defines the Actuator and Sensor mechanisms needed to realize and observe the effect.
+
+Classical models *describe* systems; GSM *defines* them. Description tells you what a system is; definition tells the system what it must become — and provides the governance machinery to get there.
+
+## DPQR across layers — the visual grammar
+
+DPQR (Directives, Policies, Qualifiers, Rules) is the **System Definitional Grammar** — the definitional spine that cross-cuts all three layers of a System. The following diagram shows how governance artifacts flow from identity (Constitution) through governance logic (Organization) down to structural realization (Infrastructure):
+
+```
+CONSTITUTION (identity — WHY)
++---------+          +--------------------------+
+| Purpose |<---------+        Directive         |
+|         |  scopes  | Modal x Verb x Qual x P  |
++---------+          +------------+-------------+
+. . . . . . . . . . . . . . . . .|. . . . . . . .
+ORGANIZATION (governance — HOW)   | operationalizes
+                       +----------+----------+
+                       |       Policy        |
+                       |  guard + predicate  |
+                       +---+-------+------+--+
+                           |       |      |
+            +--------------+       |      +-----------+
+      DPR   |         DP-only      |             DPQ  |
+      +-----+------+        (no terminal)    +--------+---+
+      |    Rule    |       Supervision       | Qualifier  |
+      |  Starlark  |        evaluates        |    JSON    |
+      +-----+------+        directly         +------------+
+      . . . | . . . . auto-derives . . . . . . . . . . .
+INFRASTRUCTURE (substrate — WITH WHAT)
+      +-----+------+
+      | Controller +---> Actuator ---> Sensor
+      +------------+   Mechanism, R/E, Channel
+
+Specificity: Directive --> Policy --> {Rule, Qualifier}
+Modality:    constraining (DP) --> defining (R, Q)
+Velocity:    slow (DP) ---------> fast (R, Q)
+```
+
+Three sub-chains fork from the common constraining root (Directive → Policy):
+
+| Chain | Terminal atom | Modality | Governs | Verification |
+|-------|---------------|----------|---------|--------------|
+| **DPR** | Rule (Starlark) | Imperative | Behavioral logic | Observation-time |
+| **DPQ** | Qualifier (JSON) | Imperative | Structural properties | Definition-time |
+| **DP-only** | — (none) | — | Graph topology / cardinality | Definition-time |
+
+Together these layers form the system's **generative envelope** — the complete definitional specification from which governance processes derive their runtime behavior.
+
+## Quality as Purpose operationalization effectiveness
+
+The quality level of a system IS the effectiveness of its Purpose operationalization through DPQR. Quality is not an external metric imposed on the system — it is an intrinsic structural property of the DPQR graph itself.
+
+**Why this follows from GSM semantics:**
+
+- **Directive IS a quality attribute.** Its grammar (`Modal × Verb × PurposeQualifier × Purpose`) simultaneously declares the value axis (Purpose) and the viability axis (purposeQualifier). Quality is constitutive identity.
+- **Operationalization IS the quality lineage.** The full structural chain `Function ← Mechanism → Rule → Policy → Directive → Purpose` makes quality operationalization a graph property.
+- **Quality level IS operationalization effectiveness.** Complete, coherent, adequate DPQR chains = high quality. Gaps, contradictions, unenforced Directives = low quality.
+
+**Quality dimensions** (all derivable from existing constructs):
+
+| Dimension | Question | Source |
+|-----------|----------|--------|
+| Governance coverage | What fraction of Purpose × purposeQualifier space has DPQR chains? | Operationalization graph |
+| Governance depth | What ratio of chains reach terminal atoms (DPR/DPQ) vs. DP-only? | Operationalization completeness |
+| Normative integrity | Are DPQR chains contradiction-free? | Norm Appraisal |
+| Normative adequacy | Do Policies adequately translate Directives? | Norm Appraisal |
+| Operational fidelity | Does observed state deviate from defined Policies? | Form Appraisal |
+| Governance velocity | How quickly does governance adapt to such deviation? | S3×S4 homeostat |
+
+**Effective criticality** (weighting function): not all Purposes are equally important. The effective criticality of a Purpose is derived from its Directive distribution: `effectiveCriticality(P) = max(modal)` over all Directives scoping P. A Purpose governed by MUST Directives is de facto critical; one with zero Directives is an ungoverned governance gap.
+
+**No new quality primitives needed.** DPQR already IS the quality grammar. Quality assessment is goverable through meta-Directives (see §12 in `gsm.puml` GsmArchitectureAnalysis).
+
+## Three definitional layers
+
+Every System is defined through three layers:
+
+### Constitution — "What the system IS" (WHY)
+
+The constitutional layer declares the system's identity: its reason for existence and the immovable quality commitments it upholds.
+
+- **Purpose**: the system's reasons for existence — the intended outcomes or objectives. Purposes are the functional anchors to which all governance is traceable through the DPQR chain.
+- **Directive**: identity-level normative constraints expressed as structured quality-attribute sentences (`Modal × Verb × PurposeQualifier × Purpose`). The subject is always the owning System. Directives are the normative root of the DPQR chain.
+
+Constitution carries both the *value axis* (Purpose: what the system does) and the *viability axis* (Directive: how well it must do it).
+
+### Organization — "How the system governs itself" (HOW)
+
+The organizational layer defines how the system achieves its constitutional purposes while respecting its directives. Organization is the **logical structure realizing Constitution, by means of its Infrastructure**. It contains:
+
+**Governance norms and behavioral logic (DPQR + relationships):**
+
+- **Policy**: measurable normative envelopes (CEL predicates with tolerance modes) that operationalize Directives into bounded, falsifiable constraints across all governance axes.
+- **Rule**: behavioral logic — event-triggered Starlark programs. The atomic, compilable/executable governance logic. Infrastructure primitives (Controller, Actuator, Sensor) are auto-derived from Rule bodies by the Definition Manager.
+- **Qualifier**: structural/property definition atom — JSON values within Policy bounds. The atomic, declarative structural set point. Schema-extensible for cross-domain properties.
+- **Operationalization**: traced governance lineage path (Directive → Policy → {Rule, Qualifier}). Each instance pins one thread from the many-to-many DPQR web.
+- **Relationship**: positional links to other systems, encoding role pairs (via canonical Roles) and governance postures.
+- **Actuation** / **Sensing**: auto-derived governance markers for state mutations and their homeostatic verification (closed-loop vs. open-loop actuations).
+
+**Information model (epistemic constructs):**
+
+- **Function**: an activity or process that the system can perform — the logical capability that Mechanisms realize.
+- **EventArchetype**: the structure and semantics of events that flow through mechanisms.
+- **StateObjectArchetype**: the structure and semantics of observable/mutable state objects.
+
+### Infrastructure — "What it is made of" (WITH WHAT)
+
+Inherited from Component (the base type). The structural substrate — mechanism topology upon which governance operates:
+
+- **Mechanism**: atomic causal unit of behavior (at least one Receptor, one Effector). Subtypes: **Controller** (implements Rules), **Actuator** (executes Actuations), **Sensor** (observes Sensings).
+- **Receptor** / **Effector**: event I/O channels bound to EventArchetypes.
+- **Interaction**: atomic causal coupling (Effector → Receptor).
+- **Channel**: declared exchange medium carrying Interactions.
+- **Interface**: named I/O surface — a curated selection of Receptors/Effectors grouped into a coherent, addressable contact point.
+
+A System IS-A Component with reflexive capacity. Components have first-order dynamics only (process inputs, produce outputs). Systems add second-order dynamics (self-governance through Constitution + Organization).
+
+## Primitives at a glance
+
+| Layer | Primitive | Role |
+|-------|-----------|------|
+| **Meta** | Schema | Defines property vocabulary for extensible primitives |
+| **Meta** | SystemicPrimitiveDefinition | Abstract base — carries `id` + `definitionStatus` lifecycle |
+| **Constitution** | Purpose | Reason for existence — value axis anchor |
+| **Constitution** | Directive | Identity-level quality constraint (Modal × Verb × Qual × Purpose) |
+| **Organization** | Policy | Measurable boundary condition (CEL guard + predicate + tolerance) |
+| **Organization** | Rule | Behavioral logic atom (event-triggered Starlark body) |
+| **Organization** | Qualifier | Structural/property definition atom (JSON value within Policy bounds) |
+| **Organization** | Operationalization | Governance lineage trace (D → P → R or Q) |
+| **Organization** | Function | Named capability that Mechanisms realize |
+| **Organization** | Relationship | Positional link between Systems (Role × Role) |
+| **Organization** | Role | Relational label for Systems in Relationships |
+| **Organization** | Actuation | State mutation marker (auto-derived from Rule body) |
+| **Organization** | Sensing | Homeostatic verification marker (auto-derived, closed-loop) |
+| **Organization** | EventArchetype | Event structure + semantics (Schema-bound) |
+| **Organization** | StateObjectArchetype | State object structure + semantics (Schema-bound) |
+| **Infrastructure** | Component | Structural organ — mechanisms + I/O topology |
+| **Infrastructure** | Mechanism | Atomic causal unit (Receptors → processing → Effectors) |
+| **Infrastructure** | Controller | Mechanism subtype — implements Rules |
+| **Infrastructure** | Actuator | Mechanism subtype — executes Actuations |
+| **Infrastructure** | Sensor | Mechanism subtype — observes Sensings |
+| **Infrastructure** | Receptor / Effector | Event input / output channels |
+| **Infrastructure** | Interaction | Causal coupling (Effector → Receptor) |
+| **Infrastructure** | Channel | Exchange medium carrying Interactions |
+| **Infrastructure** | Interface | Named I/O surface (curated R/E group) |
+
+Every primitive inherits `SystemicPrimitiveDefinitionStatus` (DRAFT → PROPOSED → APPROVED → ACTIVE → SUSPENDED / DEPRECATED → RETIRED). Domain-extensible primitives (EventArchetype, StateObjectArchetype, Qualifier) additionally carry a Schema for structural extensibility.
+
+## Six governance planes
+
+SIE is organized into six canonical planes grouped into two layers:
+
+| Layer | Plane | Function | DPQR role |
+|-------|-------|----------|-----------|
+| **Reflexive** | Governance | Defines and enforces Directives | Governor (S5) |
+| **Reflexive** | Regulation | Interprets Directives → Policies + Rules | Regulator (S4) |
+| **Reflexive** | Supervision | Enforces Policies and Rules (appraisal) | Supervisor (S3) |
+| **Reflexive** | Coordination | Stabilizes concurrent governance loops | Coordinator (S2) |
+| **Ontic** | Operation | Executes Rules in the state plane | Operator (S1) |
+| **Ontic** | State | Ground truth — external systems | — |
+
+GRS&CO labels (Governor, Regulator, Supervisor, Coordinator, Operator) name **SIE's own governance functions** — one per plane. They are SIE's own Systems, not Components composed by tenant Systems. DPQR is the **System's DNA**: SIE deploys GRS&CO to operate on each System's DPQR.
+
+## GSM ↔ DSM (Definition–Description duality)
 
 GSM is one half of SIE's core duality:
 
-- **GSM** (this module) defines *what the system must become*: principles, policies, rules, mechanisms, and their governance relationships. GSM primitives are active definitions from which structure, behavior, and viability are derived. GSM has **definitional primacy**.
+- **GSM** (this module) defines *what the system must become*: directives, policies, rules, qualifiers, mechanisms, and their governance relationships. GSM primitives are active definitions from which structure, behavior, and viability are derived. GSM has **definitional primacy**.
 - **DSM** (`../sie-description-manager/`) captures *what the system currently is*: state descriptions, signals, measurements, comparisons, deviations, and assessments. DSM feeds evidence into GSM's generative machinery. DSM has **evidential primacy**.
 
 In the Six Planes model:
 
-- **Governance + Regulation planes** (GSM) = controller semantics
-- **Supervision plane** (DSM) = sensor + comparator semantics
-- **Coordination plane** = stabilizes pacing between GSM and DSM
-- **Operation plane** = actuator — realizes GSM definitions
-- **State plane** = ground truth — observed by DSM
+| Layer | Plane | Model | Cybernetic role |
+|-------|-------|-------|-----------------|
+| Reflexive | **Governance + Regulation** | GSM | Controller semantics |
+| Reflexive | **Supervision** | DSM | Sensor + comparator semantics |
+| Reflexive | **Coordination** | — | Stabilizes pacing between GSM and DSM |
+| Ontic | **Operation** | — | Actuator — realizes GSM definitions |
+| Ontic | **State** | — | Ground truth — observed by DSM |
 
-Closed-loop flow: State → DSM (observe) → GSM (define/adjust) → Operation (actuate) → State.
+Closed-loop flow: **State → DSM (observe) → GSM (define/adjust) → Operation (actuate) → State**.
 
 Definition without description is dogma; description without definition is noise.
 
 ### Structural and behavioral description (completeness–complexity tradeoff)
 
-GSM deliberately stops at the **Structural properties layer** — the lowest definitional layer. Structure defines the arrangement and constraints of behavior (Rules, Mechanisms, topology), but behavior itself emerges in the State plane and is *observed*, not *defined*.
+GSM deliberately stops at the **structural properties layer** — the lowest definitional layer. Structure defines the arrangement and constraints of behavior (Rules, Mechanisms, topology), but behavior itself emerges in the State plane and is *observed*, not *defined*.
 
 DSM mirrors this structural layer and extends observation into behavior:
 
@@ -44,9 +216,7 @@ GSM and DSM are therefore coupled at the structural layer — this is their shar
 - GSM model: `definition/gsm.puml`
 - DSM model (companion): `../sie-description-manager/definition/dsm.puml`
 - Supervision information model: `../sie-supervision/definition/sie-supervision-information-model.puml`
-The canonical SIE overview README has been moved to:
-
-- ../README.md
+- SIE overview: `../README.md`
 
 ## Definition-time appraisal (plane integration)
 
@@ -57,7 +227,7 @@ The Definition Manager is not a passive store. When definitions are created, mod
 | Directive created/modified | **Governance** (`../sie-governance/`) | Constitutive Norm Appraisal: Directive ↔ Quality, scope validity, verb conflicts, governance plane coverage |
 | Policy created/modified | **Regulation** (`../sie-regulation/`) | Constraint Norm Appraisal: direction vs. Directive verb, metric→Quality path, scope containment, Policy↔Policy conflicts |
 | Rule created/modified | **Regulation** (`../sie-regulation/`) | Rule→Policy coverage, CEL/Starlark validity |
-| Structural changes (Component, Interface, Channel) | **Regulation** (`../sie-regulation/`) | Structural Form Appraisal (CardinalityPolicyConstraint, DependencyPolicyConstraint) |
+| Structural changes (Component, Interface, Channel) | **Regulation** (`../sie-regulation/`) | Structural Form Appraisal (cardinality and dependency Policy predicates) |
 | Any definition activated | **Supervision** (`../sie-supervision/`) | Re-appraise (Form Appraisal) existing observations against the new/updated definition |
 | Cross-system definition changes | **Coordination** (`../sie-coordination/`) | Inter-system coherence, collision detection, oscillation dampening (Stabilization) |
 
@@ -87,17 +257,6 @@ The Definition Manager triggers **Form Appraisal** — the appraisal of the form
 
 Form Appraisal is executed by the **Supervision** plane. On definition activation, the Definition Manager publishes a `DefinitionActivatedEvent`; the Supervision plane re-appraises all relevant observations against the activated definition and produces Form Appraisal findings. Structural Form Appraisal (checking structural Policy constraints like cardinality and dependency) is also triggered by the Regulation plane when structural definitions change.
 
-## Mode behavior
-
-- **Discovery mode**: Definition Manager receives definition proposals from Governance Determination: Emergence (inductive: observations → definition drafts). Definitions enter as DRAFT, progress through governance review. Plane appraisals apply as definitions advance toward ACTIVE — even in discovery, a proposed Policy must be coherent with its Directive (Regulation Norm Appraisal), and a proposed Directive must not conflict with existing Directives (Governance Norm Appraisal).
-- **Steady-State mode**: Definition Manager handles the full lifecycle. Definition modifications trigger re-appraisal by all relevant planes. Determination: Adaptation (Regulation adjusting Rules/Policies from deviation evidence) produces definition changes that are themselves appraised before activation. The loop is: Deviation evidence → Determination: Adaptation proposes change → plane appraisals validate → Definition Manager persists if coherent.
-
-## Aggregates Endpoints to expose (WIP)
-
-- Create/read/update(status) Directive (includes operations on Quality it is composed of)
-- Create/read/update(status) Policy (includes operations on Functions it scopes, and attachment to Directives it operationalizes)
-- Create/read/update(status) Rule (includes body and language)
-
 ## Decision Records
 
 ### ADR-001: Appraisal as Meta-DPR (Option B — Decoupled Status + Genesis Seeds)
@@ -119,13 +278,13 @@ Three options were evaluated:
 | Construct | GSM Primitive | Purpose |
 |---|---|---|
 | Appraisal Finding | `StateObjectArchetype` (persisted, queryable) | Result of a checkpoint evaluation. Includes `severity`, `checkpointId`, `targetPrimitiveId`, `evaluationMode` (DETERMINISTIC / PROBABILISTIC / UNDECIDABLE), `confidence` \[0.0, 1.0\]. |
-| Transition Guard | `Policy` | Constrains lifecycle transitions using `CardinalityPolicyConstraint` over AppraisalFinding state objects. Scoped to the DefinitionManager component. |
+| Transition Guard | `Policy` | Constrains lifecycle transitions using cardinality predicates over AppraisalFinding state objects. Scoped to the DefinitionManager component. |
 | Checkpoint | `Rule` | Behavioral definition triggered by persisted-events. Each named checkpoint (NA-\*) is a Rule that evaluates coherence and produces findings. |
 
 **Key design corrections:**
 
 - **No `ContextVariableReferenceExpression` in Policies.** Policies are declarative state constraints with no receptor context. Per-instance scoping (matching findings to the primitive being transitioned) is handled by Rules, which have receptor context. The Policy states the normative goal; the Rule enforces it behaviorally.
-- **Policy is used with structural constraint types.** Transition guards constrain *what definitions MUST BE* (structural invariants of the DPR set). The constraint nature (structural) is derived from the constraint type (CardinalityPolicyConstraint) and the Directive's purposeQualifier, not from a Policy subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
+- **Policy is used with structural constraint predicates.** Transition guards constrain *what definitions MUST BE* (structural invariants of the DPR set). The constraint nature (structural) is derived from the predicate target (cardinality via `size()`, dependencies via structural primitives) and the Directive's purposeQualifier, not from a Policy subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
 - **NormAppraisal is a Purpose; each checkpoint is a Function.** The Purpose is *why* (appraise normative coherence); each checkpoint Function is *what* (the specific check activity). Functions serve the Purpose.
 - **Findings are `StateObjectArchetype`** (persisted, queryable), not transient events. Rule execution produces AppraisalFinding instances.
 - **Seed immutability via ownership.** Genesis seeds are owned by the SIE system. Tenants cannot modify primitives outside their governance authority. No explicit `mutable` flag needed — the existing ownership model handles it.

@@ -24,7 +24,7 @@
         "correlationId": {
             "type": "string",
             "format": "uuid",
-            "description": "Unique identifier for this actuation execution. Traces across the full actuation chain (ActuationControlEvent → ActuationEvent → SensingFeedbackEvent) enabling end-to-end correlation."
+            "description": "Unique identifier for this actuation execution. Traces across the full actuation chain (ActuationControlEvent → ActuationEvent → ActuationSensingEvent) enabling end-to-end correlation."
         },
         "actuationType": {
             "type": "string",

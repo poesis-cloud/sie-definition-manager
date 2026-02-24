@@ -5,7 +5,7 @@
   "description": "Structural governance marker declaring an operational intent to change a state object, derived from a sys.create/modify/delete/acquire call in a behavioral Rule body.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

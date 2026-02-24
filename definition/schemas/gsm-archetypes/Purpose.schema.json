@@ -5,7 +5,7 @@
   "description": "A reason for the system's existence — an intended outcome or objective. Function↔Purpose is derivable through the structural chain: Function ← Mechanism/Controller → Rule → Operationalization → Policy → Directive → Purpose.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

@@ -4,12 +4,21 @@
   "title": "StateObjectArchetype (GSM v1)",
   "description": "Defines the structure and semantics of a state object used to represent observed/mutable state.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    {
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
+    }
   ],
   "type": "object",
-  "required": ["name", "schema"],
+  "required": [
+    "name",
+    "schema"
+  ],
   "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "schema": { "$ref": "sie://schemas/gsm/v1/ArchetypeSchema.json" }
+    "name": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
+    },
+    "schema": {
+      "$ref": "sie://schemas/gsm/v1/Schema.json"
+    }
   }
 }

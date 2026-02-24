@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sie://schemas/gsm/v1/Schema.json",
+  "title": "Schema (GSM v1)",
+  "description": "Defines the structure and semantics of domain-extensible primitives (EventArchetype, StateObjectArchetype, Qualifier) via a schema identifier and URI.",
+  "type": "object",
+  "required": [
+    "id",
+    "uri"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
+    },
+    "uri": {
+      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/URI"
+    }
+  }
+}

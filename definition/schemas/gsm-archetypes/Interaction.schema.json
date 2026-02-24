@@ -4,7 +4,7 @@
   "title": "Interaction (GSM v1)",
   "description": "Atomic causal coupling from a producing effector to a receiving receptor.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json" }
   ],
   "type": "object",
   "required": ["name", "effector", "receptor"],

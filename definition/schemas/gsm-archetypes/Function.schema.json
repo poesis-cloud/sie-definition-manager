@@ -5,7 +5,7 @@
   "description": "An activity or process that the system can perform — the name of what a Mechanism does. Each Mechanism references exactly one Function. Function↔Purpose is derivable through the structural chain: Function ← Mechanism/Controller → Rule → Operationalization → Policy → Directive → Purpose.",
   "allOf": [
     {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json"
+      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
     }
   ],
   "type": "object",

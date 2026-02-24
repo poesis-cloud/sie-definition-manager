@@ -4,7 +4,7 @@
   "title": "Component (GSM v1)",
   "description": "Structural substrate of a system: a functional, logical, coherent agglomerate of interacting and interfaceable mechanisms. Defines the Infrastructure layer.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json" }
   ],
   "type": "object",
   "required": ["name"],

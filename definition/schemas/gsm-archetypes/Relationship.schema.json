@@ -4,7 +4,7 @@
   "title": "Relationship (GSM v1)",
   "description": "Positional link between two Systems, encoding role pairs and governance postures.",
   "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitive.json" }
+    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json" }
   ],
   "type": "object",
   "required": ["name", "definingSystem", "counterpartySystem", "definingSystemRole", "counterpartyRole"],

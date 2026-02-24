@@ -1,16 +1,16 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "sie://schemas/events/v1/SensingFeedbackEvent.json",
-    "title": "SensingFeedbackEvent",
-    "description": "Generic event archetype for sensing feedback (Sensor → Controller). Emitted by a Sensor's Effector after observing an Actuator's ActuationEvent and verifying the mutation outcome. Carries structured verification: whether the mutation was confirmed, what was actually observed, and any deviations from expected state. The Controller's feedbackReceptor receives this event, populating the variable assigned to the sys.create/modify/delete/acquire return value — closing the homeostatic loop. This schema is the base contract for ActuationFeedbackEventSchema as referenced in GSM Sensing validation rules ('The feedback event archetype MUST be a subtype of ActuationFeedbackEventSchema'). SIE-seeded: one instance per SIE tenant, reused across all Sensings.",
+    "$id": "sie://schemas/events/v1/ActuationSensingEvent.json",
+    "title": "ActuationSensingEvent",
+    "description": "Generic event archetype for sensing feedback (Sensor → Controller). Emitted by a Sensor's Effector after observing an Actuator's ActuationEvent and verifying the mutation outcome. Carries structured verification: whether the mutation was confirmed, what was actually observed, and any deviations from expected state. The Controller's sensingReceptor receives this event, populating the variable assigned to the sys.create/modify/delete/acquire return value — closing the homeostatic loop. This schema is the base contract for ActuationSensingEventSchema as referenced in GSM Sensing validation rules ('The feedback event archetype MUST be a subtype of ActuationSensingEventSchema'). SIE-seeded: one instance per SIE tenant, reused across all Sensings.",
     "x-sie-seed": {
         "primitive": "EventArchetype",
-        "name": "SensingFeedbackEvent",
+        "name": "ActuationSensingEvent",
         "definitionStatus": "ACTIVE",
         "seedScope": "per-tenant",
         "reusable": true,
         "cyberneticFlowStep": 6,
-        "flowDescription": "Sensor.Effector → Controller.feedbackReceptor"
+        "flowDescription": "Sensor.Effector → Controller.sensingReceptor"
     },
     "type": "object",
     "required": [
@@ -95,7 +95,7 @@
         "verificationLatency": {
             "type": "string",
             "format": "duration",
-            "description": "ISO8601 duration between the ActuationEvent timestamp and this SensingFeedbackEvent timestamp. Measures how long verification took — useful for Coordination plane pacing and Supervision plane SLA monitoring."
+            "description": "ISO8601 duration between the ActuationEvent timestamp and this ActuationSensingEvent timestamp. Measures how long verification took — useful for Coordination plane pacing and Supervision plane SLA monitoring."
         },
         "actuationId": {
             "type": "string",
