@@ -32,6 +32,8 @@ skinparam noteBorderColor #57606A
 ' - Extract and formalize all Principles/Directives, Policies, and Rules of GSM
 '   itself... Applying a pertinent/pragamatical way its own model. Many Rules
 '   are already present in GSM notes.
+' - Defines Rules of Policy handling of Qualifier formats, and define formats
+'   (ITIP schemas presets).
 ' - Challenge inter-system governance (Composition VS Relational) articulations
 '   mechanisms. Looks like relational governance governor produce Directives as
 '   state objects to consume and derivate by governed system's governor via its
@@ -716,7 +718,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   }
 
   note top of System
-    **Primitive Semantics**:
+    **Systemic Semantics**:
     A System in GSM is a **Component with a reflexive layer** —
     the definitional layers through which the system knows and
     governs itself: **Constitution** and **Organization**.
