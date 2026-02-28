@@ -900,14 +900,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Constituted of ElementDefinitions (Mechanisms,
-      Interfaces, Interactions) and, when reflexive,
-      governance DNA (D, N). Also owns the
-      Archetypes that define its domain vocabulary.
+    - The assembly of Elements constituting a Structure is **intentional**:
+      it is never accidental authoring. A Structure's element set and
+      topology exist **for a purpose** and are the product of a governance.
+    - **Governing Structure (governance relation)**: a Structure `G` governs a
+      Structure `S` when `G` produces governance DNA (Directives/Norms)
+      targeting `S` (by referencing `S.purpose`, and by operationalizing those
+      Directives as Norms constraining in-scope Elements).
+      This is how inter-Structure governance is expressed in GSM: not by
+      containment, but by DNA targeting (de-facto) governed Elements.
+    - **Formalization**: `G` governs `S` **iff** (a) there exists
+      at least one Directive authored/owned by `G` whose `scope` references
+      `S.purpose`, and (b) over time, those Directives are operationalized by
+      one or more Norms authored/owned by `G` that constrain (target) in-scope
+      Elements of `S`.
+    - **Purpose is owned by governance**: a Structure's `purpose` is its
+      identity field, but it SHOULD be treated as a governed outcome — i.e.,
+      declared/approved under a governing Structure's Directives — not as an
+      arbitrary label authored in isolation.
     - No sub-structures, no containment hierarchy.
       Governance between Structures is expressed through
       DNA targeting governed Elements — not through
-      hierarchical nesting.
+      illusional hierarchical nesting.
 
     **Attribute Semantics**:
 
@@ -933,6 +947,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Every Mechanism SHOULD participate in at least one
       Interaction (isolated Mechanisms → incomplete
       definition).
+    - Every ACTIVE ElementDefinition in a Structure SHOULD be covered by at
+      least one DNA chain over time (Directive → Norm) targeting that Element
+      (uncovered element → accidental/ungoverned structure).
 
     **Derivation Rules**:
 
@@ -966,6 +983,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Mechanism {
+    +getStructure(): Structure
     +getEffectors(): Effector[]
     +getReceptors(): Receptor[]
   }
@@ -977,6 +995,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - Composite of processing logic (operation) and its I/O
       ports (Effectors and Receptors).
+    - Effectors/Receptors are **derived ports**: they are not authored as part
+      of the Mechanism's Ascription schema. The definition-manager derives and
+      creates them from the Mechanism `operation` (STARLARK) as part of
+      definition compilation.
     - Ports do not exist independently — destroying a
       Mechanism destroys its parts. This IS internal
       composition (lifecycle coupling, existential
@@ -992,6 +1014,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
 
+    - `structure`: identifier of the owning Structure.
     - `operation` (ascription field, MechanismArchetype
       schema): executable logic in the declared language.
       Encodes what the Mechanism does — behavioral
@@ -1049,6 +1072,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   end note
 
   ElementDefinition <|-- Mechanism
+  Mechanism "0..*" --> "1" Structure : belongsTo
   Mechanism "1" *--> "1..*" Effector : has
   Mechanism "1" *--> "1..*" Receptor : has
 
@@ -1057,7 +1081,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Effector {
+    +getMechanism(): Mechanism
     +getEmittedArtifact(): Artifact
+    +getExposingInterface(): Interface
   }
 
   note bottom of Effector
@@ -1110,12 +1136,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   ElementDefinition <|-- Effector
   Effector "0..*" --> "1" Artifact : emits
+  Effector "1..*" --> "1" Mechanism : belongsTo
 
   ' ============================================================
   ' RECEPTOR
   ' ============================================================
 
   class Receptor {
+    +getMechanism(): Mechanism
     +getReceivedArtifact(): Artifact
   }
 
@@ -1170,6 +1198,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   ElementDefinition <|-- Receptor
   Receptor "0..*" --> "1" Artifact : receives
+  Receptor "1..*" --> "1" Mechanism : belongsTo
 
   ' ============================================================
   ' INTERACTION
@@ -1238,6 +1267,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
   ' ============================================================
 
   class Interface {
+    +getStructure(): Structure
     +getEffectors(): Effector[]
     +getReceptors(): Receptor[]
   }
@@ -1247,22 +1277,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Named grouping of Effectors and/or Receptors that a
-      Structure exposes for external coupling.
+    - Declarative **exposure manifest**: names a boundary surface by listing
+      which Mechanism ports (Effectors/Receptors) are exposed for external
+      coupling.
+    - An Interface is **not** a Mechanism and has **no behavior** of its own.
+      All behavior and realization lives in Mechanisms; Interfaces only
+      describe exposure.
+    - The ports exposed by an Interface are declared in its Ascription
+      (InterfaceArchetype schema) via `effectorIds` and `receptorIds` (port
+      identifiers).
     - Makes the boundary explicit and governable. Governance
       Norms can target an Interface directly (e.g., "all
       ports in this Interface must use mTLS").
-    - An Effector/Receptor can belong to multiple Interfaces
-      (e.g., a health-check Receptor exposed in both "admin"
-      and "monitoring" Interfaces).
+    - Each Effector/Receptor port SHOULD be assigned to **at most one**
+      Interface within a Structure (0..1 membership). If the same underlying
+      capability must be exposed through multiple surfaces, model it as
+      distinct ports (distinct Receptor/Effector elements) realized by the
+      same Mechanism.
     - 0..* Effectors (can be output-only, input-only, or
       mixed). 0..* Receptors. At least 1 port total.
 
     **Validation Rules**:
 
     - MUST contain at least 1 Effector or 1 Receptor.
-    - All referenced Effectors/Receptors MUST belong to
-      Mechanisms within the same Structure.
 
     **Assignment Rules**:
 
@@ -1272,11 +1309,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - Every ACTIVE Interface SHOULD be governed by at least
       one DNA chain (ungoverned → governance gap).
+    - All referenced Effectors/Receptors MUST belong to Mechanisms within the
+      same Structure.
+    - Each referenced Effector/Receptor port MUST be exposed by at most one
+      Interface within the same Structure (exclusive membership).
 
     **Derivation Rules**:
 
     - An external boundary view can be derived by enumerating
       the union of ports contained in all Interfaces.
+    - An Interface's owning Structure can be derived by resolving its
+      `effectorIds`/`receptorIds` to Effector/Receptor ElementDefinitions,
+      then resolving each port to its owning Mechanism, then taking that
+      Mechanism's `structureId`. (This relies on ports belonging exclusively
+      to a single Mechanism, and a Mechanism belonging to a single Structure.)
 
     **Usage Rules**:
 

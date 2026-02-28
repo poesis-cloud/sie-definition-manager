@@ -2,10 +2,43 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sie://schemas/gsm/v1/Interface.schema.json",
   "title": "Interface (GSM base archetype)",
-  "description": "Base ascription schema for Interface ElementDefinitions. Interface structural fields (effectors, receptors) are class-level; this schema covers additional ascription metadata. Tenant-defined archetypes extending Interface MUST reference this schema via allOf.",
+  "description": "Base ascription schema for Interface ElementDefinitions. Declarative exposure manifest: lists which Effector/Receptor ports are exposed by referencing their identifiers. Interface has no behavior; realization is owned by Mechanisms. Tenant-defined archetypes extending Interface MUST reference this schema via allOf.",
   "$gsm:sealed": true,
   "$gsm:elementDefinitionSubtype": "Interface",
   "type": "object",
-  "properties": {},
+  "properties": {
+    "effectorIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of Effector port identifiers exposed by this Interface. A given Effector SHOULD be exposed by at most one Interface within a Structure (enforced by the definition-manager)."
+    },
+    "receptorIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of Receptor port identifiers exposed by this Interface. A given Receptor SHOULD be exposed by at most one Interface within a Structure (enforced by the definition-manager)."
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "effectorIds"
+      ]
+    },
+    {
+      "required": [
+        "receptorIds"
+      ]
+    }
+  ],
   "additionalProperties": false
 }
