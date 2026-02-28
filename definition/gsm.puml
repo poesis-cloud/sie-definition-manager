@@ -465,6 +465,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       ElementDefinition's Archetype schema.
     - Lifecycle-coupled to the owning ElementDefinition version
       (one Ascription per ElementDefinition).
+    - Ascription instances are **immutable**: once an Ascription is created
+      for a given ElementDefinition revision, its `specifications` MUST NOT
+      be modified in place. Any change to specifications MUST be expressed by
+      authoring a new ElementDefinition revision carrying a new Ascription.
+    - Ascription is intentionally NOT independently lifecycle-managed:
+      it has no separate status, revision lineage, or timestamps. An
+      Ascription change is a definition change and MUST be expressed
+      by authoring a new ElementDefinition revision. Auditability is
+      provided by the owning ElementDefinition's `revisionDatetime`
+      and `statusTransitions`.
 
     **Attribute Semantics**:
 
@@ -482,12 +492,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Usage Rules**:
 
-    - When creating or updating an Ascription, provide a
-      `specifications` document that validates against the
-      owning ElementDefinition's Archetype schema.
-    - Ascription is lifecycle-coupled: creating a new
-      ElementDefinition version requires creating a new
-      Ascription instance.
+    - Provide a `specifications` document that validates
+      against the owning ElementDefinition's Archetype schema.
+    - To "change" `specifications`, author a new ElementDefinition
+      revision carrying a new Ascription (no in-place mutation).
   end note
 
   ' ============================================================
@@ -510,12 +518,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       global systemic automatic reasoning to capture domain-specific
       knowledge and semantics.
     - Defines a structural type — carries no value. Pure type-system construct.
+    - Archetype instances are **immutable**: once an Archetype is created,
+      none of its attributes may be modified.
+      Any change to an Archetype MUST be expressed by creating a new Archetype
+      instance (new `id`) that references a new, version-pinned schema URI.
     - Every ElementDefinition instance references one Archetype.
-    - The set of Archetypes within a Structure
-      constitutes its vocabulary — its domain knowledge
-      model.
     - Unified type construct for all structural and domain
       typing.
+    - GSM base archetypes (sealed set): StructureArchetype,
+      MechanismArchetype, InteractionArchetype,
+      InterfaceArchetype, ArtifactArchetype. Governance
+      archetypes (DirectiveArchetype, NormArchetype) are
+      standalone sealed archetypes (they do not extend
+      ArtifactArchetype). Effector and Receptor are internal
+      Mechanism composites (lifecycle-coupled ports) — they
+      have no base archetype and are not tenant-extensible.
+      Base archetypes carry the `$gsm:sealed` marker in
+      their JSON Schema.
+    - Archetype does not embed schema lifecycle metadata (timestamps,
+      status, version lineage). Schema publication, versioning,
+      compatibility policy, and deprecation are owned by the schema
+      registry; GSM references schemas via `schemaUri`.
 
     **Attribute Semantics**:
 
@@ -528,6 +551,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `schemaUri` MUST NOT be null.
     - `schemaUri` MUST reference a valid JSON Schema (draft 2020-12+).
     - `schemaUri` MUST be unique across all Archetypes.
+    - `schemaUri` MUST be immutable and version-pinned: dereferencing
+      it MUST always return the same schema content over time.
+      Mutable aliases such as "latest" (or any moving target) MUST be
+      rejected by the definition-manager.
     - `schemaUri` MUST point to a schema containing an allOf.$ref pointing to
       exactly one GSM base archetype schema (depth = 1).
     - Schemas NOT referencing a GSM base archetype via allOf
@@ -559,19 +586,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       declares allOf[{ $ref: MechanismArchetype }] and adds
       { complianceFramework } alongside the base's
       { operation, operationLanguage, function }.
-
-    **Notes**:
-
-    - GSM base archetypes (sealed set): StructureArchetype,
-      MechanismArchetype, InteractionArchetype,
-      InterfaceArchetype, ArtifactArchetype. Governance
-      archetypes (DirectiveArchetype, NormArchetype) are
-      standalone sealed archetypes (they do not extend
-      ArtifactArchetype). Effector and Receptor are internal
-      Mechanism composites (lifecycle-coupled ports) — they
-      have no base archetype and are not tenant-extensible.
-      Base archetypes carry the `$gsm:sealed` marker in
-      their JSON Schema.
+    - Schema evolution MUST NOT mutate an existing `schemaUri` target.
+      If a schema must change, publish a new version at a new,
+      version-pinned URI and (typically) define a new Archetype that
+      references it. Existing ElementDefinitions remain pinned to the
+      schema addressed by their Archetype's `schemaUri`.
   end note
 
   ' ============================================================
@@ -599,9 +618,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       ElementDefinition. Elements are the "atoms" of a
       Structure — Mechanisms, Interactions, and Interfaces.
     - `id` identifies the definition. `elementId` identifies
-      the element (referent). Multiple definitions (revisions)
-      can share the same `elementId` — each is a distinct
-      governance snapshot of the same structural element.
+      the element (referent) being defined. Multiple definitions (revisions)
+      share the same `elementId` — each is a distinct
+      definition snapshot of the same element.
       At most one in-effect definition per `elementId`
       (status = ACTIVE or DEPRECATED).
     - Every ElementDefinition is representable as
@@ -615,131 +634,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       converges at approval: approving any one revision
       auto-rejects all other non-terminal sibling revisions
       for that `elementId`.
-
-    **Attribute Semantics**:
-
-    - `id`: globally unique identity of THIS definition
-      (unique per revision row).
-    - `elementId`: stable identity of the element being
-      defined. Shared across all revisions/definitions of the
-      same structural referent. Immutable once assigned.
-    - `archetype`: reference to the Archetype that types this
-      definition, constraining its ascription content and
-      providing its domain semantics.
-    - `ascription`: Ascription payload applied to the element.
-      Carries JSON-serializable specifications whose structure is
-      constrained by the Archetype schema (either the GSM
-      base archetype schema, or a tenant extension via `allOf`).
-    - `revision`: monotonically increasing integer assigned
-      at definition creation. Tracks every authoring attempt
-      (including DRAFTs that are REJECTED). Provides total
-      ordering of all definition rows for a given `elementId`.
-    - `version`: integer assigned only upon APPROVED transition.
-      Monotonically increasing within the APPROVED lineage
-      for a given `elementId`. Null/unset until approved.
-      Governance-meaningful — represents the validated
-      definition lineage (gapless). A definition earns a
-      version when governance accepts it as a definition;
-      whether it is later applied (ACTIVE) is a downstream
-      realization concern, not a definitional one.
-    - `revisionDatetime`: timestamp (Instant) recording when this
-      definition revision was created. Immutable once
-      assigned. Provides temporal ordering alongside
-      `revision` (which provides logical ordering).
-    - `definitionStatus`: lifecycle state (cf. ElementDefinitionStatus).
-      Denormalized/cache field derived from the latest
-      `statusTransitions[*].toStatus`.
-    - `statusTransitions`: ordered list of
-      ElementDefinitionStatusTransition records capturing
-      every lifecycle state change. Append-only — transitions
-      are never modified or deleted.
-
-    **Validation Rules**:
-
-    - At most one in-effect definition per `elementId`
-      (status = ACTIVE or DEPRECATED).
-    - `archetype` MUST reference a valid Archetype defined within
-      the same Structure.
-    - `ascription` MUST validate against the JSON Schema
-      referenced by `archetype.schemaUri`.
-    - `revision` MUST be monotonically increasing for each
-      `elementId` (assigned at creation, never reassigned).
-    - `version` MUST be null until APPROVED transition.
-    - `version` MUST be monotonically increasing within the
-      APPROVED lineage for each `elementId`.
-    - `revisionDatetime` MUST NOT be null (assigned at creation).
-    - `revisionDatetime` MUST be monotonically increasing across
-      revisions for each `elementId`.
-    - `statusTransitions` MUST contain at least one entry
-      (the initial DRAFT transition).
-    - The first transition MUST represent creation:
-      `fromStatus` = null, `toStatus` = DRAFT.
-    - `revisionDatetime` MUST equal the first transition's
-      `timestamp`.
-    - The latest transition's `toStatus` MUST equal this
-      definition's `definitionStatus`.
-    - Each transition's `fromStatus` MUST equal the
-      preceding transition's `toStatus` (chain
-      consistency).
-    - Each transition's `timestamp` MUST be >= the preceding
-      transition's `timestamp` (temporal consistency).
-    - Terminality: once `definitionStatus` is REJECTED or RETIRED, no
-      additional transitions may be appended.
-    - Approval is not constrained by revision order: any
-      non-terminal revision may be APPROVED regardless of
-      whether higher-numbered revisions exist.
-    - Upon APPROVED transition of any revision for a given
-      `elementId`, the definition-manager MUST auto-reject
-      (transition to REJECTED) all other revisions of the
-      same `elementId` that are still in a non-terminal
-      state (DRAFT or PROPOSED). This ensures governance
-      convergence — exactly one revision wins per
-      approval cycle.
-
-    **Relational Consistency Rules**:
-
-    - If an ElementDefinition references other ElementDefinitions
-      (e.g., Structure has Mechanisms), those references MUST
-      resolve to elements within the governed scope.
-
-    **Derivation Rules**:
-
-    - An element is "in effect" at runtime when its
-      definition status is ACTIVE or DEPRECATED for its
-      `elementId`.
-
-    **Usage Rules**:
-
-    - When creating a new definition of an element, reuse the
-      same `elementId`; `revision` is auto-assigned.
-    - `version` is auto-assigned by the definition-manager
-      at APPROVED transition — never set manually.
-    - `revisionDatetime` is auto-assigned by the definition-manager
-      at creation — never set manually.
-    - Ascription content MUST conform to the Archetype's
-      schema before assignment.
-    - At most one in-effect definition per `elementId`
-      (definitionStatus = ACTIVE or DEPRECATED). Before moving a
-      definition to ACTIVE, verify no conflicting in-effect
-      definition exists for the same `elementId`.
-
-    **Notes**:
-
     - `revision` tracks authoring attempts (total ordering);
       `version` tracks governance-validated definition lineage
       (gapless). A DRAFT that is REJECTED or PROPOSED but
       never APPROVED never consumes a `version` number —
       only a `revision`.
-    - The definition-manager treats both `revision` and
-      `version` as monotonic integers.
     - `statusTransitions` provides a complete governance
       audit trail: who changed the status, when, and why.
-    - **Terminality of REJECTED**: Once a revision is auto-rejected (REJECTED),
-      it cannot be reopened or set back to PROPOSED/DRAFT. REJECTED is
-      a terminal state. If a new creative cycle is needed, author a new
-      revision (new `revision` number, fresh DRAFT) — do not resurrect
-      a rejected revision. This preserves governance convergence and a clean
-      audit trail.
+    - An ElementDefinition **revision** is an **immutable snapshot**.
+      Any change to the definition content MUST be expressed by authoring a
+      new revision (new `id`, higher `revision`) for the same `elementId`.
+      The only permitted in-place evolution of a revision row is the
+      append-only growth of its `statusTransitions` audit trail.
     - **Governance convergence pattern**: the creative
       phase allows concurrent authoring (multiple DRAFT and
       PROPOSED revisions for the same `elementId`). The
@@ -749,17 +655,125 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       governance rigor (exactly one winner). After
       convergence, new revisions can be authored to start
       a new creative cycle.
+    - **Terminality of REJECTED**: Once a revision is auto-rejected (REJECTED),
+      it cannot be reopened or set back to PROPOSED/DRAFT. REJECTED is
+      a terminal state. If a new creative cycle is needed, author a new
+      revision (new `revision` number, fresh DRAFT) — do not resurrect
+      a rejected revision. This preserves governance convergence and a clean
+      audit trail.
+
+    **Attribute Semantics**:
+
+    - `id`: globally unique identity of THIS definition
+      (unique per revision row).
+    - `elementId`: stable identity of the element being
+      defined. Shared across all revisions/definitions of the
+      same element referent. Immutable once assigned.
+    - `archetype`: reference to the Archetype that types this
+      definition, constraining its ascription content and
+      providing its domain semantics.
+    - `ascription`: Ascription payload applied to the element.
+      Carries JSON-serializable specifications whose structure is
+      constrained by the Archetype schema (extension via `allOf`).
+    - `revision`: monotonically increasing numeric string assigned
+      at definition creation. Tracks every authoring attempt
+      (including DRAFTs that are REJECTED). Provides total
+      ordering of all definition rows for a given `elementId`.
+    - `version`: nurmerical string assigned only upon APPROVED transition.
+      Monotonically increasing within the APPROVED lineage
+      for a given `elementId`. Null/unset until approved.
+      Governance-meaningful — represents the validated
+      definition lineage (gapless). A definition earns a
+      version when governance accepts it as a definition;
+      whether it is later applied (ACTIVE) is a downstream
+      realization concern, not a definitional one.
+    - `revisionDatetime`: ISO 8601 timestamp recording when this
+      definition revision was created. Immutable once
+      assigned. Provides temporal ordering alongside
+      `revision` (which provides logical ordering).
+    - `definitionStatus`: lifecycle state (cf. ElementDefinitionStatus).
+      Denormalized/cache field derived from the latest
+      `statusTransitions[*].postStatus`.
+    - `statusTransitions`: ordered list of
+      ElementDefinitionStatusTransition records capturing
+      every lifecycle state change. Append-only — transitions
+      are never modified or deleted (cf. ElementDefinitionStatusTransition).
+
+    **Validation Rules**:
+
+    - `ascription` MUST validate against the JSON Schema
+      referenced by `archetype.schemaUri`.
+
+    **Assignment Rules**:
+
+    - When creating a new definition revision, reuse the same `elementId`;
+      `revision` is auto-assigned.
+    - Immutability (revision snapshot): once a revision row is created,
+      `id`, `elementId`, `archetype`, `ascription`, `revision`, and
+      `revisionDatetime` MUST NOT be modified in place.
+    - Once `version` is assigned at APPROVED transition, it MUST NOT be
+      modified.
+    - `revision` MUST be monotonically increasing for each `elementId`.
+    - `revisionDatetime` is auto-assigned by the definition-manager at
+      creation — never set manually.
+    - `revisionDatetime` MUST NOT be null.
+    - `revisionDatetime` MUST be monotonically increasing across revisions for
+      each `elementId`.
+    - `version` is auto-assigned by the definition-manager at APPROVED
+      transition — never set manually.
+    - Until APPROVED transition, `version` MUST be null.
+    - `version` MUST be monotonically increasing within the APPROVED lineage
+      for each `elementId`.
+    - On creation, `statusTransitions` MUST be initialized with the initial
+      creation transition: `preStatus` = null, `postStatus` = DRAFT.
+    - `revisionDatetime` MUST equal the initial creation transition's datetime.
+    - The latest transition's `postStatus` MUST equal this definition's
+      `definitionStatus`.
+    - Each transition's `preStatus` MUST equal the preceding transition's
+      `postStatus` (chain consistency).
+    - Each transition's `datetime` MUST be >= the preceding transition's
+      `datetime` (temporal consistency).
+    - Terminality: once `definitionStatus` is REJECTED or RETIRED, no
+      additional transitions may be appended.
+    - Approval is not constrained by revision order: any non-terminal revision
+      may be APPROVED regardless of whether higher-numbered revisions exist.
+    - Upon APPROVED transition of any revision for a given `elementId`, the
+      definition-manager MUST auto-reject (transition to REJECTED) all other
+      revisions of the same `elementId` that are still in a non-terminal state
+      (DRAFT or PROPOSED). This ensures governance convergence — exactly one
+      revision wins per approval cycle.
+
+    **Relational Consistency Rules**:
+
+    - At most one in-effect definition per `elementId`
+      (status = ACTIVE or DEPRECATED).
+    - If an ElementDefinition references other ElementDefinitions
+      (e.g., Structure has Mechanisms), those references MUST
+      resolve to elements within the governed scope.
+
+    **Derivation Rules**:
+
+    - An element is "in effect" in production when its
+      definition status is ACTIVE or DEPRECATED for its
+      `elementId`.
+
+    **Usage Rules**:
+
+    - When creating a new definition of an element, reuse the
+      same `elementId`.
+    - Ascription content MUST conform to the Archetype's
+      schema before assignment.
   end note
 
   ElementDefinition "0..*" --> "1" Archetype : structuredBy
-  ElementDefinition "1" *--> "1" Ascription : carries
+  ElementDefinition "1" *--> "1" Ascription : has
   ElementDefinition "1" *--> "1..*" ElementDefinitionStatusTransition : has
 
   class ElementDefinitionStatusTransition {
     +getId(): String
     +getElementDefinitionId(): String
-    +getFromStatus(): ElementDefinitionStatus
-    +getToStatus(): ElementDefinitionStatus
+    +getPreStatus(): ElementDefinitionStatus
+    +getPostStatus(): ElementDefinitionStatus
     +getDatetime(): String
   }
 
@@ -774,39 +788,42 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       (destroying the definition destroys its transitions).
     - The ordered collection of transitions constitutes
       the complete governance audit trail for a definition.
-    - The initial entry captures creation (fromStatus =
-      null, toStatus = DRAFT).
+    - The initial entry captures creation (preStatus =
+      null, postStatus = DRAFT).
 
     **Attribute Semantics**:
 
     - `definitionId`: reference to the owning
       ElementDefinition's `id` (the specific revision
       row, not `elementId`). Immutable once assigned.
-    - `fromStatus`: the status before the transition. Null
+    - `preStatus`: the status before the transition. Null
       for the initial creation entry.
-    - `toStatus`: the status after the transition.
-    - `datetime`: when the transition occurred (String).
+    - `postStatus`: the status after the transition.
+    - `datetime`: ISO 8601 timestamp when the transition occurred.
 
     **Validation Rules**:
 
-    - `toStatus` MUST NOT be null.
-    - `datetime` MUST NOT be null.
-    - `actor` MUST NOT be null.
+    - `postStatus` MUST NOT be null.
     - `definitionId` MUST NOT be null.
-    - `definitionId` MUST reference an existing
-      ElementDefinition `id`.
-    - `fromStatus` → `toStatus` MUST be a valid transition
+    - `definitionId` MUST reference an existing ElementDefinition `id`.
+    - `preStatus` → `postStatus` MUST be a valid transition
       per the ElementDefinitionStatus state machine.
-    - `fromStatus` MUST be null only for the first
+    - `preStatus` MUST be null only for the first
       transition (creation).
-    - `fromStatus` MUST NOT be REJECTED or RETIRED.
+    - `preStatus` MUST NOT be REJECTED or RETIRED.
+
+    **Assignment Rules**:
+
+    - `datetime` MUST NOT be null.
+    - `datetime` MUST be an ISO 8601 timestamp.
 
     **Relational Consistency Rules**:
 
-    - The latest transition's `toStatus` MUST equal the
+    - The definition-manager appends a transition automatically on every status change.
+    - The latest transition's `postStatus` MUST equal the
       owning ElementDefinition's `definitionStatus`.
-    - Each transition's `fromStatus` MUST equal the
-      preceding transition's `toStatus` (chain
+    - Each transition's `preStatus` MUST equal the
+      preceding transition's `postStatus` (chain
       consistency).
 
     **Derivation Rules**:
@@ -814,21 +831,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Governance analytics (time-in-status, approval
       latency, rejection rates) can be derived from
       the transition chain.
-
-    **Usage Rules**:
-
-    - Transitions are append-only — never modify or
-      delete existing entries.
-    - The definition-manager appends a transition
-      automatically on every status change.
-    - `justification` SHOULD be provided for APPROVED,
-      REJECTED, SUSPENDED, and DEPRECATED transitions.
-
-    **Notes**:
-
-    - This is definitional metadata (how did this
-      definition come to be?) — not descriptive evidence.
-      It belongs to the Definition plane, not DSM.
   end note
 
   ElementDefinitionStatusTransition "1..*" --> "1" ElementDefinition : belongsTo
@@ -846,14 +848,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
   note bottom of ElementDefinitionStatus
     **ElementDefinitionStatus** — Lifecycle stages.
-
-    **Concept Semantics**:
-
-    - Shared by both ElementDefinitions and Artifacts.
-    - In-effect definitions are ACTIVE and DEPRECATED.
-    - SUSPENDED retains DNA lineage for audit.
-    - DEPRECATED triggers warnings on new references.
-    - REJECTED and RETIRED are terminal.
 
     **Attribute Semantics**:
 
@@ -881,17 +875,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - SUSPENDED → {ACTIVE | DEPRECATED}.
     - DEPRECATED → RETIRED.
 
-    **Relational Consistency Rules**:
-
-    - References from ACTIVE definitions SHOULD NOT point to
-      RETIRED definitions.
-
-    **Derivation Rules**:
-
-    - Runtime selection derives the effective definition as the
-      in-effect definition (status = ACTIVE or DEPRECATED)
-      for a given `elementId`.
-
     **Usage Rules**:
 
     - Follow the transition graph strictly: DRAFT → PROPOSED
@@ -900,11 +883,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       DEPRECATED}; DEPRECATED → RETIRED.
     - Before activating, verify no conflicting ACTIVE
       definition exists for the same `elementId`.
-
-    **Notes**:
-
-    - The lifecycle is shared so that structural elements and
-      artifacts can be governed with the same workflow.
   end note
 
   ' ============================================================
@@ -945,6 +923,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - Every Interaction MUST reference Effector/Receptor
       Elements belonging to Mechanisms within this Structure
       (or governed Structures it interacts with).
+
+    **Assignment Rules**:
+
+    - None.
 
     **Relational Consistency Rules**:
 
@@ -1033,6 +1015,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - MUST have at least 1 Effector.
     - MUST have at least 1 Receptor.
 
+    **Assignment Rules**:
+
+    - None.
+
     **Relational Consistency Rules**:
 
     - Every ACTIVE Mechanism SHOULD be governed by at least
@@ -1095,6 +1081,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `emittedArtifact` reference MUST NOT be null.
     - MUST belong to exactly one Mechanism.
 
+    **Assignment Rules**:
+
+    - None.
+
     **Relational Consistency Rules**:
 
     - Any Interaction from this Effector MUST terminate at a
@@ -1151,6 +1141,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `receivedArtifact` reference MUST NOT be null.
     - MUST belong to exactly one Mechanism.
 
+    **Assignment Rules**:
+
+    - None.
+
     **Relational Consistency Rules**:
 
     - Any Interaction into this Receptor MUST originate from an
@@ -1206,6 +1200,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - effector.emittedArtifact.archetype MUST be
       schema-compatible with
       receptor.receivedArtifact.archetype.
+
+    **Assignment Rules**:
+
+    - None.
 
     **Relational Consistency Rules**:
 
@@ -1265,6 +1263,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - MUST contain at least 1 Effector or 1 Receptor.
     - All referenced Effectors/Receptors MUST belong to
       Mechanisms within the same Structure.
+
+    **Assignment Rules**:
+
+    - None.
 
     **Relational Consistency Rules**:
 
@@ -1337,6 +1339,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - Ascription content MUST validate against the JSON Schema
       referenced by the Artifact's Archetype.
+
+    **Assignment Rules**:
+
+    - None.
 
     **Relational Consistency Rules**:
 
@@ -1411,6 +1417,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `qualityDimension` MUST be non-empty.
     - `scope` MUST be non-empty.
 
+    **Assignment Rules**:
+
+    - None.
+
     **Relational Consistency Rules**:
 
     - A Directive SHOULD be operationalized by at least one
@@ -1464,6 +1474,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - None.
 
+    **Assignment Rules**:
+
+    - None.
+
     **Relational Consistency Rules**:
 
     - None.
@@ -1510,6 +1524,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - None.
 
     **Validation Rules**:
+
+    - None.
+
+    **Assignment Rules**:
 
     - None.
 
@@ -1582,7 +1600,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Validation Rules**:
 
-    - `guard` MUST be valid CEL (default: "true").
+    - `guard` MUST be valid CEL.
     - `predicate` MUST be valid CEL returning boolean.
     - `predicate` MUST reference exactly one
       Archetype.
@@ -1591,6 +1609,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       time-based.
     - `sustainedThreshold` required when `toleranceMode` =
       SUSTAINED, MUST be in [0, 1].
+
+    **Assignment Rules**:
+
+    - When `guard` is omitted, the definition-manager MUST default it to `true`.
 
     **Relational Consistency Rules**:
 
@@ -1657,6 +1679,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     - None.
 
+    **Assignment Rules**:
+
+    - None.
+
     **Relational Consistency Rules**:
 
     - Time-based modes SHOULD be paired with a temporalWindow.
@@ -1706,6 +1732,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - None.
 
     **Validation Rules**:
+
+    - None.
+
+    **Assignment Rules**:
 
     - None.
 
