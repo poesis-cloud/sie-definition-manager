@@ -51,7 +51,7 @@ skinparam noteBorderColor #57606A
 '   persistent, auditable, and machine-interpretable. Analogies: KAOS
 '   rationale, argumentation frameworks (claims + evidence + reasoning).
 
-frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) - v1.0.0" {
+frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   ' ============================================================
   ' GSM NOTE
@@ -64,52 +64,49 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     complex systems of any type, enabling **active** and **automatic** systemic
     design, cross-cutting causal analysis, and coherent end-to-end governance.
 
-    GSM is a **generative** (definitional) model. Its primitives
-    are **active definitions** from which system structure,
-    behavior, governance, and viability are derived and produced.
+    GSM is a **generative** (definitional) model. Its primitives are **active
+    definitions** from which system structure, behavior, governance, and
+    viability are derived and produced.
 
-    This is a fundamental departure from classical systemic models
-    (Beer's VSM, von Bertalanffy's GST, Wiener/Ashby's
-    cybernetics). Those models are *descriptive*: they provide
-    analytical frameworks for observing and classifying systems
-    that already exist. They answer
+    This is a fundamental departure from classical systemic models (Beer's VSM,
+    von Bertalanffy's GST, Wiener/Ashby's cybernetics). Those models are
+    *descriptive*: they provide analytical frameworks for observing and
+    classifying systems that already exist. They answer
     "what does this system look like?" but do not, by themselves, produce
     the artifacts that make a system behave, adapt, or govern itself.
 
-    GSM inverts this: its primitives carry definitional semantics
-    — they tell the system what it must become and provide the
-    governance machinery to get there. Classical models *describe*
-    systems; GSM *defines* them.
+    GSM inverts this: its primitives carry definitional semantics — they tell
+    the system what it must become and provide the governance machinery to get
+    there. Classical models *describe* systems; GSM *defines* them.
 
     ====
 
     **§0 — Why "System" is not modeled**
 
-    The paradox: "System" is the central concept of systemics.
-    Yet, GSM does not model it.
+    The paradox: "System" is the central concept of systemics. Yet, GSM does not
+    model it.
 
     The boundary between what counts as a system and what counts as a simple
-    structure is variable, obscure, and relative — it shifts
-    with time, scope, perspective, and purpose. A cell is a system to a
-    biologist, a component to a physiologist, irrelevant
-    to an economist. Attempting to model "System" as a
-    primitive forces a stance on boundaries, identity, and
-    scale that is inherently unstable and adds nothing actionable.
+    structure is variable, obscure, and relative — it shifts with time, scope,
+    perspective, and purpose. A cell is a system to a biologist, a component to
+    a physiologist, irrelevant to an economist. Attempting to model "System" as
+    a primitive forces a stance on boundaries, identity, and scale that is
+    inherently unstable and adds nothing actionable.
 
     GSM pragmatically avoids baking that judgment into its core primitives:
     whether something "is a system" can be **derived at inference time**,
-    relative to context, rather than asserted at definition time.
-    GSM therefore models **Structure** as the stable referent.
+    relative to context, rather than asserted at definition time. GSM therefore
+    models **Structure** as the stable referent.
 
     ====
 
     **§1 — Structure: the foundational ontology**
 
-    A **Structure** is the foundational aggregate. It is
-    constituted of **Elements** — structural atoms:
+    A **Structure** is the foundational aggregate. It is constituted of
+    **Elements** — structural atoms:
 
-    - Mechanism: the logical causal unit.
-      Operation logic + Effectors + Receptors.
+    - Mechanism: the logical causal unit. Operation logic + Effectors +
+      Receptors.
     - Interaction: causal coupling (Effector → Receptor).
     - Interface: exposed boundary (named set of ports).
 
@@ -134,58 +131,50 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     Together, these define the **DNA** grammar of a System.
 
-    Like biological DNA encodes the instructions for proteins
-    that build and regulate an organism, a System's DNA encodes
-    the governance instructions that constrain and define its Structure,
-    including identity and behavior.
+    Like biological DNA encodes the instructions for proteins that build and
+    regulate an organism, a System's DNA encodes the governance instructions
+    that constrain and define its Structure, including identity and behavior.
 
-    The three levels are stratified by **rate of change**,
-    each capturing governance concerns that evolve at a
-    different tempo:
+    The three levels are stratified by **rate of change**, each capturing
+    governance concerns that evolve at a different tempo:
 
-    - **D — slow (identity)**: Directives encode what the
-      System fundamentally is and commits to. Changing a
-      Directive = changing the System's identity. They are
-      the slowest-moving layer — comparable to
-      constitutional principles or organizational purpose.
-    - **N — medium (constraints)**: Norms operationalize
-      Directives into measurable, evaluable predicates.
-      They adapt as the environment, technology, or risk
-      landscape shifts — without touching identity.
+    - **D — slow (identity)**: Directives encode what the System fundamentally
+      is and commits to. Changing a Directive = changing the System's identity.
+      They are the slowest-moving layer — comparable to constitutional
+      principles or organizational purpose.
+    - **N — medium (constraints)**: Norms operationalize Directives into
+      measurable, evaluable predicates. They adapt as the environment,
+      technology, or risk landscape shifts — without touching identity.
       Comparable to policies and compliance rules.
-    - **A — fast (specifications)**: Ascriptions carry the
-      concrete, version-specific payload of each Element
-      (configuration, parameters, thresholds, domain data).
-      They change frequently — every definition update
-      produces a new Ascription. Comparable to runtime
-      configuration or release artifacts.
+    - **A — fast (specifications)**: Ascriptions carry the concrete,
+      version-specific payload of each Element (configuration, parameters,
+      thresholds, domain data). They change frequently — every definition update
+      produces a new Ascription. Comparable to runtime configuration or release
+      artifacts.
 
-    This stratification is deliberate: it decouples slow
-    identity decisions from fast operational details, so
-    that each layer can evolve at its natural rate without
-    destabilizing the others. The governance loop governs
-    each tempo independently — Directives via Governance,
-    Norms via Regulation, Ascriptions via Supervision.
+    This stratification is deliberate: it decouples slow identity decisions from
+    fast operational details, so that each layer can evolve at its natural rate
+    without destabilizing the others. The governance loop governs each tempo
+    independently — Directives via Governance, Norms via Regulation, Ascriptions
+    via Supervision.
 
     ====
 
     **§3 — Systemic Recursion**
 
-    Since a System operates itself, its Elements are
-    representable and deliverable as Artifact for Mechanisms operations.
-    That is the true **Systemic Recursion**:
-    Mechanisms operating Mechanisms operating Mechanisms.
+    Since a System operates itself, its Elements are representable and
+    deliverable as Artifact for Mechanisms operations. That is the true
+    **Systemic Recursion**: Mechanisms operating Mechanisms operating
+    Mechanisms.
 
-    This contradicts VSM's recursive sub-system model, where
-    each viable system contains nested viable systems ad
-    infinitum. GSM replaces hierarchical containment with
+    This contradicts VSM's recursive sub-system model, where each viable system
+    contains nested viable systems ad infinitum. GSM replaces hierarchical
+    containment with
     **flat aggregated Structures** governed through DNA:
-    inter-structure governance is expressed by a governing
-    Structure issuing DNA targeting another Structure
-    Element — not by nesting one inside the other.
-    Recursion in GSM is **operational** (Mechanisms operating
-    on Mechanisms) rather than **structural** (systems
-    containing sub-systems).
+    inter-structure governance is expressed by a governing Structure issuing DNA
+    targeting another Structure Element — not by nesting one inside the other.
+    Recursion in GSM is **operational** (Mechanisms operating on Mechanisms)
+    rather than **structural** (systems containing sub-systems).
 
     The recursion chain:
     1. Mechanisms operate on Artifacts which are ElementDefinitions.
@@ -200,77 +189,64 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **§4 — Quality as viability balance**
 
-    In classical systemics, viability is the capacity of a
-    system to maintain its identity while adapting to its
-    environment. GSM makes this operational: a System's
-    identity is its **purpose** and its governance commitments (DNA).
+    In classical systemics, viability is the capacity of a system to maintain
+    its identity while adapting to its environment. GSM makes this operational:
+    a System's identity is its **purpose** and its governance commitments (DNA).
     Viability therefore reduces to maintaining purpose "viably".
 
-    But viability alone is not directly governable — it is
-    an existential property ("the system survives or it
-    doesn't"). GSM therefore needs **measurable signals**
-    that correlate with viability and that the governance
-    loop can sense, evaluate, and act on.
-    GSM uses **Quality** as such a proxy.
+    But viability alone is not directly governable — it is an existential
+    property ("the system survives or it doesn't"). GSM therefore needs
+    **measurable signals** that correlate with viability and that the governance
+    loop can sense, evaluate, and act on. GSM uses **Quality** as such a proxy.
 
     **Quality** in GSM is not an external rating or a
-    standalone attribute. It is an **operational proxy for
-    viability** — the systemic balance between:
+    standalone attribute. It is an **operational proxy for viability** — the
+    systemic balance between:
 
-    - **Value**: the degree to which the System fulfills
-      its purpose — what the System exists to produce
-      or preserve.
-    - **Risks / costs of operating this value**: the
-      resources consumed and residual uncertainty
-      introduced by thinking (defining DNA), building
-      (realizing definitions), and running (operating
-      and supervising) the System's self-governance.
+    - **Value**: the degree to which the System fulfills its purpose — what the
+      System exists to produce or preserve.
+    - **Risks / costs of operating this value**: the resources consumed and
+      residual uncertainty introduced by thinking (defining DNA), building
+      (realizing definitions), and running (operating and supervising) the
+      System's self-governance.
 
-    Quality = balance(value, risks/costs operations on
-    value). A System has high quality when its DNA
+    Quality = balance(value, risks/costs operations on value). A System has high
+    quality when its DNA
     **precisely operationalizes its purpose** at acceptable
     cost and risk. Quality degrades in two directions:
 
-    - **Under-operationalization**: insufficient DNA
-      coverage → governance gaps → uncontrolled risk,
-      purpose at jeopardy.
-    - **Over-operationalization**: excessive or
-      disproportionate DNA → governance overhead exceeds
-      the value it protects → cost erodes viability.
+    - **Under-operationalization**: insufficient DNA coverage → governance gaps
+      → uncontrolled risk, purpose at jeopardy.
+    - **Over-operationalization**: excessive or disproportionate DNA →
+      governance overhead exceeds the value it protects → cost erodes viability.
 
-    The level of quality is therefore **proportional to the
-    degree of DNA operationalization on purpose**: how
-    faithfully and efficiently Directives and Norms encode
-    the System's raison d'être into measurable, enforceable
+    The level of quality is therefore **proportional to the degree of DNA
+    operationalization on purpose**: how faithfully and efficiently Directives
+    and Norms encode the System's raison d'être into measurable, enforceable
     constraints and aligned ascriptions.
 
-    This is not a new primitive. Quality is a **derived
-    systemic property** — observable through Supervision
-    (DSM evidence of purpose fulfillment, cost metrics,
-    risk indicators) and governable through Regulation
-    (adapting DNA to restore or improve the balance).
-    The governance loop continuously arbitrates this
-    balance: definition without economy is bureaucracy;
-    economy without definition is negligence.
+    This is not a new primitive. Quality is a **derived systemic property** —
+    observable through Supervision (DSM evidence of purpose fulfillment, cost
+    metrics, risk indicators) and governable through Regulation (adapting DNA to
+    restore or improve the balance). The governance loop continuously arbitrates
+    this balance: definition without economy is bureaucracy; economy without
+    definition is negligence.
 
     ====
 
     **§5 — Modeling summary (architecture, concerns, typing)**
 
-    GSM separates stable structural roles from
-    tenant-extensible domain semantics.
+    GSM separates stable structural roles from tenant-extensible domain
+    semantics.
 
-    Structural roles are expressed by the class hierarchy:
-    Structure, Mechanism, Effector, Receptor, Interface,
-    Interaction.
+    Structural roles are expressed by the class hierarchy: Structure, Mechanism,
+    Effector, Receptor, Interface, Interaction.
 
-    Domain semantics and data shape are expressed by
-    Archetype JSON Schemas, and by the Ascription payload
-    linked to each ElementDefinition.
+    Domain semantics and data shape are expressed by Archetype JSON Schemas, and
+    by the Ascription payload linked to each ElementDefinition.
 
-    Directive and Norm are governance DNA classes but are
-    standalone first-class GSM classes, outside the
-    ElementDefinition hierarchy.
+    Directive and Norm are governance DNA classes but are standalone first-class
+    GSM classes, outside the ElementDefinition hierarchy.
 
     ----
 
@@ -321,8 +297,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     ----
 
-    Two-layer typing model (fixed roles vs extensible
-    semantics):
+    Two-layer typing model (fixed roles vs extensible semantics):
     ┌─────────────────────────────────────────────┐
     │ CLASS HIERARCHY (GSM-defined, fixed)         │
     │  Structural role: "this is a Mechanism"       │
@@ -336,75 +311,66 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     │  (base + extension via allOf)                │
     └─────────────────────────────────────────────┘
 
-    Base archetype enforcement is a definition-manager
-    concern. Tenant-defined archetype schemas must declare
-    `allOf[{ "$ref": "<gsm-base-schema-uri>" }]` pointing to
-    exactly one GSM base archetype schema (depth = 1).
+    Base archetype enforcement is a definition-manager concern. Tenant-defined
+    archetype schemas must declare `allOf[{ "$ref": "<gsm-base-schema-uri>" }]`
+    pointing to exactly one GSM base archetype schema (depth = 1).
 
     ====
 
     **§6 — Eliminated Classical Systemic Constructs**
 
     **System**: not modeled as a primitive (see §0).
-    Whether something "is a system" is **derived at
-    inference time** from reflexivity and governance
-    scope — not asserted at definition time. GSM
-    models Structure; "System" is a contextual
-    judgment, not a structural category.
+    Whether something "is a system" is **derived at inference time** from
+    reflexivity and governance scope — not asserted at definition time. GSM
+    models Structure; "System" is a contextual judgment, not a structural
+    category.
 
     **Events / State Objects / Objects**: replaced by
-    Archetype (pure type system).
-    Transience/persistence is observer-relative — one
-    Structure's event is another's record. No instance values
-    at the type level.
+    Archetype (pure type system). Transience/persistence is observer-relative —
+    one Structure's event is another's record. No instance values at the type
+    level.
 
     **Channels**: governance Norms on Interactions.
 
     **Composition**: governance constraint pattern (exclusivity,
     existential scoping, lifecycle coupling). GSM is
-    **nominalist** about composition. Components have
-    independent identity.
+    **nominalist** about composition. Components have independent identity.
 
     **Layers** (Constitution/Organization/Infrastructure/...):
-    relative representations, not absolute. Navigation by
-    layer is a UX concern.
+    relative representations, not absolute. Navigation by layer is a UX concern.
 
     **VSM recursive sub-systems**: GSM recognizes only **flat**
-    aggregated Structures. Governance between Structures is
-    expressed through DNA, not hierarchical containment.
+    aggregated Structures. Governance between Structures is expressed through
+    DNA, not hierarchical containment.
 
-    **Relationship / Role**: inter-structure governance via
-    DNA.
+    **Relationship / Role**: inter-structure governance via DNA.
 
     ====
 
     **§7 — DSM and the definition–description duality**
 
-    Definition without description is blind. SIE therefore
-    requires a complementary model that captures *what the
-    system currently is*: the **Descriptive System Model
-    (DSM)**.
+    Definition without description is blind. SIE therefore requires a
+    complementary model that captures *what the system currently is*: the
+    **Descriptive System Model (DSM)**.
 
-    Classical systemic models bundle two distinct facets that
-    SIE decomposes:
+    Classical systemic models bundle two distinct facets that SIE decomposes:
 
-    (a) Structural and organizational primitives — how to
-        organize system properties. GSM inherits these and
-        transforms them from descriptive taxonomies into
-        generative definitions: active primitives that produce
-        governance artifacts.
+    (a) Structural and organizational primitives — how to organize system
+    properties. GSM inherits these and transforms them from descriptive
+    taxonomies into generative definitions: active primitives that produce
+    governance artifacts.
 
-    (b) Descriptive and diagnostic semantics — how to
-        observe, measure, classify, and diagnose system state.
-        DSM inherits these as its core function.
+    (b) Descriptive and diagnostic semantics — how to observe, measure,
+    classify, and diagnose system state. DSM inherits these as its core
+    function.
 
-    Classical systemic models are presented as *descriptive* (tools to
-    observe and reason about existing systems), yet they necessarily rely on
-    constructs that are *definitional* in effect.
+    Classical systemic models are presented as *descriptive* (tools to observe
+    and reason about existing systems), yet they necessarily rely on constructs
+    that are *definitional* in effect.
 
     Constitutive, organizational, functional, and viability layers are not
-    measurements; they are **typed categories** that establish what counts as
-    a system, what counts as a subsystem, what counts as a function, and what
+    measurements; they are **typed categories** that establish what counts as a
+    system, what counts as a subsystem, what counts as a function, and what
     counts as "viable". Without such categories, observation has no stable
     referent: you cannot even decide what to measure or where the boundary is.
 
@@ -417,33 +383,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     Humans can carry that entanglement implicitly (the same mind both defines
     the categories and interprets the observations). But for automation, this
     implicit coupling becomes an **engineering problem**: the definitional
-    commitments are under-specified, not machine-checkable, and not
-    compilable into governance artifacts.
+    commitments are under-specified, not machine-checkable, and not compilable
+    into governance artifacts.
 
     **SIE resolves the engineering gap** by distributing the right constructs
     into the right models:
 
-    - **GSM** (generative): inherits the definitional constructs
-      — constitutive, organizational, functional, viability, and
-      structural primitives — and makes their definitional nature
-      *explicit and operational*. These are no longer descriptive
-      taxonomies pretending to be neutral observations; they are
+    - **GSM** (generative): inherits the definitional constructs — constitutive,
+      organizational, functional, viability, and structural primitives — and
+      makes their definitional nature *explicit and operational*. These are no
+      longer descriptive taxonomies pretending to be neutral observations; they
+      are
       **active definitions** that produce governance artifacts,
       close homeostatic loops, and auto-define mechanisms.
 
-    - **DSM** (descriptive): inherits *only* the descriptive and
-      diagnostic semantics — sensing, measuring, classifying,
-      comparing, detecting deviation. DSM is genuinely descriptive:
-      it observes what is, without prescribing what should be.
+    - **DSM** (descriptive): inherits *only* the descriptive and diagnostic
+      semantics — sensing, measuring, classifying, comparing, detecting
+      deviation. DSM is genuinely descriptive: it observes what is, without
+      prescribing what should be.
 
-    This decomposition enables what classical systemics rarely made
-    *explicit and toolable*: a coherent, engineered autopoietic pipeline where
-    definition and description are cleanly separated yet coupled through
-    governance processes (Observation → Appraisal → Determination →
-    Realization → Stabilization). The system defines itself through
-    GSM, observes itself through DSM, and the governance loop
-    continuously aligns definition with reality — autopoiesis as
-    an engineered process, not merely a theoretical property.
+    This decomposition enables what classical systemics rarely made *explicit
+    and toolable*: a coherent, engineered autopoietic pipeline where definition
+    and description are cleanly separated yet coupled through governance
+    processes (Observation → Appraisal → Determination → Realization →
+    Stabilization). The system defines itself through GSM, observes itself
+    through DSM, and the governance loop continuously aligns definition with
+    reality — autopoiesis as an engineered process, not merely a theoretical
+    property.
   end note
 
   ' ============================================================
@@ -460,21 +426,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Carries JSON-serializable specifications (typically stored as
-      JSON/JSONB) whose structure is validated against the
-      ElementDefinition's Archetype schema.
-    - Lifecycle-coupled to the owning ElementDefinition version
-      (one Ascription per ElementDefinition).
-    - Ascription instances are **immutable**: once an Ascription is created
-      for a given ElementDefinition revision, its `specifications` MUST NOT
-      be modified in place. Any change to specifications MUST be expressed by
+    - Carries JSON-serializable specifications (typically stored as JSON/JSONB)
+      whose structure is validated against the ElementDefinition's Archetype
+      schema.
+    - Lifecycle-coupled to the owning ElementDefinition version (one Ascription
+      per ElementDefinition).
+    - Ascription instances are **immutable**: once an Ascription is created for
+      a given ElementDefinition revision, its `specifications` MUST NOT be
+      modified in place. Any change to specifications MUST be expressed by
       authoring a new ElementDefinition revision carrying a new Ascription.
-    - Ascription is intentionally NOT independently lifecycle-managed:
-      it has no separate status, revision lineage, or timestamps. An
-      Ascription change is a definition change and MUST be expressed
-      by authoring a new ElementDefinition revision. Auditability is
-      provided by the owning ElementDefinition's `revisionDatetime`
-      and `statusTransitions`.
+    - Ascription is intentionally NOT independently lifecycle-managed: it has no
+      separate status, revision lineage, or timestamps. An Ascription change is
+      a definition change and MUST be expressed by authoring a new
+      ElementDefinition revision. Auditability is provided by the owning
+      ElementDefinition's `revisionDatetime` and `statusTransitions`.
 
     **Attribute Semantics**:
 
@@ -486,16 +451,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - The Ascription specifications MUST validate against the JSON
-      Schema referenced by the owning ElementDefinition's
-      Archetype.
+    - The Ascription specifications MUST validate against the JSON Schema
+      referenced by the owning ElementDefinition's Archetype.
 
     **Usage Rules**:
 
-    - Provide a `specifications` document that validates
-      against the owning ElementDefinition's Archetype schema.
-    - To "change" `specifications`, author a new ElementDefinition
-      revision carrying a new Ascription (no in-place mutation).
+    - Provide a `specifications` document that validates against the owning
+      ElementDefinition's Archetype schema.
+    - To "change" `specifications`, author a new ElementDefinition revision
+      carrying a new Ascription (no in-place mutation).
   end note
 
   ' ============================================================
@@ -512,85 +476,75 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Defines the structure and semantics of the domain — the domain
-      model / vocabulary.
-    - Schemas enable informational extensibility for cross-domain,
-      global systemic automatic reasoning to capture domain-specific
-      knowledge and semantics.
+    - Defines the structure and semantics of the domain — the domain model /
+      vocabulary.
+    - Schemas enable informational extensibility for cross-domain, global
+      systemic automatic reasoning to capture domain-specific knowledge and
+      semantics.
     - Defines a structural type — carries no value. Pure type-system construct.
-    - Archetype instances are **immutable**: once an Archetype is created,
-      none of its attributes may be modified.
-      Any change to an Archetype MUST be expressed by creating a new Archetype
-      instance (new `id`) that references a new, version-pinned schema URI.
+    - Archetype instances are **immutable**: once an Archetype is created, none
+      of its attributes may be modified. Any change to an Archetype MUST be
+      expressed by creating a new Archetype instance (new `id`) that references
+      a new, version-pinned schema URI.
     - Every ElementDefinition instance references one Archetype.
-    - Unified type construct for all structural and domain
-      typing.
-    - GSM base archetypes (sealed set): StructureArchetype,
-      MechanismArchetype, InteractionArchetype,
-      InterfaceArchetype, ArtifactArchetype. Governance
-      archetypes (DirectiveArchetype, NormArchetype) are
-      standalone sealed archetypes (they do not extend
-      ArtifactArchetype). Effector and Receptor are internal
-      Mechanism composites (lifecycle-coupled ports) — they
-      have no base archetype and are not tenant-extensible.
-      Base archetypes carry the `$gsm:sealed` marker in
-      their JSON Schema.
-    - Archetype does not embed schema lifecycle metadata (timestamps,
-      status, version lineage). Schema publication, versioning,
-      compatibility policy, and deprecation are owned by the schema
-      registry; GSM references schemas via `schemaUri`.
+    - Unified type construct for all structural and domain typing.
+    - GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
+      InteractionArchetype, InterfaceArchetype, ArtifactArchetype. Governance
+      archetypes (DirectiveArchetype, NormArchetype) are standalone sealed
+      archetypes (they do not extend ArtifactArchetype). Effector and Receptor
+      are internal Mechanism composites (lifecycle-coupled ports) — they have no
+      base archetype and are not tenant-extensible. Base archetypes carry the
+      `$gsm:sealed` marker in their JSON Schema.
+    - Archetype does not embed schema lifecycle metadata (timestamps, status,
+      version lineage). Schema publication, versioning, compatibility policy,
+      and deprecation are owned by the schema registry; GSM references schemas
+      via `schemaUri`.
 
     **Attribute Semantics**:
 
-    - `schemaUri`: canonical URI for the JSON Schema document
-      defining the structure of instances typed by this
-      Archetype.
+    - `schemaUri`: canonical URI for the JSON Schema document defining the
+      structure of instances typed by this Archetype.
 
     **Validation Rules**:
 
     - `schemaUri` MUST NOT be null.
     - `schemaUri` MUST reference a valid JSON Schema (draft 2020-12+).
     - `schemaUri` MUST be unique across all Archetypes.
-    - `schemaUri` MUST be immutable and version-pinned: dereferencing
-      it MUST always return the same schema content over time.
-      Mutable aliases such as "latest" (or any moving target) MUST be
-      rejected by the definition-manager.
+    - `schemaUri` MUST be immutable and version-pinned: dereferencing it MUST
+      always return the same schema content over time. Mutable aliases such as
+      "latest" (or any moving target) MUST be rejected by the
+      definition-manager.
     - `schemaUri` MUST point to a schema containing an allOf.$ref pointing to
       exactly one GSM base archetype schema (depth = 1).
-    - Schemas NOT referencing a GSM base archetype via allOf
-      MUST be rejected by the definition-manager.
+    - Schemas NOT referencing a GSM base archetype via allOf MUST be rejected by
+      the definition-manager.
 
     **Relational Consistency Rules**:
 
-    - Any ElementDefinition that references this Archetype
-      MUST have an `ascription` compatible with the JSON Schema
-      referenced by `schemaUri`.
+    - Any ElementDefinition that references this Archetype MUST have an
+      `ascription` compatible with the JSON Schema referenced by `schemaUri`.
 
     **Derivation Rules**:
 
-    - Base archetype classification is derived from the schema
-      content (`allOf.$ref`), not from a separate field.
+    - Base archetype classification is derived from the schema content
+      (`allOf.$ref`), not from a separate field.
 
     **Usage Rules**:
 
-    - Schema-declared inheritance: tenant archetypes declare
-      which GSM base they extend via
-      `allOf[{ "$ref": "<base-schema-uri>" }]` in their
-      JSON Schema. The definition-manager derives the base
-      archetype from the schema's `allOf.$ref` — no separate
-      field is needed on Archetype.
-    - Tenant extensibility: tenants extend their Structure's
-      vocabulary by declaring new Archetypes whose
-      schema references a GSM base. E.g., a tenant creates
-      Archetype "SecurityCheckMechanism" whose schema
-      declares allOf[{ $ref: MechanismArchetype }] and adds
-      { complianceFramework } alongside the base's
-      { operation, operationLanguage, function }.
-    - Schema evolution MUST NOT mutate an existing `schemaUri` target.
-      If a schema must change, publish a new version at a new,
-      version-pinned URI and (typically) define a new Archetype that
-      references it. Existing ElementDefinitions remain pinned to the
-      schema addressed by their Archetype's `schemaUri`.
+    - Schema-declared inheritance: tenant archetypes declare which GSM base they
+      extend via `allOf[{ "$ref": "<base-schema-uri>" }]` in their JSON Schema.
+      The definition-manager derives the base archetype from the schema's
+      `allOf.$ref` — no separate field is needed on Archetype.
+    - Tenant extensibility: tenants extend their Structure's vocabulary by
+      declaring new Archetypes whose schema references a GSM base. E.g., a
+      tenant creates Archetype "SecurityCheckMechanism" whose schema declares
+      allOf[{ $ref: MechanismArchetype }] and adds { complianceFramework }
+      alongside the base's { operation, operationLanguage, function }.
+    - Schema evolution MUST NOT mutate an existing `schemaUri` target. If a
+      schema must change, publish a new version at a new, version-pinned URI and
+      (typically) define a new Archetype that references it. Existing
+      ElementDefinitions remain pinned to the schema addressed by their
+      Archetype's `schemaUri`.
   end note
 
   ' ============================================================
@@ -615,115 +569,102 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     **Concept Semantics**:
 
     - Every structural constituent of a Structure and the Structure itself is an
-      ElementDefinition. Elements are the "atoms" of a
-      Structure — Mechanisms, Interactions, and Interfaces.
-    - `id` identifies the definition. `elementId` identifies
-      the element (referent) being defined. Multiple definitions (revisions)
-      share the same `elementId` — each is a distinct
-      definition snapshot of the same element.
-      At most one in-effect definition per `elementId`
-      (status = ACTIVE or DEPRECATED).
-    - Every ElementDefinition is representable as
-      Archetype-typed information for Mechanisms. This
-      enables systemic recursion — reflexive Mechanisms
-      inspect and transform the Structure's own
-      ElementDefinitions.
-    - Multiple revisions of the same `elementId` can coexist
-      in non-terminal states (DRAFT, PROPOSED) concurrently
-      — the creative/authoring phase is open. Governance
-      converges at approval: approving any one revision
-      auto-rejects all other non-terminal sibling revisions
-      for that `elementId`.
-    - `revision` tracks authoring attempts (total ordering);
-      `version` tracks governance-validated definition lineage
-      (gapless). A DRAFT that is REJECTED or PROPOSED but
-      never APPROVED never consumes a `version` number —
-      only a `revision`.
-    - `statusTransitions` provides a complete governance
-      audit trail: who changed the status, when, and why.
-    - An ElementDefinition **revision** is an **immutable snapshot**.
-      Any change to the definition content MUST be expressed by authoring a
-      new revision (new `id`, higher `revision`) for the same `elementId`.
-      The only permitted in-place evolution of a revision row is the
-      append-only growth of its `statusTransitions` audit trail.
-    - **Governance convergence pattern**: the creative
-      phase allows concurrent authoring (multiple DRAFT and
-      PROPOSED revisions for the same `elementId`). The
-      governance decision phase converges: approving one
-      revision auto-rejects all siblings. This separates
-      creative freedom (author many alternatives) from
-      governance rigor (exactly one winner). After
-      convergence, new revisions can be authored to start
-      a new creative cycle.
+      ElementDefinition. Elements are the "atoms" of a Structure — Mechanisms,
+      Interactions, and Interfaces.
+    - `id` identifies the definition. `elementId` identifies the element
+      (referent) being defined. Multiple definitions (revisions) share the same
+      `elementId` — each is a distinct definition snapshot of the same element.
+      At most one in-effect definition per `elementId` (status = ACTIVE or
+      DEPRECATED).
+    - Every ElementDefinition is representable as Archetype-typed information
+      for Mechanisms. This enables systemic recursion — reflexive Mechanisms
+      inspect and transform the Structure's own ElementDefinitions.
+    - Multiple revisions of the same `elementId` can coexist in non-terminal
+      states (DRAFT, PROPOSED) concurrently — the creative/authoring phase is
+      open. Governance converges at approval: approving any one revision
+      auto-rejects all other non-terminal sibling revisions for that
+      `elementId`.
+    - `revision` tracks authoring attempts (total ordering); `version` tracks
+      governance-validated definition lineage (gapless). A DRAFT that is
+      REJECTED or PROPOSED but never APPROVED never consumes a `version` number
+      — only a `revision`.
+    - `statusTransitions` provides a complete governance audit trail: who
+      changed the status, when, and why.
+    - An ElementDefinition **revision** is an **immutable snapshot**. Any change
+      to the definition content MUST be expressed by authoring a new revision
+      (new `id`, higher `revision`) for the same `elementId`. The only permitted
+      in-place evolution of a revision row is the append-only growth of its
+      `statusTransitions` audit trail.
+    - **Governance convergence pattern**: the creative phase allows concurrent
+      authoring (multiple DRAFT and PROPOSED revisions for the same
+      `elementId`). The governance decision phase converges: approving one
+      revision auto-rejects all siblings. This separates creative freedom
+      (author many alternatives) from governance rigor (exactly one winner).
+      After convergence, new revisions can be authored to start a new creative
+      cycle.
     - **Terminality of REJECTED**: Once a revision is auto-rejected (REJECTED),
-      it cannot be reopened or set back to PROPOSED/DRAFT. REJECTED is
-      a terminal state. If a new creative cycle is needed, author a new
-      revision (new `revision` number, fresh DRAFT) — do not resurrect
-      a rejected revision. This preserves governance convergence and a clean
-      audit trail.
+      it cannot be reopened or set back to PROPOSED/DRAFT. REJECTED is a
+      terminal state. If a new creative cycle is needed, author a new revision
+      (new `revision` number, fresh DRAFT) — do not resurrect a rejected
+      revision. This preserves governance convergence and a clean audit trail.
 
     **Attribute Semantics**:
 
-    - `id`: globally unique identity of THIS definition
-      (unique per revision row).
-    - `elementId`: stable identity of the element being
-      defined. Shared across all revisions/definitions of the
-      same element referent. Immutable once assigned.
-    - `archetype`: reference to the Archetype that types this
-      definition, constraining its ascription content and
-      providing its domain semantics.
-    - `ascription`: Ascription payload applied to the element.
-      Carries JSON-serializable specifications whose structure is
-      constrained by the Archetype schema (extension via `allOf`).
-    - `revision`: monotonically increasing numeric string assigned
-      at definition creation. Tracks every authoring attempt
-      (including DRAFTs that are REJECTED). Provides total
-      ordering of all definition rows for a given `elementId`.
+    - `id`: globally unique identity of THIS definition (unique per revision
+      row).
+    - `elementId`: stable identity of the element being defined. Shared across
+      all revisions/definitions of the same element referent. Immutable once
+      assigned.
+    - `archetype`: reference to the Archetype that types this definition,
+      constraining its ascription content and providing its domain semantics.
+    - `ascription`: Ascription payload applied to the element. Carries
+      JSON-serializable specifications whose structure is constrained by the
+      Archetype schema (extension via `allOf`).
+    - `revision`: monotonically increasing numeric string assigned at definition
+      creation. Tracks every authoring attempt (including DRAFTs that are
+      REJECTED). Provides total ordering of all definition rows for a given
+      `elementId`.
     - `version`: nurmerical string assigned only upon APPROVED transition.
-      Monotonically increasing within the APPROVED lineage
-      for a given `elementId`. Null/unset until approved.
-      Governance-meaningful — represents the validated
-      definition lineage (gapless). A definition earns a
-      version when governance accepts it as a definition;
-      whether it is later applied (ACTIVE) is a downstream
-      realization concern, not a definitional one.
-    - `revisionDatetime`: ISO 8601 timestamp recording when this
-      definition revision was created. Immutable once
-      assigned. Provides temporal ordering alongside
-      `revision` (which provides logical ordering).
+      Monotonically increasing within the APPROVED lineage for a given
+      `elementId`. Null/unset until approved. Governance-meaningful — represents
+      the validated definition lineage (gapless). A definition earns a version
+      when governance accepts it as a definition; whether it is later applied
+      (ACTIVE) is a downstream realization concern, not a definitional one.
+    - `revisionDatetime`: ISO 8601 timestamp recording when this definition
+      revision was created. Immutable once assigned. Provides temporal ordering
+      alongside `revision` (which provides logical ordering).
     - `definitionStatus`: lifecycle state (cf. ElementDefinitionStatus).
       Denormalized/cache field derived from the latest
       `statusTransitions[*].postStatus`.
-    - `statusTransitions`: ordered list of
-      ElementDefinitionStatusTransition records capturing
-      every lifecycle state change. Append-only — transitions
+    - `statusTransitions`: ordered list of ElementDefinitionStatusTransition
+      records capturing every lifecycle state change. Append-only — transitions
       are never modified or deleted (cf. ElementDefinitionStatusTransition).
 
     **Validation Rules**:
 
-    - `ascription` MUST validate against the JSON Schema
-      referenced by `archetype.schemaUri`.
+    - `ascription` MUST validate against the JSON Schema referenced by
+      `archetype.schemaUri`.
 
     **Assignment Rules**:
 
     - When creating a new definition revision, reuse the same `elementId`;
       `revision` is auto-assigned.
-    - Immutability (revision snapshot): once a revision row is created,
-      `id`, `elementId`, `archetype`, `ascription`, `revision`, and
-      `revisionDatetime` MUST NOT be modified in place.
+    - Immutability (revision snapshot): once a revision row is created, `id`,
+      `elementId`, `archetype`, `ascription`, `revision`, and `revisionDatetime`
+      MUST NOT be modified in place.
     - Once `version` is assigned at APPROVED transition, it MUST NOT be
       modified.
     - `revision` MUST be monotonically increasing for each `elementId`.
-    - `revisionDatetime` is auto-assigned by the definition-manager at
-      creation — never set manually.
+    - `revisionDatetime` is auto-assigned by the definition-manager at creation
+      — never set manually.
     - `revisionDatetime` MUST NOT be null.
     - `revisionDatetime` MUST be monotonically increasing across revisions for
       each `elementId`.
     - `version` is auto-assigned by the definition-manager at APPROVED
       transition — never set manually.
     - Until APPROVED transition, `version` MUST be null.
-    - `version` MUST be monotonically increasing within the APPROVED lineage
-      for each `elementId`.
+    - `version` MUST be monotonically increasing within the APPROVED lineage for
+      each `elementId`.
     - On creation, `statusTransitions` MUST be initialized with the initial
       creation transition: `preStatus` = null, `postStatus` = DRAFT.
     - `revisionDatetime` MUST equal the initial creation transition's datetime.
@@ -733,8 +674,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       `postStatus` (chain consistency).
     - Each transition's `datetime` MUST be >= the preceding transition's
       `datetime` (temporal consistency).
-    - Terminality: once `definitionStatus` is REJECTED or RETIRED, no
-      additional transitions may be appended.
+    - Terminality: once `definitionStatus` is REJECTED or RETIRED, no additional
+      transitions may be appended.
     - Approval is not constrained by revision order: any non-terminal revision
       may be APPROVED regardless of whether higher-numbered revisions exist.
     - Upon APPROVED transition of any revision for a given `elementId`, the
@@ -745,24 +686,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - At most one in-effect definition per `elementId`
-      (status = ACTIVE or DEPRECATED).
-    - If an ElementDefinition references other ElementDefinitions
-      (e.g., Structure has Mechanisms), those references MUST
-      resolve to elements within the governed scope.
+    - At most one in-effect definition per `elementId` (status = ACTIVE or
+      DEPRECATED).
+    - If an ElementDefinition references other ElementDefinitions (e.g.,
+      Structure has Mechanisms), those references MUST resolve to elements
+      within the governed scope.
 
     **Derivation Rules**:
 
-    - An element is "in effect" in production when its
-      definition status is ACTIVE or DEPRECATED for its
-      `elementId`.
+    - An element is "in effect" in production when its definition status is
+      ACTIVE or DEPRECATED for its `elementId`.
 
     **Usage Rules**:
 
-    - When creating a new definition of an element, reuse the
-      same `elementId`.
-    - Ascription content MUST conform to the Archetype's
-      schema before assignment.
+    - When creating a new definition of an element, reuse the same `elementId`.
+    - Ascription content MUST conform to the Archetype's schema before
+      assignment.
   end note
 
   ElementDefinition "0..*" --> "1" Archetype : structuredBy
@@ -782,22 +721,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Immutable record of a single lifecycle state change
-      on an ElementDefinition.
-    - Lifecycle-coupled to the owning ElementDefinition
-      (destroying the definition destroys its transitions).
-    - The ordered collection of transitions constitutes
-      the complete governance audit trail for a definition.
-    - The initial entry captures creation (preStatus =
-      null, postStatus = DRAFT).
+    - Immutable record of a single lifecycle state change on an
+      ElementDefinition.
+    - Lifecycle-coupled to the owning ElementDefinition (destroying the
+      definition destroys its transitions).
+    - The ordered collection of transitions constitutes the complete governance
+      audit trail for a definition.
+    - The initial entry captures creation (preStatus = null, postStatus =
+      DRAFT).
 
     **Attribute Semantics**:
 
-    - `definitionId`: reference to the owning
-      ElementDefinition's `id` (the specific revision
-      row, not `elementId`). Immutable once assigned.
-    - `preStatus`: the status before the transition. Null
-      for the initial creation entry.
+    - `definitionId`: reference to the owning ElementDefinition's `id` (the
+      specific revision row, not `elementId`). Immutable once assigned.
+    - `preStatus`: the status before the transition. Null for the initial
+      creation entry.
     - `postStatus`: the status after the transition.
     - `datetime`: ISO 8601 timestamp when the transition occurred.
 
@@ -806,10 +744,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `postStatus` MUST NOT be null.
     - `definitionId` MUST NOT be null.
     - `definitionId` MUST reference an existing ElementDefinition `id`.
-    - `preStatus` → `postStatus` MUST be a valid transition
-      per the ElementDefinitionStatus state machine.
-    - `preStatus` MUST be null only for the first
-      transition (creation).
+    - `preStatus` → `postStatus` MUST be a valid transition per the
+      ElementDefinitionStatus state machine.
+    - `preStatus` MUST be null only for the first transition (creation).
     - `preStatus` MUST NOT be REJECTED or RETIRED.
 
     **Assignment Rules**:
@@ -819,18 +756,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - The definition-manager appends a transition automatically on every status change.
-    - The latest transition's `postStatus` MUST equal the
-      owning ElementDefinition's `definitionStatus`.
-    - Each transition's `preStatus` MUST equal the
-      preceding transition's `postStatus` (chain
-      consistency).
+    - The definition-manager appends a transition automatically on every status
+      change.
+    - The latest transition's `postStatus` MUST equal the owning
+      ElementDefinition's `definitionStatus`.
+    - Each transition's `preStatus` MUST equal the preceding transition's
+      `postStatus` (chain consistency).
 
     **Derivation Rules**:
 
-    - Governance analytics (time-in-status, approval
-      latency, rejection rates) can be derived from
-      the transition chain.
+    - Governance analytics (time-in-status, approval latency, rejection rates)
+      can be derived from the transition chain.
   end note
 
   ElementDefinitionStatusTransition "1..*" --> "1" ElementDefinition : belongsTo
@@ -851,21 +787,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Attribute Semantics**:
 
-    - `DRAFT`: initial creation state.
-      Editable authoring state; not in effect at runtime.
-    - `PROPOSED`: submitted for review.
-      Under governance review; not in effect at runtime.
-    - `APPROVED`: accepted as a valid definition; `version`
-      assigned. Awaiting activation; not yet in effect.
+    - `DRAFT`: initial creation state. Editable authoring state; not in effect
+      at runtime.
+    - `PROPOSED`: submitted for review. Under governance review; not in effect
+      at runtime.
+    - `APPROVED`: accepted as a valid definition; `version` assigned. Awaiting
+      activation; not yet in effect.
     - `ACTIVE`: in effect at runtime.
-    - `SUSPENDED`: temporarily not in effect, retains
-      lineage; may be reactivated.
-    - `DEPRECATED`: in effect but scheduled for retirement;
-      emits warnings on new references.
-    - `RETIRED`: permanently not in effect; preserved for
-      historical traceability (terminal).
-    - `REJECTED`: denied; not in effect. A new creative
-      cycle requires authoring a new revision (terminal).
+    - `SUSPENDED`: temporarily not in effect, retains lineage; may be
+      reactivated.
+    - `DEPRECATED`: in effect but scheduled for retirement; emits warnings on
+      new references.
+    - `RETIRED`: permanently not in effect; preserved for historical
+      traceability (terminal).
+    - `REJECTED`: denied; not in effect. A new creative cycle requires authoring
+      a new revision (terminal).
 
     **Validation Rules**:
 
@@ -877,12 +813,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Usage Rules**:
 
-    - Follow the transition graph strictly: DRAFT → PROPOSED
-      → {APPROVED | REJECTED}; APPROVED → ACTIVE; ACTIVE →
-      {SUSPENDED | DEPRECATED}; SUSPENDED → {ACTIVE |
-      DEPRECATED}; DEPRECATED → RETIRED.
-    - Before activating, verify no conflicting ACTIVE
-      definition exists for the same `elementId`.
+    - Follow the transition graph strictly: DRAFT → PROPOSED → {APPROVED |
+      REJECTED}; APPROVED → ACTIVE; ACTIVE → {SUSPENDED | DEPRECATED}; SUSPENDED
+      → {ACTIVE | DEPRECATED}; DEPRECATED → RETIRED.
+    - Before activating, verify no conflicting ACTIVE definition exists for the
+      same `elementId`.
   end note
 
   ' ============================================================
@@ -900,43 +835,40 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - The assembly of Elements constituting a Structure is **intentional**:
-      it is never accidental authoring. A Structure's element set and
-      topology exist **for a purpose** and are the product of a governance.
+    - The assembly of Elements constituting a Structure is **intentional**: it
+      is never accidental authoring. A Structure's element set and topology
+      exist **for a purpose** and are the product of governance.
     - **Governing Structure (governance relation)**: a Structure `G` governs a
       Structure `S` when `G` produces governance DNA (Directives/Norms)
       targeting `S` (by referencing `S.purpose`, and by operationalizing those
-      Directives as Norms constraining in-scope Elements).
-      This is how inter-Structure governance is expressed in GSM: not by
-      containment, but by DNA targeting (de-facto) governed Elements.
-    - **Formalization**: `G` governs `S` **iff** (a) there exists
-      at least one Directive authored/owned by `G` whose `scope` references
-      `S.purpose`, and (b) over time, those Directives are operationalized by
-      one or more Norms authored/owned by `G` that constrain (target) in-scope
-      Elements of `S`.
+      Directives as Norms constraining in-scope Elements). This is how
+      inter-Structure governance is expressed in GSM: not by containment, but by
+      DNA targeting (de-facto) governed Elements.
+    - **Formalization**: `G` governs `S` **iff** (a) there exists at least one
+      Directive authored/owned by `G` whose `scope` references `S.purpose`, and
+      (b) over time, those Directives are operationalized by one or more Norms
+      authored/owned by `G` that constrain (target) in-scope Elements of `S`.
     - **Purpose is owned by governance**: a Structure's `purpose` is its
       identity field, but it SHOULD be treated as a governed outcome — i.e.,
       declared/approved under a governing Structure's Directives — not as an
       arbitrary label authored in isolation.
-    - No sub-structures, no containment hierarchy.
-      Governance between Structures is expressed through
-      DNA targeting governed Elements — not through
+    - No sub-structures, no containment hierarchy. Governance between Structures
+      is expressed through DNA targeting governed Elements — not through
       illusional hierarchical nesting.
 
     **Attribute Semantics**:
 
-    - `purpose` (ascription field, StructureArchetype schema):
-      the Structure's raison d'être. This IS the Structure's
-      identity/name. Directives reference the purpose via
-      their `scope` field.
+    - `purpose` (ascription field, StructureArchetype schema): the Structure's
+      raison d'être. This IS the Structure's identity/name. Directives reference
+      the purpose via their `scope` field.
 
     **Validation Rules**:
 
     - `purpose` MUST be non-empty (enforced by base schema).
     - A reflexive Structure MUST have at least one Directive.
-    - Every Interaction MUST reference Effector/Receptor
-      Elements belonging to Mechanisms within this Structure
-      (or governed Structures it interacts with).
+    - Every Interaction MUST reference Effector/Receptor Elements belonging to
+      Mechanisms within this Structure (or governed Structures it interacts
+      with).
 
     **Assignment Rules**:
 
@@ -944,33 +876,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Every Mechanism SHOULD participate in at least one
-      Interaction (isolated Mechanisms → incomplete
-      definition).
+    - Every Mechanism SHOULD participate in at least one Interaction (isolated
+      Mechanisms → incomplete definition).
     - Every ACTIVE ElementDefinition in a Structure SHOULD be covered by at
       least one DNA chain over time (Directive → Norm) targeting that Element
       (uncovered element → accidental/ungoverned structure).
 
     **Derivation Rules**:
 
-    - A Structure is reflexive when at least one Mechanism is
-      reflexive with respect to the Structure's own
-      ElementDefinitions.
+    - A Structure is reflexive when at least one Mechanism is reflexive with
+      respect to the Structure's own ElementDefinitions.
 
     **Usage Rules**:
 
-    - Define at least one Mechanism before declaring
-      Interactions.
-    - For a Structure to qualify as a System, define at
-      least one reflexive Mechanism that produces governance
-      DNA.
-    - Assign Archetypes to establish the Structure's domain
-      vocabulary.
+    - Define at least one Mechanism before declaring Interactions.
+    - For a Structure to qualify as a System, define at least one reflexive
+      Mechanism that produces governance DNA.
+    - Assign Archetypes to establish the Structure's domain vocabulary.
 
     **Notes**:
 
-    - Boundary is defined by governance scope (the set of
-      Elements governed), not by static containment.
+    - Boundary is defined by governance scope (the set of Elements governed),
+      not by static containment.
   end note
 
   ElementDefinition <|-- Structure
@@ -993,47 +920,39 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Composite of processing logic (operation) and its I/O
-      ports (Effectors and Receptors).
+    - Composite of processing logic (operation) and its I/O ports (Effectors and
+      Receptors).
     - Effectors/Receptors are **derived ports**: they are not authored as part
       of the Mechanism's Ascription schema. The definition-manager derives and
       creates them from the Mechanism `operation` (STARLARK) as part of
       definition compilation.
-    - Ports do not exist independently — destroying a
-      Mechanism destroys its parts. This IS internal
-      composition (lifecycle coupling, existential
-      dependency) — distinct from the inter-structure
-      "composition" that GSM eliminates. A port without a
-      processor has no causal autonomy.
-    - When a Mechanism's operation targets its own
-      Structure's Elements, it is reflexive. Reflexive
-      Mechanisms produce governance DNA (Directives, Norms),
-      making the Structure a System.
-    - At least 1 Effector (1..*) and at least 1 Receptor
-      (1..*).
+    - Ports do not exist independently — destroying a Mechanism destroys its
+      parts. This IS internal composition (lifecycle coupling, existential
+      dependency) — distinct from the inter-structure "composition" that GSM
+      eliminates. A port without a processor has no causal autonomy.
+    - When a Mechanism's operation targets its own Structure's Elements, it is
+      reflexive. Reflexive Mechanisms produce governance DNA (Directives,
+      Norms), making the Structure a System.
+    - At least 1 Effector (1..*) and at least 1 Receptor (1..*).
 
     **Attribute Semantics**:
 
-    - `structure`: identifier of the owning Structure.
-    - `operation` (ascription field, MechanismArchetype
-      schema): executable logic in the declared language.
-      Encodes what the Mechanism does — behavioral
-      definition.
-    - `operationLanguage` (ascription field,
-      MechanismArchetype schema): expression language
-      (STARLARK).
-    - `function` (ascription field, MechanismArchetype
-      schema): capability label describing what the
-      Mechanism does (e.g., "validation", "routing",
+    - `structureId`: identifier of the owning Structure.
+    - `operation` (ascription field, MechanismArchetype schema): executable
+      logic in the declared language. Encodes what the Mechanism does —
+      behavioral definition.
+    - `operationLanguage` (ascription field, MechanismArchetype schema):
+      expression language (STARLARK).
+    - `function` (ascription field, MechanismArchetype schema): capability label
+      describing what the Mechanism does (e.g., "validation", "routing",
       "transformation").
 
     **Validation Rules**:
 
-    - `operation` MUST be syntactically valid in the
-      declared `operationLanguage` (enforced by base
-      schema).
-    - `operationLanguage` MUST be a supported value
-      (enforced by base schema enum).
+    - `operation` MUST be syntactically valid in the declared
+      `operationLanguage` (enforced by base schema).
+    - `operationLanguage` MUST be a supported value (enforced by base schema
+      enum).
     - `function` SHOULD be non-empty (empty → undeclared).
     - MUST have at least 1 Effector.
     - MUST have at least 1 Receptor.
@@ -1044,31 +963,28 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Every ACTIVE Mechanism SHOULD be governed by at least
-      one DNA chain (ungoverned → governance gap).
+    - Every ACTIVE Mechanism SHOULD be governed by at least one DNA chain
+      (ungoverned → governance gap).
 
     **Derivation Rules**:
 
-    - Reflexivity is derived from the mechanism operation's
-      targets: a Mechanism is reflexive when it reads or
-      produces definitions about its own Structure's
-      Elements.
+    - Reflexivity is derived from the mechanism operation's targets: a Mechanism
+      is reflexive when it reads or produces definitions about its own
+      Structure's Elements.
 
     **Usage Rules**:
 
-    - `operation` MUST be authored in the declared
-      `operationLanguage` (currently: STARLARK with the
-      `sys.*` API).
-    - For reflexive Mechanisms, the operation MUST target
-      the owning Structure's ElementDefinitions.
-    - Every Mechanism SHOULD be connected via Interactions
-      to participate in the Structure's causal graph.
+    - `operation` MUST be authored in the declared `operationLanguage`
+      (currently: STARLARK with the `sys.*` API).
+    - For reflexive Mechanisms, the operation MUST target the owning Structure's
+      ElementDefinitions.
+    - Every Mechanism SHOULD be connected via Interactions to participate in the
+      Structure's causal graph.
 
     **Notes**:
 
-    - Effectors and Receptors are internal composites; they are
-      not tenant-extensible and have no standalone base
-      archetypes.
+    - Effectors and Receptors are internal composites; they are not
+      tenant-extensible and have no standalone base archetypes.
   end note
 
   ElementDefinition <|-- Mechanism
@@ -1091,16 +1007,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Declares the type of information the Mechanism emits,
-      by referencing an Artifact (typed definition-plane
-      deliverable). The Artifact's Archetype
+    - Declares the type of information the Mechanism emits, by referencing an
+      Artifact (typed definition-plane deliverable). The Artifact's Archetype
       determines the schema of the emitted data.
     - Interactions originate from Effectors.
 
     **Attribute Semantics**:
 
-    - `emittedArtifact`: the Artifact definition typed by an
-      Archetype that constrains the effector's output.
+    - `emittedArtifact`: the Artifact definition typed by an Archetype that
+      constrains the effector's output.
 
     **Validation Rules**:
 
@@ -1113,25 +1028,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Any Interaction from this Effector MUST terminate at a
-      Receptor that accepts a schema-compatible Artifact.
+    - Any Interaction from this Effector MUST terminate at a Receptor that
+      accepts a schema-compatible Artifact.
 
     **Derivation Rules**:
 
-    - Output compatibility is derived from the referenced
-      Artifact's Archetype schema.
+    - Output compatibility is derived from the referenced Artifact's Archetype
+      schema.
 
     **Usage Rules**:
 
-    - Reference an Artifact whose Archetype schema matches
-      the data the Mechanism emits.
-    - Every Effector SHOULD participate in at least one
-      Interaction to form a complete causal path.
+    - Reference an Artifact whose Archetype schema matches the data the
+      Mechanism emits.
+    - Every Effector SHOULD participate in at least one Interaction to form a
+      complete causal path.
 
     **Notes**:
 
-    - Effectors are ports; they do not carry values at the GSM
-      level. Values exist in runtime instances.
+    - Effectors are ports; they do not carry values at the GSM level. Values
+      exist in runtime instances.
   end note
 
   ElementDefinition <|-- Effector
@@ -1152,17 +1067,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Declares the type of information the Mechanism
-      receives, by referencing an Artifact (typed
-      definition-plane deliverable). The Artifact's
-      Archetype determines the schema of the
-      received data.
+    - Declares the type of information the Mechanism receives, by referencing an
+      Artifact (typed definition-plane deliverable). The Artifact's Archetype
+      determines the schema of the received data.
     - Interactions terminate at Receptors.
 
     **Attribute Semantics**:
 
-    - `receivedArtifact`: the Artifact definition typed by an
-      Archetype that constrains the receptor's input.
+    - `receivedArtifact`: the Artifact definition typed by an Archetype that
+      constrains the receptor's input.
 
     **Validation Rules**:
 
@@ -1175,25 +1088,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Any Interaction into this Receptor MUST originate from an
-      Effector that emits a schema-compatible Artifact.
+    - Any Interaction into this Receptor MUST originate from an Effector that
+      emits a schema-compatible Artifact.
 
     **Derivation Rules**:
 
-    - Input compatibility is derived from the referenced
-      Artifact's Archetype schema.
+    - Input compatibility is derived from the referenced Artifact's Archetype
+      schema.
 
     **Usage Rules**:
 
-    - Reference an Artifact whose Archetype schema matches
-      the data the Mechanism receives.
-    - Every Receptor SHOULD participate in at least one
-      Interaction to form a complete causal path.
+    - Reference an Artifact whose Archetype schema matches the data the
+      Mechanism receives.
+    - Every Receptor SHOULD participate in at least one Interaction to form a
+      complete causal path.
 
     **Notes**:
 
-    - Receptors are ports; they do not carry values at the GSM
-      level. Values exist in runtime instances.
+    - Receptors are ports; they do not carry values at the GSM level. Values
+      exist in runtime instances.
   end note
 
   ElementDefinition <|-- Receptor
@@ -1214,20 +1127,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Connects an Effector of one Mechanism to a Receptor
-      of another (or the same) Mechanism.
-    - All causality is Interaction-mediated — no shared
-      state at the structural level.
-    - Channel properties (protocol, capacity, QoS) are
-      expressed as governance Norms targeting the
-      Interaction.
+    - Connects an Effector of one Mechanism to a Receptor of another (or the
+      same) Mechanism.
+    - All causality is Interaction-mediated — no shared state at the structural
+      level.
+    - Channel properties (protocol, capacity, QoS) are expressed as governance
+      Norms targeting the Interaction.
 
     **Validation Rules**:
 
     - `effector` MUST NOT be null.
     - `receptor` MUST NOT be null.
-    - effector.emittedArtifact.archetype MUST be
-      schema-compatible with
+    - effector.emittedArtifact.archetype MUST be schema-compatible with
       receptor.receivedArtifact.archetype.
 
     **Assignment Rules**:
@@ -1236,26 +1147,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Every Interaction SHOULD be governed by at least one
-      DNA chain (ungoverned → governance gap).
+    - Every Interaction SHOULD be governed by at least one DNA chain (ungoverned
+      → governance gap).
 
     **Derivation Rules**:
 
-    - Compatibility is derived from effector.emittedArtifact
-      and receptor.receivedArtifact archetype schemas.
+    - Compatibility is derived from effector.emittedArtifact and
+      receptor.receivedArtifact archetype schemas.
 
     **Usage Rules**:
 
-    - Connect only schema-compatible Effector → Receptor
-      pairs (validated via Archetype schema compatibility).
-    - Define channel-level constraints (protocol, capacity,
-      QoS) as governance Norms targeting the Interaction —
-      not as Interaction attributes.
+    - Connect only schema-compatible Effector → Receptor pairs (validated via
+      Archetype schema compatibility).
+    - Define channel-level constraints (protocol, capacity, QoS) as governance
+      Norms targeting the Interaction — not as Interaction attributes.
 
     **Notes**:
 
-    - Channel semantics are not modeled as a primitive.
-      They are introduced as governance constraints.
+    - Channel semantics are not modeled as a primitive. They are introduced as
+      governance constraints.
   end note
 
   ElementDefinition <|-- Interaction
@@ -1281,21 +1191,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
       which Mechanism ports (Effectors/Receptors) are exposed for external
       coupling.
     - An Interface is **not** a Mechanism and has **no behavior** of its own.
-      All behavior and realization lives in Mechanisms; Interfaces only
-      describe exposure.
+      All behavior and realization lives in Mechanisms; Interfaces only describe
+      exposure.
     - The ports exposed by an Interface are declared in its Ascription
       (InterfaceArchetype schema) via `effectorIds` and `receptorIds` (port
       identifiers).
-    - Makes the boundary explicit and governable. Governance
-      Norms can target an Interface directly (e.g., "all
-      ports in this Interface must use mTLS").
+    - Makes the boundary explicit and governable. Governance Norms can target an
+      Interface directly (e.g., "all ports in this Interface must use mTLS").
     - Each Effector/Receptor port SHOULD be assigned to **at most one**
       Interface within a Structure (0..1 membership). If the same underlying
-      capability must be exposed through multiple surfaces, model it as
-      distinct ports (distinct Receptor/Effector elements) realized by the
-      same Mechanism.
-    - 0..* Effectors (can be output-only, input-only, or
-      mixed). 0..* Receptors. At least 1 port total.
+      capability must be exposed through multiple surfaces, model it as distinct
+      ports (distinct Receptor/Effector elements) realized by the same
+      Mechanism.
+    - 0..* Effectors (can be output-only, input-only, or mixed). 0..* Receptors.
+      At least 1 port total.
 
     **Validation Rules**:
 
@@ -1307,8 +1216,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Every ACTIVE Interface SHOULD be governed by at least
-      one DNA chain (ungoverned → governance gap).
+    - Every ACTIVE Interface SHOULD be governed by at least one DNA chain
+      (ungoverned → governance gap).
     - All referenced Effectors/Receptors MUST belong to Mechanisms within the
       same Structure.
     - Each referenced Effector/Receptor port MUST be exposed by at most one
@@ -1316,26 +1225,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Derivation Rules**:
 
-    - An external boundary view can be derived by enumerating
-      the union of ports contained in all Interfaces.
+    - An external boundary view can be derived by enumerating the union of ports
+      contained in all Interfaces.
     - An Interface's owning Structure can be derived by resolving its
-      `effectorIds`/`receptorIds` to Effector/Receptor ElementDefinitions,
-      then resolving each port to its owning Mechanism, then taking that
-      Mechanism's `structureId`. (This relies on ports belonging exclusively
-      to a single Mechanism, and a Mechanism belonging to a single Structure.)
+      `effectorIds`/`receptorIds` to Effector/Receptor ElementDefinitions, then
+      resolving each port to its owning Mechanism, then taking that Mechanism's
+      `structureId`. (This relies on ports belonging exclusively to a single
+      Mechanism, and a Mechanism belonging to a single Structure.)
 
     **Usage Rules**:
 
-    - Group ports by external exposure semantics (e.g.,
-      "admin", "monitoring", "public API").
-    - Apply boundary-level governance Norms to Interfaces
-      rather than individual ports when the constraint is
-      uniform across all grouped ports.
+    - Group ports by external exposure semantics (e.g., "admin", "monitoring",
+      "public API").
+    - Apply boundary-level governance Norms to Interfaces rather than individual
+      ports when the constraint is uniform across all grouped ports.
 
     **Notes**:
 
-    - Interfaces are a governance handle for boundary-level
-      constraints and exposure reasoning.
+    - Interfaces are a governance handle for boundary-level constraints and
+      exposure reasoning.
   end note
 
   ElementDefinition <|-- Interface
@@ -1353,38 +1261,32 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Extends ElementDefinition. Carries typed data via its
-      Ascription payload — the general-purpose definition-
-      plane data carrier.
-    - Inherits all ElementDefinition attributes (id,
-      elementId, archetype, ascription, revision, version,
-      status).
-    - Any Archetype-typed data that needs to be
-      persisted as a definition-plane deliverable is an
-      Artifact. Governance DNA (Directives, Norms) is the
-      primary use case, but Artifacts can carry any
-      domain-typed information that Mechanisms produce as
-      definitions.
-    - Directive and Norm are standalone first-class GSM
-      classes — they do not extend Artifact or
-      ElementDefinition. They are typed by their own sealed
-      governance archetypes (DirectiveArchetype,
-      NormArchetype).
-    - DNA chain: D → N (WHY → WHAT). Chain variations:
-      DN (full), D-only, N-only.
-    - Reflexive Mechanisms produce governance DNA
-      (Directives, Norms). A Structure without governance
-      DNA has no self-governance (i.e., is not a System).
+    - Extends ElementDefinition. Carries typed data via its Ascription payload —
+      the general-purpose definition-plane data carrier.
+    - Inherits all ElementDefinition attributes (id, elementId, archetype,
+      ascription, revision, version, status).
+    - Any Archetype-typed data that needs to be persisted as a definition-plane
+      deliverable is an Artifact. Governance DNA (Directives, Norms) is the
+      primary use case, but Artifacts can carry any domain-typed information
+      that Mechanisms produce as definitions.
+    - Directive and Norm are standalone first-class GSM classes — they do not
+      extend Artifact or ElementDefinition. They are typed by their own sealed
+      governance archetypes (DirectiveArchetype, NormArchetype).
+    - DNA chain: D → N (WHY → WHAT). Chain variations: DN (full), D-only,
+      N-only.
+    - Reflexive Mechanisms produce governance DNA (Directives, Norms). A
+      Structure without governance DNA has no self-governance (i.e., is not a
+      System).
 
     **Attribute Semantics**:
 
-    - `ascription`: Ascription payload whose content structure is
-      constrained by the Archetype schema.
+    - `ascription`: Ascription payload whose content structure is constrained by
+      the Archetype schema.
 
     **Validation Rules**:
 
-    - Ascription content MUST validate against the JSON Schema
-      referenced by the Artifact's Archetype.
+    - Ascription content MUST validate against the JSON Schema referenced by the
+      Artifact's Archetype.
 
     **Assignment Rules**:
 
@@ -1392,31 +1294,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - An Artifact referenced by an Effector/Receptor MUST be
-      compatible (by archetype schema) with the Interaction(s)
-      it participates in.
+    - An Artifact referenced by an Effector/Receptor MUST be compatible (by
+      archetype schema) with the Interaction(s) it participates in.
 
     **Derivation Rules**:
 
-    - Effective instance schema is derived from the Archetype
-      schema referenced by `archetype.schemaUri`.
+    - Effective instance schema is derived from the Archetype schema referenced
+      by `archetype.schemaUri`.
 
     **Usage Rules**:
 
-    - Use Artifacts for any definition-plane deliverable
-      that needs to be persisted and Archetype-typed.
-    - Do NOT model governance DNA (Directives, Norms) as
-      Artifacts — use the standalone Directive/Norm classes.
-    - Artifact Ascription content MUST validate against the
-      Archetype schema referenced by `archetype.schemaUri`.
+    - Use Artifacts for any definition-plane deliverable that needs to be
+      persisted and Archetype-typed.
+    - Do NOT model governance DNA (Directives, Norms) as Artifacts — use the
+      standalone Directive/Norm classes.
+    - Artifact Ascription content MUST validate against the Archetype schema
+      referenced by `archetype.schemaUri`.
 
     **Notes**:
 
-    - Named "Artifact" (not "Object") because "Object"
-      collides with eliminated "Object / Event / State
-      Object" primitives, OO semantics, and CRUD "domain
-      object" patterns. "Artifact" emphasizes produced
-      definition-plane deliverable.
+    - Named "Artifact" (not "Object") because "Object" collides with eliminated
+      "Object / Event / State Object" primitives, OO semantics, and CRUD "domain
+      object" patterns. "Artifact" emphasizes produced definition-plane
+      deliverable.
   end note
 
   ElementDefinition <|-- Artifact
@@ -1437,24 +1337,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Standalone first-class GSM class (does not extend
-      Artifact or ElementDefinition).
+    - Standalone first-class GSM class (does not extend Artifact or
+      ElementDefinition).
     - Typed by DirectiveArchetype.
-    - The slowest-changing governance primitive. Changing a
-      Directive = changing the System's identity.
-    - Grammar: "Structure [modal] [verb]
-      [qualityDimension] OF [scope]".
-    - Example: "System MUST ENSURE integrity OF
-      order-processing".
+    - The slowest-changing governance primitive. Changing a Directive = changing
+      the System's identity.
+    - Grammar: "Structure [modal] [verb] [qualityDimension] OF [scope]".
+    - Example: "System MUST ENSURE integrity OF order-processing".
 
     **Attribute Semantics**:
 
     - `modal`: normative strength (MUST / SHOULD / MAY).
-    - `verb`: governance action (ENSURE, PREVENT, MAINTAIN,
-      OPTIMIZE, MINIMIZE, MAXIMIZE, MONITOR, ENABLE).
+    - `verb`: governance action (ENSURE, PREVENT, MAINTAIN, OPTIMIZE, MINIMIZE,
+      MAXIMIZE, MONITOR, ENABLE).
     - `qualityDimension`: the quality attribute targeted.
-    - `scope`: structural target (references Structure
-      purpose or Element identifiers).
+    - `scope`: structural target (references Structure purpose or Element
+      identifiers).
 
     **Validation Rules**:
 
@@ -1469,29 +1367,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - A Directive SHOULD be operationalized by at least one
-      Norm over time (unrealized Directive → governance gap).
+    - A Directive SHOULD be operationalized by at least one Norm over time
+      (unrealized Directive → governance gap).
 
     **Derivation Rules**:
 
-    - Norm candidates can be derived by mapping Directive
-      `qualityDimension` and `scope` to evaluable predicates
-      over in-scope Archetypes.
+    - Norm candidates can be derived by mapping Directive `qualityDimension` and
+      `scope` to evaluable predicates over in-scope Archetypes.
 
     **Usage Rules**:
 
-    - Author using the grammar: "Structure [modal] [verb]
-      [qualityDimension] OF [scope]".
-    - `scope` SHOULD reference the Structure's purpose or
-      specific Element identifiers.
-    - Each Directive SHOULD be operationalized by at least
-      one Norm; an unoperationalized Directive is a
-      governance gap.
+    - Author using the grammar: "Structure [modal] [verb] [qualityDimension] OF
+      [scope]".
+    - `scope` SHOULD reference the Structure's purpose or specific Element
+      identifiers.
+    - Each Directive SHOULD be operationalized by at least one Norm; an
+      unoperationalized Directive is a governance gap.
 
     **Notes**:
 
-    - Directives encode identity-level commitments; they are
-      intentionally slower-changing than Norms.
+    - Directives encode identity-level commitments; they are intentionally
+      slower-changing than Norms.
   end note
 
   Directive --> DirectiveModal
@@ -1534,16 +1430,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Usage Rules**:
 
-    - Select MUST for mandatory constraints where violations
-      constitute non-compliance.
-    - Select SHOULD for recommended constraints where
-      violations produce warnings.
+    - Select MUST for mandatory constraints where violations constitute
+      non-compliance.
+    - Select SHOULD for recommended constraints where violations produce
+      warnings.
     - Select MAY for informational/optional guidance.
 
     **Notes**:
 
-    - Modal semantics define how violations are treated
-      downstream (e.g., error vs warning).
+    - Modal semantics define how violations are treated downstream (e.g., error
+      vs warning).
   end note
 
   enum DirectiveVerb {
@@ -1562,8 +1458,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Expresses what the governance intent does to the
-      quality dimension.
+    - Expresses what the governance intent does to the quality dimension.
 
     **Attribute Semantics**:
 
@@ -1587,19 +1482,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Usage Rules**:
 
-    - Choose verb to express governance intent:
-      ENSURE/PREVENT for binary outcomes,
-      OPTIMIZE/MINIMIZE/MAXIMIZE for continuous tuning,
-      MONITOR for observability-only, ENABLE for capability
-      provisioning.
-    - Verb choice influences how downstream Norm predicates
-      are framed (e.g., PREVENT → negation predicate,
-      ENSURE → positive predicate).
+    - Choose verb to express governance intent: ENSURE/PREVENT for binary
+      outcomes, OPTIMIZE/MINIMIZE/MAXIMIZE for continuous tuning, MONITOR for
+      observability-only, ENABLE for capability provisioning.
+    - Verb choice influences how downstream Norm predicates are framed (e.g.,
+      PREVENT → negation predicate, ENSURE → positive predicate).
 
     **Notes**:
 
-    - Verb choice influences how Norm predicates are authored
-      (e.g., PREVENT vs ENSURE framing).
+    - Verb choice influences how Norm predicates are authored (e.g., PREVENT vs
+      ENSURE framing).
   end note
 
   ' ============================================================
@@ -1620,41 +1512,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Standalone first-class GSM class (does not extend
-      Artifact or ElementDefinition).
+    - Standalone first-class GSM class (does not extend Artifact or
+      ElementDefinition).
     - Typed by NormArchetype.
-    - Faster-changing than Directive. Operationalizes a
-      Directive's intent into an evaluable predicate.
+    - Faster-changing than Directive. Operationalizes a Directive's intent into
+      an evaluable predicate.
 
     **Attribute Semantics**:
 
-    - `guard`: CEL expression (default: "true"). Activation
-      condition — predicate is only evaluated when guard
-      is true.
-    - `predicate`: CEL expression → true/false. The
-      constraint. References exactly one Archetype
-      by name as root identifier, then navigates its JSON
-      fields.
-      Example: `SecurityProperties.encryptionLevel >= "AES-128"`
-    - `toleranceMode`: how violations are measured over
-      time.
-    - `temporalWindow`: ISO 8601 duration for time-based
-      modes.
-    - `temporalAggregation`: aggregation function for the
-      window.
+    - `guard`: CEL expression (default: "true"). Activation condition —
+      predicate is only evaluated when guard is true.
+    - `predicate`: CEL expression → true/false. The constraint. References
+      exactly one Archetype by name as root identifier, then navigates its JSON
+      fields. Example: `SecurityProperties.encryptionLevel >= "AES-128"`
+    - `toleranceMode`: how violations are measured over time.
+    - `temporalWindow`: ISO 8601 duration for time-based modes.
+    - `temporalAggregation`: aggregation function for the window.
     - `sustainedThreshold`: ratio [0,1] for SUSTAINED mode.
 
     **Validation Rules**:
 
     - `guard` MUST be valid CEL.
     - `predicate` MUST be valid CEL returning boolean.
-    - `predicate` MUST reference exactly one
-      Archetype.
+    - `predicate` MUST reference exactly one Archetype.
     - `toleranceMode` MUST NOT be null.
-    - `temporalWindow` required when `toleranceMode` is
-      time-based.
-    - `sustainedThreshold` required when `toleranceMode` =
-      SUSTAINED, MUST be in [0, 1].
+    - `temporalWindow` required when `toleranceMode` is time-based.
+    - `sustainedThreshold` required when `toleranceMode` = SUSTAINED, MUST be in
+      [0, 1].
 
     **Assignment Rules**:
 
@@ -1662,32 +1546,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - `predicate` SHOULD reference in-scope archetypes for the
-      governed Structure.
+    - `predicate` SHOULD reference in-scope archetypes for the governed
+      Structure.
 
     **Derivation Rules**:
 
-    - Evaluation scheduling and aggregation semantics are
-      derived from `toleranceMode`, `temporalWindow`, and
-      `temporalAggregation`.
+    - Evaluation scheduling and aggregation semantics are derived from
+      `toleranceMode`, `temporalWindow`, and `temporalAggregation`.
 
     **Usage Rules**:
 
-    - `predicate` MUST reference exactly one Archetype by
-      name as root identifier, then navigate its JSON
-      fields.
-    - Select `toleranceMode` based on the measurement
-      semantics; pair time-based modes with a
-      `temporalWindow`.
-    - Author `guard` and `predicate` in CEL within the
-      selected profile; the definition-manager rejects
-      out-of-profile expressions.
+    - `predicate` MUST reference exactly one Archetype by name as root
+      identifier, then navigate its JSON fields.
+    - Select `toleranceMode` based on the measurement semantics; pair time-based
+      modes with a `temporalWindow`.
+    - Author `guard` and `predicate` in CEL within the selected profile; the
+      definition-manager rejects out-of-profile expressions.
 
     **Notes**:
 
-    - CEL profile constraints are part of governance; the
-      definition-manager selects a CEL profile and rejects
-      predicates that violate it.
+    - CEL profile constraints are part of governance; the definition-manager
+      selects a CEL profile and rejects predicates that violate it.
   end note
 
   Norm --> ToleranceMode
@@ -1716,8 +1595,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
     - `AVERAGED`: mean over temporalWindow.
     - `PERCENTILE`: percentile over temporalWindow.
     - `RATE`: rate of change over temporalWindow.
-    - `SUSTAINED`: must hold for sustainedThreshold
-      fraction of temporalWindow.
+    - `SUSTAINED`: must hold for sustainedThreshold fraction of temporalWindow.
     - `CUMULATIVE`: cumulative sum over temporalWindow.
     - `SLIDING`: sliding window evaluation.
 
@@ -1735,18 +1613,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Derivation Rules**:
 
-    - Required temporal fields are derived from the selected
-      tolerance mode.
+    - Required temporal fields are derived from the selected tolerance mode.
 
     **Usage Rules**:
 
-    - Select INSTANTANEOUS for point-in-time constraint
-      checks.
-    - For time-based modes (AVERAGED, PERCENTILE, RATE,
-      SUSTAINED, CUMULATIVE, SLIDING), MUST pair with a
-      `temporalWindow`.
-    - SUSTAINED mode additionally requires a
-      `sustainedThreshold` in [0, 1].
+    - Select INSTANTANEOUS for point-in-time constraint checks.
+    - For time-based modes (AVERAGED, PERCENTILE, RATE, SUSTAINED, CUMULATIVE,
+      SLIDING), MUST pair with a `temporalWindow`.
+    - SUSTAINED mode additionally requires a `sustainedThreshold` in [0, 1].
 
     **Notes**:
 
@@ -1770,8 +1644,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Concept Semantics**:
 
-    - Applied to values within the temporalWindow when
-      toleranceMode requires aggregation.
+    - Applied to values within the temporalWindow when toleranceMode requires
+      aggregation.
 
     **Attribute Semantics**:
 
@@ -1787,26 +1661,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM (Generative System Model) -
 
     **Relational Consistency Rules**:
 
-    - Percentile aggregations SHOULD only be used when the
-      underlying metric is numeric.
+    - Percentile aggregations SHOULD only be used when the underlying metric is
+      numeric.
 
     **Derivation Rules**:
 
-    - Aggregation applicability is derived from the measured
-      value type and the tolerance mode.
+    - Aggregation applicability is derived from the measured value type and the
+      tolerance mode.
 
     **Usage Rules**:
 
-    - Match aggregation to metric type: SUM/AVG/MIN/MAX/
-      COUNT for numeric metrics, percentiles (P50–P99) for
-      latency/performance distributions.
-    - Aggregation is only relevant when `toleranceMode`
-      requires temporal aggregation.
+    - Match aggregation to metric type: SUM/AVG/MIN/MAX/ COUNT for numeric
+      metrics, percentiles (P50–P99) for latency/performance distributions.
+    - Aggregation is only relevant when `toleranceMode` requires temporal
+      aggregation.
 
     **Notes**:
 
-    - Aggregations describe how measurements are summarized,
-      not how they are collected.
+    - Aggregations describe how measurements are summarized, not how they are
+      collected.
   end note
 }
 
