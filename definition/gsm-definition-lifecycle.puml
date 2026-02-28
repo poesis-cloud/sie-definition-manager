@@ -23,20 +23,34 @@ skinparam classFontColor #24292F
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-title SIE GSM — SystemicPrimitiveDefinitionStatus lifecycle (v1)
+title SIE GSM — ElementDefinitionStatus lifecycle (v1)
 
 note as Legend
-  This diagram is the lifecycle state machine for the GSM primitive attribute
-  `SystemicPrimitiveDefinitionStatus`.
+  This diagram is the lifecycle state machine for the GSM enum
+  `ElementDefinitionStatus`.
 
-  It is a definitional lifecycle for *definition artifacts* (GSM primitives):
-  the status governs whether the artifact is binding, enforceable, and
-  considered in appraisal.
+  It is a definitional lifecycle for definition-plane artifacts
+  (ElementDefinitions and Artifacts): the status governs whether the
+  definition is in-effect at runtime, and preserves governance lineage
+  and auditability.
+end note
+
+note as AuditRules
+  **Audit-log invariants (ElementDefinitionStatusTransition)**
+
+  - Transitions are append-only; never modify/delete.
+  - The first transition represents creation:
+    `fromStatus = null`, `toStatus = DRAFT`.
+  - Transition timestamps are monotonic:
+    each `timestamp` is >= the preceding `timestamp`.
+  - The current `status` is derived/denormalized from the
+    latest transition's `toStatus`.
+  - Terminality: once `status` is REJECTED or RETIRED, no
+    additional transitions may be appended.
 end note
 
 state "Authoring" as Authoring {
   state DRAFT
-  state REJECTED
 }
 
 state "Review" as Review {
@@ -51,6 +65,7 @@ state "Binding / Evolution" as Binding {
 }
 
 state "Terminal" as Terminal {
+  state REJECTED
   state RETIRED
 }
 
@@ -64,6 +79,7 @@ PROPOSED -right-> APPROVED
 APPROVED -right-> ACTIVE
 ACTIVE -right-> DEPRECATED
 DEPRECATED -right-> RETIRED
+REJECTED --> [*]
 RETIRED --> [*]
 
 ' ------------------------------------------------------------
@@ -71,27 +87,10 @@ RETIRED --> [*]
 ' ------------------------------------------------------------
 
 DRAFT -down-> REJECTED
-REJECTED -up-> DRAFT : reworked
-
-PROPOSED -down-> DRAFT : sent back for revision
 PROPOSED -down-> REJECTED
-
-APPROVED -down-> DEPRECATED
 
 ACTIVE -down-> SUSPENDED
 SUSPENDED -up-> ACTIVE
 SUSPENDED -right-> DEPRECATED
-
-' ------------------------------------------------------------
-' Retirement can occur from multiple statuses
-' ------------------------------------------------------------
-
-DRAFT -down-> RETIRED : abandoned
-PROPOSED -down-> RETIRED
-APPROVED -down-> RETIRED
-ACTIVE -down-> RETIRED
-SUSPENDED -down-> RETIRED
-
-DEPRECATED -up-> ACTIVE : rare
 
 @enduml
