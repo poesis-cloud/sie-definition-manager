@@ -1,62 +1,11 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/gsm/v1/Interface.json",
-  "title": "Interface (GSM v1)",
-  "description": "A named I/O surface — a curated selection of Receptors and Effectors grouped into a coherent, addressable contact point on a Component. Interface is purely structural: a named group of I/O ports declaring exposure.",
-  "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
-    }
-  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sie://schemas/gsm/v1/Interface.schema.json",
+  "title": "Interface (GSM base archetype)",
+  "description": "Base ascription schema for Interface ElementDefinitions. Interface structural fields (effectors, receptors) are class-level; this schema covers additional ascription metadata. Tenant-defined archetypes extending Interface MUST reference this schema via allOf.",
+  "$gsm:sealed": true,
+  "$gsm:elementDefinitionSubtype": "Interface",
   "type": "object",
-  "required": [
-    "name"
-  ],
-  "anyOf": [
-    {
-      "properties": {
-        "receptors": {
-          "minItems": 1
-        }
-      },
-      "required": [
-        "receptors"
-      ]
-    },
-    {
-      "properties": {
-        "effectors": {
-          "minItems": 1
-        }
-      },
-      "required": [
-        "effectors"
-      ]
-    }
-  ],
-  "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
-    "receptors": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      },
-      "description": "Receptors exposed by this I/O surface."
-    },
-    "effectors": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      },
-      "description": "Effectors exposed by this I/O surface."
-    }
-  },
-  "x-sie-derived": {
-    "channels": {
-      "description": "Channels whose Interactions reference Effectors/Receptors exposed by this Interface: interfaceChannels(I) = { C ∈ Channel | ∃ interaction ∈ C.interactions : I.exposes(interaction.effector) OR I.exposes(interaction.receptor) }.",
-      "derivedFrom": "Interface.receptors/effectors → Interaction endpoints → Channel.interactions"
-    }
-  }
+  "properties": {},
+  "additionalProperties": false
 }

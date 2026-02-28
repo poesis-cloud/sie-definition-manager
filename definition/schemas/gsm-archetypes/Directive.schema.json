@@ -1,59 +1,50 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/gsm/v1/Directive.json",
-  "title": "Directive (GSM v1)",
-  "description": "Identity-level, long-term normative constraint. Grammar: Modal × Verb × PurposeQualifier × PurposeScope(Purpose). Subject is always the owning System. Unconditional by nature: applies universally within its owning System.",
-  "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
-    }
-  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sie://schemas/gsm/v1/Directive.schema.json",
+  "title": "Directive (GSM governance archetype)",
+  "description": "Standalone governance archetype for Directive — identity-level normative constraints (DNA 'D'). Grammar: 'Structure [modal] [verb] [qualityDimension] OF [scope]'. Example: 'System MUST ENSURE integrity OF order-processing'. The slowest-changing governance primitive — changing a Directive = changing the System's identity.",
+  "$gsm:sealed": true,
   "type": "object",
   "required": [
-    "name",
     "modal",
     "verb",
-    "purposeQualifier",
-    "purposeScope"
+    "qualityDimension",
+    "scope"
   ],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
     "modal": {
       "type": "string",
       "enum": [
         "MUST",
-        "MUST_NOT",
         "SHOULD",
-        "SHOULD_NOT",
         "MAY"
       ],
-      "description": "Deontic obligation strength. Grounded in deontic logic: {Obligatory, Permitted, Forbidden}. Precedence: MUST > SHOULD > MAY."
+      "description": "Normative strength. MUST = mandatory (violation = non-compliance). SHOULD = recommended (violation = warning). MAY = optional (informational)."
     },
     "verb": {
       "type": "string",
       "enum": [
-        "MAXIMIZE",
-        "MINIMIZE",
-        "PRESERVE",
-        "BALANCE",
         "ENSURE",
-        "AVOID",
-        "PROMOTE",
-        "REDUCE"
+        "PREVENT",
+        "MAINTAIN",
+        "OPTIMIZE",
+        "MINIMIZE",
+        "MAXIMIZE",
+        "MONITOR",
+        "ENABLE"
       ],
-      "description": "Constrained verb set for deterministic directive appraisal. Direction semantics: {MAXIMIZE, PROMOTE, ENSURE} = positive; {MINIMIZE, REDUCE, AVOID} = negative; {PRESERVE, BALANCE} = neutral."
+      "description": "Governance action expressing what the governance intent does to the quality dimension."
     },
-    "purposeQualifier": {
+    "qualityDimension": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 80,
-      "description": "Free-form quality attribute name within the governance sentence (e.g., 'integrity', 'throughput', 'latency'). NOT a reference to a SystemicPrimitiveDefinition."
+      "description": "The quality attribute targeted by this Directive."
     },
-    "purposeScope": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to the Purpose being governed (value target). Must belong to the same System as the owning Directive."
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Structural target — references Structure purpose or Element identifiers."
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -1,16 +1,11 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/gsm/v1/Interaction.json",
-  "title": "Interaction (GSM v1)",
-  "description": "Atomic causal coupling from a producing effector to a receiving receptor.",
-  "allOf": [
-    { "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json" }
-  ],
-  "type": "object",
-  "required": ["name", "effector", "receptor"],
-  "properties": {
-    "name": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80" },
-    "effector": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" },
-    "receptor": { "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID" }
-  }
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sie://schemas/gsm/v1/Interaction.schema.json",
+    "title": "Interaction (GSM base archetype)",
+    "description": "Base ascription schema for Interaction ElementDefinitions. Interaction structural fields (effector, receptor) are class-level; this schema covers additional ascription metadata. Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
+    "$gsm:sealed": true,
+    "$gsm:elementDefinitionSubtype": "Interaction",
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
 }

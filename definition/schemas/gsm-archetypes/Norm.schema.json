@@ -1,0 +1,77 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sie://schemas/gsm/v1/Norm.schema.json",
+    "title": "Norm (GSM governance archetype)",
+    "description": "Standalone governance archetype for Norm — measurable constraint predicates (DNA 'N'). Operationalizes a Directive's intent into an evaluable predicate. Faster-changing than Directive.",
+    "$gsm:sealed": true,
+    "type": "object",
+    "required": [
+        "predicate",
+        "toleranceMode"
+    ],
+    "properties": {
+        "guard": {
+            "type": "string",
+            "default": "true",
+            "description": "CEL expression — activation condition. Predicate is only evaluated when guard is true."
+        },
+        "predicate": {
+            "type": "string",
+            "minLength": 1,
+            "description": "CEL expression returning boolean. The constraint. References exactly one ElementArchetype by name as root identifier, then navigates its JSON fields. Example: SecurityProperties.encryptionLevel >= 'AES-128'."
+        },
+        "toleranceMode": {
+            "type": "string",
+            "enum": [
+                "INSTANTANEOUS",
+                "AVERAGED",
+                "PERCENTILE",
+                "RATE",
+                "SUSTAINED",
+                "CUMULATIVE",
+                "SLIDING"
+            ],
+            "description": "How violations are measured over time."
+        },
+        "temporalWindow": {
+            "type": "string",
+            "pattern": "^P",
+            "description": "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is time-based (AVERAGED, PERCENTILE, RATE, SUSTAINED, CUMULATIVE, SLIDING)."
+        },
+        "temporalAggregation": {
+            "type": "string",
+            "enum": [
+                "SUM",
+                "AVG",
+                "MIN",
+                "MAX",
+                "COUNT",
+                "P50",
+                "P90",
+                "P95",
+                "P99"
+            ],
+            "description": "Aggregation function applied to values within the temporalWindow."
+        },
+        "sustainedThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Ratio [0,1] — fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
+        }
+    },
+    "additionalProperties": false,
+    "if": {
+        "properties": {
+            "toleranceMode": {
+                "const": "SUSTAINED"
+            }
+        }
+    },
+    "then": {
+        "required": [
+            "temporalWindow",
+            "sustainedThreshold"
+        ]
+    }
+}

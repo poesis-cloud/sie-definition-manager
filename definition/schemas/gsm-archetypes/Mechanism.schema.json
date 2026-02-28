@@ -1,37 +1,34 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "sie://schemas/gsm/v1/Mechanism.json",
-  "title": "Mechanism (GSM v1)",
-  "description": "Atomic causal unit of behavior: receives events via receptors and produces events via effectors.",
-  "allOf": [
-    {
-      "$ref": "sie://schemas/gsm/v1/SystemicPrimitiveDefinition.json"
-    }
-  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sie://schemas/gsm/v1/Mechanism.schema.json",
+  "title": "Mechanism (GSM base archetype)",
+  "description": "Base ascription schema for Mechanism ElementDefinitions. Defines the logical causal unit's behavioral attributes. Tenant-defined archetypes extending Mechanism MUST reference this schema via allOf.",
+  "$gsm:sealed": true,
+  "$gsm:elementDefinitionSubtype": "Mechanism",
   "type": "object",
   "required": [
-    "name",
-    "function"
+    "function",
+    "operation",
+    "operationLanguage"
   ],
   "properties": {
-    "name": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/Name80"
-    },
     "function": {
-      "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID",
-      "description": "Reference to the Function this Mechanism realizes. Each Mechanism realizes exactly one Function."
+      "type": "string",
+      "minLength": 1,
+      "description": "Capability label describing what the Mechanism does (e.g., 'validation', 'routing', 'transformation')."
     },
-    "receptors": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      }
+    "operation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Executable logic in the declared operationLanguage. Encodes what the Mechanism does — behavioral definition."
     },
-    "effectors": {
-      "type": "array",
-      "items": {
-        "$ref": "sie://schemas/gsm/v1/common.json#/definitions/UUID"
-      }
+    "operationLanguage": {
+      "type": "string",
+      "enum": [
+        "STARLARK"
+      ],
+      "description": "Expression language for the operation field. Currently only STARLARK (Python-like, for behavioral logic)."
     }
-  }
+  },
+  "additionalProperties": false
 }

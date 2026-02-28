@@ -1,0 +1,20 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sie://schemas/gsm/v1/Structure.schema.json",
+    "title": "Structure (GSM base archetype)",
+    "description": "Base ascription schema for Structure ElementDefinitions. Defines the foundational aggregate's purpose — its raison d'être and identity. Tenant-defined archetypes extending Structure MUST reference this schema via allOf.",
+    "$gsm:sealed": true,
+    "$gsm:elementDefinitionSubtype": "Structure",
+    "type": "object",
+    "required": [
+        "purpose"
+    ],
+    "properties": {
+        "purpose": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The Structure's raison d'être. This IS the Structure's identity/name. Directives reference the purpose via their scope field."
+        }
+    },
+    "additionalProperties": false
+}

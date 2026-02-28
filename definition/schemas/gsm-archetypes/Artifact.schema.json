@@ -1,0 +1,11 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sie://schemas/gsm/v1/Artifact.schema.json",
+    "title": "Artifact (GSM base archetype)",
+    "description": "Base ascription schema for Artifact ElementDefinitions. Artifact is the general-purpose definition-plane data carrier — its entire semantics live in the ascription field. Well-known governance sub-schemas (Directive, Norm) extend this base. Tenant-defined archetypes extending Artifact MUST reference this schema via allOf.",
+    "$gsm:sealed": true,
+    "$gsm:elementDefinitionSubtype": "Artifact",
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+}
