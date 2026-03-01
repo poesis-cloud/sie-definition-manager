@@ -629,7 +629,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       creation. Tracks every authoring attempt (including DRAFTs that are
       ABANDONED). Provides total ordering of all definition rows for a given
       `elementId`.
-    - `version`: nurmerical string assigned only upon APPROVED transition.
+    - `version`: numerical string assigned only upon APPROVED transition.
       Monotonically increasing within the APPROVED lineage for a given
       `elementId`. Null/unset until approved. Governance-meaningful — represents
       the validated definition lineage (gapless). A definition earns a version
@@ -858,36 +858,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - `StructureArchetype.purpose` MUST be non-empty (enforced by base schema).
 
-    **Relational Consistency Rules**:
-
-    - Every Mechanism SHOULD participate in at least one Interaction (isolated
-      Mechanisms → incomplete definition).
-    - Every ACTIVE ElementDefinition in a Structure SHOULD be covered by at
-      least one DNA chain over time (Directive → Norm) targeting that Element
-      (uncovered element → accidental/ungoverned structure).
-
     **State Transition Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Derivation Rules**:
-
-    - A Structure is reflexive when at least one Mechanism is reflexive with
-      respect to the Structure's own ElementDefinitions.
-
-    **Usage Rules**:
-
-    - Define at least one Mechanism before declaring Interactions.
-    - For a Structure to qualify as a System, define at least one reflexive
-      Mechanism that produces governance DNA.
-    - Assign Archetypes to establish the Structure's domain vocabulary.
-
-    **Notes**:
-
-    - Boundary is defined by governance scope (the set of Elements governed),
-      not by static containment.
   end note
 
   Structure --|> ElementDefinition
@@ -927,26 +902,96 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **Attribute Semantics**:
 
     - `MechanismArchetype.structureId` (ascription field): identifier of the
-      owning Structure.
-    - `MechanismArchetype.operation` (ascription field): executable logic in
-      the declared language. Encodes what the Mechanism does — behavioral
-      definition.
+      owning Structure (typically the Structure's `elementId`).
+    - `MechanismArchetype.operation` (ascription field): Starlark source
+      code defining the Mechanism's behavioral logic. This IS the
+      compilable logical atom — the single source of truth for imperative
+      behavioral definitions. The definition-manager auto-derives the
+      Mechanism's Effectors and Receptors from the operation body's AST
+      (see Derivation Rules for the full derivation table).
+
+      **Operation API contract (STARLARK)**:
+
+      The operation body executes within a sandboxed Starlark environment
+      that exposes exactly: the `sys` namespace, injected host functions
+      (`on`, `now`, `uuid4`, `fullmatch`, `search`), and Starlark
+      built-ins. No other globals are permitted.
+
+      *`sys` namespace:*
+      - `sys.id` — read-only property: the Mechanism's `elementId`.
+
+      *Receptor derivation (inputs):*
+      - `on("ArchetypeName")` — MUST be the first executable statement.
+        Declares the triggering Archetype and returns its payload.
+        Auto-derives a Receptor typed by the named Archetype.
+      - Return-value assignment of a `sys.*` mutation call (see below)
+        auto-derives an additional Receptor (feedback / closed-loop).
+
+      *Effector derivation (outputs):*
+      - `sys.emit("ArchetypeName", data)` — emits data typed by the
+        named Archetype. Auto-derives an Effector.
+      - `sys.emit("ArchetypeName", data, response="RespArchetype")` —
+        emits with a synchronous response expectation. Auto-derives an
+        Effector (for the emit) and a Receptor (for the response).
+      - `sys.create("ArchetypeName", data)` — creates a state object.
+        Auto-derives an Effector.
+      - `sys.modify("ArchetypeName", filter, data)` — modifies state
+        object(s). Auto-derives an Effector.
+      - `sys.delete("ArchetypeName", filter)` — deletes state
+        object(s). Auto-derives an Effector.
+      - `sys.acquire("ArchetypeName", filter)` — reads/acquires state
+        object(s). Auto-derives an Effector.
+
+      *Closed-loop vs open-loop pattern:*
+      - `var = sys.create(...)` (assigned) → **closed-loop**: the DM
+        auto-derives a feedback Receptor, enabling verification.
+      - `sys.create(...)` (unassigned) → **open-loop** / fire-and-forget:
+        no feedback Receptor is derived.
+      - Same pattern applies to `sys.modify`, `sys.delete`,
+        `sys.acquire`.
+
+      *Injected host functions:*
+      - `on(archetype)` — event trigger declaration (see above).
+      - `now()` → ISO 8601 timestamp.
+      - `uuid4()` → random UUID string.
+      - `fullmatch(pattern, string)` → boolean (full regex match).
+      - `search(pattern, string)` → first regex match or None.
+
     - `MechanismArchetype.operationLanguage` (ascription field): expression
-      language (STARLARK).
+      language identifier. Currently only `STARLARK`. Determines the
+      parser and sandboxed execution environment the definition-manager
+      uses for validation, port auto-derivation, and runtime execution.
     - `MechanismArchetype.function` (ascription field): capability label
       describing what the Mechanism does (e.g., "validation", "routing",
       "transformation").
 
     **Validation Rules**:
 
-    - `MechanismArchetype.operation` MUST be syntactically valid in the
-      declared `MechanismArchetype.operationLanguage` (enforced by base
-      schema).
+    - `MechanismArchetype.operation` MUST be syntactically valid Starlark
+      (parseable by the Starlark parser).
+    - `MechanismArchetype.operation` MUST begin with exactly one
+      `on("...")` call as its first executable statement.
+    - The `on()` argument MUST be a string literal resolving to a defined
+      Archetype in the governed scope.
+    - String literals in `sys.*` calls (first argument = archetype name)
+      MUST be string literals (enables static analysis and port
+      auto-derivation).
+    - String literals in `sys.*` calls MUST resolve to declared Archetypes
+      in the governed scope.
+    - Dict literals in `sys.emit/create/modify` SHOULD conform to the
+      target Archetype schema (best-effort for dynamic values).
+    - Only `sys`, injected host functions (`on`, `now`, `uuid4`,
+      `fullmatch`, `search`), and Starlark built-ins are allowed globals.
+      Any other global → error.
+    - No `load()` statements.
+    - Execution budget: configurable max steps (default 100k).
     - `MechanismArchetype.operationLanguage` MUST be a supported value
       (enforced by base schema enum).
-    - `MechanismArchetype.function` SHOULD be non-empty (empty → undeclared).
-    - MUST have at least 1 Effector.
-    - MUST have at least 1 Receptor.
+    - `MechanismArchetype.function` SHOULD be non-empty (empty →
+      undeclared).
+    - MUST have at least 1 Effector (guaranteed if `on()` is present).
+    - MUST have at least 1 Receptor (guaranteed if at least one `sys.*`
+      output call is present).
 
     **State Transition Rules**:
 
@@ -964,6 +1009,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Reflexivity is derived from `MechanismArchetype.operation` targets: a
       Mechanism is reflexive when it reads or produces definitions about its own
       Structure's Elements.
+    - **Port auto-derivation**: the definition-manager parses the
+      `MechanismArchetype.operation` Starlark AST and auto-derives
+      Effectors and Receptors from `sys.*` call signatures:
+      - `on("A")` → Receptor (typed by Archetype "A").
+      - `sys.emit("A", data)` → Effector (typed by "A").
+      - `sys.emit("A", data, response="B")` → Effector ("A") +
+        Receptor ("B").
+      - `sys.create/modify/delete/acquire("A", ...)` → Effector ("A").
+      - `var = sys.create/modify/delete/acquire("A", ...)` →
+        Effector ("A") + feedback Receptor ("A") (closed-loop).
+      Auto-derived ports carry a `derived=true` marker. Ports are
+      recomputed on operation body change (body hash diff → delete
+      old derived ports, derive new ones).
 
     **Usage Rules**:
 
