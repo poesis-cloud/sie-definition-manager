@@ -587,8 +587,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       `elementId`.
     - `revision` tracks authoring attempts (total ordering); `version` tracks
       governance-validated definition lineage (gapless). A DRAFT that is
-      REJECTED or PROPOSED but never APPROVED never consumes a `version` number
-      — only a `revision`.
+      ABANDONED, or a PROPOSED revision that is REJECTED or never APPROVED,
+      never consumes a `version` number — only a `revision`.
     - `statusTransitions` provides a complete governance audit trail: who
       changed the status, when, and why.
     - An ElementDefinition **revision** is an **immutable snapshot**. Any change
@@ -599,15 +599,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - **Governance convergence pattern**: the creative phase allows concurrent
       authoring (multiple DRAFT and PROPOSED revisions for the same
       `elementId`). The governance decision phase converges: approving one
-      revision auto-rejects all siblings. This separates creative freedom
+      revision auto-terminates all siblings (DRAFT siblings → ABANDONED,
+      PROPOSED siblings → REJECTED). This separates creative freedom
       (author many alternatives) from governance rigor (exactly one winner).
       After convergence, new revisions can be authored to start a new creative
       cycle.
-    - **Terminality of REJECTED**: Once a revision is auto-rejected (REJECTED),
-      it cannot be reopened or set back to PROPOSED/DRAFT. REJECTED is a
-      terminal state. If a new creative cycle is needed, author a new revision
-      (new `revision` number, fresh DRAFT) — do not resurrect a rejected
-      revision. This preserves governance convergence and a clean audit trail.
+    - **Terminality of ABANDONED and REJECTED**: ABANDONED and REJECTED are
+      both terminal states. Once a revision reaches either state, it cannot be
+      reopened or set back to any prior status. ABANDONED applies to DRAFTs
+      (never submitted for review); REJECTED applies to PROPOSED revisions
+      (denied by governance). If a new creative cycle is needed, author a new
+      revision (new `revision` number, fresh DRAFT) — do not resurrect a
+      terminated revision. This preserves governance convergence and a clean
+      audit trail.
 
     **Attribute Semantics**:
 
@@ -623,7 +627,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       Archetype schema (extension via `allOf`).
     - `revision`: monotonically increasing numeric string assigned at definition
       creation. Tracks every authoring attempt (including DRAFTs that are
-      REJECTED). Provides total ordering of all definition rows for a given
+      ABANDONED). Provides total ordering of all definition rows for a given
       `elementId`.
     - `version`: nurmerical string assigned only upon APPROVED transition.
       Monotonically increasing within the APPROVED lineage for a given
@@ -666,24 +670,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Until APPROVED transition, `version` MUST be null.
     - `version` MUST be monotonically increasing within the APPROVED lineage for
       each `elementId`.
-    - On creation, `statusTransitions` MUST be initialized with the initial
-      creation transition: `preStatus` = null, `postStatus` = DRAFT.
-    - `revisionDatetime` MUST equal the initial creation transition's datetime.
-    - The latest transition's `postStatus` MUST equal this definition's
-      `definitionStatus`.
-    - Each transition's `preStatus` MUST equal the preceding transition's
-      `postStatus` (chain consistency).
-    - Each transition's `datetime` MUST be >= the preceding transition's
-      `datetime` (temporal consistency).
-    - Terminality: once `definitionStatus` is REJECTED or RETIRED, no additional
-      transitions may be appended.
-    - Approval is not constrained by revision order: any non-terminal revision
-      may be APPROVED regardless of whether higher-numbered revisions exist.
-    - Upon APPROVED transition of any revision for a given `elementId`, the
-      definition-manager MUST auto-reject (transition to REJECTED) all other
-      revisions of the same `elementId` that are still in a non-terminal state
-      (DRAFT or PROPOSED). This ensures governance convergence — exactly one
-      revision wins per approval cycle.
+
+    **State Transition Rules**:
+
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
@@ -745,24 +737,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - `postStatus` MUST NOT be null.
     - `definitionId` MUST NOT be null.
     - `definitionId` MUST reference an existing ElementDefinition `id`.
-    - `preStatus` → `postStatus` MUST be a valid transition per the
-      ElementDefinitionStatus state machine.
-    - `preStatus` MUST be null only for the first transition (creation).
-    - `preStatus` MUST NOT be REJECTED or RETIRED.
 
     **Assignment Rules**:
 
     - `datetime` MUST NOT be null.
     - `datetime` MUST be an ISO 8601 timestamp.
 
-    **Relational Consistency Rules**:
+    **State Transition Rules**:
 
-    - The definition-manager appends a transition automatically on every status
-      change.
-    - The latest transition's `postStatus` MUST equal the owning
-      ElementDefinition's `definitionStatus`.
-    - Each transition's `preStatus` MUST equal the preceding transition's
-      `postStatus` (chain consistency).
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Derivation Rules**:
 
@@ -780,6 +765,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     SUSPENDED
     DEPRECATED
     RETIRED
+    ABANDONED
     REJECTED
   }
 
@@ -801,54 +787,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       new references.
     - `RETIRED`: permanently not in effect; preserved for historical
       traceability (terminal).
-    - `REJECTED`: denied; not in effect. A new creative cycle requires authoring
-      a new revision (terminal).
+    - `ABANDONED`: author-initiated termination of a DRAFT; the revision was
+      never submitted for governance review. A new creative cycle requires
+      authoring a new revision (terminal).
+    - `REJECTED`: denied by governance; not in effect. Only reachable from
+      PROPOSED. A new creative cycle requires authoring a new revision
+      (terminal).
 
-    **Validation Rules**:
+    **State Transition Rules**:
 
-    - DRAFT → PROPOSED → {APPROVED | REJECTED}.
-    - APPROVED → ACTIVE.
-    - ACTIVE → {SUSPENDED | DEPRECATED}.
-    - SUSPENDED → {ACTIVE | DEPRECATED}.
-    - DEPRECATED → {SUSPENDED | RETIRED}.
-
-    **Progress Path Ordering (for reference rules)**:
-
-    Reference constraints between elements on non-composition
-    edges (Interaction→Effector/Receptor, Interface→ports,
-    Receptor→Artifact) use the natural progress path ordering:
-
-    DRAFT < PROPOSED < APPROVED < ACTIVE/SUSPENDED.
-
-    These constraints protect **activation-readiness**: they
-    prevent a live (ACTIVE) element from depending on an
-    element that has not yet reached that lifecycle stage.
-
-    Once either element has transitioned to a decommission
-    or terminal status (DEPRECATED, RETIRED, REJECTED),
-    progress-path constraints are satisfied by construction
-    — the activation-readiness concern no longer applies.
-
-    Consequence: existing references to and from a regressed
-    element remain valid. A DEPRECATED element is still
-    in-effect — Interactions, Interface exposure, and Receptor
-    references that were valid at ACTIVE remain valid at
-    DEPRECATED. At RETIRED/REJECTED the element (and
-    typically its entire graph) is terminal; references are
-    inert.
-
-    However, **new** references (new Interactions, new
-    Interface exposure, new Receptor→Artifact bindings)
-    MUST NOT target a DEPRECATED, RETIRED, or REJECTED
-    element. Deprecation signals intent to retire —
-    creating new dependencies on a retiring element
-    contradicts that intent.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Usage Rules**:
 
-    - Follow the transition graph strictly: DRAFT → PROPOSED → {APPROVED |
-      REJECTED}; APPROVED → ACTIVE; ACTIVE → {SUSPENDED | DEPRECATED}; SUSPENDED
-      → {ACTIVE | DEPRECATED}; DEPRECATED → {SUSPENDED | RETIRED}.
     - Before activating, verify no conflicting ACTIVE definition exists for the
       same `elementId`.
   end note
@@ -859,9 +812,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   class Structure {
     +getMechanisms(): Mechanism[]
-    +getInteractions(): Interaction[]
     +getInterfaces(): Interface[]
-    +getArtifacts(): Artifact[]
   }
 
   note bottom of Structure
@@ -900,12 +851,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       purpose via their `scope` field.
     - `mechanisms`: the set of Mechanisms belonging to this Structure. A
       Mechanism belongs to exactly one Structure.
-    - `interactions`: the set of Interactions belonging to this Structure. An
-      Interaction belongs to exactly one Structure.
     - `interfaces`: the set of Interfaces belonging to this Structure. An
       Interface belongs to exactly one Structure.
-    - `artifacts`: the set of Artifacts produced by Mechanisms of this
-      Structure (via their Effectors).
 
     **Validation Rules**:
 
@@ -918,56 +865,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Every ACTIVE ElementDefinition in a Structure SHOULD be covered by at
       least one DNA chain over time (Directive → Norm) targeting that Element
       (uncovered element → accidental/ungoverned structure).
-    - **Element lifecycle coupling**: constituent status
-      is governed by the path-specific cascade rules (see
-      Assignment Rules). Invariants maintained:
-      (a) on the progress path (DRAFT → PROPOSED →
-      APPROVED → ACTIVE), no constituent may be further
-      along than the Structure;
-      (b) while ACTIVE, constituents still progressing
-      are allowed (lagging);
-      (c) while DEPRECATED or RETIRED, all constituents
-      MUST also be DEPRECATED or RETIRED respectively;
-      (d) while REJECTED, PROPOSED constituents are
-      auto-rejected; DRAFT constituents remain DRAFT.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    Cascade semantics are path-specific. On every Structure
-    transition the definition-manager applies the appropriate
-    cascade to all constituent ElementDefinitions. Constituents
-    already at the target `definitionStatus` are skipped (no-op).
-
-    - **Progress cascade** (DRAFT → PROPOSED → APPROVED →
-      ACTIVE): advance all constituents to the same
-      `definitionStatus`. If any constituent cannot make that
-      transition (incompatible current status), the Structure's
-      transition MUST be rejected.
-    - **Suspension cascade** (ACTIVE/DEPRECATED ↔ SUSPENDED):
-      cascade only to constituents that are ACTIVE,
-      SUSPENDED, or DEPRECATED (toggle all in-effect
-      constituents).
-      Lagging constituents (DRAFT, PROPOSED, APPROVED) are
-      not in-effect and stay where they are. Terminal
-      constituents (RETIRED, REJECTED) stay where they are
-      (no transitions possible). On un-suspension
-      (SUSPENDED → ACTIVE/DEPRECATED), each constituent is
-      restored to its pre-suspension status, derived from
-      the `preStatus` of its suspension transition in the
-      audit trail.
-    - **Decommission cascade** (→ DEPRECATED → RETIRED):
-      advance all constituents to the same `definitionStatus`.
-      If any constituent cannot make that transition, the
-      Structure's transition MUST be rejected. The relational
-      rule "all constituents MUST also be DEPRECATED or
-      RETIRED" acts as precondition — all constituents
-      must be at a compatible pre-status.
-    - **Rejection cascade** (PROPOSED → REJECTED): auto-reject
-      all constituents that are PROPOSED (PROPOSED → REJECTED
-      is a valid transition). Constituents that are DRAFT remain
-      DRAFT — they were never submitted for governance review
-      and cannot be "rejected." DRAFT orphans may be cleaned up
-      or re-proposed under a new Structure revision.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Derivation Rules**:
 
@@ -989,9 +892,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   Structure --|> ElementDefinition
   Structure "1" *--> "0..*" Mechanism : has
-  Structure "1" *--> "0..*" Interaction : has
   Structure "1" *--> "0..*" Interface : has
-  Structure "1" *--> "0..*" Artifact : produces
 
   ' ============================================================
   ' MECHANISM
@@ -1047,22 +948,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - MUST have at least 1 Effector.
     - MUST have at least 1 Receptor.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    - When advancing a Mechanism to a new `definitionStatus`, the
-      definition-manager MUST advance its Effectors and Receptors
-      to the same `definitionStatus`.
-    - Cascade is uniform across all path axes (progress,
-      suspension, decommission, rejection): strict equality
-      guarantees that ports always share the Mechanism's
-      pre-status, so the same transition is always reachable.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
     - Every ACTIVE Mechanism SHOULD be governed by at least one DNA chain
       (ungoverned → governance gap).
-    - Effectors and Receptors MUST have the same `definitionStatus` as the
-      owning Mechanism.
 
     **Derivation Rules**:
 
@@ -1121,26 +1016,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - `artifact` reference MUST NOT be null.
     - MUST belong to exactly one Mechanism.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    - When advancing an Effector to a new `definitionStatus`,
-      the definition-manager MUST advance its emitted Artifact
-      (if any) to the same `definitionStatus`.
-    - Cascade is uniform across all path axes: strict equality
-      guarantees that the emitted Artifact always shares the
-      Effector's pre-status, so the same transition is always
-      reachable.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
     - Any Interaction from this Effector MUST terminate at a Receptor that
       accepts a schema-compatible Artifact.
-    - Effectors MUST have the same `definitionStatus` as the owning Mechanism.
-    - If this Effector emits an Artifact, that Artifact MUST have the same
-      `definitionStatus` as this Effector.
-    - If this Effector is exposed by an Interface, the
-      Effector MUST be at least as far along the progress
-      path as that Interface.
 
     **Derivation Rules**:
 
@@ -1161,8 +1046,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   end note
 
   Effector --|> ElementDefinition
-  Effector "1..*" --> "1" Mechanism : belongsTo
-  Effector "0..1" *--> "1" Artifact : emits
+  Effector "1..*" --> "1" Mechanism : constitutes
+  Effector "0..*" --> "1" Artifact : produces
   Effector "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
@@ -1195,21 +1080,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - `artifact` reference MUST NOT be null.
     - MUST belong to exactly one Mechanism.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    - None.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
     - Any Interaction into this Receptor MUST originate from an Effector that
       emits a schema-compatible Artifact.
-    - Receptors MUST have the same `definitionStatus` as the owning Mechanism.
-    - The received Artifact MUST be at least as far along
-      the progress path as this Receptor. It MAY be further
-      along.
-    - If this Receptor is exposed by an Interface, the
-      Receptor MUST be at least as far along the progress
-      path as that Interface.
 
     **Derivation Rules**:
 
@@ -1230,8 +1110,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   end note
 
   Receptor --|> ElementDefinition
-  Receptor "1..*" --> "1" Mechanism : belongsTo
-  Receptor "0..*" --> "1" Artifact : receives
+  Receptor "1..*" --> "1" Mechanism : constitutes
+  Receptor "0..*" --> "1" Artifact : consumes
   Receptor "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
@@ -1239,7 +1119,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   ' ============================================================
 
   class Interaction {
-    +getStructure(): Structure
     +getEffector(): Effector
     +getReceptor(): Receptor
   }
@@ -1273,9 +1152,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - effector.emittedArtifact.archetype MUST be schema-compatible with
       receptor.receivedArtifact.archetype.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    - None.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
@@ -1283,13 +1164,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       → governance gap).
     - The Interaction's owning Structure MUST be the Structure owning the
       Effector's Mechanism.
-    - On the progress path, the Interaction MUST NOT be
-      further along than the related Effector.
-    - On the progress path, the Interaction MUST NOT lag
-      behind the related Receptor.
-    - Derived constraint: the above two rules transitively
-      require the Receptor to be no further along the
-      progress path than the Effector.
 
     **Derivation Rules**:
 
@@ -1316,9 +1190,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   end note
 
   Interaction --|> ElementDefinition
-  Interaction "0..*" --> "1" Structure : belongsTo
   Interaction "0..*" --> "1" Effector : from
-  Interaction "0..1" --> "1" Receptor : to
+  Interaction "0..*" --> "1" Receptor : to
 
   ' ============================================================
   ' INTERFACE
@@ -1358,9 +1231,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - MUST contain at least 1 Effector or 1 Receptor.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    - None.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
@@ -1370,9 +1245,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       same Structure.
     - Each referenced Effector/Receptor port MUST be exposed by at most one
       Interface within the same Structure (exclusive membership).
-    - Any Effector/Receptor exposed by this Interface MUST
-      be at least as far along the progress path as this
-      Interface. Exposed ports MAY be further along.
 
     **Derivation Rules**:
 
@@ -1400,7 +1272,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   end note
 
   Interface --|> ElementDefinition
-  Interface "0..*" --> "1" Structure : belongsTo
+  Interface "0..*" --> "1" Structure : constitutes
   Interface "0..*" --> "0..*" Effector : exposes
   Interface "0..*" --> "0..*" Receptor : exposes
 
@@ -1445,19 +1317,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Ascription content MUST validate against the JSON Schema referenced by the
       Artifact's Archetype.
 
-    **Assignment Rules**:
+    **State Transition Rules**:
 
-    - None.
+    - See `gsm-definition-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Relational Consistency Rules**:
 
-    - If an Artifact is emitted by an Effector, that Artifact MUST have the
-      same `definitionStatus` as the Effector.
-    - If an Artifact is referenced by a Receptor, that
-      Artifact MUST be at least as far along the progress
-      path as the Receptor. It MAY be further along.
-    - If an Artifact is not emitted by any Effector, its `definitionStatus`
-      MUST be DRAFT.
     - An Artifact referenced by an Effector/Receptor MUST be compatible (by
       archetype schema) with the Interaction(s) it participates in.
 

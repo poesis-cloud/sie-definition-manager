@@ -26,8 +26,7 @@ skinparam noteBorderColor #57606A
 title SIE GSM — ElementDefinition Lifecycle - v1.0.0
 
 note as Legend
-  This diagram is the lifecycle state machine of the GSM
-  `ElementDefinition`.
+  This diagram is the lifecycle state machine of the GSM `ElementDefinition`.
 
   **Status Semantics**:
 
@@ -43,243 +42,157 @@ note as Legend
     references.
   - RETIRED: permanently not in effect; preserved for historical traceability
     (terminal).
-  - REJECTED: denied; not in effect. A new creative cycle requires authoring a
-    new revision (terminal).
+  - ABANDONED: author-initiated termination of a DRAFT; never submitted for
+    governance review. A new creative cycle requires authoring a new revision
+    (terminal).
+  - REJECTED: denied by governance; not in effect. Only reachable from
+    PROPOSED. A new creative cycle requires authoring a new revision
+    (terminal).
+
+  **Status Transitions**:
+
+  - `[*]->DRAFT`
+  - `DRAFT->PROPOSED`
+  - `PROPOSED->APPROVED`
+  - `APPROVED->ACTIVE`
+  - `ACTIVE->SUSPENDED`
+  - `SUSPENDED->ACTIVE`
+  - `ACTIVE->DEPRECATED`
+  - `DEPRECATED->SUSPENDED`
+  - `SUSPENDED->DEPRECATED`
+  - `DEPRECATED->RETIRED`
+  - `DRAFT->ABANDONED`
+  - `PROPOSED->REJECTED`
 end note
 
-note as Coupling
-  **Element Lifecycle Coupling Rules (per element)**
+note as Rules
+  **Transition Rules**
 
-  Two kinds of edges between elements:
+  A Referee is an ElementDefinition whose definition
+  **incorporates** a Reference (another ElementDefinition)
+  — i.e., the Referee's definition is semantically
+  incomplete or meaningless without the Reference it points
+  to. Because the Referee incorporates the Reference, its
+  lifecycle cannot advance beyond what the Reference can
+  sustain: a definition that incorporates an unready or
+  retired reference is itself incoherent.
 
-  "Composition" = parent owns child, cascade on
-  transition:
-    Structure→Mechanism/Interaction/Interface,
-    Mechanism→Effector/Receptor,
-    Effector→Artifact (emits).
+  This yields a uniform **lifecycle referential integrity**
+  constraint: on every transition, EACH Reference MUST
+  already be in a status compatible with the Referee's
+  target status. When a Referee incorporates multiple
+  References, the transition is permitted only if ALL
+  satisfy the precondition; if ANY fails, the transition
+  MUST be rejected.
 
-  "Reference" = independent elements, ordering
-  constraint:
-    Interaction→Effector (from),
-    Interaction→Receptor (to),
-    Interface→Effector/Receptor (exposes),
-    Receptor→Artifact (receives).
+  | Referee      | Reference    |
+  |--------------+--------------|
+  | Mechanism    | Structure    |
+  | Effector     | Artifact     |
+  | Receptor     | Artifact     |
+  | Interaction  | Effector     |
+  | Interaction  | Receptor     |
+  | Interface    | Structure    |
+  | Interface    | Effector     |
+  | Interface    | Receptor     |
+  |--------------+--------------|
+  | Not Referee  | No Reference |
+  |--------------+--------------|
+  | Structure    | (none)       |
+  | Artifact     | (none)       |
 
-  Progress path (maturity scale):
-  DRAFT < PROPOSED < APPROVED < ACTIVE/SUSPENDED.
-  ACTIVE and SUSPENDED are the same maturity level.
-  DEPRECATED, RETIRED, REJECTED are off this scale.
+  - **Referee**
+    - `[*]->DRAFT`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `DRAFT` or `PROPOSED` or `APPROVED` or `ACTIVE`.
+    - `DRAFT->PROPOSED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `PROPOSED` or `APPROVED` or `ACTIVE`.
+    - `PROPOSED->APPROVED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `APPROVED` or `ACTIVE`.
+    - `APPROVED->ACTIVE`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE`.
+    - `ACTIVE->SUSPENDED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE` or `SUSPENDED` or `DEPRECATED`.
+    - `SUSPENDED->ACTIVE`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE` or `DEPRECATED`.
+    - `SUSPENDED->DEPRECATED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE` or `SUSPENDED` or `DEPRECATED`.
+    - `ACTIVE->DEPRECATED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE` or `SUSPENDED` or `DEPRECATED`.
+    - `DEPRECATED->SUSPENDED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE` or `SUSPENDED` or `DEPRECATED`.
+    - `DEPRECATED->RETIRED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `ACTIVE` or `SUSPENDED` or `DEPRECATED` or `RETIRED`.
+    - `DRAFT->ABANDONED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `DRAFT` or `PROPOSED` or `APPROVED` or `ACTIVE` or `DEPRECATED` or
+          `SUSPENDED` or `ABANDONED` or `REJECTED` or `RETIRED`.
+    - `PROPOSED->REJECTED`
+      - **Preconditions**
+        - EACH Reference MUST be in
+          `PROPOSED` or `APPROVED` or `ACTIVE` or `DEPRECATED` or
+          `SUSPENDED` or `ABANDONED` or `REJECTED` or `RETIRED`.
 
-  ====
+  **Inter Transition Rules**
 
-  **When a Structure transitions:**
+  Cross-element cascades (automatic by DM).
+  Format: Source.`X->Y` -> Target.`X->Y`
+  where `X` is the pre-status and `Y` is the post-status.
 
-  Progress (DRAFT→PROPOSED→APPROVED→ACTIVE):
-  - Cascade: all constituents advance to the same
-    status. If any constituent cannot make that
-    transition, the Structure's transition is rejected.
-  - No constituent may be further along the progress
-    path than the Structure.
-  - Lagging constituents are allowed while Structure
-    is ACTIVE.
+  Cascade evaluation (per target):
+  1. IF Target.status ≠ `X`: **failure**.
+  2. IF Target's preconditions for `X->Y` fail: **failure**.
+  3. ELSE: Target transitions from `X` to `Y`.
 
-  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
-  - Cascade: only ACTIVE, SUSPENDED, and DEPRECATED
-    constituents are toggled to SUSPENDED (or back).
-  - DRAFT, PROPOSED, APPROVED constituents stay where
-    they are (they are not in-effect, suspension is
-    irrelevant to them).
-  - RETIRED, REJECTED constituents stay where they are
-    (terminal, no transitions possible).
-  - On un-suspension, each constituent is restored to
-    its pre-suspension status (ACTIVE or DEPRECATED),
-    derived from the audit trail.
+  - **Composition**:
+    - Mechanism.`X->Y` -> Effector.`X->Y`
+    - Mechanism.`X->Y` -> Receptor.`X->Y`
+    - **Scope**: all `X->Y`.
+    - **Invariant**: Target.status = Source.status
+      (always — ports and Mechanism share status).
+    - **On failure**: Source transition MUST be rejected.
 
-  Decommission (→DEPRECATED→RETIRED):
-  - Precondition: all constituents must already be
-    DEPRECATED or RETIRED.
-  - Cascade: all constituents advance to the same
-    status.
+  - **Aggregation**:
+    - Structure.`X->Y` -> Mechanism.`X->Y`
+    - Structure.`X->Y` -> Interface.`X->Y`
+    - **Scope**: all `X->Y`.
+    - **Invariant**: none (lagging permitted).
+    - **On failure**: no-op for that target.
 
-  Rejection (PROPOSED→REJECTED):
-  - Cascade: only PROPOSED constituents are rejected.
-  - DRAFT constituents stay DRAFT (they were never
-    submitted for governance review, they cannot be
-    "rejected").
-
-  ====
-
-  **When a Mechanism transitions:**
-
-  All paths (uniform):
-  - Cascade: all its Effectors and Receptors advance to
-    the same status (strict equality).
-  - The Mechanism can only transition if all its ports
-    can follow.
-
-  ====
-
-  **When an Effector transitions:**
-
-  All paths (uniform):
-  - Cascade: its emitted Artifact advances to the same
-    status (strict equality).
-  - The Effector can only transition if its Artifact
-    can follow.
-
-  Progress:
-  - No condition from Interactions originating from
-    this Effector. The Effector is the "upstream" side
-    of the reference: advancing it only widens the gap
-    with the Interaction. No check needed.
-  - No condition from Interfaces exposing this
-    Effector. The port is the "upstream" side: advancing
-    it only widens the gap with the Interface. No check
-    needed.
-
-  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
-  - Composition cascade to the emitted Artifact still
-    applies (see "All paths" above).
-  - No reference-edge checks on Interactions or
-    Interfaces: ACTIVE and SUSPENDED are the same
-    maturity level — toggling between them cannot
-    create an ordering violation.
-  - Mechanism→Effector (parent→child): no constraint.
-    The Effector is cascaded BY its owning Mechanism,
-    not the other way around.
-
-  Decommission/Rejection:
-  - Existing Interactions from this Effector remain
-    valid (frozen/inert).
-  - No new Interactions may originate from a
-    DEPRECATED, RETIRED, or REJECTED Effector.
-
-  ====
-
-  **When a Receptor transitions:**
-
-  No cascade (Receptor composes nothing).
-
-  Progress:
-  - The Artifact this Receptor receives must already be
-    at the target status or further along the progress
-    path (DRAFT < PROPOSED < APPROVED < ACTIVE/SUSPENDED).
-    If the Artifact is DEPRECATED, RETIRED, or REJECTED,
-    the check is satisfied — it already went through
-    ACTIVE.
-  - Every Interaction targeting this Receptor must
-    already be at the target status or further along the
-    progress path. If the Interaction is DEPRECATED,
-    RETIRED, or REJECTED, the check is satisfied.
-  - No new Receptor→Artifact bindings to DEPRECATED,
-    RETIRED, or REJECTED Artifacts.
-
-  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
-  - No reference-edge checks on the received Artifact
-    or on Interactions targeting this Receptor: ACTIVE
-    and SUSPENDED are the same maturity level —
-    toggling between them cannot create an ordering
-    violation.
-  - Mechanism→Receptor (parent→child): no constraint.
-    The Receptor is cascaded BY its owning Mechanism,
-    not the other way around.
-
-  Decommission/Rejection:
-  - Existing Receptor→Artifact bindings remain valid
-    (frozen/inert).
-  - No new Receptor→Artifact bindings to DEPRECATED,
-    RETIRED, or REJECTED Artifacts.
-
-  ====
-
-  **When an Interaction transitions:**
-
-  No cascade (Interaction composes nothing).
-
-  Progress:
-  - The Effector this Interaction originates from must
-    already be at the target status or further along
-    the progress path. If the Effector is DEPRECATED,
-    RETIRED, or REJECTED, the check is satisfied — it
-    already went through ACTIVE.
-  - No precondition from the Receptor it targets.
-    The Interaction is the "upstream" side: advancing it
-    only widens the gap with the Receptor. No check
-    needed.
-
-  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
-  - No reference-edge checks on the Effector or
-    Receptor this Interaction references: ACTIVE and
-    SUSPENDED are the same maturity level — toggling
-    between them cannot create an ordering violation.
-  - Structure→Interaction (parent→child): no
-    constraint. The Interaction is cascaded BY its
-    owning Structure, not the other way around.
-
-  Decommission/Rejection:
-  - The Effector-side Structure decommissions first
-    (since the Interaction is owned by the Effector-side
-    Structure).
-  - Existing references to Effector and Receptor remain
-    valid (frozen/inert).
-  - No new Interactions may be created targeting
-    DEPRECATED, RETIRED, or REJECTED elements.
-
-  ====
-
-  **When an Interface transitions:**
-
-  No cascade (Interface composes nothing).
-
-  Progress:
-  - Every port (Effector or Receptor) this Interface
-    exposes must already be at the target status or
-    further along the progress path. If a port is
-    DEPRECATED, RETIRED, or REJECTED, the check is
-    satisfied — it already went through ACTIVE.
-
-  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
-  - No reference-edge checks on the exposed ports:
-    ACTIVE and SUSPENDED are the same maturity level —
-    toggling between them cannot create an ordering
-    violation.
-  - Structure→Interface (parent→child): no constraint.
-    The Interface is cascaded BY its owning Structure,
-    not the other way around.
-
-  Decommission/Rejection:
-  - Existing exposure remains valid (frozen/inert).
-  - No new exposure of DEPRECATED, RETIRED, or REJECTED
-    ports.
-
-  ====
-
-  **When an Artifact transitions:**
-
-  Artifact is normally cascaded by its emitting Effector.
-  When also received by Receptors, those Receptors are
-  not affected (no cascade upward).
-
-  Progress:
-  - No precondition from Receptors that receive this
-    Artifact. The Artifact is the "upstream" side:
-    advancing it only widens the gap with the Receptor.
-    No check needed.
-
-  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
-  - No reference-edge checks on Receptors that receive
-    this Artifact: ACTIVE and SUSPENDED are the same
-    maturity level — toggling between them cannot
-    create an ordering violation.
-  - Effector→Artifact (parent→child): no constraint.
-    The Artifact is cascaded BY its emitting Effector,
-    not the other way around.
-
-  Decommission/Rejection:
-  - Existing Receptor→Artifact bindings remain valid
-    (frozen/inert).
-  - No new Receptor→Artifact bindings may target a
-    DEPRECATED, RETIRED, or REJECTED Artifact.
+  - **Reference**:
+    - Effector.`X->Y` -> Interaction.`X->Y`
+    - Effector.`X->Y` -> Interface.`X->Y`
+    - Receptor.`X->Y` -> Interaction.`X->Y`
+    - Receptor.`X->Y` -> Interface.`X->Y`
+    - **Scope**: `X->Y` ∈ {`ACTIVE->SUSPENDED`,
+      `ACTIVE->DEPRECATED`, `SUSPENDED->DEPRECATED`,
+      `DEPRECATED->SUSPENDED`, `DEPRECATED->RETIRED`,
+      `DRAFT->ABANDONED`, `PROPOSED->REJECTED`}.
+      Progress and restoration transitions do not
+      cascade — dependents advance or restore through
+      their own governance.
+    - **Invariant**: none (lagging permitted).
+    - **On failure**: no-op for that target.
 end note
 
 note as AuditRules
@@ -292,8 +205,456 @@ note as AuditRules
     each `datetime` is >= the preceding `datetime`.
   - The current `status` is derived/denormalized from the
     latest transition's `postStatus`.
-  - Terminality: once `status` is REJECTED or RETIRED, no
-    additional transitions may be appended.
+  - Terminality: once `status` is ABANDONED, REJECTED, or
+    RETIRED, no additional transitions may be appended.
+end note
+
+note as Scenarios
+  **Test Scenarios**
+
+  Format: SC-XX — Setup. Action. **Expected result**.
+  PASS = transition succeeds. BLOCKED = transition rejected.
+  CASCADE = target transitions. NO-OP = target unchanged.
+
+  ====
+
+  **§1 — Referee preconditions (progress path)**
+
+  SC-01 — Structure(DRAFT). Create Mechanism `[*]->DRAFT`.
+  **PASS**: DRAFT ∈ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-02 — Structure(ABANDONED). Create Mechanism `[*]->DRAFT`.
+  **BLOCKED**: ABANDONED ∉ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-03 — Structure(RETIRED). Create Mechanism `[*]->DRAFT`.
+  **BLOCKED**: RETIRED ∉ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-04 — Structure(REJECTED). Create Mechanism `[*]->DRAFT`.
+  **BLOCKED**: REJECTED ∉ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-05 — Structure(DRAFT), Mechanism(DRAFT).
+  Mechanism `DRAFT->PROPOSED`.
+  **BLOCKED**: DRAFT ∉ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-06 — Structure(PROPOSED), Mechanism(DRAFT).
+  Mechanism `DRAFT->PROPOSED`.
+  **PASS**: PROPOSED ∈ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-07 — Structure(PROPOSED), Mechanism(PROPOSED).
+  Mechanism `PROPOSED->APPROVED`.
+  **BLOCKED**: PROPOSED ∉ {APPROVED,ACTIVE}.
+
+  SC-08 — Structure(APPROVED), Mechanism(PROPOSED).
+  Mechanism `PROPOSED->APPROVED`.
+  **PASS**: APPROVED ∈ {APPROVED,ACTIVE}.
+
+  SC-09 — Structure(APPROVED), Mechanism(APPROVED).
+  Mechanism `APPROVED->ACTIVE`.
+  **BLOCKED**: APPROVED ∉ {ACTIVE}.
+
+  SC-10 — Structure(ACTIVE), Mechanism(APPROVED).
+  Mechanism `APPROVED->ACTIVE`.
+  **PASS**: ACTIVE ∈ {ACTIVE}.
+
+  ====
+
+  **§2 — Referee preconditions (degradation)**
+
+  SC-11 — Structure(ACTIVE), Mechanism(ACTIVE).
+  Mechanism `ACTIVE->SUSPENDED`.
+  **PASS**: ACTIVE ∈ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-12 — Structure(RETIRED), Mechanism(ACTIVE).
+  Mechanism `ACTIVE->SUSPENDED`.
+  **BLOCKED**: RETIRED ∉ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-13 — Structure(SUSPENDED), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->ACTIVE`.
+  **BLOCKED**: SUSPENDED ∉ {ACTIVE,DEPRECATED}.
+
+  SC-14 — Structure(ACTIVE), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->ACTIVE`.
+  **PASS**: ACTIVE ∈ {ACTIVE,DEPRECATED}.
+
+  SC-15 — Structure(DEPRECATED), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->ACTIVE`.
+  **PASS**: DEPRECATED ∈ {ACTIVE,DEPRECATED}.
+
+  SC-16 — Structure(ACTIVE), Mechanism(ACTIVE).
+  Mechanism `ACTIVE->DEPRECATED`.
+  **PASS**: ACTIVE ∈ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-17 — Structure(DEPRECATED), Mechanism(DEPRECATED).
+  Mechanism `DEPRECATED->SUSPENDED`.
+  **PASS**: DEPRECATED ∈ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-18 — Structure(ACTIVE), Mechanism(DEPRECATED).
+  Mechanism `DEPRECATED->RETIRED`.
+  **PASS**: ACTIVE ∈ {ACTIVE,SUSPENDED,DEPRECATED,RETIRED}.
+
+  SC-19 — Structure(RETIRED), Mechanism(DEPRECATED).
+  Mechanism `DEPRECATED->RETIRED`.
+  **PASS**: RETIRED ∈ {ACTIVE,SUSPENDED,DEPRECATED,RETIRED}.
+
+  SC-24 — Structure(ACTIVE), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->DEPRECATED`.
+  **PASS**: ACTIVE ∈ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-25 — Structure(RETIRED), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->DEPRECATED`.
+  **BLOCKED**: RETIRED ∉ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-26 — Structure(RETIRED), Mechanism(ACTIVE).
+  Mechanism `ACTIVE->DEPRECATED`.
+  **BLOCKED**: RETIRED ∉ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-27 — Structure(RETIRED), Mechanism(DEPRECATED).
+  Mechanism `DEPRECATED->SUSPENDED`.
+  **BLOCKED**: RETIRED ∉ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-28 — Structure(ABANDONED), Mechanism(DEPRECATED).
+  Mechanism `DEPRECATED->RETIRED`.
+  **BLOCKED**: ABANDONED ∉ {ACTIVE,SUSPENDED,DEPRECATED,
+  RETIRED}.
+
+  ====
+
+  **§3 — Referee preconditions (terminal)**
+
+  SC-20 — Structure(DRAFT), Mechanism(DRAFT).
+  Mechanism `DRAFT->ABANDONED`.
+  **PASS**: all 9 statuses allowed.
+
+  SC-21 — Structure(RETIRED), Mechanism(DRAFT).
+  Mechanism `DRAFT->ABANDONED`.
+  **PASS**: all 9 statuses allowed.
+
+  SC-22 — Structure(PROPOSED), Mechanism(PROPOSED).
+  Mechanism `PROPOSED->REJECTED`.
+  **PASS**: PROPOSED ∈ allowed set (excludes DRAFT only).
+
+  SC-23 — Structure(DRAFT), Mechanism(PROPOSED).
+  Mechanism `PROPOSED->REJECTED`.
+  **BLOCKED**: DRAFT ∉ {PROPOSED,APPROVED,ACTIVE,
+  DEPRECATED,SUSPENDED,ABANDONED,REJECTED,RETIRED}.
+
+  ====
+
+  **§4 — Multi-reference: Interaction (Eff + Rec)**
+
+  SC-30 — Effector(ACTIVE), Receptor(PROPOSED).
+  Create Interaction `[*]->DRAFT`.
+  **PASS**: both ∈ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-31 — Effector(ACTIVE), Receptor(PROPOSED),
+  Interaction(DRAFT). Interaction `DRAFT->PROPOSED`.
+  **PASS**: both ∈ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-32 — Effector(ACTIVE), Receptor(PROPOSED),
+  Interaction(PROPOSED). Interaction `PROPOSED->APPROVED`.
+  **BLOCKED**: Receptor PROPOSED ∉ {APPROVED,ACTIVE}.
+
+  SC-33 — Effector(ACTIVE), Receptor(APPROVED),
+  Interaction(PROPOSED). Interaction `PROPOSED->APPROVED`.
+  **PASS**: both ∈ {APPROVED,ACTIVE}.
+
+  SC-34 — Effector(ACTIVE), Receptor(ACTIVE),
+  Interaction(APPROVED). Interaction `APPROVED->ACTIVE`.
+  **PASS**: both ∈ {ACTIVE}.
+
+  SC-35 — Effector(ACTIVE), Receptor(APPROVED),
+  Interaction(APPROVED). Interaction `APPROVED->ACTIVE`.
+  **BLOCKED**: Receptor APPROVED ∉ {ACTIVE}.
+
+  ====
+
+  **§5 — Multi-reference: Interface (Str + Eff + Rec)**
+
+  SC-40 — Structure(PROPOSED), Effector(PROPOSED),
+  Receptor(DRAFT). Interface(DRAFT).
+  Interface `DRAFT->PROPOSED`.
+  **BLOCKED**: Receptor DRAFT ∉ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-41 — Structure(PROPOSED), Effector(PROPOSED),
+  Receptor(PROPOSED). Interface(DRAFT).
+  Interface `DRAFT->PROPOSED`.
+  **PASS**: all 3 ∈ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-42 — Structure(ACTIVE), Effector(ACTIVE),
+  Receptor(ACTIVE). Interface(APPROVED).
+  Interface `APPROVED->ACTIVE`.
+  **PASS**: all 3 ∈ {ACTIVE}.
+
+  SC-43 — Structure(ACTIVE), Effector(ACTIVE),
+  Receptor(APPROVED). Interface(APPROVED).
+  Interface `APPROVED->ACTIVE`.
+  **BLOCKED**: Receptor APPROVED ∉ {ACTIVE}.
+
+  ====
+
+  **§6 — Not-Referee (Structure, Artifact)**
+
+  SC-50 — Structure(DRAFT). Structure `DRAFT->PROPOSED`.
+  **PASS**: no References → always passes.
+
+  SC-51 — Artifact(DRAFT). Artifact `DRAFT->PROPOSED`.
+  **PASS**: no References → always passes.
+
+  SC-52 — Structure(ACTIVE). Structure `ACTIVE->DEPRECATED`.
+  **PASS**: no References → always passes.
+
+  SC-53 — Artifact(DEPRECATED). Artifact `DEPRECATED->RETIRED`.
+  **PASS**: no References → always passes.
+
+  ====
+
+  **§7 — Composition cascade (strict)**
+
+  SC-60 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
+  Effector.Artifact(PROPOSED), Receptor.Artifact(PROPOSED).
+  Mechanism `DRAFT->PROPOSED`.
+  **CASCADE**: Effector `DRAFT->PROPOSED` (step 1 OK,
+  step 2 OK: Artifact PROPOSED ∈ {PROPOSED,APPROVED,ACTIVE}).
+  **CASCADE**: Receptor `DRAFT->PROPOSED` (same).
+
+  SC-61 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
+  Effector.Artifact(DRAFT), Receptor.Artifact(PROPOSED).
+  Mechanism `DRAFT->PROPOSED`.
+  Effector cascade step 2 fails: Artifact DRAFT ∉
+  {PROPOSED,APPROVED,ACTIVE}.
+  **BLOCKED**: Mechanism transition MUST be rejected
+  (composition — on failure: reject source).
+
+  SC-62 — Mechanism(ACTIVE), Effector(ACTIVE),
+  Receptor(ACTIVE). Effector.Artifact(ACTIVE),
+  Receptor.Artifact(ACTIVE).
+  Mechanism `ACTIVE->SUSPENDED`.
+  **CASCADE**: Effector `ACTIVE->SUSPENDED`.
+  **CASCADE**: Receptor `ACTIVE->SUSPENDED`.
+
+  SC-63 — Mechanism(ACTIVE), Effector(ACTIVE),
+  Receptor(ACTIVE). Effector.Artifact(ACTIVE),
+  Receptor.Artifact(ACTIVE).
+  Mechanism `ACTIVE->DEPRECATED`.
+  **CASCADE**: Effector `ACTIVE->DEPRECATED`.
+  **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
+
+  SC-64 — Mechanism(DRAFT), Effector(DRAFT),
+  Receptor(DRAFT). Effector.Artifact(DRAFT),
+  Receptor.Artifact(DRAFT).
+  Mechanism `DRAFT->ABANDONED`.
+  **CASCADE**: Effector `DRAFT->ABANDONED`.
+  **CASCADE**: Receptor `DRAFT->ABANDONED`.
+
+  SC-65 — Mechanism(PROPOSED), Effector(PROPOSED),
+  Receptor(PROPOSED). Effector.Artifact(PROPOSED),
+  Receptor.Artifact(PROPOSED).
+  Mechanism `PROPOSED->REJECTED`.
+  **CASCADE**: Effector `PROPOSED->REJECTED`.
+  **CASCADE**: Receptor `PROPOSED->REJECTED`.
+
+  ====
+
+  **§8 — Aggregation cascade (lagging)**
+
+  SC-70 — Structure(DRAFT), Mechanism(DRAFT),
+  Interface(DRAFT). Structure `DRAFT->PROPOSED`.
+  **CASCADE**: Mechanism `DRAFT->PROPOSED`.
+  **CASCADE**: Interface `DRAFT->PROPOSED`.
+
+  SC-71 — Structure(PROPOSED), Mechanism(DRAFT),
+  Interface(PROPOSED). Structure `PROPOSED->APPROVED`.
+  Mechanism cascade step 1 fails: DRAFT ≠ PROPOSED.
+  **NO-OP**: Mechanism stays DRAFT.
+  **CASCADE**: Interface `PROPOSED->APPROVED`.
+  Structure transition succeeds (aggregation — on failure:
+  no-op).
+
+  SC-72 — Structure(APPROVED), Mechanism(DRAFT),
+  Interface(APPROVED). Structure `APPROVED->ACTIVE`.
+  Mechanism cascade step 1 fails: DRAFT ≠ APPROVED.
+  **NO-OP**: Mechanism stays DRAFT.
+  **CASCADE**: Interface `APPROVED->ACTIVE`.
+
+  SC-73 — Structure(ACTIVE), Mechanism(ACTIVE),
+  Interface(DRAFT). Structure `ACTIVE->SUSPENDED`.
+  Interface cascade step 1 fails: DRAFT ≠ ACTIVE.
+  **CASCADE**: Mechanism `ACTIVE->SUSPENDED`.
+  **NO-OP**: Interface stays DRAFT.
+
+  SC-74 — Structure(ACTIVE), Mechanism(ACTIVE),
+  Interface(ACTIVE). Structure `ACTIVE->DEPRECATED`.
+  **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
+  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
+
+  SC-75 — Structure(DRAFT), Mechanism(DRAFT),
+  Interface(DRAFT). Structure `DRAFT->ABANDONED`.
+  **CASCADE**: Mechanism `DRAFT->ABANDONED`.
+  **CASCADE**: Interface `DRAFT->ABANDONED`.
+
+  SC-76 — Structure(PROPOSED), Mechanism(DRAFT),
+  Interface(PROPOSED). Structure `PROPOSED->REJECTED`.
+  Mechanism cascade step 1 fails: DRAFT ≠ PROPOSED.
+  **NO-OP**: Mechanism stays DRAFT.
+  **CASCADE**: Interface `PROPOSED->REJECTED`.
+
+  ====
+
+  **§9 — Reference cascade**
+
+  SC-80 — Effector(ACTIVE), Interaction(ACTIVE).
+  Effector `ACTIVE->SUSPENDED` (via composition from
+  Mechanism). Reference cascade fires.
+  **CASCADE**: Interaction `ACTIVE->SUSPENDED`.
+
+  SC-81 — Effector(ACTIVE), Interaction(PROPOSED).
+  Effector `ACTIVE->SUSPENDED`.
+  Interaction cascade step 1 fails: PROPOSED ≠ ACTIVE.
+  **NO-OP**: Interaction stays PROPOSED.
+
+  SC-82 — Receptor(ACTIVE), Interface(ACTIVE).
+  Receptor `ACTIVE->DEPRECATED`.
+  Reference cascade fires.
+  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
+
+  SC-83 — Effector(DRAFT), Interaction(DRAFT).
+  Effector `DRAFT->PROPOSED`.
+  **NO CASCADE**: `DRAFT->PROPOSED` ∉ reference scope
+  (progress — not in degradation/terminal set).
+  Interaction stays DRAFT.
+
+  SC-84 — Receptor(PROPOSED), Interaction(PROPOSED).
+  Receptor `PROPOSED->APPROVED`.
+  **NO CASCADE**: `PROPOSED->APPROVED` ∉ reference scope.
+  Interaction stays PROPOSED.
+
+  SC-85 — Effector(DRAFT), Interaction(DRAFT).
+  Effector `DRAFT->ABANDONED`.
+  Reference cascade fires (`DRAFT->ABANDONED` ∈ scope).
+  **CASCADE**: Interaction `DRAFT->ABANDONED`.
+
+  SC-86 — Receptor(PROPOSED), Interaction(PROPOSED).
+  Receptor `PROPOSED->REJECTED`.
+  Reference cascade fires (`PROPOSED->REJECTED` ∈ scope).
+  **CASCADE**: Interaction `PROPOSED->REJECTED`.
+
+  SC-87 — Effector(ACTIVE), Interface(ACTIVE).
+  Effector `ACTIVE->DEPRECATED`.
+  Reference cascade fires.
+  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
+
+  SC-88 — Effector(DEPRECATED), Interaction(DEPRECATED).
+  Effector `DEPRECATED->RETIRED`.
+  Reference cascade fires (`DEPRECATED->RETIRED` ∈ scope).
+  **CASCADE**: Interaction `DEPRECATED->RETIRED`.
+
+  SC-89 — Receptor(DEPRECATED), Interaction(DEPRECATED).
+  Receptor `DEPRECATED->SUSPENDED`.
+  Reference cascade fires (`DEPRECATED->SUSPENDED` ∈ scope).
+  **CASCADE**: Interaction `DEPRECATED->SUSPENDED`.
+
+  SC-89b — Effector(SUSPENDED), Interaction(SUSPENDED).
+  Effector `SUSPENDED->DEPRECATED`.
+  Reference cascade fires (`SUSPENDED->DEPRECATED` ∈ scope).
+  **CASCADE**: Interaction `SUSPENDED->DEPRECATED`.
+
+  ====
+
+  **§10 — Cascade chains (transitive)**
+
+  SC-90 — Structure(DRAFT), Mechanism(DRAFT),
+  Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT).
+  Effector.Artifact(PROPOSED), Receptor.Artifact(PROPOSED).
+  Structure `DRAFT->PROPOSED`.
+  Chain: Structure→(agg)Mechanism→(comp)Effector,Receptor.
+  **CASCADE**: Mechanism `DRAFT->PROPOSED`.
+  **CASCADE**: Effector `DRAFT->PROPOSED`.
+  **CASCADE**: Receptor `DRAFT->PROPOSED`.
+  No reference cascade (progress not in scope).
+  Interaction stays DRAFT.
+
+  SC-91 — Structure(ACTIVE), Mechanism(ACTIVE),
+  Effector(ACTIVE), Receptor(ACTIVE), Interaction(ACTIVE),
+  Interface(ACTIVE).
+  Structure `ACTIVE->DEPRECATED`.
+  Chain: Structure→(agg)Mechanism,Interface
+  →(comp)Effector,Receptor→(ref)Interaction,Interface.
+  **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
+  **CASCADE**: Interface `ACTIVE->DEPRECATED` (via agg).
+  **CASCADE**: Effector `ACTIVE->DEPRECATED`.
+  **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
+  **CASCADE**: Interaction `ACTIVE->DEPRECATED` (via ref
+  from Effector and/or Receptor).
+  Interface also targeted by ref cascade (idempotent —
+  already transitioned via aggregation).
+
+  SC-92 — Structure(DRAFT), Mechanism(DRAFT),
+  Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT),
+  Interface(DRAFT).
+  Structure `DRAFT->ABANDONED`.
+  Chain: Structure→(agg)Mechanism,Interface
+  →(comp)Effector,Receptor→(ref)Interaction,Interface.
+  **CASCADE**: all elements `DRAFT->ABANDONED` (terminal
+  is in both aggregation, composition, and reference scope).
+
+  SC-93 — Structure(ACTIVE), Mechanism(ACTIVE),
+  Effector(ACTIVE), Receptor(ACTIVE), Interaction(ACTIVE).
+  New Mechanism2(DRAFT), Effector2(DRAFT), Receptor2(DRAFT).
+  Structure `ACTIVE->SUSPENDED`.
+  Mechanism(ACTIVE): **CASCADE** `ACTIVE->SUSPENDED`.
+  Effector(ACTIVE): **CASCADE** `ACTIVE->SUSPENDED`.
+  Receptor(ACTIVE): **CASCADE** `ACTIVE->SUSPENDED`.
+  Interaction: **CASCADE** `ACTIVE->SUSPENDED` (via ref).
+  Mechanism2(DRAFT): step 1 DRAFT ≠ ACTIVE → **NO-OP**.
+  Effector2(DRAFT): **NO-OP** (Mechanism2 not cascaded).
+  Receptor2(DRAFT): **NO-OP** (Mechanism2 not cascaded).
+
+  ====
+
+  **§11 — Composition cascade failure blocks source**
+
+  SC-95 — Mechanism(ACTIVE), Effector(ACTIVE),
+  Receptor(ACTIVE). Effector.Artifact(RETIRED),
+  Receptor.Artifact(ACTIVE).
+  Mechanism `ACTIVE->SUSPENDED`.
+  Effector cascade step 2: Artifact RETIRED ∉
+  {ACTIVE,SUSPENDED,DEPRECATED} → fails.
+  **BLOCKED**: Mechanism `ACTIVE->SUSPENDED` MUST be
+  rejected (composition — on failure: reject source).
+
+  SC-96 — Mechanism(ACTIVE), Effector(ACTIVE),
+  Receptor(ACTIVE). Effector.Artifact(ACTIVE),
+  Receptor.Artifact(ABANDONED).
+  Mechanism `ACTIVE->DEPRECATED`.
+  Receptor cascade step 2: Artifact ABANDONED ∉
+  {ACTIVE,SUSPENDED,DEPRECATED} → fails.
+  **BLOCKED**: Mechanism `ACTIVE->DEPRECATED` MUST be
+  rejected (composition — on failure: reject source).
+
+  ====
+
+  **§12 — Restoration path**
+
+  SC-100 — Structure(ACTIVE), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->ACTIVE`.
+  **PASS**: ACTIVE ∈ {ACTIVE,DEPRECATED}.
+
+  SC-101 — Structure(SUSPENDED), Mechanism(SUSPENDED).
+  Mechanism `SUSPENDED->ACTIVE`.
+  **BLOCKED**: SUSPENDED ∉ {ACTIVE,DEPRECATED}.
+
+  SC-102 — Structure(DEPRECATED), Mechanism(DEPRECATED).
+  Mechanism `DEPRECATED->SUSPENDED`.
+  **PASS**: DEPRECATED ∈ {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-103 — Structure(ACTIVE), Mechanism(SUSPENDED),
+  Effector(SUSPENDED), Receptor(SUSPENDED).
+  Effector.Artifact(ACTIVE), Receptor.Artifact(ACTIVE).
+  Mechanism `SUSPENDED->ACTIVE`.
+  **CASCADE** (composition): Effector `SUSPENDED->ACTIVE`
+  (step 2 OK: Artifact ACTIVE ∈ {ACTIVE,DEPRECATED}),
+  Receptor `SUSPENDED->ACTIVE` (same).
+  No reference cascade (restoration not in scope).
 end note
 
 state "Qualification" as Qualification {
@@ -307,11 +668,14 @@ state "Review" as Review {
 
 state "Production" as Production {
   state ACTIVE
-  state SUSPENDED
-  state DEPRECATED
+  state "Degradation" as Degradation {
+    state SUSPENDED
+    state DEPRECATED
+  }
 }
 
 state "Terminal" as Terminal {
+  state ABANDONED
   state REJECTED
   state RETIRED
 }
@@ -320,26 +684,28 @@ state "Terminal" as Terminal {
 ' Progress Flow
 ' ------------------------------------------------------------
 
-[*] -right-> DRAFT
-DRAFT -right-> PROPOSED
-PROPOSED -right-> APPROVED
-APPROVED -right-> ACTIVE
+[*] -up-> DRAFT
+DRAFT -up-> PROPOSED
+PROPOSED -up-> APPROVED
+APPROVED -up-> ACTIVE
 
 ' ------------------------------------------------------------
 ' Degress Flows
 ' ------------------------------------------------------------
 
-SUSPENDED -up-> ACTIVE
-ACTIVE -down-> SUSPENDED
-DEPRECATED -down-> SUSPENDED
+SUSPENDED -right-> ACTIVE
+ACTIVE -left-> SUSPENDED
+DEPRECATED -left-> SUSPENDED
 SUSPENDED -right-> DEPRECATED
 
-DRAFT -down-> REJECTED
-PROPOSED -down-> REJECTED
+DRAFT -right-> ABANDONED
+ABANDONED --> [*]
+
+PROPOSED -right-> REJECTED
 REJECTED --> [*]
 
 ACTIVE -right-> DEPRECATED
-DEPRECATED -right-> RETIRED
+DEPRECATED -down-> RETIRED
 RETIRED --> [*]
 
 @enduml
