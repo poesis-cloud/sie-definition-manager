@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Interaction.schema.json",
-    "title": "Interaction (GSM base archetype)",
+    "title": "Interaction",
     "description": "Base ascription schema for Interaction ElementDefinitions. Interaction structural fields (effector, receptor) are class-level; this schema covers additional ascription metadata. Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
     "$gsm:sealed": true,
     "$gsm:elementDefinitionSubtype": "Interaction",

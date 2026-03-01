@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sie://schemas/gsm/v1/Mechanism.schema.json",
-  "title": "Mechanism (GSM base archetype)",
+  "title": "Mechanism",
   "description": "Base ascription schema for Mechanism ElementDefinitions. Defines the logical causal unit's behavioral attributes and identifies the owning Structure via structureId. Effector/Receptor ports are derived by the definition-manager from the Mechanism operation (they are not user-authored ascription fields). Tenant-defined archetypes extending Mechanism MUST reference this schema via allOf.",
   "$gsm:sealed": true,
   "$gsm:elementDefinitionSubtype": "Mechanism",

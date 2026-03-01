@@ -71,9 +71,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     This is a fundamental departure from classical systemic models (Beer's VSM,
     von Bertalanffy's GST, Wiener/Ashby's cybernetics). Those models are
     *descriptive*: they provide analytical frameworks for observing and
-    classifying systems that already exist. They answer
-    "what does this system look like?" but do not, by themselves, produce
-    the artifacts that make a system behave, adapt, or govern itself.
+    classifying systems that already exist. They answer what does this system
+    look like? — but do not, by themselves, produce the artifacts that make a
+    system behave, adapt, or govern itself.
 
     GSM inverts this: its primitives carry definitional semantics — they tell
     the system what it must become and provide the governance machinery to get
@@ -539,7 +539,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       declaring new Archetypes whose schema references a GSM base. E.g., a
       tenant creates Archetype "SecurityCheckMechanism" whose schema declares
       allOf[{ $ref: MechanismArchetype }] and adds { complianceFramework }
-      alongside the base's { operation, operationLanguage, function }.
+      alongside the base's `MechanismArchetype.operation`,
+      `MechanismArchetype.operationLanguage`, and `MechanismArchetype.function`.
     - Schema evolution MUST NOT mutate an existing `schemaUri` target. If a
       schema must change, publish a new version at a new, version-pinned URI and
       (typically) define a new Archetype that references it. Existing
@@ -809,13 +810,45 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - APPROVED → ACTIVE.
     - ACTIVE → {SUSPENDED | DEPRECATED}.
     - SUSPENDED → {ACTIVE | DEPRECATED}.
-    - DEPRECATED → RETIRED.
+    - DEPRECATED → {SUSPENDED | RETIRED}.
+
+    **Progress Path Ordering (for reference rules)**:
+
+    Reference constraints between elements on non-composition
+    edges (Interaction→Effector/Receptor, Interface→ports,
+    Receptor→Artifact) use the natural progress path ordering:
+
+    DRAFT < PROPOSED < APPROVED < ACTIVE/SUSPENDED.
+
+    These constraints protect **activation-readiness**: they
+    prevent a live (ACTIVE) element from depending on an
+    element that has not yet reached that lifecycle stage.
+
+    Once either element has transitioned to a decommission
+    or terminal status (DEPRECATED, RETIRED, REJECTED),
+    progress-path constraints are satisfied by construction
+    — the activation-readiness concern no longer applies.
+
+    Consequence: existing references to and from a regressed
+    element remain valid. A DEPRECATED element is still
+    in-effect — Interactions, Interface exposure, and Receptor
+    references that were valid at ACTIVE remain valid at
+    DEPRECATED. At RETIRED/REJECTED the element (and
+    typically its entire graph) is terminal; references are
+    inert.
+
+    However, **new** references (new Interactions, new
+    Interface exposure, new Receptor→Artifact bindings)
+    MUST NOT target a DEPRECATED, RETIRED, or REJECTED
+    element. Deprecation signals intent to retire —
+    creating new dependencies on a retiring element
+    contradicts that intent.
 
     **Usage Rules**:
 
     - Follow the transition graph strictly: DRAFT → PROPOSED → {APPROVED |
       REJECTED}; APPROVED → ACTIVE; ACTIVE → {SUSPENDED | DEPRECATED}; SUSPENDED
-      → {ACTIVE | DEPRECATED}; DEPRECATED → RETIRED.
+      → {ACTIVE | DEPRECATED}; DEPRECATED → {SUSPENDED | RETIRED}.
     - Before activating, verify no conflicting ACTIVE definition exists for the
       same `elementId`.
   end note
@@ -828,6 +861,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     +getMechanisms(): Mechanism[]
     +getInteractions(): Interaction[]
     +getInterfaces(): Interface[]
+    +getArtifacts(): Artifact[]
   }
 
   note bottom of Structure
@@ -840,16 +874,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       exist **for a purpose** and are the product of governance.
     - **Governing Structure (governance relation)**: a Structure `G` governs a
       Structure `S` when `G` produces governance DNA (Directives/Norms)
-      targeting `S` (by referencing `S.purpose`, and by operationalizing those
-      Directives as Norms constraining in-scope Elements). This is how
+      targeting `S` (by referencing `StructureArchetype.purpose`, and by
+      operationalizing those Directives as Norms constraining in-scope
+      Elements). This is how
       inter-Structure governance is expressed in GSM: not by containment, but by
       DNA targeting (de-facto) governed Elements.
     - **Formalization**: `G` governs `S` **iff** (a) there exists at least one
-      Directive authored/owned by `G` whose `scope` references `S.purpose`, and
+      Directive authored/owned by `G` whose `scope` references
+      `StructureArchetype.purpose`, and
       (b) over time, those Directives are operationalized by one or more Norms
       authored/owned by `G` that constrain (target) in-scope Elements of `S`.
-    - **Purpose is owned by governance**: a Structure's `purpose` is its
-      identity field, but it SHOULD be treated as a governed outcome — i.e.,
+    - **Purpose is owned by governance**: `StructureArchetype.purpose` is the
+      Structure's identity field, but it SHOULD be treated as a governed
+      outcome — i.e.,
       declared/approved under a governing Structure's Directives — not as an
       arbitrary label authored in isolation.
     - No sub-structures, no containment hierarchy. Governance between Structures
@@ -858,21 +895,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Attribute Semantics**:
 
-    - `purpose` (ascription field, StructureArchetype schema): the Structure's
-      raison d'être. This IS the Structure's identity/name. Directives reference
-      the purpose via their `scope` field.
+    - `StructureArchetype.purpose`: the Structure's raison
+      d'être. This IS the Structure's identity/name. Directives reference the
+      purpose via their `scope` field.
+    - `mechanisms`: the set of Mechanisms belonging to this Structure. A
+      Mechanism belongs to exactly one Structure.
+    - `interactions`: the set of Interactions belonging to this Structure. An
+      Interaction belongs to exactly one Structure.
+    - `interfaces`: the set of Interfaces belonging to this Structure. An
+      Interface belongs to exactly one Structure.
+    - `artifacts`: the set of Artifacts produced by Mechanisms of this
+      Structure (via their Effectors).
 
     **Validation Rules**:
 
-    - `purpose` MUST be non-empty (enforced by base schema).
-    - A reflexive Structure MUST have at least one Directive.
-    - Every Interaction MUST reference Effector/Receptor Elements belonging to
-      Mechanisms within this Structure (or governed Structures it interacts
-      with).
-
-    **Assignment Rules**:
-
-    - None.
+    - `StructureArchetype.purpose` MUST be non-empty (enforced by base schema).
 
     **Relational Consistency Rules**:
 
@@ -881,6 +918,56 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Every ACTIVE ElementDefinition in a Structure SHOULD be covered by at
       least one DNA chain over time (Directive → Norm) targeting that Element
       (uncovered element → accidental/ungoverned structure).
+    - **Element lifecycle coupling**: constituent status
+      is governed by the path-specific cascade rules (see
+      Assignment Rules). Invariants maintained:
+      (a) on the progress path (DRAFT → PROPOSED →
+      APPROVED → ACTIVE), no constituent may be further
+      along than the Structure;
+      (b) while ACTIVE, constituents still progressing
+      are allowed (lagging);
+      (c) while DEPRECATED or RETIRED, all constituents
+      MUST also be DEPRECATED or RETIRED respectively;
+      (d) while REJECTED, PROPOSED constituents are
+      auto-rejected; DRAFT constituents remain DRAFT.
+
+    **Assignment Rules**:
+
+    Cascade semantics are path-specific. On every Structure
+    transition the definition-manager applies the appropriate
+    cascade to all constituent ElementDefinitions. Constituents
+    already at the target `definitionStatus` are skipped (no-op).
+
+    - **Progress cascade** (DRAFT → PROPOSED → APPROVED →
+      ACTIVE): advance all constituents to the same
+      `definitionStatus`. If any constituent cannot make that
+      transition (incompatible current status), the Structure's
+      transition MUST be rejected.
+    - **Suspension cascade** (ACTIVE/DEPRECATED ↔ SUSPENDED):
+      cascade only to constituents that are ACTIVE,
+      SUSPENDED, or DEPRECATED (toggle all in-effect
+      constituents).
+      Lagging constituents (DRAFT, PROPOSED, APPROVED) are
+      not in-effect and stay where they are. Terminal
+      constituents (RETIRED, REJECTED) stay where they are
+      (no transitions possible). On un-suspension
+      (SUSPENDED → ACTIVE/DEPRECATED), each constituent is
+      restored to its pre-suspension status, derived from
+      the `preStatus` of its suspension transition in the
+      audit trail.
+    - **Decommission cascade** (→ DEPRECATED → RETIRED):
+      advance all constituents to the same `definitionStatus`.
+      If any constituent cannot make that transition, the
+      Structure's transition MUST be rejected. The relational
+      rule "all constituents MUST also be DEPRECATED or
+      RETIRED" acts as precondition — all constituents
+      must be at a compatible pre-status.
+    - **Rejection cascade** (PROPOSED → REJECTED): auto-reject
+      all constituents that are PROPOSED (PROPOSED → REJECTED
+      is a valid transition). Constituents that are DRAFT remain
+      DRAFT — they were never submitted for governance review
+      and cannot be "rejected." DRAFT orphans may be cleaned up
+      or re-proposed under a new Structure revision.
 
     **Derivation Rules**:
 
@@ -900,10 +987,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       not by static containment.
   end note
 
-  ElementDefinition <|-- Structure
+  Structure --|> ElementDefinition
   Structure "1" *--> "0..*" Mechanism : has
   Structure "1" *--> "0..*" Interaction : has
   Structure "1" *--> "0..*" Interface : has
+  Structure "1" *--> "0..*" Artifact : produces
 
   ' ============================================================
   ' MECHANISM
@@ -920,64 +1008,75 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Concept Semantics**:
 
-    - Composite of processing logic (operation) and its I/O ports (Effectors and
-      Receptors).
+    - Composite of processing logic (`MechanismArchetype.operation`) and its
+      I/O ports (Effectors and Receptors).
     - Effectors/Receptors are **derived ports**: they are not authored as part
       of the Mechanism's Ascription schema. The definition-manager derives and
-      creates them from the Mechanism `operation` (STARLARK) as part of
+      creates them from `MechanismArchetype.operation` (STARLARK) as part of
       definition compilation.
     - Ports do not exist independently — destroying a Mechanism destroys its
       parts. This IS internal composition (lifecycle coupling, existential
       dependency) — distinct from the inter-structure "composition" that GSM
       eliminates. A port without a processor has no causal autonomy.
-    - When a Mechanism's operation targets its own Structure's Elements, it is
-      reflexive. Reflexive Mechanisms produce governance DNA (Directives,
-      Norms), making the Structure a System.
+    - When `MechanismArchetype.operation` targets the owning Structure's
+      Elements, it is reflexive. Reflexive Mechanisms produce governance DNA
+      (Directives, Norms), making the Structure a System.
     - At least 1 Effector (1..*) and at least 1 Receptor (1..*).
 
     **Attribute Semantics**:
 
-    - `structureId`: identifier of the owning Structure.
-    - `operation` (ascription field, MechanismArchetype schema): executable
-      logic in the declared language. Encodes what the Mechanism does —
-      behavioral definition.
-    - `operationLanguage` (ascription field, MechanismArchetype schema):
-      expression language (STARLARK).
-    - `function` (ascription field, MechanismArchetype schema): capability label
+    - `MechanismArchetype.structureId` (ascription field): identifier of the
+      owning Structure.
+    - `MechanismArchetype.operation` (ascription field): executable logic in
+      the declared language. Encodes what the Mechanism does — behavioral
+      definition.
+    - `MechanismArchetype.operationLanguage` (ascription field): expression
+      language (STARLARK).
+    - `MechanismArchetype.function` (ascription field): capability label
       describing what the Mechanism does (e.g., "validation", "routing",
       "transformation").
 
     **Validation Rules**:
 
-    - `operation` MUST be syntactically valid in the declared
-      `operationLanguage` (enforced by base schema).
-    - `operationLanguage` MUST be a supported value (enforced by base schema
-      enum).
-    - `function` SHOULD be non-empty (empty → undeclared).
+    - `MechanismArchetype.operation` MUST be syntactically valid in the
+      declared `MechanismArchetype.operationLanguage` (enforced by base
+      schema).
+    - `MechanismArchetype.operationLanguage` MUST be a supported value
+      (enforced by base schema enum).
+    - `MechanismArchetype.function` SHOULD be non-empty (empty → undeclared).
     - MUST have at least 1 Effector.
     - MUST have at least 1 Receptor.
 
     **Assignment Rules**:
 
-    - None.
+    - When advancing a Mechanism to a new `definitionStatus`, the
+      definition-manager MUST advance its Effectors and Receptors
+      to the same `definitionStatus`.
+    - Cascade is uniform across all path axes (progress,
+      suspension, decommission, rejection): strict equality
+      guarantees that ports always share the Mechanism's
+      pre-status, so the same transition is always reachable.
 
     **Relational Consistency Rules**:
 
     - Every ACTIVE Mechanism SHOULD be governed by at least one DNA chain
       (ungoverned → governance gap).
+    - Effectors and Receptors MUST have the same `definitionStatus` as the
+      owning Mechanism.
 
     **Derivation Rules**:
 
-    - Reflexivity is derived from the mechanism operation's targets: a Mechanism
-      is reflexive when it reads or produces definitions about its own
+    - Reflexivity is derived from `MechanismArchetype.operation` targets: a
+      Mechanism is reflexive when it reads or produces definitions about its own
       Structure's Elements.
 
     **Usage Rules**:
 
-    - `operation` MUST be authored in the declared `operationLanguage`
-      (currently: STARLARK with the `sys.*` API).
-    - For reflexive Mechanisms, the operation MUST target the owning Structure's
-      ElementDefinitions.
+    - `MechanismArchetype.operation` MUST be authored in the declared
+      `MechanismArchetype.operationLanguage` (currently: STARLARK with the
+      `sys.*` API).
+    - For reflexive Mechanisms, `MechanismArchetype.operation` MUST target the
+      owning Structure's ElementDefinitions.
     - Every Mechanism SHOULD be connected via Interactions to participate in the
       Structure's causal graph.
 
@@ -987,7 +1086,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       tenant-extensible and have no standalone base archetypes.
   end note
 
-  ElementDefinition <|-- Mechanism
+  Mechanism --|> ElementDefinition
   Mechanism "0..*" --> "1" Structure : belongsTo
   Mechanism "1" *--> "1..*" Effector : has
   Mechanism "1" *--> "1..*" Receptor : has
@@ -998,8 +1097,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   class Effector {
     +getMechanism(): Mechanism
-    +getEmittedArtifact(): Artifact
-    +getExposingInterface(): Interface
+    +getArtifact(): Artifact
+    +getInterface(): Interface
   }
 
   note bottom of Effector
@@ -1014,22 +1113,34 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Attribute Semantics**:
 
-    - `emittedArtifact`: the Artifact definition typed by an Archetype that
+    - `artifact`: the Artifact definition typed by an Archetype that
       constrains the effector's output.
 
     **Validation Rules**:
 
-    - `emittedArtifact` reference MUST NOT be null.
+    - `artifact` reference MUST NOT be null.
     - MUST belong to exactly one Mechanism.
 
     **Assignment Rules**:
 
-    - None.
+    - When advancing an Effector to a new `definitionStatus`,
+      the definition-manager MUST advance its emitted Artifact
+      (if any) to the same `definitionStatus`.
+    - Cascade is uniform across all path axes: strict equality
+      guarantees that the emitted Artifact always shares the
+      Effector's pre-status, so the same transition is always
+      reachable.
 
     **Relational Consistency Rules**:
 
     - Any Interaction from this Effector MUST terminate at a Receptor that
       accepts a schema-compatible Artifact.
+    - Effectors MUST have the same `definitionStatus` as the owning Mechanism.
+    - If this Effector emits an Artifact, that Artifact MUST have the same
+      `definitionStatus` as this Effector.
+    - If this Effector is exposed by an Interface, the
+      Effector MUST be at least as far along the progress
+      path as that Interface.
 
     **Derivation Rules**:
 
@@ -1049,9 +1160,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       exist in runtime instances.
   end note
 
-  ElementDefinition <|-- Effector
-  Effector "0..*" --> "1" Artifact : emits
+  Effector --|> ElementDefinition
   Effector "1..*" --> "1" Mechanism : belongsTo
+  Effector "0..1" *--> "1" Artifact : emits
+  Effector "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
   ' RECEPTOR
@@ -1059,7 +1171,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   class Receptor {
     +getMechanism(): Mechanism
-    +getReceivedArtifact(): Artifact
+    +getArtifact(): Artifact
+    +getInterface(): Interface
   }
 
   note bottom of Receptor
@@ -1074,12 +1187,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Attribute Semantics**:
 
-    - `receivedArtifact`: the Artifact definition typed by an Archetype that
+    - `artifact`: the Artifact definition typed by an Archetype that
       constrains the receptor's input.
 
     **Validation Rules**:
 
-    - `receivedArtifact` reference MUST NOT be null.
+    - `artifact` reference MUST NOT be null.
     - MUST belong to exactly one Mechanism.
 
     **Assignment Rules**:
@@ -1090,6 +1203,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - Any Interaction into this Receptor MUST originate from an Effector that
       emits a schema-compatible Artifact.
+    - Receptors MUST have the same `definitionStatus` as the owning Mechanism.
+    - The received Artifact MUST be at least as far along
+      the progress path as this Receptor. It MAY be further
+      along.
+    - If this Receptor is exposed by an Interface, the
+      Receptor MUST be at least as far along the progress
+      path as that Interface.
 
     **Derivation Rules**:
 
@@ -1109,15 +1229,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       exist in runtime instances.
   end note
 
-  ElementDefinition <|-- Receptor
-  Receptor "0..*" --> "1" Artifact : receives
+  Receptor --|> ElementDefinition
   Receptor "1..*" --> "1" Mechanism : belongsTo
+  Receptor "0..*" --> "1" Artifact : receives
+  Receptor "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
   ' INTERACTION
   ' ============================================================
 
   class Interaction {
+    +getStructure(): Structure
     +getEffector(): Effector
     +getReceptor(): Receptor
   }
@@ -1129,6 +1251,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - Connects an Effector of one Mechanism to a Receptor of another (or the
       same) Mechanism.
+    - **Ownership**: an Interaction is owned by the Structure that owns the
+      Effector's Mechanism (i.e., the Structure that owns the Effector
+      indirectly).
+    - **Inter-Structure coupling**: an Interaction MAY connect an Effector and a
+      Receptor belonging to different Structures. In this case, the owning
+      Structure is still the Effector-side Structure.
+    - **Interface involvement**: when coupling crosses Structures, the
+      participating ports SHOULD be exposed by Interfaces of their respective
+      Structures (Interface is the exposure manifest; Interaction is the causal
+      binding).
     - All causality is Interaction-mediated — no shared state at the structural
       level.
     - Channel properties (protocol, capacity, QoS) are expressed as governance
@@ -1149,16 +1281,31 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - Every Interaction SHOULD be governed by at least one DNA chain (ungoverned
       → governance gap).
+    - The Interaction's owning Structure MUST be the Structure owning the
+      Effector's Mechanism.
+    - On the progress path, the Interaction MUST NOT be
+      further along than the related Effector.
+    - On the progress path, the Interaction MUST NOT lag
+      behind the related Receptor.
+    - Derived constraint: the above two rules transitively
+      require the Receptor to be no further along the
+      progress path than the Effector.
 
     **Derivation Rules**:
 
     - Compatibility is derived from effector.emittedArtifact and
       receptor.receivedArtifact archetype schemas.
+    - The Interaction's owning Structure is derived by resolving `effector` to
+      its owning Mechanism, then resolving that Mechanism to its owning
+      Structure.
 
     **Usage Rules**:
 
     - Connect only schema-compatible Effector → Receptor pairs (validated via
       Archetype schema compatibility).
+    - For inter-Structure coupling, expose the Effector and Receptor ports via
+      Interfaces of their respective Structures, then bind those exposed ports
+      with an Interaction.
     - Define channel-level constraints (protocol, capacity, QoS) as governance
       Norms targeting the Interaction — not as Interaction attributes.
 
@@ -1168,9 +1315,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       governance constraints.
   end note
 
-  ElementDefinition <|-- Interaction
+  Interaction --|> ElementDefinition
+  Interaction "0..*" --> "1" Structure : belongsTo
   Interaction "0..*" --> "1" Effector : from
-  Interaction "0..*" --> "1" Receptor : to
+  Interaction "0..1" --> "1" Receptor : to
 
   ' ============================================================
   ' INTERFACE
@@ -1193,9 +1341,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - An Interface is **not** a Mechanism and has **no behavior** of its own.
       All behavior and realization lives in Mechanisms; Interfaces only describe
       exposure.
-    - The ports exposed by an Interface are declared in its Ascription
-      (InterfaceArchetype schema) via `effectorIds` and `receptorIds` (port
-      identifiers).
+    - The ports exposed by an Interface are declared in its Ascription via
+      `InterfaceArchetype.effectorIds` and `InterfaceArchetype.receptorIds`
+      (port identifiers).
     - Makes the boundary explicit and governable. Governance Norms can target an
       Interface directly (e.g., "all ports in this Interface must use mTLS").
     - Each Effector/Receptor port SHOULD be assigned to **at most one**
@@ -1222,16 +1370,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       same Structure.
     - Each referenced Effector/Receptor port MUST be exposed by at most one
       Interface within the same Structure (exclusive membership).
+    - Any Effector/Receptor exposed by this Interface MUST
+      be at least as far along the progress path as this
+      Interface. Exposed ports MAY be further along.
 
     **Derivation Rules**:
 
     - An external boundary view can be derived by enumerating the union of ports
       contained in all Interfaces.
     - An Interface's owning Structure can be derived by resolving its
-      `effectorIds`/`receptorIds` to Effector/Receptor ElementDefinitions, then
-      resolving each port to its owning Mechanism, then taking that Mechanism's
-      `structureId`. (This relies on ports belonging exclusively to a single
-      Mechanism, and a Mechanism belonging to a single Structure.)
+      `InterfaceArchetype.effectorIds`/`InterfaceArchetype.receptorIds` to
+      Effector/Receptor ElementDefinitions, then resolving each port to its
+      owning Mechanism, then taking that Mechanism's
+      `MechanismArchetype.structureId`. (This relies on ports belonging
+      exclusively to a single Mechanism, and a Mechanism belonging to a single
+      Structure.)
 
     **Usage Rules**:
 
@@ -1246,7 +1399,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       exposure reasoning.
   end note
 
-  ElementDefinition <|-- Interface
+  Interface --|> ElementDefinition
+  Interface "0..*" --> "1" Structure : belongsTo
   Interface "0..*" --> "0..*" Effector : exposes
   Interface "0..*" --> "0..*" Receptor : exposes
 
@@ -1269,6 +1423,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       deliverable is an Artifact. Governance DNA (Directives, Norms) is the
       primary use case, but Artifacts can carry any domain-typed information
       that Mechanisms produce as definitions.
+    - Artifacts are produced by Mechanisms and are surfaced through Effectors.
+      An Artifact is emitted by at most one Effector (inverse cardinality
+      0..1) and may be referenced by one or more Receptors.
     - Directive and Norm are standalone first-class GSM classes — they do not
       extend Artifact or ElementDefinition. They are typed by their own sealed
       governance archetypes (DirectiveArchetype, NormArchetype).
@@ -1294,6 +1451,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Relational Consistency Rules**:
 
+    - If an Artifact is emitted by an Effector, that Artifact MUST have the
+      same `definitionStatus` as the Effector.
+    - If an Artifact is referenced by a Receptor, that
+      Artifact MUST be at least as far along the progress
+      path as the Receptor. It MAY be further along.
+    - If an Artifact is not emitted by any Effector, its `definitionStatus`
+      MUST be DRAFT.
     - An Artifact referenced by an Effector/Receptor MUST be compatible (by
       archetype schema) with the Interaction(s) it participates in.
 
@@ -1319,7 +1483,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       deliverable.
   end note
 
-  ElementDefinition <|-- Artifact
+  Artifact --|> ElementDefinition
 
   ' ============================================================
   ' DIRECTIVE 

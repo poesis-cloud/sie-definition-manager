@@ -23,16 +23,263 @@ skinparam classFontColor #24292F
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-title SIE GSM — ElementDefinitionStatus lifecycle (v1)
+title SIE GSM — ElementDefinition Lifecycle - v1.0.0
 
 note as Legend
-  This diagram is the lifecycle state machine for the GSM enum
-  `ElementDefinitionStatus`.
+  This diagram is the lifecycle state machine of the GSM
+  `ElementDefinition`.
 
-  It is a definitional lifecycle for definition-plane artifacts
-  (ElementDefinitions and Artifacts): the status governs whether the
-  definition is in-effect at runtime, and preserves governance lineage
-  and auditability.
+  **Status Semantics**:
+
+  - DRAFT: initial creation state. Editable authoring state; not in effect at
+    runtime.
+  - PROPOSED: submitted for review. Under governance review; not in effect at
+    runtime.
+  - APPROVED: accepted as a valid definition; version assigned. Awaiting
+    activation; not yet in effect.
+  - ACTIVE: in effect at runtime.
+  - SUSPENDED: temporarily not in effect, retains lineage; may be reactivated.
+  - DEPRECATED: in effect but scheduled for retirement; emits warnings on new
+    references.
+  - RETIRED: permanently not in effect; preserved for historical traceability
+    (terminal).
+  - REJECTED: denied; not in effect. A new creative cycle requires authoring a
+    new revision (terminal).
+end note
+
+note as Coupling
+  **Element Lifecycle Coupling Rules (per element)**
+
+  Two kinds of edges between elements:
+
+  "Composition" = parent owns child, cascade on
+  transition:
+    Structure→Mechanism/Interaction/Interface,
+    Mechanism→Effector/Receptor,
+    Effector→Artifact (emits).
+
+  "Reference" = independent elements, ordering
+  constraint:
+    Interaction→Effector (from),
+    Interaction→Receptor (to),
+    Interface→Effector/Receptor (exposes),
+    Receptor→Artifact (receives).
+
+  Progress path (maturity scale):
+  DRAFT < PROPOSED < APPROVED < ACTIVE/SUSPENDED.
+  ACTIVE and SUSPENDED are the same maturity level.
+  DEPRECATED, RETIRED, REJECTED are off this scale.
+
+  ====
+
+  **When a Structure transitions:**
+
+  Progress (DRAFT→PROPOSED→APPROVED→ACTIVE):
+  - Cascade: all constituents advance to the same
+    status. If any constituent cannot make that
+    transition, the Structure's transition is rejected.
+  - No constituent may be further along the progress
+    path than the Structure.
+  - Lagging constituents are allowed while Structure
+    is ACTIVE.
+
+  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
+  - Cascade: only ACTIVE, SUSPENDED, and DEPRECATED
+    constituents are toggled to SUSPENDED (or back).
+  - DRAFT, PROPOSED, APPROVED constituents stay where
+    they are (they are not in-effect, suspension is
+    irrelevant to them).
+  - RETIRED, REJECTED constituents stay where they are
+    (terminal, no transitions possible).
+  - On un-suspension, each constituent is restored to
+    its pre-suspension status (ACTIVE or DEPRECATED),
+    derived from the audit trail.
+
+  Decommission (→DEPRECATED→RETIRED):
+  - Precondition: all constituents must already be
+    DEPRECATED or RETIRED.
+  - Cascade: all constituents advance to the same
+    status.
+
+  Rejection (PROPOSED→REJECTED):
+  - Cascade: only PROPOSED constituents are rejected.
+  - DRAFT constituents stay DRAFT (they were never
+    submitted for governance review, they cannot be
+    "rejected").
+
+  ====
+
+  **When a Mechanism transitions:**
+
+  All paths (uniform):
+  - Cascade: all its Effectors and Receptors advance to
+    the same status (strict equality).
+  - The Mechanism can only transition if all its ports
+    can follow.
+
+  ====
+
+  **When an Effector transitions:**
+
+  All paths (uniform):
+  - Cascade: its emitted Artifact advances to the same
+    status (strict equality).
+  - The Effector can only transition if its Artifact
+    can follow.
+
+  Progress:
+  - No condition from Interactions originating from
+    this Effector. The Effector is the "upstream" side
+    of the reference: advancing it only widens the gap
+    with the Interaction. No check needed.
+  - No condition from Interfaces exposing this
+    Effector. The port is the "upstream" side: advancing
+    it only widens the gap with the Interface. No check
+    needed.
+
+  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
+  - Composition cascade to the emitted Artifact still
+    applies (see "All paths" above).
+  - No reference-edge checks on Interactions or
+    Interfaces: ACTIVE and SUSPENDED are the same
+    maturity level — toggling between them cannot
+    create an ordering violation.
+  - Mechanism→Effector (parent→child): no constraint.
+    The Effector is cascaded BY its owning Mechanism,
+    not the other way around.
+
+  Decommission/Rejection:
+  - Existing Interactions from this Effector remain
+    valid (frozen/inert).
+  - No new Interactions may originate from a
+    DEPRECATED, RETIRED, or REJECTED Effector.
+
+  ====
+
+  **When a Receptor transitions:**
+
+  No cascade (Receptor composes nothing).
+
+  Progress:
+  - The Artifact this Receptor receives must already be
+    at the target status or further along the progress
+    path (DRAFT < PROPOSED < APPROVED < ACTIVE/SUSPENDED).
+    If the Artifact is DEPRECATED, RETIRED, or REJECTED,
+    the check is satisfied — it already went through
+    ACTIVE.
+  - Every Interaction targeting this Receptor must
+    already be at the target status or further along the
+    progress path. If the Interaction is DEPRECATED,
+    RETIRED, or REJECTED, the check is satisfied.
+  - No new Receptor→Artifact bindings to DEPRECATED,
+    RETIRED, or REJECTED Artifacts.
+
+  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
+  - No reference-edge checks on the received Artifact
+    or on Interactions targeting this Receptor: ACTIVE
+    and SUSPENDED are the same maturity level —
+    toggling between them cannot create an ordering
+    violation.
+  - Mechanism→Receptor (parent→child): no constraint.
+    The Receptor is cascaded BY its owning Mechanism,
+    not the other way around.
+
+  Decommission/Rejection:
+  - Existing Receptor→Artifact bindings remain valid
+    (frozen/inert).
+  - No new Receptor→Artifact bindings to DEPRECATED,
+    RETIRED, or REJECTED Artifacts.
+
+  ====
+
+  **When an Interaction transitions:**
+
+  No cascade (Interaction composes nothing).
+
+  Progress:
+  - The Effector this Interaction originates from must
+    already be at the target status or further along
+    the progress path. If the Effector is DEPRECATED,
+    RETIRED, or REJECTED, the check is satisfied — it
+    already went through ACTIVE.
+  - No precondition from the Receptor it targets.
+    The Interaction is the "upstream" side: advancing it
+    only widens the gap with the Receptor. No check
+    needed.
+
+  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
+  - No reference-edge checks on the Effector or
+    Receptor this Interaction references: ACTIVE and
+    SUSPENDED are the same maturity level — toggling
+    between them cannot create an ordering violation.
+  - Structure→Interaction (parent→child): no
+    constraint. The Interaction is cascaded BY its
+    owning Structure, not the other way around.
+
+  Decommission/Rejection:
+  - The Effector-side Structure decommissions first
+    (since the Interaction is owned by the Effector-side
+    Structure).
+  - Existing references to Effector and Receptor remain
+    valid (frozen/inert).
+  - No new Interactions may be created targeting
+    DEPRECATED, RETIRED, or REJECTED elements.
+
+  ====
+
+  **When an Interface transitions:**
+
+  No cascade (Interface composes nothing).
+
+  Progress:
+  - Every port (Effector or Receptor) this Interface
+    exposes must already be at the target status or
+    further along the progress path. If a port is
+    DEPRECATED, RETIRED, or REJECTED, the check is
+    satisfied — it already went through ACTIVE.
+
+  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
+  - No reference-edge checks on the exposed ports:
+    ACTIVE and SUSPENDED are the same maturity level —
+    toggling between them cannot create an ordering
+    violation.
+  - Structure→Interface (parent→child): no constraint.
+    The Interface is cascaded BY its owning Structure,
+    not the other way around.
+
+  Decommission/Rejection:
+  - Existing exposure remains valid (frozen/inert).
+  - No new exposure of DEPRECATED, RETIRED, or REJECTED
+    ports.
+
+  ====
+
+  **When an Artifact transitions:**
+
+  Artifact is normally cascaded by its emitting Effector.
+  When also received by Receptors, those Receptors are
+  not affected (no cascade upward).
+
+  Progress:
+  - No precondition from Receptors that receive this
+    Artifact. The Artifact is the "upstream" side:
+    advancing it only widens the gap with the Receptor.
+    No check needed.
+
+  Suspension (ACTIVE/DEPRECATED↔SUSPENDED):
+  - No reference-edge checks on Receptors that receive
+    this Artifact: ACTIVE and SUSPENDED are the same
+    maturity level — toggling between them cannot
+    create an ordering violation.
+  - Effector→Artifact (parent→child): no constraint.
+    The Artifact is cascaded BY its emitting Effector,
+    not the other way around.
+
+  Decommission/Rejection:
+  - Existing Receptor→Artifact bindings remain valid
+    (frozen/inert).
+  - No new Receptor→Artifact bindings may target a
+    DEPRECATED, RETIRED, or REJECTED Artifact.
 end note
 
 note as AuditRules
@@ -40,16 +287,16 @@ note as AuditRules
 
   - Transitions are append-only; never modify/delete.
   - The first transition represents creation:
-    `fromStatus = null`, `toStatus = DRAFT`.
+    `preStatus = null`, `postStatus = DRAFT`.
   - Transition timestamps are monotonic:
-    each `timestamp` is >= the preceding `timestamp`.
+    each `datetime` is >= the preceding `datetime`.
   - The current `status` is derived/denormalized from the
-    latest transition's `toStatus`.
+    latest transition's `postStatus`.
   - Terminality: once `status` is REJECTED or RETIRED, no
     additional transitions may be appended.
 end note
 
-state "Authoring" as Authoring {
+state "Qualification" as Qualification {
   state DRAFT
 }
 
@@ -58,7 +305,7 @@ state "Review" as Review {
   state APPROVED
 }
 
-state "Binding / Evolution" as Binding {
+state "Production" as Production {
   state ACTIVE
   state SUSPENDED
   state DEPRECATED
@@ -70,27 +317,29 @@ state "Terminal" as Terminal {
 }
 
 ' ------------------------------------------------------------
-' Primary (happy-path) flow
+' Progress Flow
 ' ------------------------------------------------------------
 
 [*] -right-> DRAFT
 DRAFT -right-> PROPOSED
 PROPOSED -right-> APPROVED
 APPROVED -right-> ACTIVE
-ACTIVE -right-> DEPRECATED
-DEPRECATED -right-> RETIRED
-REJECTED --> [*]
-RETIRED --> [*]
 
 ' ------------------------------------------------------------
-' Exceptional / corrective flows
+' Degress Flows
 ' ------------------------------------------------------------
+
+SUSPENDED -up-> ACTIVE
+ACTIVE -down-> SUSPENDED
+DEPRECATED -down-> SUSPENDED
+SUSPENDED -right-> DEPRECATED
 
 DRAFT -down-> REJECTED
 PROPOSED -down-> REJECTED
+REJECTED --> [*]
 
-ACTIVE -down-> SUSPENDED
-SUSPENDED -up-> ACTIVE
-SUSPENDED -right-> DEPRECATED
+ACTIVE -right-> DEPRECATED
+DEPRECATED -right-> RETIRED
+RETIRED --> [*]
 
 @enduml

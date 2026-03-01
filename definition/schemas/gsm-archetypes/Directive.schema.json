@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sie://schemas/gsm/v1/Directive.schema.json",
-  "title": "Directive (GSM governance archetype)",
+  "title": "Directive",
   "description": "Standalone governance archetype for Directive — identity-level normative constraints (DNA 'D'). Grammar: 'Structure [modal] [verb] [qualityDimension] OF [scope]'. Example: 'System MUST ENSURE integrity OF order-processing'. The slowest-changing governance primitive — changing a Directive = changing the System's identity.",
   "$gsm:sealed": true,
   "type": "object",

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sie://schemas/gsm/v1/Interface.schema.json",
-  "title": "Interface (GSM base archetype)",
+  "title": "Interface",
   "description": "Base ascription schema for Interface ElementDefinitions. Declarative exposure manifest: lists which Effector/Receptor ports are exposed by referencing their identifiers. Interface has no behavior; realization is owned by Mechanisms. Tenant-defined archetypes extending Interface MUST reference this schema via allOf.",
   "$gsm:sealed": true,
   "$gsm:elementDefinitionSubtype": "Interface",
