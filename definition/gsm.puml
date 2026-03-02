@@ -29,9 +29,14 @@ skinparam noteBorderColor #57606A
 '   subtype (well-known schemas).
 ' - Design inter-Structure governance patterns (governing
 '   Structure DNA → governed Structure Elements).
+' - Think to making a Structure child of a Structure... The rationale
+'   being that if a structure is an agglomerat of mechanisms, there
+'   should not be reasons it can't agglomerate structures... The criteria
+'   of structure agglomeration is governance designing substructures purposes,
+'   identities... Isolation might be a marker of a composition pattern.
+'   Or an aggregate of interactiong structure IS a superstructure... Composition
+'   is an illusion of perspective on governance patterns, not a structural fact?
 ' - Formalize reflexive Mechanism patterns that produce DNA.
-' - Design a mechanism for replacing a primitive with another
-'   eg: New Rule replaces old Rule.
 ' - Extract and formalize all Principles/Directives, Policies, and Rules of GSM
 '   itself... Applying a pertinent/pragamatical way its own model. Many Rules
 '   are already present in GSM notes.
@@ -41,7 +46,6 @@ skinparam noteBorderColor #57606A
 '   mechanisms. Looks like relational governance governor produce Directives as
 '   state objects to consume and derivate by governed system's governor via its
 '   own designed policies adapted to its purposes.
-' - Identify and generate functional rules of any kind for each class.
 ' - Update planes specifications.
 ' - Design the Justificational System Model (?SM) — a third model completing
 '   the GSM/DSM duality into a triad: GSM (what must be), DSM (what is),
@@ -251,21 +255,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     ----
 
     Architecture (class roles + composition):
-    ┌───────────────────────────────┐
+    ┌──────────────────────────────  ┐
     │ ElementDefinition              │
     │  id, elementId, archetype,     │
     │  ascription, revision, version,│
-    │  revisionDatetime, status,      │
-    │  statusTransitions              │
-    ├───────────────┬───────────────┤
-    │ STRUCTURAL     │ DATA          │
-    │ Structure      │ Artifact      │
-    │ Mechanism      │               │
-    │ Effector       │               │
-    │ Receptor       │               │
-    │ Interface      │               │
-    │ Interaction    │               │
-    └───────────────┴───────────────┘
+    │  revisionDatetime, status,     │
+    │  statusTransitions             │
+    ├───────────────┬─────────────── ┤
+    │ STRUCTURAL    │ DATA           │
+    │ Structure     │ Artifact       │
+    │ Mechanism     │                │
+    │ Effector      │                │
+    │ Receptor      │                │
+    │ Interface     │                │
+    │ Interaction   │                │
+    └───────────────┴─────────────── ┘
 
     Governance DNA outside the ElementDefinition hierarchy:
     ┌───────────────────────────────┐
@@ -410,23 +414,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     through DSM, and the governance loop continuously aligns definition with
     reality — autopoiesis as an engineered process, not merely a theoretical
     property.
-
-    ====
-
-    **§8 — Governance and Design in the Same System**
-
-    It is correct and necessary for a reflexive system to combine governance
-    (control/adaptation) and design (definition production) in the same system.
-    This is the essence of second-order viability: the system must govern its
-    own identity and structure while adapting to environmental changes.
-
-    Coherence requires preserving closed-loop boundaries:
-    - Design (Definition-plane production) must be driven by Description-plane
-      evidence, not direct Remediation shortcuts.
-    - Governance decisions must be based on independent appraisal signals,
-      preventing self-justifying drift.
-    - Multiple scopes (e.g., application vs. codebase) can coexist as separate
-      Structures with distinct DNA and supervision targets.
   end note
 
   ' ============================================================
@@ -688,19 +675,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - `version` MUST be monotonically increasing within the APPROVED lineage for
       each `elementId`.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Relational Consistency Rules**:
-
     - At most one in-effect definition per `elementId` (status = ACTIVE or
       DEPRECATED).
-    - If an ElementDefinition references other ElementDefinitions (e.g.,
-      Structure has Mechanisms), those references MUST resolve to elements
-      within the governed scope.
 
     **Derivation Rules**:
 
@@ -760,7 +741,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - `datetime` MUST NOT be null.
     - `datetime` MUST be an ISO 8601 timestamp.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
@@ -811,7 +792,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       PROPOSED. A new creative cycle requires authoring a new revision
       (terminal).
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
@@ -875,7 +856,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - `StructureArchetype.purpose` MUST be non-empty (enforced by base schema).
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
@@ -913,74 +894,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       eliminates. A port without a processor has no causal autonomy.
     - When `MechanismArchetype.operation` targets the owning Structure's
       Elements, it is reflexive. Reflexive Mechanisms produce governance DNA
-      (Directives, Norms), making the Structure a System.
+      (Directives, Norms), making the Structure a *System*.
     - At least 1 Effector (1..*) and at least 1 Receptor (1..*).
 
     **Attribute Semantics**:
 
-    - `MechanismArchetype.structureId` (ascription field): identifier of the
-      owning Structure (typically the Structure's `elementId`).
-    - `MechanismArchetype.operation` (ascription field): Starlark source
+    - `MechanismArchetype.structureId`: the Structure this mechanisms
+      constitutes.
+    - `MechanismArchetype.function`: capability label
+      describing what the Mechanism does (e.g., "validation", "routing",
+      "transformation").
+    - `MechanismArchetype.operation`: Starlark source
       code defining the Mechanism's behavioral logic. This IS the
       compilable logical atom — the single source of truth for imperative
       behavioral definitions. The definition-manager auto-derives the
       Mechanism's Effectors and Receptors from the operation body's AST
       (see Derivation Rules for the full derivation table).
-
-      **Operation API contract (STARLARK)**:
-
-      The operation body executes within a sandboxed Starlark environment
-      that exposes exactly: the `sys` namespace, injected host functions
-      (`on`, `now`, `uuid4`, `fullmatch`, `search`), and Starlark
-      built-ins. No other globals are permitted.
-
-      *`sys` namespace:*
-      - `sys.id` — read-only property: the Mechanism's `elementId`.
-
-      *Receptor derivation (inputs):*
-      - `on("ArchetypeName")` — MUST be the first executable statement.
-        Declares the triggering Archetype and returns its payload.
-        Auto-derives a Receptor typed by the named Archetype.
-      - Return-value assignment of a `sys.*` mutation call (see below)
-        auto-derives an additional Receptor (feedback / closed-loop).
-
-      *Effector derivation (outputs):*
-      - `sys.emit("ArchetypeName", data)` — emits data typed by the
-        named Archetype. Auto-derives an Effector.
-      - `sys.emit("ArchetypeName", data, response="RespArchetype")` —
-        emits with a synchronous response expectation. Auto-derives an
-        Effector (for the emit) and a Receptor (for the response).
-      - `sys.create("ArchetypeName", data)` — creates a state object.
-        Auto-derives an Effector.
-      - `sys.modify("ArchetypeName", filter, data)` — modifies state
-        object(s). Auto-derives an Effector.
-      - `sys.delete("ArchetypeName", filter)` — deletes state
-        object(s). Auto-derives an Effector.
-      - `sys.acquire("ArchetypeName", filter)` — reads/acquires state
-        object(s). Auto-derives an Effector.
-
-      *Closed-loop vs open-loop pattern:*
-      - `var = sys.create(...)` (assigned) → **closed-loop**: the DM
-        auto-derives a feedback Receptor, enabling verification.
-      - `sys.create(...)` (unassigned) → **open-loop** / fire-and-forget:
-        no feedback Receptor is derived.
-      - Same pattern applies to `sys.modify`, `sys.delete`,
-        `sys.acquire`.
-
-      *Injected host functions:*
-      - `on(archetype)` — event trigger declaration (see above).
-      - `now()` → ISO 8601 timestamp.
-      - `uuid4()` → random UUID string.
-      - `fullmatch(pattern, string)` → boolean (full regex match).
-      - `search(pattern, string)` → first regex match or None.
-
-    - `MechanismArchetype.operationLanguage` (ascription field): expression
-      language identifier. Currently only `STARLARK`. Determines the
-      parser and sandboxed execution environment the definition-manager
-      uses for validation, port auto-derivation, and runtime execution.
-    - `MechanismArchetype.function` (ascription field): capability label
-      describing what the Mechanism does (e.g., "validation", "routing",
-      "transformation").
+    - `MechanismArchetype.operationLanguage`: the language of the `operation`
+      code. Supported values: "STARLARK".
 
     **Validation Rules**:
 
@@ -1010,7 +941,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - MUST have at least 1 Receptor (guaranteed if at least one `sys.*`
       output call is present).
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
@@ -1018,42 +949,53 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Relational Consistency Rules**:
 
-    - Every ACTIVE Mechanism SHOULD be governed by at least one DNA chain
-      (ungoverned → governance gap).
-
     **Derivation Rules**:
 
-    - Reflexivity is derived from `MechanismArchetype.operation` targets: a
-      Mechanism is reflexive when it reads or produces definitions about its own
-      Structure's Elements.
-    - **Port auto-derivation**: the definition-manager parses the
-      `MechanismArchetype.operation` Starlark AST and auto-derives
-      Effectors and Receptors from `sys.*` call signatures:
-      - `on("A")` → Receptor (typed by Archetype "A").
-      - `sys.emit("A", data)` → Effector (typed by "A").
-      - `sys.emit("A", data, response="B")` → Effector ("A") +
-        Receptor ("B").
-      - `sys.create/modify/delete/acquire("A", ...)` → Effector ("A").
-      - `var = sys.create/modify/delete/acquire("A", ...)` →
-        Effector ("A") + feedback Receptor ("A") (closed-loop).
-      Auto-derived ports carry a `derived=true` marker. Ports are
-      recomputed on operation body change (body hash diff → delete
-      old derived ports, derive new ones).
+      - The Structure reference is derived from the Mechanism's Archetype
+        (`structureId`).
+      - *Receptor derivation (inputs)*
+        - `on("ArchetypeName")` — MUST be the first executable statement.
+          Declares the triggering Archetype and returns its payload.
+          Auto-derives a Receptor typed by the named Archetype.
+        - Return-value assignment of a `sys.*` mutation call (see below)
+          auto-derives an additional Receptor (feedback / closed-loop).
+      - *Effector derivation (outputs)*
+        - `sys.emit("ArchetypeName", data)` — emits data typed by the
+          named Archetype. Auto-derives an Effector.
+        - `sys.emit("ArchetypeName", data, response="RespArchetype")` —
+          emits with a synchronous response expectation. Auto-derives an
+          Effector (for the emit) and a Receptor (for the response).
+        - `sys.create("ArchetypeName", data)` — creates a state object.
+          Auto-derives an Effector.
+        - `sys.modify("ArchetypeName", filter, data)` — modifies state
+          object(s). Auto-derives an Effector.
+        - `sys.delete("ArchetypeName", filter)` — deletes state
+          object(s). Auto-derives an Effector.
+        - `sys.acquire("ArchetypeName", filter)` — reads/acquires state
+          object(s). Auto-derives an Effector.
 
     **Usage Rules**:
 
-    - `MechanismArchetype.operation` MUST be authored in the declared
-      `MechanismArchetype.operationLanguage` (currently: STARLARK with the
-      `sys.*` API).
-    - For reflexive Mechanisms, `MechanismArchetype.operation` MUST target the
-      owning Structure's ElementDefinitions.
-    - Every Mechanism SHOULD be connected via Interactions to participate in the
-      Structure's causal graph.
-
-    **Notes**:
-
-    - Effectors and Receptors are internal composites; they are not
-      tenant-extensible and have no standalone base archetypes.
+      - **Operation API contract (STARLARK)**
+        The operation body executes within a sandboxed Starlark environment
+        that exposes exactly: the `sys` namespace, injected host functions
+        (`on`, `now`, `uuid4`, `fullmatch`, `search`), and Starlark
+        built-ins. No other globals are permitted.
+        - *`sys` namespace*
+          - `sys.id` — read-only property: the Mechanism's `elementId`.
+        - *Closed-loop vs open-loop pattern*
+          - `var = sys.create(...)` (assigned) → **closed-loop**: the DM
+            auto-derives a feedback Receptor, enabling verification.
+          - `sys.create(...)` (unassigned) → **open-loop** / fire-and-forget:
+            no feedback Receptor is derived.
+          - Same pattern applies to `sys.modify`, `sys.delete`,
+            `sys.acquire`.
+        - *Injected host functions*
+          - `on(archetype)` — event trigger declaration (see above).
+          - `now()` → ISO 8601 timestamp.
+          - `uuid4()` → random UUID string.
+          - `fullmatch(pattern, string)` → boolean (full regex match).
+          - `search(pattern, string)` → first regex match or None.
   end note
 
   Mechanism --|> ElementDefinition
@@ -1077,47 +1019,35 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **Concept Semantics**:
 
     - Declares the type of information the Mechanism emits, by referencing an
-      Artifact (typed definition-plane deliverable). The Artifact's Archetype
-      determines the schema of the emitted data.
+      Artifact. The Artifact's Archetype determines the schema of the emitted
+      data.
     - Interactions originate from Effectors.
+    - Represents a mechanism's capability to produce an *effect*.
+    - Effectors are *ports*; they do not carry values at the GSM level. Values
+      exist in runtime instances.
 
     **Attribute Semantics**:
 
+    - `mechanism`: the composite Mechanism. An Effector cannot exist without a
+      Mechanism.
     - `artifact`: the Artifact definition typed by an Archetype that
       constrains the effector's output.
+    - `interface`: optional reference to an Interface that exposes this Effector
+      for inter-Structure coupling. If null, the Effector is private to its
+      Structure.
 
     **Validation Rules**:
 
+    - `mechanism` reference MUST NOT be null.
     - `artifact` reference MUST NOT be null.
-    - MUST belong to exactly one Mechanism.
+    - `interface` reference, if present, MUST reference an Interface that belongs
+      to the same Structure as the Mechanism.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Relational Consistency Rules**:
-
-    - Any Interaction from this Effector MUST terminate at a Receptor that
-      accepts a schema-compatible Artifact.
-
-    **Derivation Rules**:
-
-    - Output compatibility is derived from the referenced Artifact's Archetype
-      schema.
-
-    **Usage Rules**:
-
-    - Reference an Artifact whose Archetype schema matches the data the
-      Mechanism emits.
-    - Every Effector SHOULD participate in at least one Interaction to form a
-      complete causal path.
-
-    **Notes**:
-
-    - Effectors are ports; they do not carry values at the GSM level. Values
-      exist in runtime instances.
   end note
 
   Effector --|> ElementDefinition
@@ -1144,44 +1074,32 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       Artifact (typed definition-plane deliverable). The Artifact's Archetype
       determines the schema of the received data.
     - Interactions terminate at Receptors.
+    - Received Artifacts represent a *cause* for the mechanism to operate.
+    - Receptors are *ports*; they do not carry values at the GSM level. Values
+      exist in runtime instances.
 
     **Attribute Semantics**:
 
+    - `mechanism`: the composite Mechanism. A Receptor cannot exist without a
+      Mechanism.
     - `artifact`: the Artifact definition typed by an Archetype that
       constrains the receptor's input.
+    - `interface`: optional reference to an Interface that exposes this Receptor
+      for inter-Structure coupling. If null, the Receptor is private to its
+      Structure.
 
     **Validation Rules**:
 
+    - `mechanism` reference MUST NOT be null.
     - `artifact` reference MUST NOT be null.
-    - MUST belong to exactly one Mechanism.
+    - `interface` reference, if present, MUST reference an Interface that belongs
+      to the same Structure as the Mechanism.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Relational Consistency Rules**:
-
-    - Any Interaction into this Receptor MUST originate from an Effector that
-      emits a schema-compatible Artifact.
-
-    **Derivation Rules**:
-
-    - Input compatibility is derived from the referenced Artifact's Archetype
-      schema.
-
-    **Usage Rules**:
-
-    - Reference an Artifact whose Archetype schema matches the data the
-      Mechanism receives.
-    - Every Receptor SHOULD participate in at least one Interaction to form a
-      complete causal path.
-
-    **Notes**:
-
-    - Receptors are ports; they do not carry values at the GSM level. Values
-      exist in runtime instances.
   end note
 
   Receptor --|> ElementDefinition
@@ -1227,7 +1145,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - effector.emittedArtifact.archetype MUST be schema-compatible with
       receptor.receivedArtifact.archetype.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
@@ -1306,7 +1224,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - MUST contain at least 1 Effector or 1 Receptor.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
@@ -1392,7 +1310,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Ascription content MUST validate against the JSON Schema referenced by the
       Artifact's Archetype.
 
-    **State Transition Rules**:
+    **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
