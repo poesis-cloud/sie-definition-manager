@@ -417,6 +417,367 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   end note
 
   ' ============================================================
+  ' DIRECTIVE 
+  ' ============================================================
+
+  class Directive {
+    +getModal(): DirectiveModal
+    +getVerb(): DirectiveVerb
+    +getQualityDimension(): String
+    +getScope(): String
+  }
+
+  note bottom of Directive
+    **Directive** — Identity-level normative constraint (D).
+
+    **Concept Semantics**:
+
+    - Standalone first-class GSM class (does not extend Artifact or
+      ElementDefinition).
+    - Typed by DirectiveArchetype.
+    - The slowest-changing governance primitive. Changing a Directive = changing
+      the System's identity.
+    - Grammar: "Structure [modal] [verb] [qualityDimension] OF [scope]".
+    - Example: "System MUST ENSURE integrity OF order-processing".
+
+    **Attribute Semantics**:
+
+    - `modal`: normative strength (MUST / SHOULD / MAY).
+    - `verb`: governance action (ENSURE, PREVENT, MAINTAIN, OPTIMIZE, MINIMIZE,
+      MAXIMIZE, MONITOR, ENABLE).
+    - `qualityDimension`: the quality attribute targeted.
+    - `scope`: structural target (references Structure purpose or Element
+      identifiers).
+
+    **Validation Rules**:
+
+    - `modal` MUST NOT be null.
+    - `verb` MUST NOT be null.
+    - `qualityDimension` MUST be non-empty.
+    - `scope` MUST be non-empty.
+
+    **Assignment Rules**:
+
+    - None.
+
+    **Relational Consistency Rules**:
+
+    - A Directive SHOULD be operationalized by at least one Norm over time
+      (unrealized Directive → governance gap).
+
+    **Derivation Rules**:
+
+    - Norm candidates can be derived by mapping Directive `qualityDimension` and
+      `scope` to evaluable predicates over in-scope Archetypes.
+
+    **Usage Rules**:
+
+    - Author using the grammar: "Structure [modal] [verb] [qualityDimension] OF
+      [scope]".
+    - `scope` SHOULD reference the Structure's purpose or specific Element
+      identifiers.
+    - Each Directive SHOULD be operationalized by at least one Norm; an
+      unoperationalized Directive is a governance gap.
+
+    **Notes**:
+
+    - Directives encode identity-level commitments; they are intentionally
+      slower-changing than Norms.
+  end note
+
+  Directive --> DirectiveModal
+  Directive --> DirectiveVerb
+
+  enum DirectiveModal {
+    MUST
+    SHOULD
+    MAY
+  }
+
+  note bottom of DirectiveModal
+    **DirectiveModal** — Normative strength.
+
+    **Concept Semantics**:
+
+    - Encodes the normative strength of a Directive.
+
+    **Attribute Semantics**:
+
+    - `MUST`: mandatory (violation = non-compliance).
+    - `SHOULD`: recommended (violation = warning).
+    - `MAY`: optional (informational).
+
+    **Validation Rules**:
+
+    - None.
+
+    **Assignment Rules**:
+
+    - None.
+
+    **Relational Consistency Rules**:
+
+    - None.
+
+    **Derivation Rules**:
+
+    - None.
+
+    **Usage Rules**:
+
+    - Select MUST for mandatory constraints where violations constitute
+      non-compliance.
+    - Select SHOULD for recommended constraints where violations produce
+      warnings.
+    - Select MAY for informational/optional guidance.
+
+    **Notes**:
+
+    - Modal semantics define how violations are treated downstream (e.g., error
+      vs warning).
+  end note
+
+  enum DirectiveVerb {
+    ENSURE
+    PREVENT
+    MAINTAIN
+    OPTIMIZE
+    MINIMIZE
+    MAXIMIZE
+    MONITOR
+    ENABLE
+  }
+
+  note bottom of DirectiveVerb
+    **DirectiveVerb** — Governance action.
+
+    **Concept Semantics**:
+
+    - Expresses what the governance intent does to the quality dimension.
+
+    **Attribute Semantics**:
+
+    - None.
+
+    **Validation Rules**:
+
+    - None.
+
+    **Assignment Rules**:
+
+    - None.
+
+    **Relational Consistency Rules**:
+
+    - None.
+
+    **Derivation Rules**:
+
+    - None.
+
+    **Usage Rules**:
+
+    - Choose verb to express governance intent: ENSURE/PREVENT for binary
+      outcomes, OPTIMIZE/MINIMIZE/MAXIMIZE for continuous tuning, MONITOR for
+      observability-only, ENABLE for capability provisioning.
+    - Verb choice influences how downstream Norm predicates are framed (e.g.,
+      PREVENT → negation predicate, ENSURE → positive predicate).
+
+    **Notes**:
+
+    - Verb choice influences how Norm predicates are authored (e.g., PREVENT vs
+      ENSURE framing).
+  end note
+
+  ' ============================================================
+  ' NORM 
+  ' ============================================================
+
+  class Norm {
+    +getGuard(): String
+    +getPredicate(): String
+    +getToleranceMode(): ToleranceMode
+    +getTemporalWindow(): String
+    +getTemporalAggregation(): AggregationType
+    +getSustainedThreshold(): Double
+  }
+
+  note bottom of Norm
+    **Norm** — Measurable constraint predicate (N).
+
+    **Concept Semantics**:
+
+    - Standalone first-class GSM class (does not extend Artifact or
+      ElementDefinition).
+    - Typed by NormArchetype.
+    - Faster-changing than Directive. Operationalizes a Directive's intent into
+      an evaluable predicate.
+
+    **Attribute Semantics**:
+
+    - `guard`: CEL expression (default: "true"). Activation condition —
+      predicate is only evaluated when guard is true.
+    - `predicate`: CEL expression → true/false. The constraint. References
+      exactly one Archetype by name as root identifier, then navigates its JSON
+      fields. Example: `SecurityProperties.encryptionLevel >= "AES-128"`
+    - `toleranceMode`: how violations are measured over time.
+    - `temporalWindow`: ISO 8601 duration for time-based modes.
+    - `temporalAggregation`: aggregation function for the window.
+    - `sustainedThreshold`: ratio [0,1] for SUSTAINED mode.
+
+    **Validation Rules**:
+
+    - `guard` MUST be valid CEL.
+    - `predicate` MUST be valid CEL returning boolean.
+    - `predicate` MUST reference exactly one Archetype.
+    - `toleranceMode` MUST NOT be null.
+    - `temporalWindow` required when `toleranceMode` is time-based.
+    - `sustainedThreshold` required when `toleranceMode` = SUSTAINED, MUST be in
+      [0, 1].
+
+    **Assignment Rules**:
+
+    - When `guard` is omitted, the definition-manager MUST default it to `true`.
+
+    **Relational Consistency Rules**:
+
+    - `predicate` SHOULD reference in-scope archetypes for the governed
+      Structure.
+
+    **Derivation Rules**:
+
+    - Evaluation scheduling and aggregation semantics are derived from
+      `toleranceMode`, `temporalWindow`, and `temporalAggregation`.
+
+    **Usage Rules**:
+
+    - `predicate` MUST reference exactly one Archetype by name as root
+      identifier, then navigate its JSON fields.
+    - Select `toleranceMode` based on the measurement semantics; pair time-based
+      modes with a `temporalWindow`.
+    - Author `guard` and `predicate` in CEL within the selected profile; the
+      definition-manager rejects out-of-profile expressions.
+
+    **Notes**:
+
+    - CEL profile constraints are part of governance; the definition-manager
+      selects a CEL profile and rejects predicates that violate it.
+  end note
+
+  Norm --> ToleranceMode
+  Norm --> AggregationType
+
+  enum ToleranceMode {
+    INSTANTANEOUS
+    AVERAGED
+    PERCENTILE
+    RATE
+    SUSTAINED
+    CUMULATIVE
+    SLIDING
+  }
+
+  note bottom of ToleranceMode
+    **ToleranceMode** — How violations are measured.
+
+    **Concept Semantics**:
+
+    - Defines how a Norm predicate is evaluated over time.
+
+    **Attribute Semantics**:
+
+    - `INSTANTANEOUS`: single-point evaluation.
+    - `AVERAGED`: mean over temporalWindow.
+    - `PERCENTILE`: percentile over temporalWindow.
+    - `RATE`: rate of change over temporalWindow.
+    - `SUSTAINED`: must hold for sustainedThreshold fraction of temporalWindow.
+    - `CUMULATIVE`: cumulative sum over temporalWindow.
+    - `SLIDING`: sliding window evaluation.
+
+    **Validation Rules**:
+
+    - None.
+
+    **Assignment Rules**:
+
+    - None.
+
+    **Relational Consistency Rules**:
+
+    - Time-based modes SHOULD be paired with a temporalWindow.
+
+    **Derivation Rules**:
+
+    - Required temporal fields are derived from the selected tolerance mode.
+
+    **Usage Rules**:
+
+    - Select INSTANTANEOUS for point-in-time constraint checks.
+    - For time-based modes (AVERAGED, PERCENTILE, RATE, SUSTAINED, CUMULATIVE,
+      SLIDING), MUST pair with a `temporalWindow`.
+    - SUSTAINED mode additionally requires a `sustainedThreshold` in [0, 1].
+
+    **Notes**:
+
+    - The mode affects both violation detection and reporting.
+  end note
+
+  enum AggregationType {
+    SUM
+    AVG
+    MIN
+    MAX
+    COUNT
+    P50
+    P90
+    P95
+    P99
+  }
+
+  note bottom of AggregationType
+    **AggregationType** — Temporal aggregation function.
+
+    **Concept Semantics**:
+
+    - Applied to values within the temporalWindow when toleranceMode requires
+      aggregation.
+
+    **Attribute Semantics**:
+
+    - None.
+
+    **Validation Rules**:
+
+    - None.
+
+    **Assignment Rules**:
+
+    - None.
+
+    **Relational Consistency Rules**:
+
+    - Percentile aggregations SHOULD only be used when the underlying metric is
+      numeric.
+
+    **Derivation Rules**:
+
+    - Aggregation applicability is derived from the measured value type and the
+      tolerance mode.
+
+    **Usage Rules**:
+
+    - Match aggregation to metric type: SUM/AVG/MIN/MAX/ COUNT for numeric
+      metrics, percentiles (P50–P99) for latency/performance distributions.
+    - Aggregation is only relevant when `toleranceMode` requires temporal
+      aggregation.
+
+    **Notes**:
+
+    - Aggregations describe how measurements are summarized, not how they are
+      collected.
+  end note
+
+  ' ============================================================
   ' ASCRIPTION
   ' ============================================================
 
@@ -493,12 +854,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Every ElementDefinition instance references one Archetype.
     - Unified type construct for all structural and domain typing.
     - GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
-      InteractionArchetype, InterfaceArchetype, ArtifactArchetype. Governance
-      archetypes (DirectiveArchetype, NormArchetype) are standalone sealed
-      archetypes (they do not extend ArtifactArchetype). Effector and Receptor
-      are internal Mechanism composites (lifecycle-coupled ports) — they have no
-      base archetype and are not tenant-extensible. Base archetypes carry the
-      `$gsm:sealed` marker in their JSON Schema.
+      InteractionArchetype, InterfaceArchetype, ArtifactArchetype.
+      EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
+      for Mechanism ports (lifecycle-coupled, derived at compilation time) and
+      MUST NOT be tenant-extended. Governance archetypes (DirectiveArchetype,
+      NormArchetype) are standalone sealed archetypes (they do not extend
+      ArtifactArchetype). Base archetypes carry the `$gsm:sealed` marker in their
+      JSON Schema.
     - Archetype does not embed schema lifecycle metadata (timestamps, status,
       version lineage). Schema publication, versioning, compatibility policy,
       and deprecation are owned by the schema registry; GSM references schemas
@@ -999,7 +1361,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   end note
 
   Mechanism --|> ElementDefinition
-  Mechanism "0..*" --> "1" Structure : belongsTo
+  Mechanism "0..*" --> "1" Structure : constitutes
   Mechanism "1" *--> "1..*" Effector : has
   Mechanism "1" *--> "1..*" Receptor : has
 
@@ -1121,65 +1483,40 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Concept Semantics**:
 
-    - Connects an Effector of one Mechanism to a Receptor of another (or the
-      same) Mechanism.
-    - **Ownership**: an Interaction is owned by the Structure that owns the
-      Effector's Mechanism (i.e., the Structure that owns the Effector
-      indirectly).
-    - **Inter-Structure coupling**: an Interaction MAY connect an Effector and a
-      Receptor belonging to different Structures. In this case, the owning
-      Structure is still the Effector-side Structure.
-    - **Interface involvement**: when coupling crosses Structures, the
-      participating ports SHOULD be exposed by Interfaces of their respective
-      Structures (Interface is the exposure manifest; Interaction is the causal
-      binding).
+    - An **atomic causal coupling** from a producing effector to a
+      receiving receptor — the primitive of causality in the system.
+    - Connects an Effector of one Mechanism to a Receptor of another or the
+      same Mechanism.
+    - An Interaction may connect an Effector and a Receptor belonging to
+      different Structures.
+    - When coupling crosses Structures, the participating ports is
+      exposed by Interfaces of their respective Structures (Interface is the
+      exposure manifest; Interaction is the causal binding).
     - All causality is Interaction-mediated — no shared state at the structural
       level.
-    - Channel properties (protocol, capacity, QoS) are expressed as governance
-      Norms targeting the Interaction.
+    - Channel properties (environmental constraints, capacity, ...) are
+      expressed as governance Norms targeting the Interaction (physical laws
+      are Norms of the Universal Structure).
+
+    **Attributes Semantics**:
+
+    - `InteractionArchetype.effectorId`: The emitting endpoint producing an 
+      event instance.
+    - `InteractionArchetype.receptorId`: The receiving endpoint consuming an
+      event instance.
 
     **Validation Rules**:
 
-    - `effector` MUST NOT be null.
-    - `receptor` MUST NOT be null.
-    - effector.emittedArtifact.archetype MUST be schema-compatible with
-      receptor.receivedArtifact.archetype.
+    - `InteractionArchetype.effectorId` MUST NOT be null.
+    - `InteractionArchetype.receptorId` MUST NOT be null.
+    - `effector.emittedArtifact.archetype` MUST be schema-compatible with
+      `receptor.receivedArtifact.archetype`.
 
     **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Relational Consistency Rules**:
-
-    - Every Interaction SHOULD be governed by at least one DNA chain (ungoverned
-      → governance gap).
-    - The Interaction's owning Structure MUST be the Structure owning the
-      Effector's Mechanism.
-
-    **Derivation Rules**:
-
-    - Compatibility is derived from effector.emittedArtifact and
-      receptor.receivedArtifact archetype schemas.
-    - The Interaction's owning Structure is derived by resolving `effector` to
-      its owning Mechanism, then resolving that Mechanism to its owning
-      Structure.
-
-    **Usage Rules**:
-
-    - Connect only schema-compatible Effector → Receptor pairs (validated via
-      Archetype schema compatibility).
-    - For inter-Structure coupling, expose the Effector and Receptor ports via
-      Interfaces of their respective Structures, then bind those exposed ports
-      with an Interaction.
-    - Define channel-level constraints (protocol, capacity, QoS) as governance
-      Norms targeting the Interaction — not as Interaction attributes.
-
-    **Notes**:
-
-    - Channel semantics are not modeled as a primitive. They are introduced as
-      governance constraints.
   end note
 
   Interaction --|> ElementDefinition
@@ -1201,28 +1538,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Concept Semantics**:
 
-    - Declarative **exposure manifest**: names a boundary surface by listing
-      which Mechanism ports (Effectors/Receptors) are exposed for external
-      coupling.
+    - Declarative *exposure manifest*. Defines Structure's boundary
+      surface by listing which Mechanism ports (Effectors/Receptors) are
+      exposed for external coupling.
     - An Interface is **not** a Mechanism and has **no behavior** of its own.
-      All behavior and realization lives in Mechanisms; Interfaces only describe
+      All behavior and realization lives in Mechanisms; Interfaces only define
       exposure.
-    - The ports exposed by an Interface are declared in its Ascription via
-      `InterfaceArchetype.effectorIds` and `InterfaceArchetype.receptorIds`
-      (port identifiers).
     - Makes the boundary explicit and governable. Governance Norms can target an
       Interface directly (e.g., "all ports in this Interface must use mTLS").
-    - Each Effector/Receptor port SHOULD be assigned to **at most one**
-      Interface within a Structure (0..1 membership). If the same underlying
-      capability must be exposed through multiple surfaces, model it as distinct
-      ports (distinct Receptor/Effector elements) realized by the same
-      Mechanism.
-    - 0..* Effectors (can be output-only, input-only, or mixed). 0..* Receptors.
-      At least 1 port total.
+
+    **Attribute Semantics**:
+    - `Structure`: the owning Structure. An Interface cannot exist without a
+      Structure.
+    - `InterfaceArchetype.effectorIds`/`InterfaceArchetype.receptorIds`: lists
+      of referenced Effector/Receptor `id`s that declare which ports are exposed
+      by this Interface.
 
     **Validation Rules**:
 
-    - MUST contain at least 1 Effector or 1 Receptor.
+      - If `InterfaceArchetype.effectorIds`/`InterfaceArchetype.receptorIds` are
+        present, they MUST reference ports (Effector/Receptor `id`) that belong
+        to Mechanisms within the same Structure as the Interface's Structure.
 
     **State Rules**:
 
@@ -1230,20 +1566,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
 
-    **Relational Consistency Rules**:
-
-    - Every ACTIVE Interface SHOULD be governed by at least one DNA chain
-      (ungoverned → governance gap).
-    - All referenced Effectors/Receptors MUST belong to Mechanisms within the
-      same Structure.
-    - Each referenced Effector/Receptor port MUST be exposed by at most one
-      Interface within the same Structure (exclusive membership).
-
     **Derivation Rules**:
 
     - An external boundary view can be derived by enumerating the union of ports
       contained in all Interfaces.
-    - An Interface's owning Structure can be derived by resolving its
+    - An Interface's Structure can be derived by resolving its
       `InterfaceArchetype.effectorIds`/`InterfaceArchetype.receptorIds` to
       Effector/Receptor ElementDefinitions, then resolving each port to its
       owning Mechanism, then taking that Mechanism's
@@ -1256,12 +1583,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Group ports by external exposure semantics (e.g., "admin", "monitoring",
       "public API").
     - Apply boundary-level governance Norms to Interfaces rather than individual
-      ports when the constraint is uniform across all grouped ports.
-
-    **Notes**:
-
-    - Interfaces are a governance handle for boundary-level constraints and
-      exposure reasoning.
+      ports when the constraint is uniform across all grouped ports, (AND)
+      relative to th eInterface itself.
   end note
 
   Interface --|> ElementDefinition
@@ -1276,435 +1599,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   class Artifact
 
   note bottom of Artifact
-    **Artifact** — Typed definition-plane deliverable.
+    **Artifact** — Typed  deliverable.
 
     **Concept Semantics**:
 
-    - Extends ElementDefinition. Carries typed data via its Ascription payload —
-      the general-purpose definition-plane data carrier.
-    - Inherits all ElementDefinition attributes (id, elementId, archetype,
-      ascription, revision, version, status).
-    - Any Archetype-typed data that needs to be persisted as a definition-plane
-      deliverable is an Artifact. Governance DNA (Directives, Norms) is the
-      primary use case, but Artifacts can carry any domain-typed information
-      that Mechanisms produce as definitions.
-    - Artifacts are produced by Mechanisms and are surfaced through Effectors.
-      An Artifact is emitted by at most one Effector (inverse cardinality
-      0..1) and may be referenced by one or more Receptors.
-    - Directive and Norm are standalone first-class GSM classes — they do not
-      extend Artifact or ElementDefinition. They are typed by their own sealed
-      governance archetypes (DirectiveArchetype, NormArchetype).
-    - DNA chain: D → N (WHY → WHAT). Chain variations: DN (full), D-only,
-      N-only.
-    - Reflexive Mechanisms produce governance DNA (Directives, Norms). A
-      Structure without governance DNA has no self-governance (i.e., is not a
-      System).
-
-    **Attribute Semantics**:
-
-    - `ascription`: Ascription payload whose content structure is constrained by
-      the Archetype schema.
-
-    **Validation Rules**:
-
-    - Ascription content MUST validate against the JSON Schema referenced by the
-      Artifact's Archetype.
+    - Defines the structure and semantics of domain knowledge handled by
+      Mechanisms via atheir Receptors and Effectors.
+    - Expressed as Archetype-typed JSON Schema.
 
     **State Rules**:
 
     - See `gsm-definition-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Relational Consistency Rules**:
-
-    - An Artifact referenced by an Effector/Receptor MUST be compatible (by
-      archetype schema) with the Interaction(s) it participates in.
-
-    **Derivation Rules**:
-
-    - Effective instance schema is derived from the Archetype schema referenced
-      by `archetype.schemaUri`.
-
-    **Usage Rules**:
-
-    - Use Artifacts for any definition-plane deliverable that needs to be
-      persisted and Archetype-typed.
-    - Do NOT model governance DNA (Directives, Norms) as Artifacts — use the
-      standalone Directive/Norm classes.
-    - Artifact Ascription content MUST validate against the Archetype schema
-      referenced by `archetype.schemaUri`.
-
-    **Notes**:
-
-    - Named "Artifact" (not "Object") because "Object" collides with eliminated
-      "Object / Event / State Object" primitives, OO semantics, and CRUD "domain
-      object" patterns. "Artifact" emphasizes produced definition-plane
-      deliverable.
   end note
 
   Artifact --|> ElementDefinition
-
-  ' ============================================================
-  ' DIRECTIVE 
-  ' ============================================================
-
-  class Directive {
-    +getModal(): DirectiveModal
-    +getVerb(): DirectiveVerb
-    +getQualityDimension(): String
-    +getScope(): String
-  }
-
-  note bottom of Directive
-    **Directive** — Identity-level normative constraint (D).
-
-    **Concept Semantics**:
-
-    - Standalone first-class GSM class (does not extend Artifact or
-      ElementDefinition).
-    - Typed by DirectiveArchetype.
-    - The slowest-changing governance primitive. Changing a Directive = changing
-      the System's identity.
-    - Grammar: "Structure [modal] [verb] [qualityDimension] OF [scope]".
-    - Example: "System MUST ENSURE integrity OF order-processing".
-
-    **Attribute Semantics**:
-
-    - `modal`: normative strength (MUST / SHOULD / MAY).
-    - `verb`: governance action (ENSURE, PREVENT, MAINTAIN, OPTIMIZE, MINIMIZE,
-      MAXIMIZE, MONITOR, ENABLE).
-    - `qualityDimension`: the quality attribute targeted.
-    - `scope`: structural target (references Structure purpose or Element
-      identifiers).
-
-    **Validation Rules**:
-
-    - `modal` MUST NOT be null.
-    - `verb` MUST NOT be null.
-    - `qualityDimension` MUST be non-empty.
-    - `scope` MUST be non-empty.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - A Directive SHOULD be operationalized by at least one Norm over time
-      (unrealized Directive → governance gap).
-
-    **Derivation Rules**:
-
-    - Norm candidates can be derived by mapping Directive `qualityDimension` and
-      `scope` to evaluable predicates over in-scope Archetypes.
-
-    **Usage Rules**:
-
-    - Author using the grammar: "Structure [modal] [verb] [qualityDimension] OF
-      [scope]".
-    - `scope` SHOULD reference the Structure's purpose or specific Element
-      identifiers.
-    - Each Directive SHOULD be operationalized by at least one Norm; an
-      unoperationalized Directive is a governance gap.
-
-    **Notes**:
-
-    - Directives encode identity-level commitments; they are intentionally
-      slower-changing than Norms.
-  end note
-
-  Directive --> DirectiveModal
-  Directive --> DirectiveVerb
-
-  enum DirectiveModal {
-    MUST
-    SHOULD
-    MAY
-  }
-
-  note bottom of DirectiveModal
-    **DirectiveModal** — Normative strength.
-
-    **Concept Semantics**:
-
-    - Encodes the normative strength of a Directive.
-
-    **Attribute Semantics**:
-
-    - `MUST`: mandatory (violation = non-compliance).
-    - `SHOULD`: recommended (violation = warning).
-    - `MAY`: optional (informational).
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - None.
-
-    **Derivation Rules**:
-
-    - None.
-
-    **Usage Rules**:
-
-    - Select MUST for mandatory constraints where violations constitute
-      non-compliance.
-    - Select SHOULD for recommended constraints where violations produce
-      warnings.
-    - Select MAY for informational/optional guidance.
-
-    **Notes**:
-
-    - Modal semantics define how violations are treated downstream (e.g., error
-      vs warning).
-  end note
-
-  enum DirectiveVerb {
-    ENSURE
-    PREVENT
-    MAINTAIN
-    OPTIMIZE
-    MINIMIZE
-    MAXIMIZE
-    MONITOR
-    ENABLE
-  }
-
-  note bottom of DirectiveVerb
-    **DirectiveVerb** — Governance action.
-
-    **Concept Semantics**:
-
-    - Expresses what the governance intent does to the quality dimension.
-
-    **Attribute Semantics**:
-
-    - None.
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - None.
-
-    **Derivation Rules**:
-
-    - None.
-
-    **Usage Rules**:
-
-    - Choose verb to express governance intent: ENSURE/PREVENT for binary
-      outcomes, OPTIMIZE/MINIMIZE/MAXIMIZE for continuous tuning, MONITOR for
-      observability-only, ENABLE for capability provisioning.
-    - Verb choice influences how downstream Norm predicates are framed (e.g.,
-      PREVENT → negation predicate, ENSURE → positive predicate).
-
-    **Notes**:
-
-    - Verb choice influences how Norm predicates are authored (e.g., PREVENT vs
-      ENSURE framing).
-  end note
-
-  ' ============================================================
-  ' NORM 
-  ' ============================================================
-
-  class Norm {
-    +getGuard(): String
-    +getPredicate(): String
-    +getToleranceMode(): ToleranceMode
-    +getTemporalWindow(): String
-    +getTemporalAggregation(): AggregationType
-    +getSustainedThreshold(): Double
-  }
-
-  note bottom of Norm
-    **Norm** — Measurable constraint predicate (N).
-
-    **Concept Semantics**:
-
-    - Standalone first-class GSM class (does not extend Artifact or
-      ElementDefinition).
-    - Typed by NormArchetype.
-    - Faster-changing than Directive. Operationalizes a Directive's intent into
-      an evaluable predicate.
-
-    **Attribute Semantics**:
-
-    - `guard`: CEL expression (default: "true"). Activation condition —
-      predicate is only evaluated when guard is true.
-    - `predicate`: CEL expression → true/false. The constraint. References
-      exactly one Archetype by name as root identifier, then navigates its JSON
-      fields. Example: `SecurityProperties.encryptionLevel >= "AES-128"`
-    - `toleranceMode`: how violations are measured over time.
-    - `temporalWindow`: ISO 8601 duration for time-based modes.
-    - `temporalAggregation`: aggregation function for the window.
-    - `sustainedThreshold`: ratio [0,1] for SUSTAINED mode.
-
-    **Validation Rules**:
-
-    - `guard` MUST be valid CEL.
-    - `predicate` MUST be valid CEL returning boolean.
-    - `predicate` MUST reference exactly one Archetype.
-    - `toleranceMode` MUST NOT be null.
-    - `temporalWindow` required when `toleranceMode` is time-based.
-    - `sustainedThreshold` required when `toleranceMode` = SUSTAINED, MUST be in
-      [0, 1].
-
-    **Assignment Rules**:
-
-    - When `guard` is omitted, the definition-manager MUST default it to `true`.
-
-    **Relational Consistency Rules**:
-
-    - `predicate` SHOULD reference in-scope archetypes for the governed
-      Structure.
-
-    **Derivation Rules**:
-
-    - Evaluation scheduling and aggregation semantics are derived from
-      `toleranceMode`, `temporalWindow`, and `temporalAggregation`.
-
-    **Usage Rules**:
-
-    - `predicate` MUST reference exactly one Archetype by name as root
-      identifier, then navigate its JSON fields.
-    - Select `toleranceMode` based on the measurement semantics; pair time-based
-      modes with a `temporalWindow`.
-    - Author `guard` and `predicate` in CEL within the selected profile; the
-      definition-manager rejects out-of-profile expressions.
-
-    **Notes**:
-
-    - CEL profile constraints are part of governance; the definition-manager
-      selects a CEL profile and rejects predicates that violate it.
-  end note
-
-  Norm --> ToleranceMode
-  Norm --> AggregationType
-
-  enum ToleranceMode {
-    INSTANTANEOUS
-    AVERAGED
-    PERCENTILE
-    RATE
-    SUSTAINED
-    CUMULATIVE
-    SLIDING
-  }
-
-  note bottom of ToleranceMode
-    **ToleranceMode** — How violations are measured.
-
-    **Concept Semantics**:
-
-    - Defines how a Norm predicate is evaluated over time.
-
-    **Attribute Semantics**:
-
-    - `INSTANTANEOUS`: single-point evaluation.
-    - `AVERAGED`: mean over temporalWindow.
-    - `PERCENTILE`: percentile over temporalWindow.
-    - `RATE`: rate of change over temporalWindow.
-    - `SUSTAINED`: must hold for sustainedThreshold fraction of temporalWindow.
-    - `CUMULATIVE`: cumulative sum over temporalWindow.
-    - `SLIDING`: sliding window evaluation.
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - Time-based modes SHOULD be paired with a temporalWindow.
-
-    **Derivation Rules**:
-
-    - Required temporal fields are derived from the selected tolerance mode.
-
-    **Usage Rules**:
-
-    - Select INSTANTANEOUS for point-in-time constraint checks.
-    - For time-based modes (AVERAGED, PERCENTILE, RATE, SUSTAINED, CUMULATIVE,
-      SLIDING), MUST pair with a `temporalWindow`.
-    - SUSTAINED mode additionally requires a `sustainedThreshold` in [0, 1].
-
-    **Notes**:
-
-    - The mode affects both violation detection and reporting.
-  end note
-
-  enum AggregationType {
-    SUM
-    AVG
-    MIN
-    MAX
-    COUNT
-    P50
-    P90
-    P95
-    P99
-  }
-
-  note bottom of AggregationType
-    **AggregationType** — Temporal aggregation function.
-
-    **Concept Semantics**:
-
-    - Applied to values within the temporalWindow when toleranceMode requires
-      aggregation.
-
-    **Attribute Semantics**:
-
-    - None.
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - Percentile aggregations SHOULD only be used when the underlying metric is
-      numeric.
-
-    **Derivation Rules**:
-
-    - Aggregation applicability is derived from the measured value type and the
-      tolerance mode.
-
-    **Usage Rules**:
-
-    - Match aggregation to metric type: SUM/AVG/MIN/MAX/ COUNT for numeric
-      metrics, percentiles (P50–P99) for latency/performance distributions.
-    - Aggregation is only relevant when `toleranceMode` requires temporal
-      aggregation.
-
-    **Notes**:
-
-    - Aggregations describe how measurements are summarized, not how they are
-      collected.
-  end note
 }
 
 @enduml

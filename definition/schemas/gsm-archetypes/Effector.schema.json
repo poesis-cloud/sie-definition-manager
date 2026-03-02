@@ -1,0 +1,35 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sie://schemas/gsm/v1/Effector.schema.json",
+    "title": "Effector",
+    "description": "Base ascription schema for Effector ElementDefinitions. An Effector is an output port of a Mechanism, derived by the definition-manager from the Mechanism operation's AST. It references the owning Mechanism and the Artifact definition that types the emitted data. Tenant-defined archetypes MUST NOT extend Effector.",
+    "$gsm:sealed": true,
+    "$gsm:elementDefinitionSubtype": "Effector",
+    "$gsm:internal": true,
+    "type": "object",
+    "required": [
+        "mechanismId",
+        "artifactId"
+    ],
+    "properties": {
+        "mechanismId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identifier of the owning Mechanism (typically the Mechanism ElementDefinition's elementId)."
+        },
+        "artifactId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identifier of the Artifact ElementDefinition that types the Effector's output payload."
+        },
+        "interfaceId": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "minLength": 1,
+            "description": "Optional identifier of the Interface ElementDefinition that exposes this Effector for inter-Structure coupling. Null means the port is private to the Structure."
+        }
+    },
+    "additionalProperties": false
+}
