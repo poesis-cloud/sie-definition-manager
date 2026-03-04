@@ -88,8 +88,8 @@ note as Rules
   | Referee      | Reference    |
   |--------------+--------------|
   | Mechanism    | Structure    |
-  | Effector     | Artifact     |
-  | Receptor     | Artifact     |
+  | Effector     | Object     |
+  | Receptor     | Object     |
   | Interaction  | Effector     |
   | Interaction  | Receptor     |
   | Interface    | Structure    |
@@ -99,7 +99,7 @@ note as Rules
   | Not Referee  | No Reference |
   |--------------+--------------|
   | Structure    | (none)       |
-  | Artifact     | (none)       |
+  | Object     | (none)       |
 
   - **Referee**
     - `[*]->DRAFT`
@@ -392,18 +392,18 @@ note as Scenarios
 
   ====
 
-  **§6 — Not-Referee (Structure, Artifact)**
+  **§6 — Not-Referee (Structure, Object)**
 
   SC-50 — Structure(DRAFT). Structure `DRAFT->PROPOSED`.
   **PASS**: no References → always passes.
 
-  SC-51 — Artifact(DRAFT). Artifact `DRAFT->PROPOSED`.
+  SC-51 — Object(DRAFT). Object `DRAFT->PROPOSED`.
   **PASS**: no References → always passes.
 
   SC-52 — Structure(ACTIVE). Structure `ACTIVE->DEPRECATED`.
   **PASS**: no References → always passes.
 
-  SC-53 — Artifact(DEPRECATED). Artifact `DEPRECATED->RETIRED`.
+  SC-53 — Object(DEPRECATED). Object `DEPRECATED->RETIRED`.
   **PASS**: no References → always passes.
 
   ====
@@ -411,44 +411,44 @@ note as Scenarios
   **§7 — Composition cascade (strict)**
 
   SC-60 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
-  Effector.Artifact(PROPOSED), Receptor.Artifact(PROPOSED).
+  Effector.Object(PROPOSED), Receptor.Object(PROPOSED).
   Mechanism `DRAFT->PROPOSED`.
   **CASCADE**: Effector `DRAFT->PROPOSED` (step 1 OK,
-  step 2 OK: Artifact PROPOSED ∈ {PROPOSED,APPROVED,ACTIVE}).
+  step 2 OK: Object PROPOSED ∈ {PROPOSED,APPROVED,ACTIVE}).
   **CASCADE**: Receptor `DRAFT->PROPOSED` (same).
 
   SC-61 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
-  Effector.Artifact(DRAFT), Receptor.Artifact(PROPOSED).
+  Effector.Object(DRAFT), Receptor.Object(PROPOSED).
   Mechanism `DRAFT->PROPOSED`.
-  Effector cascade step 2 fails: Artifact DRAFT ∉
+  Effector cascade step 2 fails: Object DRAFT ∉
   {PROPOSED,APPROVED,ACTIVE}.
   **BLOCKED**: Mechanism transition MUST be rejected
   (composition — on failure: reject source).
 
   SC-62 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Artifact(ACTIVE),
-  Receptor.Artifact(ACTIVE).
+  Receptor(ACTIVE). Effector.Object(ACTIVE),
+  Receptor.Object(ACTIVE).
   Mechanism `ACTIVE->SUSPENDED`.
   **CASCADE**: Effector `ACTIVE->SUSPENDED`.
   **CASCADE**: Receptor `ACTIVE->SUSPENDED`.
 
   SC-63 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Artifact(ACTIVE),
-  Receptor.Artifact(ACTIVE).
+  Receptor(ACTIVE). Effector.Object(ACTIVE),
+  Receptor.Object(ACTIVE).
   Mechanism `ACTIVE->DEPRECATED`.
   **CASCADE**: Effector `ACTIVE->DEPRECATED`.
   **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
 
   SC-64 — Mechanism(DRAFT), Effector(DRAFT),
-  Receptor(DRAFT). Effector.Artifact(DRAFT),
-  Receptor.Artifact(DRAFT).
+  Receptor(DRAFT). Effector.Object(DRAFT),
+  Receptor.Object(DRAFT).
   Mechanism `DRAFT->ABANDONED`.
   **CASCADE**: Effector `DRAFT->ABANDONED`.
   **CASCADE**: Receptor `DRAFT->ABANDONED`.
 
   SC-65 — Mechanism(PROPOSED), Effector(PROPOSED),
-  Receptor(PROPOSED). Effector.Artifact(PROPOSED),
-  Receptor.Artifact(PROPOSED).
+  Receptor(PROPOSED). Effector.Object(PROPOSED),
+  Receptor.Object(PROPOSED).
   Mechanism `PROPOSED->REJECTED`.
   **CASCADE**: Effector `PROPOSED->REJECTED`.
   **CASCADE**: Receptor `PROPOSED->REJECTED`.
@@ -564,7 +564,7 @@ note as Scenarios
 
   SC-90 — Structure(DRAFT), Mechanism(DRAFT),
   Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT).
-  Effector.Artifact(PROPOSED), Receptor.Artifact(PROPOSED).
+  Effector.Object(PROPOSED), Receptor.Object(PROPOSED).
   Structure `DRAFT->PROPOSED`.
   Chain: Structure→(agg)Mechanism→(comp)Effector,Receptor.
   **CASCADE**: Mechanism `DRAFT->PROPOSED`.
@@ -614,19 +614,19 @@ note as Scenarios
   **§11 — Composition cascade failure blocks source**
 
   SC-95 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Artifact(RETIRED),
-  Receptor.Artifact(ACTIVE).
+  Receptor(ACTIVE). Effector.Object(RETIRED),
+  Receptor.Object(ACTIVE).
   Mechanism `ACTIVE->SUSPENDED`.
-  Effector cascade step 2: Artifact RETIRED ∉
+  Effector cascade step 2: Object RETIRED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
   **BLOCKED**: Mechanism `ACTIVE->SUSPENDED` MUST be
   rejected (composition — on failure: reject source).
 
   SC-96 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Artifact(ACTIVE),
-  Receptor.Artifact(ABANDONED).
+  Receptor(ACTIVE). Effector.Object(ACTIVE),
+  Receptor.Object(ABANDONED).
   Mechanism `ACTIVE->DEPRECATED`.
-  Receptor cascade step 2: Artifact ABANDONED ∉
+  Receptor cascade step 2: Object ABANDONED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
   **BLOCKED**: Mechanism `ACTIVE->DEPRECATED` MUST be
   rejected (composition — on failure: reject source).
@@ -649,10 +649,10 @@ note as Scenarios
 
   SC-103 — Structure(ACTIVE), Mechanism(SUSPENDED),
   Effector(SUSPENDED), Receptor(SUSPENDED).
-  Effector.Artifact(ACTIVE), Receptor.Artifact(ACTIVE).
+  Effector.Object(ACTIVE), Receptor.Object(ACTIVE).
   Mechanism `SUSPENDED->ACTIVE`.
   **CASCADE** (composition): Effector `SUSPENDED->ACTIVE`
-  (step 2 OK: Artifact ACTIVE ∈ {ACTIVE,DEPRECATED}),
+  (step 2 OK: Object ACTIVE ∈ {ACTIVE,DEPRECATED}),
   Receptor `SUSPENDED->ACTIVE` (same).
   No reference cascade (restoration not in scope).
 end note

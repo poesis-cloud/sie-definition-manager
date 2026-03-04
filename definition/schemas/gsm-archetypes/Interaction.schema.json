@@ -21,6 +21,5 @@
             "minLength": 1,
             "description": "Identifier of the Receptor ElementDefinition that is the receiving endpoint (Interaction.to)."
         }
-    },
-    "additionalProperties": false
+    }
 }

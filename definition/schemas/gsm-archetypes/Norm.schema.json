@@ -2,41 +2,105 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Norm.schema.json",
     "title": "Norm",
-    "description": "Standalone governance archetype for Norm — measurable constraint predicates (DNA 'N'). Operationalizes a Directive's intent into an evaluable predicate. Faster-changing than Directive.",
+    "description": "Governance DNA archetype for Norm — measurable constraint predicates (DNA 'N'). Standalone first-class GSM class typed by NormArchetype. Fields: directiveId, structureId, guard, predicate, toleranceMode, temporalWindow, temporalAggregation, sustainedThreshold.",
     "$gsm:sealed": true,
+    "$gsm:elementDefinitionSubtype": "Norm",
+    "allOf": [
+        {
+            "$ref": "sie://schemas/gsm/v1/Object.schema.json"
+        },
+        {
+            "if": {
+                "properties": {
+                    "toleranceMode": {
+                        "const": "INSTANTANEOUS"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "temporalWindow": false,
+                    "temporalAggregation": false,
+                    "sustainedThreshold": false
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "toleranceMode": {
+                        "const": "AGGREGATED"
+                    }
+                }
+            },
+            "then": {
+                "required": [
+                    "temporalWindow",
+                    "temporalAggregation"
+                ],
+                "properties": {
+                    "sustainedThreshold": false
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "toleranceMode": {
+                        "const": "SUSTAINED"
+                    }
+                }
+            },
+            "then": {
+                "required": [
+                    "temporalWindow",
+                    "temporalAggregation",
+                    "sustainedThreshold"
+                ]
+            }
+        }
+    ],
     "type": "object",
     "required": [
+        "directiveId",
+        "structureId",
         "predicate",
         "toleranceMode"
     ],
     "properties": {
+        "directiveId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Reference to the Directive this Norm operationalizes (Directive's elementId). Every Norm operationalizes exactly one Directive."
+        },
+        "structureId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The authoring/owning Structure's elementId (definedBy relationship). May differ from the Directive's owning Structure."
+        },
         "guard": {
             "type": "string",
             "default": "true",
-            "description": "CEL expression — activation condition. Predicate is only evaluated when guard is true."
+            "description": "CEL expression \u2014 activation condition. Predicate is only evaluated when guard is true."
         },
         "predicate": {
             "type": "string",
             "minLength": 1,
-            "description": "CEL expression returning boolean. The constraint. References exactly one ElementArchetype by name as root identifier, then navigates its JSON fields. Example: SecurityProperties.encryptionLevel >= 'AES-128'."
+            "description": "CEL expression returning boolean. The constraint. References exactly one Archetype by name as root identifier, then navigates its JSON fields. Example: SecurityProperties.encryptionLevel >= 'AES-128'."
         },
         "toleranceMode": {
             "type": "string",
             "enum": [
                 "INSTANTANEOUS",
-                "AVERAGED",
-                "PERCENTILE",
-                "RATE",
-                "SUSTAINED",
-                "CUMULATIVE",
-                "SLIDING"
+                "AGGREGATED",
+                "SUSTAINED"
             ],
             "description": "How violations are measured over time."
         },
         "temporalWindow": {
             "type": "string",
             "pattern": "^P",
-            "description": "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is time-based (AVERAGED, PERCENTILE, RATE, SUSTAINED, CUMULATIVE, SLIDING)."
+            "description": "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is time-based (AGGREGATED, SUSTAINED)."
         },
         "temporalAggregation": {
             "type": "string",
@@ -57,21 +121,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "description": "Ratio [0,1] — fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
+            "description": "Ratio [0,1] \u2014 fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
         }
-    },
-    "additionalProperties": false,
-    "if": {
-        "properties": {
-            "toleranceMode": {
-                "const": "SUSTAINED"
-            }
-        }
-    },
-    "then": {
-        "required": [
-            "temporalWindow",
-            "sustainedThreshold"
-        ]
     }
 }

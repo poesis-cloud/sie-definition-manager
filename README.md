@@ -218,6 +218,183 @@ GSM and DSM are therefore coupled at the structural layer — this is their shar
 - Supervision information model: `../sie-supervision/definition/sie-supervision-information-model.puml`
 - SIE overview: `../README.md`
 
+## Governance examples — Directive → Norm by element type
+
+> **Terminology note.** These examples use the current GSM primitives
+> (Directive, Norm, Archetype, Structure). Some sections above still use
+> earlier naming (Policy, Rule, Qualifier / DPQR) and will be aligned in a
+> subsequent pass.
+
+### The qualifierArchetypeId governance chain
+
+A Directive's `qualifierArchetypeId` references the **Archetype** whose JSON
+Schema defines the measurable properties being governed. Every Norm
+operationalizing that Directive references the **same Archetype** as root
+identifier in its CEL `predicate`. This closes a machine-verifiable governance
+chain:
+
+```
+Directive (qualifierArchetypeId → Archetype A)
+    └── Norm (predicate root identifier → same Archetype A)
+```
+
+The definition-manager validates this link: a Norm whose predicate references
+an Archetype that differs from its Directive's `qualifierArchetypeId` is
+rejected.
+
+### Two governance patterns
+
+The same Directive → Norm machinery supports two distinct evaluation modes,
+depending on what the qualifier Archetype types:
+
+| Pattern | qualifierArchetypeId types… | Norm evaluates… | Trigger |
+|---------|----------------------------|-----------------|---------|
+| **Definition-time** | ElementDefinition Ascriptions (Structure, Mechanism, Interface, Interaction) | Ascription properties when a definition is authored or modified | Definition change event |
+| **Runtime observation** | Artifact instances from the Description plane | Observed metrics / measurements at runtime | Observation event |
+
+### Example 1 — Structure governance: SecurityProperties
+
+**Archetype**: `SecurityProperties` (extends StructureArchetype).
+Schema defines: `encryptionLevel`, `authenticationProtocol`, `dataClassification`, …
+
+**Directive** (Ascription payload):
+
+```json
+{
+  "structureId":        "platform-governance",
+  "modal":              "MUST",
+  "verb":               "ENSURE",
+  "qualifierArchetypeId": "SecurityProperties",
+  "purposeStructureId": "order-processing"
+}
+```
+
+*Reads: "platform-governance MUST ENSURE SecurityProperties OF order-processing."*
+
+**Norms** operationalizing this Directive:
+
+| guard | predicate | toleranceMode | meaning |
+|-------|-----------|---------------|---------|
+| `true` | `SecurityProperties.encryptionLevel >= "AES-256"` | INSTANTANEOUS | All order-processing Structures must use AES-256+ encryption |
+| `true` | `SecurityProperties.authenticationProtocol == "mTLS"` | INSTANTANEOUS | Must use mTLS between services |
+
+*Pattern: **definition-time**. Norms evaluate Structure Ascription properties when the definition is authored.*
+
+### Example 2 — Mechanism governance: ComplianceProperties
+
+**Archetype**: `ComplianceProperties` (extends MechanismArchetype).
+Schema defines: `framework`, `validationCoverage`, `lastAuditDate`, …
+
+**Directive**:
+
+```json
+{
+  "structureId":        "compliance-board",
+  "modal":              "MUST",
+  "verb":               "ENSURE",
+  "qualifierArchetypeId": "ComplianceProperties",
+  "purposeStructureId": "payment-validation"
+}
+```
+
+*Reads: "compliance-board MUST ENSURE ComplianceProperties OF payment-validation."*
+
+**Norms**:
+
+| guard | predicate | toleranceMode | meaning |
+|-------|-----------|---------------|---------|
+| `ComplianceProperties.framework == "PCI-DSS"` | `ComplianceProperties.validationCoverage >= 0.95` | INSTANTANEOUS | PCI-DSS mechanisms must have ≥ 95 % validation coverage |
+| `ComplianceProperties.framework == "SOC2"` | `ComplianceProperties.validationCoverage >= 0.80` | INSTANTANEOUS | SOC2 mechanisms need ≥ 80 % coverage |
+
+*Pattern: **definition-time**. The guard filters which Mechanisms the Norm applies to (only those in the matching compliance framework). Guards are how Norms achieve conditional governance without branching logic.*
+
+### Example 3 — Interface governance: APISecurityProperties
+
+**Archetype**: `APISecurityProperties` (extends InterfaceArchetype).
+Schema defines: `exposure`, `tlsVersion`, `rateLimitRps`, `corsPolicy`, …
+
+**Directive**:
+
+```json
+{
+  "structureId":        "security-team",
+  "modal":              "MUST",
+  "verb":               "ENSURE",
+  "qualifierArchetypeId": "APISecurityProperties",
+  "purposeStructureId": "customer-portal"
+}
+```
+
+*Reads: "security-team MUST ENSURE APISecurityProperties OF customer-portal."*
+
+**Norms**:
+
+| guard | predicate | toleranceMode | meaning |
+|-------|-----------|---------------|---------|
+| `APISecurityProperties.exposure == "public"` | `APISecurityProperties.tlsVersion >= "1.3"` | INSTANTANEOUS | Public interfaces must use TLS 1.3+ |
+| `APISecurityProperties.exposure == "public"` | `APISecurityProperties.rateLimitRps > 0` | INSTANTANEOUS | Public interfaces must have rate limiting |
+| `true` | `APISecurityProperties.corsPolicy != ""` | INSTANTANEOUS | All interfaces must declare a CORS policy |
+
+*Pattern: **definition-time**. Guards filter by exposure level — some Norms apply only to public-facing Interfaces, others apply universally.*
+
+### Example 4 — Interaction governance: InteractionReliabilityProperties
+
+**Archetype**: `InteractionReliabilityProperties` (extends InteractionArchetype).
+Schema defines: `encryptionInTransit`, `maxPayloadBytes`, `retryPolicy`, …
+
+**Directive**:
+
+```json
+{
+  "structureId":        "infrastructure-team",
+  "modal":              "MUST",
+  "verb":               "ENSURE",
+  "qualifierArchetypeId": "InteractionReliabilityProperties",
+  "purposeStructureId": "payment-notification-flow"
+}
+```
+
+*Reads: "infrastructure-team MUST ENSURE InteractionReliabilityProperties OF payment-notification-flow."*
+
+**Norms**:
+
+| guard | predicate | toleranceMode | meaning |
+|-------|-----------|---------------|---------|
+| `true` | `InteractionReliabilityProperties.encryptionInTransit == true` | INSTANTANEOUS | All interactions must be encrypted in transit |
+| `true` | `InteractionReliabilityProperties.maxPayloadBytes <= 1048576` | INSTANTANEOUS | Payload must not exceed 1 MB |
+| `true` | `InteractionReliabilityProperties.retryPolicy != "none"` | INSTANTANEOUS | A retry policy must be configured |
+
+*Pattern: **definition-time**. Norms constrain Interaction Ascription properties that govern how causal couplings between Mechanisms behave.*
+
+### Example 5 — Artifact governance (runtime observation): LatencyMetrics
+
+**Archetype**: `LatencyMetrics` (extends ArtifactArchetype).
+Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `errorRate`, …
+
+**Directive**:
+
+```json
+{
+  "structureId":        "platform-governance",
+  "modal":              "SHOULD",
+  "verb":               "OPTIMIZE",
+  "qualifierArchetypeId": "LatencyMetrics",
+  "purposeStructureId": "checkout-service"
+}
+```
+
+*Reads: "platform-governance SHOULD OPTIMIZE LatencyMetrics OF checkout-service."*
+
+**Norms**:
+
+| guard | predicate | toleranceMode | temporalWindow | temporalAggregation | sustainedThreshold | meaning |
+|-------|-----------|---------------|----------------|---------------------|--------------------|---------|
+| `LatencyMetrics.environment == "production"` | `LatencyMetrics.p95ResponseMs <= 500` | AGGREGATED | PT5M | P95 | — | P95 latency ≤ 500 ms over 5-minute windows (production only) |
+| `LatencyMetrics.environment == "production"` | `LatencyMetrics.p99ResponseMs <= 2000` | SUSTAINED | PT15M | P99 | 0.95 | P99 latency ≤ 2 s must hold for 95 % of each 15-minute window |
+| `LatencyMetrics.environment == "production"` | `LatencyMetrics.errorRate < 0.01` | SUSTAINED | PT10M | AVG | 0.99 | Average error rate < 1 % must hold 99 % of each 10-minute window |
+
+*Pattern: **runtime observation**. Unlike examples 1–4, `LatencyMetrics` is an Artifact type (not a structural type). Instances are produced by the Description plane as runtime observations. Same Directive → Norm machinery, different temporal semantics: observation Norms typically use AGGREGATED or SUSTAINED tolerance modes with temporal windows.*
+
 ## Definition-time appraisal (plane integration)
 
 The Definition Manager is not a passive store. When definitions are created, modified, or deleted, the Definition Manager triggers **Norm Appraisal and Form Appraisal by the relevant plane components**:

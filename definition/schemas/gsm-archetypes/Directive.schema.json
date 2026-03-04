@@ -2,16 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sie://schemas/gsm/v1/Directive.schema.json",
   "title": "Directive",
-  "description": "Standalone governance archetype for Directive — identity-level normative constraints (DNA 'D'). Grammar: 'Structure [modal] [verb] [qualityDimension] OF [scope]'. Example: 'System MUST ENSURE integrity OF order-processing'. The slowest-changing governance primitive — changing a Directive = changing the System's identity.",
+  "description": "Governance DNA archetype for Directive — identity-level normative constraints (DNA 'D'). Standalone first-class GSM class typed by DirectiveArchetype. Fields: structureId, purposeStructureId, modal, verb, qualifier.",
   "$gsm:sealed": true,
+  "$gsm:elementDefinitionSubtype": "Directive",
+  "allOf": [
+    {
+      "$ref": "sie://schemas/gsm/v1/Object.schema.json"
+    }
+  ],
   "type": "object",
   "required": [
     "modal",
     "verb",
-    "qualityDimension",
-    "scope"
+    "qualifier",
+    "structureId"
   ],
   "properties": {
+    "structureId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The owning/authoring Structure's elementId. This is the Structure that issues the Directive (definedBy relationship)."
+    },
+    "purposeStructureId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The governed purpose Structure's elementId. Purpose is attribute of another Structure de-facto governed by this Structure's Directive. Represents the scope of applicability (directsPurposeOf relationship). Optional \u2014 if absent, the Directive applies to the owning Structure's own purpose."
+    },
     "modal": {
       "type": "string",
       "enum": [
@@ -19,7 +35,7 @@
         "SHOULD",
         "MAY"
       ],
-      "description": "Normative strength. MUST = mandatory (violation = non-compliance). SHOULD = recommended (violation = warning). MAY = optional (informational)."
+      "description": "Deontic obligation strength. MUST = mandatory (violation = non-compliance). SHOULD = recommended (violation = warning). MAY = optional (informational)."
     },
     "verb": {
       "type": "string",
@@ -35,16 +51,10 @@
       ],
       "description": "Governance action expressing what the governance intent does to the quality dimension."
     },
-    "qualityDimension": {
+    "qualifier": {
       "type": "string",
       "minLength": 1,
-      "description": "The quality attribute targeted by this Directive."
-    },
-    "scope": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Structural target — references Structure purpose or Element identifiers."
+      "description": "The viability dimension targeted by this Directive \u2014 a non-empty string naming the quality attribute (e.g., 'integrity', 'throughput', 'latency')."
     }
-  },
-  "additionalProperties": false
+  }
 }

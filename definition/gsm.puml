@@ -25,6 +25,8 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
+' - DN Lifecycles.
+' - Rename Mechanism, Effector, Receptor, Object.
 ' - Define canonical Archetype catalog per ElementDefinition
 '   subtype (well-known schemas).
 ' - Design inter-Structure governance patterns (governing
@@ -127,13 +129,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **§2 — DNA - Unified Governance Grammar**
 
-    Reflexive Mechanisms produce governance **DNA** Artifacts:
+    Reflexive Mechanisms produce governance **DNA** — Object
+    ElementDefinitions typed by sealed governance Archetypes:
 
     - Directive (D): identity-level normative constraint.
     - Norm (N): measurable constraint predicate on Element.
     - Ascription (A): specifications applied to the Element.
 
     Together, these define the **DNA** grammar of a System.
+
+    Directive and Norm are NOT separate class primitives in GSM. They are
+    **Objects** — the same ElementDefinition subtype used for all
+    definition-plane typed deliverables. What makes them governance DNA is
+    their Archetype: DirectiveArchetype and NormArchetype are sealed GSM
+    Archetypes whose schemas define the governance grammar. A governance
+    Mechanism producing a Directive simply creates an Object typed by
+    DirectiveArchetype via `sys.create("DirectiveArchetype", {...})`.
 
     Like biological DNA encodes the instructions for proteins that build and
     regulate an organism, a System's DNA encodes the governance instructions
@@ -151,10 +162,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       technology, or risk landscape shifts — without touching identity.
       Comparable to policies and compliance rules.
     - **A — fast (specifications)**: Ascriptions carry the concrete,
-      version-specific payload of each Element (configuration, parameters,
-      thresholds, domain data). They change frequently — every definition update
-      produces a new Ascription. Comparable to runtime configuration or release
-      artifacts.
+      version-specific specifications of each Element (element-level
+      configuration, parameters, operational metadata). They change
+      frequently — every definition update produces a new Ascription.
 
     This stratification is deliberate: it decouples slow identity decisions from
     fast operational details, so that each layer can evolve at its natural rate
@@ -167,7 +177,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **§3 — Systemic Recursion**
 
     Since a System operates itself, its Elements are representable and
-    deliverable as Artifact for Mechanisms operations. That is the true
+    deliverable as Objects for Mechanisms operations. That is the true
     **Systemic Recursion**: Mechanisms operating Mechanisms operating
     Mechanisms.
 
@@ -181,11 +191,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     rather than **structural** (systems containing sub-systems).
 
     The recursion chain:
-    1. Mechanisms operate on Artifacts which are ElementDefinitions.
+    1. Mechanisms operate on Objects which are ElementDefinitions.
     2. All ElementDefinitions are typed by Archetypes.
     3. Therefore Mechanisms can operate on any ElementDefinition.
     4. Including: Mechanisms operating on other Mechanisms.
-    5. Including: Mechanisms producing governance DNA.
+    5. Including: Mechanisms producing governance DNA (Objects typed by
+       DirectiveArchetype / NormArchetype).
     6. Including: Mechanisms governed by DNA they produced.
     Closure: the system defines itself through itself.
 
@@ -244,13 +255,31 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     semantics.
 
     Structural roles are expressed by the class hierarchy: Structure, Mechanism,
-    Effector, Receptor, Interface, Interaction.
+    Effector, Receptor, Interface, Interaction, Object.
 
-    Domain semantics and data shape are expressed by Archetype JSON Schemas, and
-    by the Ascription payload linked to each ElementDefinition.
+    Domain semantics are expressed through **Archetypes** — each Archetype
+    references a JSON Schema (`schemaUri`) that validates the Ascription
+    payload of ElementDefinitions typed by that Archetype. There is one
+    Archetype kind; no separate "domain" or "metadata" typing layers.
 
-    Directive and Norm are governance DNA classes but are standalone first-class
-    GSM classes, outside the ElementDefinition hierarchy.
+    **Object** is the general-purpose typed deliverable in the definition
+    plane. It defines the structure and semantics of domain knowledge
+    handled by Mechanisms via their Effectors and Receptors. An Object is
+    NOT a runtime data instance — it is a **type definition** (an archetype
+    of domain data, specifying the schema, constraints, and semantics of
+    data that will exist at runtime). Effectors and Receptors reference
+    Objects to declare the type of information they emit/consume.
+
+    **Governance DNA as Objects**: Directive and Norm are not separate class
+    primitives. They are Objects typed by sealed GSM Archetypes
+    (DirectiveArchetype, NormArchetype). Their governance grammar (modal,
+    verb, guard, predicate, etc.) is carried in Ascription, validated by
+    the respective Archetype schema. A governance Mechanism creates a
+    Directive by calling `sys.create("DirectiveArchetype", {...})` — the
+    same operation used for any Object creation. This closes §3 systemic
+    recursion naturally: governance DNA follows the same
+    ElementDefinition lifecycle, the same Archetype typing, and the same
+    Effector→Object port model as all other definitions.
 
     ----
 
@@ -262,20 +291,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     │  revisionDatetime, status,     │
     │  statusTransitions             │
     ├───────────────┬─────────────── ┤
-    │ STRUCTURAL    │ DATA           │
-    │ Structure     │ Artifact       │
+    │ STRUCTURAL    │ TYPED DEF.     │
+    │ Structure     │ Object         │
     │ Mechanism     │                │
     │ Effector      │                │
     │ Receptor      │                │
     │ Interface     │                │
     │ Interaction   │                │
     └───────────────┴─────────────── ┘
-
-    Governance DNA outside the ElementDefinition hierarchy:
-    ┌───────────────────────────────┐
-    │ Directive  ←─ DirectiveArch.  │
-    │ Norm       ←─ NormArchetype   │
-    └───────────────────────────────┘
 
     ----
 
@@ -287,16 +310,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     │   topology, information flow, bounds         │
     ├─────────────────────────────────────────────┤
     │ DEFINITION-PLANE DATA: typed deliverables     │
-    │   Artifact (general-purpose data carrier)     │
-    │   governance-related and domain deliverables  │
-    ├─────────────────────────────────────────────┤
-    │ GOVERNANCE DNA: governance constraint classes │
-    │   Directive (D), Norm (N)                     │
-    │   identity constraints, measurable predicates │
+    │   Object (general-purpose type definition)    │
+    │   Including governance DNA (DirectiveArch.,   │
+    │   NormArchetype) and domain deliverables      │
     ├─────────────────────────────────────────────┤
     │ DOMAIN MODEL: vocabulary, semantics, schemas  │
-    │   Archetype                                   │
-    │   typing, structure, extensibility            │
+    │   Archetype (types Ascription via schemaUri)  │
+    │   typing, structure, extensibility             │
     └─────────────────────────────────────────────┘
 
     ----
@@ -309,15 +329,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     │  Not extensible by tenants                   │
     ├─────────────────────────────────────────────┤
     │ ARCHETYPE + ASCRIPTION (tenant-extensible)  │
-    │  Domain semantics: "this is a validation      │
-    │  Mechanism"                                  │
-    │  Content in `ascription`, typed by JSON Schema │
-    │  (base + extension via allOf)                │
+    │  All element specifications in `ascription`, │
+    │  typed by Archetype schema (base + allOf).   │
+    │  One Archetype kind. One validation surface. │
     └─────────────────────────────────────────────┘
 
     Base archetype enforcement is a definition-manager concern. Tenant-defined
     archetype schemas must declare `allOf[{ "$ref": "<gsm-base-schema-uri>" }]`
-    pointing to exactly one GSM base archetype schema (depth = 1).
+    pointing to exactly one GSM base archetype schema (depth = 1 minimum;
+    depth-N chains through intermediate tenant archetypes are permitted as long
+    as all allOf paths converge to the same GSM base).
+
+    GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
+    InteractionArchetype, InterfaceArchetype, ObjectArchetype.
+    EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
+    for Mechanism ports (lifecycle-coupled, derived at compilation time) and
+    MUST NOT be tenant-extended. DirectiveArchetype and NormArchetype are
+    governance DNA archetypes that extend ObjectArchetype (their schemas
+    declare `allOf[{ "$ref": ObjectArchetype }]`). Base archetypes carry
+    the `$gsm:sealed` marker in their JSON Schema.
 
     ====
 
@@ -421,10 +451,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   ' ============================================================
 
   class Directive {
+    +getStructure(): Structure
     +getModal(): DirectiveModal
     +getVerb(): DirectiveVerb
-    +getQualityDimension(): String
-    +getScope(): String
+    +getQualifier(): String
+    +getPurpose(): Structure
   }
 
   note bottom of Directive
@@ -432,61 +463,85 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Concept Semantics**:
 
-    - Standalone first-class GSM class (does not extend Artifact or
-      ElementDefinition).
-    - Typed by DirectiveArchetype.
-    - The slowest-changing governance primitive. Changing a Directive = changing
-      the System's identity.
-    - Grammar: "Structure [modal] [verb] [qualityDimension] OF [scope]".
-    - Example: "System MUST ENSURE integrity OF order-processing".
+    - An identity-level, long-term normative constraint that defines what
+      the system fundamentally is and stands for.
+    - The slowest-changing governance primitive.
+    - Grammar: Modal × Verb × QualifierArchetype × Purpose
+      e.g., "order-processing MUST ENSURE SecurityProperties OF
+      payment-service"
+    - The Directive simultaneously declares:
+      - **Value axis** (purpose): the structure's reason for existence that
+        is governed — what the structure does and why.
+      - **Viability axis** (qualifierArchetype): the Archetype whose schema
+        defines the measurable properties along which governance constrains
+        the purpose.
+      This encodes the value/viability duality: the verb acts on
+      a qualifier Archetype (viability) **of** a purpose (value).
+    - The qualifier Archetype reference enables:
+      - **Machine-verifiable governance chain**: the definition-manager
+        validates that Norms operationalizing this Directive reference
+        the same Archetype (or a descendant) in their guard/predicate CEL
+        expressions.
+      - **Governance coverage analysis**: which fields of the qualifier
+        Archetype's schema are covered by Norms, and which are governance
+        gaps.
+      - **Schema evolution impact**: when the qualifier Archetype gains
+        new fields, the system flags uncovered properties.
+    - **Cross-cutting governance via facet archetypes**: the qualifier
+      Archetype need not be a leaf archetype. It can be an intermediate
+      "facet" archetype (e.g., DataProtectionObject, PerformanceGoverned-
+      Mechanism) that multiple leaf archetypes extend via allOf. A Directive
+      referencing a facet qualifier governs ALL elements whose Archetype's
+      allOf chain includes that facet. This enables single-Directive, single-
+      Norm-set governance of cross-cutting concerns (GDPR, security,
+      performance SLAs) without per-Archetype duplication.
+    - The qualifier Archetype can type **any** ElementDefinition subtype
+      (Structure, Mechanism, Interface, Interaction, Object), enabling:
+      - **Definition-time governance**: Norms evaluate Ascription properties
+        of ElementDefinitions (e.g., "all public Interfaces must use mTLS").
+      - **Runtime observation governance**: Norms evaluate Object instances
+        from the Description plane (e.g., "P95 latency < 500ms").
+    - Without Directives, a system has purposes but no declared stance
+      on quality dimensions. Directives are the normative root of the DNA.
+    - **Unconditional by nature**: Directives are identity-level and
+      apply universally within their owning Structure.
 
     **Attribute Semantics**:
 
-    - `modal`: normative strength (MUST / SHOULD / MAY).
-    - `verb`: governance action (ENSURE, PREVENT, MAINTAIN, OPTIMIZE, MINIMIZE,
-      MAXIMIZE, MONITOR, ENABLE).
-    - `qualityDimension`: the quality attribute targeted.
-    - `scope`: structural target (references Structure purpose or Element
-      identifiers).
+    - `DirectiveArchetype.modal`: Deontic obligation strength (see
+      DirectiveModal enum).
+    - `DirectiveArchetype.verb`: Governance direction/guarantee semantics
+      (see DirectiveVerb enum).
+    - `DirectiveArchetype.qualifierArchetypeId`: Reference to the Archetype
+      that defines the viability dimension being governed. The Archetype's
+      schema defines the measurable properties; Norms operationalizing this
+      Directive MUST reference this same Archetype in their guard/predicate
+      CEL expressions.
+    - `DirectiveArchetype.structureId`: The owning/authoring Structure.
+    - `DirectiveArchetype.purposeStructureId`: The purpose being governed.
+      Purpose is attribute of another Structure de-facto governed by this
+      Structure's Directive. It represents the scope of applicability.
 
     **Validation Rules**:
 
-    - `modal` MUST NOT be null.
-    - `verb` MUST NOT be null.
-    - `qualityDimension` MUST be non-empty.
-    - `scope` MUST be non-empty.
+    - `modal` MUST be a valid DirectiveModal value.
+    - `verb` MUST be a valid DirectiveVerb value.
+    - `qualifierArchetypeId` MUST reference an existing Archetype.
+    - `structureId` MUST reference an existing Structure.
+    - `purposeStructureId`, if present, MUST reference an existing Structure.
 
-    **Assignment Rules**:
+    **Consistency Rules**:
 
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - A Directive SHOULD be operationalized by at least one Norm over time
-      (unrealized Directive → governance gap).
-
-    **Derivation Rules**:
-
-    - Norm candidates can be derived by mapping Directive `qualityDimension` and
-      `scope` to evaluable predicates over in-scope Archetypes.
-
-    **Usage Rules**:
-
-    - Author using the grammar: "Structure [modal] [verb] [qualityDimension] OF
-      [scope]".
-    - `scope` SHOULD reference the Structure's purpose or specific Element
-      identifiers.
-    - Each Directive SHOULD be operationalized by at least one Norm; an
-      unoperationalized Directive is a governance gap.
-
-    **Notes**:
-
-    - Directives encode identity-level commitments; they are intentionally
-      slower-changing than Norms.
+    - Two directives with ENSURE and PREVENT on the same
+      qualifierArchetypeId AND same Purpose → contradiction (error).
+    - Two directives with opposing verb directions on the same
+      qualifierArchetypeId AND same Purpose → conflict. Resolved by
+      DirectiveModal precedence (MUST > SHOULD > MAY).
+    - Different Purposes on the same qualifier are NOT conflicts.
   end note
 
-  Directive --> DirectiveModal
-  Directive --> DirectiveVerb
+  Directive "0..*" --> "1" Structure: definedBy
+  Directive "0..*" --> "0..1" Structure: directsPurposeOf
 
   enum DirectiveModal {
     MUST
@@ -669,12 +724,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   enum ToleranceMode {
     INSTANTANEOUS
-    AVERAGED
-    PERCENTILE
-    RATE
+    AGGREGATED
     SUSTAINED
-    CUMULATIVE
-    SLIDING
   }
 
   note bottom of ToleranceMode
@@ -686,13 +737,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Attribute Semantics**:
 
-    - `INSTANTANEOUS`: single-point evaluation.
-    - `AVERAGED`: mean over temporalWindow.
-    - `PERCENTILE`: percentile over temporalWindow.
-    - `RATE`: rate of change over temporalWindow.
-    - `SUSTAINED`: must hold for sustainedThreshold fraction of temporalWindow.
-    - `CUMULATIVE`: cumulative sum over temporalWindow.
-    - `SLIDING`: sliding window evaluation.
+    - `INSTANTANEOUS`: single-point evaluation. No temporalWindow,
+      temporalAggregation, or sustainedThreshold.
+    - `AGGREGATED`: aggregated metric value over temporalWindow against
+      predicate using temporalAggregation function. Requires temporalWindow
+      and temporalAggregation. sustainedThreshold is forbidden.
+    - `SUSTAINED`: predicate must hold for sustainedThreshold fraction of
+      temporalWindow. Requires temporalWindow, temporalAggregation, and
+      sustainedThreshold.
 
     **Validation Rules**:
 
@@ -704,18 +756,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     **Relational Consistency Rules**:
 
-    - Time-based modes SHOULD be paired with a temporalWindow.
+    - AGGREGATED and SUSTAINED modes MUST be paired with a temporalWindow.
+    - SUSTAINED mode MUST additionally have sustainedThreshold in [0, 1].
 
     **Derivation Rules**:
 
-    - Required temporal fields are derived from the selected tolerance mode.
+    - Required temporal fields are derived from the selected tolerance mode
+      (see Norm schema conditional allOf rules).
 
     **Usage Rules**:
 
     - Select INSTANTANEOUS for point-in-time constraint checks.
-    - For time-based modes (AVERAGED, PERCENTILE, RATE, SUSTAINED, CUMULATIVE,
-      SLIDING), MUST pair with a `temporalWindow`.
-    - SUSTAINED mode additionally requires a `sustainedThreshold` in [0, 1].
+    - Select AGGREGATED for time-windowed metric evaluation.
+    - Select SUSTAINED for constraints that must hold over a sustained
+      fraction of the window.
 
     **Notes**:
 
@@ -854,13 +908,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     - Every ElementDefinition instance references one Archetype.
     - Unified type construct for all structural and domain typing.
     - GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
-      InteractionArchetype, InterfaceArchetype, ArtifactArchetype.
+      InteractionArchetype, InterfaceArchetype, ObjectArchetype.
       EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
       for Mechanism ports (lifecycle-coupled, derived at compilation time) and
-      MUST NOT be tenant-extended. Governance archetypes (DirectiveArchetype,
-      NormArchetype) are standalone sealed archetypes (they do not extend
-      ArtifactArchetype). Base archetypes carry the `$gsm:sealed` marker in their
-      JSON Schema.
+      MUST NOT be tenant-extended. DirectiveArchetype and NormArchetype are
+      governance DNA base archetypes that extend ObjectArchetype (their
+      schemas declare `allOf[{ "$ref": ObjectArchetype }]`), reflecting
+      the classification hierarchy where Directive and Norm are typed as Objects. Base archetypes
+      carry the `$gsm:sealed` marker in their JSON Schema.
     - Archetype does not embed schema lifecycle metadata (timestamps, status,
       version lineage). Schema publication, versioning, compatibility policy,
       and deprecation are owned by the schema registry; GSM references schemas
@@ -880,10 +935,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       always return the same schema content over time. Mutable aliases such as
       "latest" (or any moving target) MUST be rejected by the
       definition-manager.
-    - `schemaUri` MUST point to a schema containing an allOf.$ref pointing to
-      exactly one GSM base archetype schema (depth = 1).
-    - Schemas NOT referencing a GSM base archetype via allOf MUST be rejected by
-      the definition-manager.
+    - `schemaUri` MUST point to a schema whose `allOf` chain ultimately
+      roots at exactly one GSM base archetype schema. Intermediate tenant
+      archetypes are permitted (depth-N chains) as long as all `allOf` paths
+      converge to the same GSM base.
+    - Schemas whose `allOf` chain does not root at a GSM base archetype MUST
+      be rejected by the definition-manager.
 
     **Relational Consistency Rules**:
 
@@ -899,8 +956,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - Schema-declared inheritance: tenant archetypes declare which GSM base they
       extend via `allOf[{ "$ref": "<base-schema-uri>" }]` in their JSON Schema.
-      The definition-manager derives the base archetype from the schema's
-      `allOf.$ref` — no separate field is needed on Archetype.
+      The definition-manager derives the base archetype by walking the allOf
+      chain to the GSM root — no separate field is needed on Archetype.
+    - **Depth-N allOf chains (cross-cutting governance archetypes)**: tenant
+      archetypes may extend other tenant archetypes (not only GSM bases
+      directly), as long as all allOf paths converge to exactly one GSM base.
+      This enables **cross-cutting governance**: a tenant defines intermediate
+      "facet" archetypes (e.g., DataProtectionObject, PerformanceGoverned-
+      Mechanism) that carry shared governance properties (e.g., gdprApplicable,
+      maxLatencyMs). Multiple leaf archetypes compose these facets via allOf.
+      A Directive can then reference a facet archetype as its qualifier-
+      ArchetypeId, and its Norms apply to ALL elements whose Archetype extends
+      that facet — enabling cross-cutting NFR governance without per-Archetype
+      duplication.
     - Tenant extensibility: tenants extend their Structure's vocabulary by
       declaring new Archetypes whose schema references a GSM base. E.g., a
       tenant creates Archetype "SecurityCheckMechanism" whose schema declares
@@ -1371,7 +1439,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   class Effector {
     +getMechanism(): Mechanism
-    +getArtifact(): Artifact
+    +getObject(): Object
     +getInterface(): Interface
   }
 
@@ -1381,7 +1449,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **Concept Semantics**:
 
     - Declares the type of information the Mechanism emits, by referencing an
-      Artifact. The Artifact's Archetype determines the schema of the emitted
+      Object. The Object's Archetype determines the schema of the emitted
       data.
     - Interactions originate from Effectors.
     - Represents a mechanism's capability to produce an *effect*.
@@ -1392,7 +1460,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - `mechanism`: the composite Mechanism. An Effector cannot exist without a
       Mechanism.
-    - `artifact`: the Artifact definition typed by an Archetype that
+    - `object`: the Object definition typed by an Archetype that
       constrains the effector's output.
     - `interface`: optional reference to an Interface that exposes this Effector
       for inter-Structure coupling. If null, the Effector is private to its
@@ -1401,7 +1469,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **Validation Rules**:
 
     - `mechanism` reference MUST NOT be null.
-    - `artifact` reference MUST NOT be null.
+    - `object` reference MUST NOT be null.
     - `interface` reference, if present, MUST reference an Interface that belongs
       to the same Structure as the Mechanism.
 
@@ -1414,7 +1482,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   Effector --|> ElementDefinition
   Effector "1..*" --> "1" Mechanism : constitutes
-  Effector "0..*" --> "1" Artifact : produces
+  Effector "0..*" --> "1" Object : produces
   Effector "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
@@ -1423,7 +1491,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   class Receptor {
     +getMechanism(): Mechanism
-    +getArtifact(): Artifact
+    +getObject(): Object
     +getInterface(): Interface
   }
 
@@ -1433,10 +1501,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **Concept Semantics**:
 
     - Declares the type of information the Mechanism receives, by referencing an
-      Artifact (typed definition-plane deliverable). The Artifact's Archetype
+      Object (typed definition-plane deliverable). The Object's Archetype
       determines the schema of the received data.
     - Interactions terminate at Receptors.
-    - Received Artifacts represent a *cause* for the mechanism to operate.
+    - Received Objects represent a *cause* for the mechanism to operate.
     - Receptors are *ports*; they do not carry values at the GSM level. Values
       exist in runtime instances.
 
@@ -1444,7 +1512,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - `mechanism`: the composite Mechanism. A Receptor cannot exist without a
       Mechanism.
-    - `artifact`: the Artifact definition typed by an Archetype that
+    - `object`: the Object definition typed by an Archetype that
       constrains the receptor's input.
     - `interface`: optional reference to an Interface that exposes this Receptor
       for inter-Structure coupling. If null, the Receptor is private to its
@@ -1453,7 +1521,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
     **Validation Rules**:
 
     - `mechanism` reference MUST NOT be null.
-    - `artifact` reference MUST NOT be null.
+    - `object` reference MUST NOT be null.
     - `interface` reference, if present, MUST reference an Interface that belongs
       to the same Structure as the Mechanism.
 
@@ -1466,7 +1534,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
   Receptor --|> ElementDefinition
   Receptor "1..*" --> "1" Mechanism : constitutes
-  Receptor "0..*" --> "1" Artifact : consumes
+  Receptor "0..*" --> "1" Object : consumes
   Receptor "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
@@ -1509,8 +1577,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
 
     - `InteractionArchetype.effectorId` MUST NOT be null.
     - `InteractionArchetype.receptorId` MUST NOT be null.
-    - `effector.emittedArtifact.archetype` MUST be schema-compatible with
-      `receptor.receivedArtifact.archetype`.
+    - `effector.emittedObject.archetype` MUST be schema-compatible with
+      `receptor.receivedObject.archetype`.
 
     **State Rules**:
 
@@ -1593,18 +1661,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
   Interface "0..*" --> "0..*" Receptor : exposes
 
   ' ============================================================
-  ' ARTIFACT
+  ' OBJECT
   ' ============================================================
 
-  class Artifact
+  class Object
 
-  note bottom of Artifact
-    **Artifact** — Typed  deliverable.
+  note bottom of Object
+    **Object** — Typed definition-plane deliverable.
 
     **Concept Semantics**:
 
     - Defines the structure and semantics of domain knowledge handled by
-      Mechanisms via atheir Receptors and Effectors.
+      Mechanisms via their Receptors and Effectors.
     - Expressed as Archetype-typed JSON Schema.
 
     **State Rules**:
@@ -1614,7 +1682,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM - v1.0.0" {
       and audit-log invariants.
   end note
 
-  Artifact --|> ElementDefinition
+  Object --|> ElementDefinition
 }
 
 @enduml
