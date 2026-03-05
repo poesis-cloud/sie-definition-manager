@@ -333,7 +333,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │ Ascription                     │
     │  id, revisionId, archetype,    │
     │  definition, version,          │
-    │  revisionDatetime,             │
     │  status, statusTransitions     │
     ├───────────────┬─────────────── ┤
     │ STRUCTURAL    │ GOVERNANCE DNA│
@@ -1050,7 +1049,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     +getRevisionId(): String
     +getPreStatus(): AscriptionStatus
     +getPostStatus(): AscriptionStatus
-    +getDatetime(): String
   }
 
   note bottom of AscriptionStatusTransition
@@ -1069,12 +1067,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Attribute Semantics**:
 
+    - `id`: unique identity of THIS transition record (UUIDv7, RFC 9562).
+      Time-sortable — the transition timestamp is embedded in the UUIDv7
+      value and derivable from it. This eliminates a separate `datetime`
+      field: the moment the transition is created IS the moment it occurred,
+      encoded in `id`.
     - `revisionId`: reference to the owning Ascription's `revisionId` (the
       specific revision row, not `id`). Immutable once assigned.
     - `preStatus`: the status before the transition. Null for the initial
       creation entry.
     - `postStatus`: the status after the transition.
-    - `datetime`: ISO 8601 timestamp when the transition occurred.
 
     **Validation Rules**:
 
@@ -1084,8 +1086,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Assignment Rules**:
 
-    - `datetime` MUST NOT be null.
-    - `datetime` MUST be an ISO 8601 timestamp.
+    - `id` is assigned at creation time and MUST NOT be modified.
 
     **State Rules**:
 
@@ -1095,8 +1096,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
+    - The transition timestamp is derived from `id` (UUIDv7 embedded
+      Unix epoch ms).
     - Governance analytics (time-in-status, approval latency, rejection rates)
       can be derived from the transition chain.
+    - `getId()` → column `id` (UUIDv7)
+    - `getRevisionId()` → column `revision_id` (FK to Ascription)
+    - `getPreStatus()` → column `pre_status`
+    - `getPostStatus()` → column `post_status`
   end note
 
   AscriptionStatusTransition "1..*" --> "1" Ascription : belongsTo
