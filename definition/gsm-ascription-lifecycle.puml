@@ -1,4 +1,4 @@
-@startuml sie-gsm-definition-lifecycle-v1
+@startuml gsm-ascription-lifecycle
 
 ' ============================================================
 ' VISUAL THEME
@@ -23,10 +23,10 @@ skinparam classFontColor #24292F
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-title SIE GSM — ElementDefinition Lifecycle - v1.0.0
+title SIE GSM — Ascription Lifecycle
 
 note as Legend
-  This diagram is the lifecycle state machine of the GSM `ElementDefinition`.
+  This diagram is the lifecycle state machine of the GSM `Ascription`.
 
   **Status Semantics**:
 
@@ -68,8 +68,8 @@ end note
 note as Rules
   **Transition Rules**
 
-  A Referee is an ElementDefinition whose definition
-  **incorporates** a Reference (another ElementDefinition)
+  A Referee is an Ascription whose definition
+  **incorporates** a Reference (another Ascription)
   — i.e., the Referee's definition is semantically
   incomplete or meaningless without the Reference it points
   to. Because the Referee incorporates the Reference, its
@@ -88,8 +88,8 @@ note as Rules
   | Referee      | Reference    |
   |--------------+--------------|
   | Mechanism    | Structure    |
-  | Effector     | Object     |
-  | Receptor     | Object     |
+  | Effector     | Archetype     |
+  | Receptor     | Archetype     |
   | Interaction  | Effector     |
   | Interaction  | Receptor     |
   | Interface    | Structure    |
@@ -99,7 +99,7 @@ note as Rules
   | Not Referee  | No Reference |
   |--------------+--------------|
   | Structure    | (none)       |
-  | Object     | (none)       |
+  | Archetype     | (none)       |
 
   - **Referee**
     - `[*]->DRAFT`
@@ -196,7 +196,7 @@ note as Rules
 end note
 
 note as AuditRules
-  **Audit-log invariants (ElementDefinitionStatusTransition)**
+  **Audit-log invariants (AscriptionStatusTransition)**
 
   - Transitions are append-only; never modify/delete.
   - The first transition represents creation:
@@ -392,18 +392,18 @@ note as Scenarios
 
   ====
 
-  **§6 — Not-Referee (Structure, Object)**
+  **§6 — Not-Referee (Structure, Archetype)**
 
   SC-50 — Structure(DRAFT). Structure `DRAFT->PROPOSED`.
   **PASS**: no References → always passes.
 
-  SC-51 — Object(DRAFT). Object `DRAFT->PROPOSED`.
+  SC-51 — Archetype(DRAFT). Archetype `DRAFT->PROPOSED`.
   **PASS**: no References → always passes.
 
   SC-52 — Structure(ACTIVE). Structure `ACTIVE->DEPRECATED`.
   **PASS**: no References → always passes.
 
-  SC-53 — Object(DEPRECATED). Object `DEPRECATED->RETIRED`.
+  SC-53 — Archetype(DEPRECATED). Archetype `DEPRECATED->RETIRED`.
   **PASS**: no References → always passes.
 
   ====
@@ -411,44 +411,44 @@ note as Scenarios
   **§7 — Composition cascade (strict)**
 
   SC-60 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
-  Effector.Object(PROPOSED), Receptor.Object(PROPOSED).
+  Effector.Archetype(PROPOSED), Receptor.Archetype(PROPOSED).
   Mechanism `DRAFT->PROPOSED`.
   **CASCADE**: Effector `DRAFT->PROPOSED` (step 1 OK,
-  step 2 OK: Object PROPOSED ∈ {PROPOSED,APPROVED,ACTIVE}).
+  step 2 OK: Archetype PROPOSED ∈ {PROPOSED,APPROVED,ACTIVE}).
   **CASCADE**: Receptor `DRAFT->PROPOSED` (same).
 
   SC-61 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
-  Effector.Object(DRAFT), Receptor.Object(PROPOSED).
+  Effector.Archetype(DRAFT), Receptor.Archetype(PROPOSED).
   Mechanism `DRAFT->PROPOSED`.
-  Effector cascade step 2 fails: Object DRAFT ∉
+  Effector cascade step 2 fails: Archetype DRAFT ∉
   {PROPOSED,APPROVED,ACTIVE}.
   **BLOCKED**: Mechanism transition MUST be rejected
   (composition — on failure: reject source).
 
   SC-62 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Object(ACTIVE),
-  Receptor.Object(ACTIVE).
+  Receptor(ACTIVE). Effector.Archetype(ACTIVE),
+  Receptor.Archetype(ACTIVE).
   Mechanism `ACTIVE->SUSPENDED`.
   **CASCADE**: Effector `ACTIVE->SUSPENDED`.
   **CASCADE**: Receptor `ACTIVE->SUSPENDED`.
 
   SC-63 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Object(ACTIVE),
-  Receptor.Object(ACTIVE).
+  Receptor(ACTIVE). Effector.Archetype(ACTIVE),
+  Receptor.Archetype(ACTIVE).
   Mechanism `ACTIVE->DEPRECATED`.
   **CASCADE**: Effector `ACTIVE->DEPRECATED`.
   **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
 
   SC-64 — Mechanism(DRAFT), Effector(DRAFT),
-  Receptor(DRAFT). Effector.Object(DRAFT),
-  Receptor.Object(DRAFT).
+  Receptor(DRAFT). Effector.Archetype(DRAFT),
+  Receptor.Archetype(DRAFT).
   Mechanism `DRAFT->ABANDONED`.
   **CASCADE**: Effector `DRAFT->ABANDONED`.
   **CASCADE**: Receptor `DRAFT->ABANDONED`.
 
   SC-65 — Mechanism(PROPOSED), Effector(PROPOSED),
-  Receptor(PROPOSED). Effector.Object(PROPOSED),
-  Receptor.Object(PROPOSED).
+  Receptor(PROPOSED). Effector.Archetype(PROPOSED),
+  Receptor.Archetype(PROPOSED).
   Mechanism `PROPOSED->REJECTED`.
   **CASCADE**: Effector `PROPOSED->REJECTED`.
   **CASCADE**: Receptor `PROPOSED->REJECTED`.
@@ -564,7 +564,7 @@ note as Scenarios
 
   SC-90 — Structure(DRAFT), Mechanism(DRAFT),
   Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT).
-  Effector.Object(PROPOSED), Receptor.Object(PROPOSED).
+  Effector.Archetype(PROPOSED), Receptor.Archetype(PROPOSED).
   Structure `DRAFT->PROPOSED`.
   Chain: Structure→(agg)Mechanism→(comp)Effector,Receptor.
   **CASCADE**: Mechanism `DRAFT->PROPOSED`.
@@ -614,19 +614,19 @@ note as Scenarios
   **§11 — Composition cascade failure blocks source**
 
   SC-95 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Object(RETIRED),
-  Receptor.Object(ACTIVE).
+  Receptor(ACTIVE). Effector.Archetype(RETIRED),
+  Receptor.Archetype(ACTIVE).
   Mechanism `ACTIVE->SUSPENDED`.
-  Effector cascade step 2: Object RETIRED ∉
+  Effector cascade step 2: Archetype RETIRED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
   **BLOCKED**: Mechanism `ACTIVE->SUSPENDED` MUST be
   rejected (composition — on failure: reject source).
 
   SC-96 — Mechanism(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Effector.Object(ACTIVE),
-  Receptor.Object(ABANDONED).
+  Receptor(ACTIVE). Effector.Archetype(ACTIVE),
+  Receptor.Archetype(ABANDONED).
   Mechanism `ACTIVE->DEPRECATED`.
-  Receptor cascade step 2: Object ABANDONED ∉
+  Receptor cascade step 2: Archetype ABANDONED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
   **BLOCKED**: Mechanism `ACTIVE->DEPRECATED` MUST be
   rejected (composition — on failure: reject source).
@@ -649,10 +649,10 @@ note as Scenarios
 
   SC-103 — Structure(ACTIVE), Mechanism(SUSPENDED),
   Effector(SUSPENDED), Receptor(SUSPENDED).
-  Effector.Object(ACTIVE), Receptor.Object(ACTIVE).
+  Effector.Archetype(ACTIVE), Receptor.Archetype(ACTIVE).
   Mechanism `SUSPENDED->ACTIVE`.
   **CASCADE** (composition): Effector `SUSPENDED->ACTIVE`
-  (step 2 OK: Object ACTIVE ∈ {ACTIVE,DEPRECATED}),
+  (step 2 OK: Archetype ACTIVE ∈ {ACTIVE,DEPRECATED}),
   Receptor `SUSPENDED->ACTIVE` (same).
   No reference cascade (restoration not in scope).
 end note

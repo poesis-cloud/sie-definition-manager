@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sie://schemas/gsm/v1/Archetype.schema.json",
+    "title": "Archetype",
+    "description": "Base archetype schema for the *specifications payload* of Archetype Ascriptions. The `schemaUri` property defined here is stored at Archetype.specifications.schemaUri in the Ascription envelope. It references the JSON Schema that validates specifications of Ascriptions typed by this Archetype. Archetype extends Ascription and is the sole typed deliverable in the definition plane.",
+    "$gsm:sealed": true,
+    "$gsm:gsmClass": "Archetype",
+    "type": "object",
+    "required": [
+        "schemaUri"
+    ],
+    "properties": {
+        "schemaUri": {
+            "type": "string",
+            "format": "uri",
+            "minLength": 1,
+            "description": "Canonical URI for the JSON Schema document (draft 2020-12+) defining the structure of instances typed by this Archetype. This field is the Archetype specifications payload key: Archetype.specifications.schemaUri. MUST be immutable and version-pinned: dereferencing it MUST always return the same schema content over time. MUST be unique across all Archetypes."
+        }
+    },
+    "additionalProperties": false
+}

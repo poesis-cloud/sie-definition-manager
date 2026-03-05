@@ -2,33 +2,33 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Effector.schema.json",
     "title": "Effector",
-    "description": "Base ascription schema for Effector ElementDefinitions. An Effector is an output port of a Mechanism, derived by the definition-manager from the Mechanism operation's AST. It references the owning Mechanism and the Object definition that types the emitted data. Tenant-defined archetypes MUST NOT extend Effector.",
+    "description": "Base ascription schema for Effector Ascriptions. An Effector is an output port of a Mechanism, derived by the definition-manager from the Mechanism rule's AST. It references the owning Mechanism and the Archetype that types the emitted data. Tenant-defined archetypes MUST NOT extend Effector.",
     "$gsm:sealed": true,
-    "$gsm:elementDefinitionSubtype": "Effector",
+    "$gsm:gsmClass": "Effector",
     "$gsm:internal": true,
     "type": "object",
     "required": [
-        "mechanismId",
-        "objectId"
+        "mechanism",
+        "archetype"
     ],
     "properties": {
-        "mechanismId": {
+        "mechanism": {
             "type": "string",
             "minLength": 1,
-            "description": "Identifier of the owning Mechanism (typically the Mechanism ElementDefinition's elementId)."
+            "description": "ID reference to the owning Mechanism."
         },
-        "objectId": {
+        "archetype": {
             "type": "string",
             "minLength": 1,
-            "description": "Identifier of the Object ElementDefinition that types the Effector's output payload."
+            "description": "ID reference to the Archetype that types the Effector's output payload."
         },
-        "interfaceId": {
+        "interface": {
             "type": [
                 "string",
                 "null"
             ],
             "minLength": 1,
-            "description": "Optional identifier of the Interface ElementDefinition that exposes this Effector for inter-Structure coupling. Null means the port is private to the Structure."
+            "description": "Optional ID reference to the Interface that exposes this Effector for inter-Structure coupling. Null means the port is private to the Structure."
         }
     },
     "additionalProperties": false

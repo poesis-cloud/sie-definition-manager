@@ -2,24 +2,24 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Interaction.schema.json",
     "title": "Interaction",
-    "description": "Base ascription schema for Interaction ElementDefinitions. Defines the causal binding by referencing an Effector and a Receptor port. Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
+    "description": "Base ascription schema for Interaction Ascriptions. Defines the causal binding by referencing an Effector and a Receptor. Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
     "$gsm:sealed": true,
-    "$gsm:elementDefinitionSubtype": "Interaction",
+    "$gsm:gsmClass": "Interaction",
     "type": "object",
     "required": [
-        "effectorId",
-        "receptorId"
+        "effector",
+        "receptor"
     ],
     "properties": {
-        "effectorId": {
+        "effector": {
             "type": "string",
             "minLength": 1,
-            "description": "Identifier of the Effector ElementDefinition that is the emitting endpoint (Interaction.from)."
+            "description": "ID reference to the Effector that is the emitting endpoint."
         },
-        "receptorId": {
+        "receptor": {
             "type": "string",
             "minLength": 1,
-            "description": "Identifier of the Receptor ElementDefinition that is the receiving endpoint (Interaction.to)."
+            "description": "ID reference to the Receptor that is the receiving endpoint."
         }
     }
 }

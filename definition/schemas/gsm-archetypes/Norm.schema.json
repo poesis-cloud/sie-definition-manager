@@ -2,13 +2,10 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Norm.schema.json",
     "title": "Norm",
-    "description": "Governance DNA archetype for Norm — measurable constraint predicates (DNA 'N'). Standalone first-class GSM class typed by NormArchetype. Fields: directiveId, structureId, guard, predicate, toleranceMode, temporalWindow, temporalAggregation, sustainedThreshold.",
+    "description": "Governance DNA archetype for Norm \u2014 measurable constraint predicates (DNA 'N'). Standalone first-class GSM class with independent lifecycle, typed by NormArchetype. Fields: structure, guard, predicate, toleranceMode, temporalWindow, temporalAggregation, sustainedThreshold.",
     "$gsm:sealed": true,
-    "$gsm:elementDefinitionSubtype": "Norm",
+    "$gsm:gsmClass": "Norm",
     "allOf": [
-        {
-            "$ref": "sie://schemas/gsm/v1/Object.schema.json"
-        },
         {
             "if": {
                 "properties": {
@@ -62,21 +59,15 @@
     ],
     "type": "object",
     "required": [
-        "directiveId",
-        "structureId",
+        "structure",
         "predicate",
         "toleranceMode"
     ],
     "properties": {
-        "directiveId": {
+        "structure": {
             "type": "string",
             "minLength": 1,
-            "description": "Reference to the Directive this Norm operationalizes (Directive's elementId). Every Norm operationalizes exactly one Directive."
-        },
-        "structureId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The authoring/owning Structure's elementId (definedBy relationship). May differ from the Directive's owning Structure."
+            "description": "Reference to the authoring/owning Structure. May differ from the Directive's owning Structure."
         },
         "guard": {
             "type": "string",
