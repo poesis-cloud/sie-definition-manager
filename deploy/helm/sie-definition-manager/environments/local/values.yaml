@@ -1,0 +1,13 @@
+# Local environment overlay (non-sensitive values only)
+
+env:
+  OIDC_ISSUER_URI: http://localhost:9000/realms/sie
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.monitoring.svc.cluster.local:4317
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"

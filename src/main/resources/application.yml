@@ -1,0 +1,60 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: sie-definition-manager
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/sie_definition}
+    username: ${DB_USER:sie}
+    password: ${DB_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    properties:
+      enable.idempotence: ${KAFKA_ENABLE_IDEMPOTENCE:true}
+      acks: all
+      max.in.flight.requests.per.connection: 5
+      delivery.timeout.ms: 120000
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+    producer:
+      transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:dm-tx-}
+    listener:
+      ack-mode: record
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:9000/realms/sie}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+
+dm:
+  messaging:
+    reliability-mode: ${DM_RELIABILITY_MODE:alo-idempotent}
+  schema-registry:
+    auto-register: ${DM_SCHEMA_AUTO_REGISTER:false}
+  security:
+    oauth2-login-enabled: ${DM_OAUTH2_LOGIN_ENABLED:false}

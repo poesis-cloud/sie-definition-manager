@@ -9,6 +9,11 @@
     "required": [
         "schemaUri"
     ],
+    "examples": [
+        {
+            "schemaUri": "sie://schemas/gsm/v1/Structure.schema.json"
+        }
+    ],
     "properties": {
         "schemaUri": {
             "type": "string",
@@ -16,6 +21,5 @@
             "minLength": 1,
             "description": "Canonical URI for the JSON Schema document (draft 2020-12+) defining the structure of instances typed by this Archetype. This field is the Archetype specifications payload key: Archetype.specifications.schemaUri. MUST be immutable and version-pinned: dereferencing it MUST always return the same schema content over time. MUST be unique across all Archetypes."
         }
-    },
-    "additionalProperties": false
+    }
 }

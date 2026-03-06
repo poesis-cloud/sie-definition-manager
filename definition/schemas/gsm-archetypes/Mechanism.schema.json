@@ -12,6 +12,14 @@
         "rule",
         "ruleLanguage"
     ],
+    "examples": [
+        {
+            "structure": "019cc49a-dc5a-7003-98e1-c214032f0420",
+            "function": "UserValidation",
+            "rule": "evt = on(\"IdentityEvent\")\nif evt.userId != \"\":\n    sys.emit(\"ValidatedIdentity\", {\"userId\": evt.userId})",
+            "ruleLanguage": "STARLARK"
+        }
+    ],
     "properties": {
         "structure": {
             "type": "string",

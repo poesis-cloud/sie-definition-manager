@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sie-definition-manager.fullname" . }}
+  labels:
+    app: {{ include "sie-definition-manager.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "sie-definition-manager.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "sie-definition-manager.fullname" . }}
+    spec:
+      containers:
+        - name: dm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: DB_URL
+              value: {{ .Values.env.DB_URL | quote }}
+            - name: DB_USER
+              value: {{ .Values.env.DB_USER | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sie-definition-manager.fullname" . }}-secret
+                  key: DB_PASSWORD
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.env.SCHEMA_REGISTRY_URL | quote }}
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.env.KAFKA_BOOTSTRAP_SERVERS | quote }}
+            - name: OIDC_ISSUER_URI
+              value: {{ .Values.env.OIDC_ISSUER_URI | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.env.OTEL_EXPORTER_OTLP_ENDPOINT | quote }}
+            - name: DM_RELIABILITY_MODE
+              value: {{ .Values.env.DM_RELIABILITY_MODE | quote }}
+            - name: KAFKA_ENABLE_IDEMPOTENCE
+              value: {{ .Values.env.KAFKA_ENABLE_IDEMPOTENCE | quote }}
+            - name: KAFKA_TX_ID_PREFIX
+              value: {{ .Values.env.KAFKA_TX_ID_PREFIX | quote }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

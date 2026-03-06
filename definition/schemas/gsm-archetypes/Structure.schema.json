@@ -9,6 +9,11 @@
     "required": [
         "purpose"
     ],
+    "examples": [
+        {
+            "purpose": "payment-processing"
+        }
+    ],
     "properties": {
         "purpose": {
             "type": "string",

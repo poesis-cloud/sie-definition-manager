@@ -1,0 +1,21 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${OAUTH_GITHUB_CLIENT_ID}
+            client-secret: ${OAUTH_GITHUB_CLIENT_SECRET}
+            scope: read:user,user:email
+          google:
+            client-id: ${OAUTH_GOOGLE_CLIENT_ID}
+            client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET}
+            scope: openid,profile,email
+          microsoft:
+            client-id: ${OAUTH_MICROSOFT_CLIENT_ID}
+            client-secret: ${OAUTH_MICROSOFT_CLIENT_SECRET}
+            scope: openid,profile,email
+
+dm:
+  security:
+    oauth2-login-enabled: true

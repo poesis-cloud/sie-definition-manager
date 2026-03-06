@@ -13,6 +13,15 @@
     "qualifier",
     "purpose"
   ],
+  "examples": [
+    {
+      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+      "modal": "MUST",
+      "verb": "ENSURE",
+      "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
+      "purpose": "019cc49a-dc5a-7003-98e1-c214032f0420"
+    }
+  ],
   "properties": {
     "structure": {
       "type": "string",
@@ -54,5 +63,6 @@
       "minLength": 1,
       "description": "ID reference to the purposed Structure."
     }
-  }
+  },
+  "additionalProperties": false
 }

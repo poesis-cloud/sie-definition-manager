@@ -37,15 +37,15 @@ skinparam noteBorderColor #57606A
 '   Or an aggregate of interactiong structure IS a superstructure... Composition
 '   is an illusion of perspective on governance patterns, not a structural fact?
 ' - Formalize reflexive Mechanism patterns that produce DNA.
-' - Extract and formalize all Principles/Directives, Policies, and Rules of GSM
-'   itself... Applying a pertinent/pragamatical way its own model. Many Rules
-'   are already present in GSM notes.
-' - Defines Rules of Policy handling of Qualifier formats, and define formats
-'   (ITIP schemas presets).
+' - Extract and formalize all Directives and Norms of GSM
+'   itself... Applying a pertinent/pragmatical way its own model. Many
+'   constraints are already present in GSM notes.
+' - Define Norms for Archetype schema handling of Ascription formats,
+'   and define formats (ITIP schemas presets).
 ' - Challenge inter-system governance (Composition VS Relational) articulations
 '   mechanisms. Looks like relational governance governor produce Directives as
 '   state objects to consume and derivate by governed system's governor via its
-'   own designed policies adapted to its purposes.
+'   own designed Norms adapted to its purposes.
 ' - Update planes specifications.
 ' - Design the Justificational System Model (?SM) — a third model completing
 '   the GSM/DSM duality into a triad: GSM (what must be), DSM (what is),
@@ -507,7 +507,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Directive
-    **Directive** — Identity-level normative constraint (D).
+    **Directive** — Identity-level normative constraint (D). Extends Ascription.
 
     **Concept Semantics**:
 
@@ -735,7 +735,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Norm
-    **Norm** — Measurable constraint predicate (N).
+    **Norm** — Measurable constraint predicate (N). Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1216,7 +1216,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statusTransitions` provides a complete governance audit trail: who
       changed the status, when, and why.
     - An Ascription **revision** is an **immutable snapshot**. Any change
-      to the definition content MUST be expressed by authoring a new revision
+      to the definition MUST be expressed by authoring a new revision
       (new `revisionId`) for the same `id`. The only
       permitted in-place evolution of a revision row is the append-only growth
       of its `statusTransitions` audit trail.
@@ -1293,12 +1293,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - An element is "in effect" in production when its definition status is
-      ACTIVE or DEPRECATED for its `id`.
     - `getId()` → column `id` (UUIDv7)
     - `getRevisionId()` → column `revision_id` (UUIDv7)
     - `getArchetype()` → column `archetype_id` → resolves Archetype
-    - `getDefinition()` → column `definition` (JSONB)
+    - `getDefinition()` → column `definition` (JSON)
     - `getVersion()` → column `version`
     - `getStatus()` → column `status` (denormalized from latest transition)
     - `getStatusTransitions()` → composition (AscriptionStatusTransition rows
@@ -1360,10 +1358,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - The transition timestamp is derived from `id` (UUIDv7 embedded
-      Unix epoch ms).
-    - Governance analytics (time-in-status, approval latency, rejection rates)
-      can be derived from the transition chain.
     - `getId()` → column `id` (UUIDv7)
     - `getRevisionId()` → column `revision_id` (FK to Ascription)
     - `getPreStatus()` → column `pre_status`
@@ -1414,11 +1408,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-
-    **Usage Rules**:
-
-    - Before activating, verify no conflicting ACTIVE definition exists for the
-      same `id`.
   end note
 
   ' ============================================================
@@ -1432,7 +1421,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Structure
-    **Structure** — The foundational aggregate.
+    **Structure** — The foundational aggregate. Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1491,8 +1480,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Derivation Rules**:
 
     - `getPurpose()` → `definition.purpose`
-    - `getMechanisms()` → reverse lookup (Mechanisms whose `definition.structure` = this.id)
-    - `getInterfaces()` → derived (Interfaces whose ports belong to this Structure's Mechanisms)
+    - `getMechanisms()` → reverse lookup (Mechanisms
+      whose `structure` = this.id)
+    - `getInterfaces()` → derived (Interfaces whose effectors/receptors belong
+      to this Structure's Mechanisms)
   end note
 
   Structure --|> Ascription
@@ -1513,7 +1504,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Mechanism
-    **Mechanism** — Logical causal unit.
+    **Mechanism** — Logical causal unit. Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1548,35 +1539,34 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       body's AST (see Derivation Rules for the full derivation table).
     - `ruleLanguage`: the language of the `rule` code. Supported values:
       "STARLARK".
+    - `effectors`: the set of Effectors derived from `rule`.
+    - `receptors`: the set of Receptors derived from `rule`.
 
     **Validation Rules**:
 
-    - `MechanismArchetype.rule` MUST be syntactically valid Starlark
-      (parseable by the Starlark parser).
-    - `MechanismArchetype.rule` MUST begin with exactly one
-      `on("...")` call as its first executable statement.
-    - The `on()` argument MUST be a string literal resolving to a defined
-      Archetype in the governed scope.
-    - String literals in `sys.*` calls (first argument = archetype name)
-      MUST be string literals (enables static analysis and port
-      auto-derivation).
-    - String literals in `sys.*` calls MUST resolve to declared Archetypes
-      in the governed scope.
-    - Dict literals in `sys.emit/create/modify` SHOULD conform to the
-      target Archetype schema (best-effort for dynamic values).
-    - Only `sys`, injected host functions (`on`, `now`, `uuid7`,
-      `fullmatch`, `search`), and Starlark built-ins are allowed globals.
-      Any other global → error.
-    - No `load()` statements.
-    - Execution budget: configurable max steps (default 100k).
-    - `MechanismArchetype.ruleLanguage` MUST be a supported value
-      (enforced by base schema enum).
-    - `MechanismArchetype.function` MUST be non-empty.
-    - `MechanismArchetype.function` MUST be unique among all in-effect
+    - `definition.structure` MUST reference an existing Structure `id`.
+    - `definition.function` MUST be non-empty.
+    - `definition.function` MUST be unique among all in-effect
       Mechanisms belonging to the same Structure.
-    - MUST have at least 1 Effector (guaranteed if `on()` is present).
-    - MUST have at least 1 Receptor (guaranteed if at least one `sys.*`
-      output call is present).
+    - `definition.rule` MUST be syntactically valid Starlark
+      (parseable by the Starlark parser).
+      - `definition.rule` MUST begin with exactly one
+        `on("...")` call as its first executable statement.
+      - The `on()` argument MUST be a string literal resolving to a defined
+        Archetype in the governed scope.
+      - String literals in `sys.*` calls (first argument = archetype name)
+        MUST be string literals (enables static analysis and port
+        auto-derivation).
+      - String literals in `sys.*` calls MUST resolve to declared Archetypes
+        in the governed scope.
+      - Dict literals in `sys.emit/create/modify` SHOULD conform to the
+        target Archetype schema (best-effort for dynamic values).
+      - Only `sys`, injected host functions (`on`, `now`, `uuid7`,
+        `fullmatch`, `search`), and Starlark built-ins are allowed globals.
+        Any other global → error.
+      - No `load()` statements.
+      - Execution budget: configurable max steps (default 100k).
+    - `definition.ruleLanguage` MUST be a supported value.
 
     **State Rules**:
 
@@ -1588,12 +1578,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       function duplicates an already in-effect sibling Mechanism within the same
       Structure.
 
-    **Relational Consistency Rules**:
-
     **Derivation Rules**:
 
     - The Structure reference is derived from the Mechanism's Archetype
       (`structure`).
+    - `structure` → definition.structure
+    - `getFunction()` → `definition.function`
+    - `getRule()` → `definition.rule`
+    - `getRuleLanguage()` → `definition.ruleLanguage`
+    - `getEffectors()` → derived ports (auto-derived from `definition.rule` AST)
+    - `getReceptors()` → derived ports (auto-derived from `definition.rule` AST)
     - *Receptor derivation (inputs)*
       - `on("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
@@ -1614,12 +1608,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
         object(s). Auto-derives an Effector.
       - `sys.acquire("ArchetypeName", filter)` — reads/acquires state
         object(s). Auto-derives an Effector.
-    - `getStructure()` → `definition.structure` → resolves Structure
-    - `getFunction()` → `definition.function`
-    - `getRule()` → `definition.rule`
-    - `getRuleLanguage()` → `definition.ruleLanguage`
-    - `getEffectors()` → derived ports (auto-derived from `definition.rule` AST)
-    - `getReceptors()` → derived ports (auto-derived from `definition.rule` AST)
 
     **Usage Rules**:
 
@@ -1661,15 +1649,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Effector
-    **Effector** — Output port of a Mechanism.
+    **Effector** — Output port of a Mechanism. Extends Ascription.
 
     **Concept Semantics**:
 
+    - Represents a mechanism's capability to produce an *effect*.
+    - Interactions originate from Effectors.
     - Declares the type of information the Mechanism emits, by referencing an
       Archetype. The Archetype's schema determines the structure of the emitted
       data.
-    - Interactions originate from Effectors.
-    - Represents a mechanism's capability to produce an *effect*.
     - Effectors are *ports*; they do not carry values at the GSM level. Values
       exist in runtime instances.
 
@@ -1688,10 +1676,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `mechanism` reference MUST NOT be null.
-    - `archetype` reference MUST NOT be null.
-    - `interface` reference, if present, MUST reference an Interface that
-      belongs to the same Structure as the Mechanism.
+    - `definition.mechanism` reference MUST NOT be null.
+    - `definition.archetype` reference MUST NOT be null.
+    - `definition.interface` reference, if present, MUST reference an Interface
+      that belongs to the same Structure as the Mechanism.
 
     **State Rules**:
 
@@ -1701,9 +1689,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `getMechanism()` → `definition.mechanism` → resolves Mechanism
-    - `getArchetype()` → `definition.archetype` → resolves Archetype
-    - `getInterface()` → `definition.interface` → resolves Interface (nullable)
+    - `mechanism` → definition.mechanism
+    - `archetype` → definition.archetype
+    - `interface` → definition.interface
   end note
 
   Effector --|> Ascription
@@ -1722,7 +1710,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Receptor
-    **Receptor** — Input port of a Mechanism.
+    **Receptor** — Input port of a Mechanism. Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1750,9 +1738,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `mechanism` reference MUST NOT be null.
-    - `archetype` reference MUST NOT be null.
-    - `interface` reference, if present, MUST reference an Interface that
+    - `definition.mechanism` reference MUST NOT be null.
+    - `definition.archetype` reference MUST NOT be null.
+    - `definition.interface` reference, if present, MUST reference an Interface that
       belongs to the same Structure as the Mechanism.
 
     **State Rules**:
@@ -1763,9 +1751,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `getMechanism()` → `definition.mechanism` → resolves Mechanism
-    - `getArchetype()` → `definition.archetype` → resolves Archetype
-    - `getInterface()` → `definition.interface` → resolves Interface (nullable)
+    - `mechanism` → definition.mechanism
+    - `archetype` → definition.archetype
+    - `interface` → definition.interface
   end note
 
   Receptor --|> Ascription
@@ -1783,7 +1771,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Interaction
-    **Interaction** — Causal coupling between Mechanisms.
+    **Interaction** — Causal coupling between Mechanisms. Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1809,10 +1797,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `InteractionArchetype.effector` MUST NOT be null.
-    - `InteractionArchetype.receptor` MUST NOT be null.
-    - `effector.archetype` MUST be schema-compatible with
-      `receptor.archetype`.
+    - `definition.effector` MUST NOT be null.
+    - `definition.receptor` MUST NOT be null.
+    - `definition.effector.archetype` MUST be schema-compatible with
+      `definition.receptor.archetype`.
 
     **State Rules**:
 
@@ -1822,8 +1810,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `getEffector()` → `definition.effector` → resolves Effector
-    - `getReceptor()` → `definition.receptor` → resolves Receptor
+    - `effector` → definition.effector
+    - `receptor` → definition.receptor
   end note
 
   Interaction --|> Ascription
@@ -1841,7 +1829,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Interface
-    **Interface** — Exposed boundary of a Structure.
+    **Interface** — Exposed boundary of a Structure. Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1863,7 +1851,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-      - If `InterfaceArchetype.effectors`/`InterfaceArchetype.receptors` are
+      - If `definition.effectors`/`definition.receptors` are
         present, they MUST reference ports (Effector/Receptor `id`) that belong
         to Mechanisms within the same Structure as the Interface's Structure.
 
@@ -1875,18 +1863,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - An external boundary view can be derived by enumerating the union of ports
-      contained in all Interfaces.
-    - An Interface's Structure can be derived by resolving its
-      `InterfaceArchetype.effectors`/`InterfaceArchetype.receptors` to
-      Effector/Receptor Ascriptions, then resolving each port to its
-      owning Mechanism, then taking that Mechanism's
-      `MechanismArchetype.structure`. (This relies on ports belonging
-      exclusively to a single Mechanism, and a Mechanism belonging to a single
-      Structure.)
-    - `getStructure()` → derived (port → mechanism → structure chain)
-    - `getEffectors()` → `definition.effectors` → resolves Effector[]
-    - `getReceptors()` → `definition.receptors` → resolves Receptor[]
+    - `structure` → definition.structure
+    - `getEffectors()` → derived ports (auto-derived from `definition.rule` AST)
+    - `getReceptors()` → derived ports (auto-derived from `definition.rule` AST)
 
     **Usage Rules**:
 
@@ -1933,27 +1912,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       axiomatic seed from which the entire type system grows. All other
       Archetypes are typed by Archetype (or by a tenant Archetype
       that ultimately chains to it).
-    - Archetype instances remain **semantically immutable**: once an Archetype
-      revision is ACTIVE, its `definition.schemaUri` and `definition`
-      MUST NOT change.
-      Schema evolution is expressed by authoring a new Archetype revision (or a
-      new Archetype entirely) — never by mutating the active one. The lifecycle
-      inherited from Ascription governs when new Archetype definitions become
-      active; immutability applies to the content of each revision.
     - Every Ascription instance references one Archetype.
     - Unified type construct for all structural and domain typing.
-    - GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
-      InteractionArchetype, InterfaceArchetype, Archetype.
-      EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
-      for Mechanism ports (lifecycle-coupled, derived at compilation time) and
-      MUST NOT be tenant-extended. DirectiveArchetype and NormArchetype are
-      governance DNA archetypes (their schemas carry the governance grammar
-      for Directive and Norm instances respectively). Base archetypes carry
-      the `$gsm:sealed` marker in their JSON Schema.
     - Effectors and Receptors reference Archetypes directly to declare the
       type of information they emit/consume. The Archetype's
-      `definition.schemaUri`
-      determines the data structure.
+      `definition.schemaUri` determines the data structure.
 
     **Attribute Semantics**:
 
@@ -1967,14 +1930,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       (draft 2020-12+).
     - `definition.schemaUri` MUST be unique across all Archetypes.
     - `definition.schemaUri` MUST be immutable and version-pinned:
-      dereferencing it MUST always return the same schema content over time.
+      dereferencing it must always return the same schema content over time.
       Mutable aliases such as "latest" (or any moving target) MUST be rejected
       by the definition-manager.
     - `definition.schemaUri` MUST point to a schema whose `allOf` chain
-      ultimately roots at exactly one GSM base archetype schema. Intermediate
+      ultimately roots at the GSM base archetype schema. Intermediate
       tenant archetypes are permitted (depth-N chains) as long as all `allOf`
       paths converge to the same GSM base.
-    - Schemas whose `allOf` chain does not root at a GSM base archetype MUST
+    - Schemas whose `allOf` chain does not root at the GSM base archetype MUST
       be rejected by the definition-manager.
 
     **Relational Consistency Rules**:
@@ -1983,46 +1946,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `definition` compatible with the JSON Schema referenced by
       `definition.schemaUri`.
 
-    **Derivation Rules**:
-
-    - Base archetype classification is derived from the schema content
-      (`allOf.$ref`), not from a separate field.
-    - `getSchemaUri()` → `definition.schemaUri`
-
-    **Usage Rules**:
-
-    - Schema-declared inheritance: tenant archetypes declare which GSM base they
-      extend via `allOf[{ "$ref": "<base-schema-uri>" }]` in their JSON Schema.
-      The definition-manager derives the base archetype by walking the allOf
-      chain to the GSM root — no separate field is needed on Archetype.
-    - **Depth-N allOf chains (cross-cutting governance archetypes)**: tenant
-      archetypes may extend other tenant archetypes (not only GSM bases
-      directly), as long as all allOf paths converge to exactly one GSM base.
-      This enables **cross-cutting governance**: a tenant defines intermediate
-      "facet" archetypes (e.g., DataProtectionArchetype, PerformanceGoverned-
-      Mechanism) that carry shared governance properties (e.g., gdprApplicable,
-      maxLatencyMs). Multiple leaf archetypes compose these facets via allOf.
-      A Directive can then reference a facet archetype as its qualifier-
-      Id, and its Norms apply to ALL elements whose Archetype extends
-      that facet — enabling cross-cutting NFR governance without per-Archetype
-      duplication.
-    - Tenant extensibility: tenants extend their Structure's vocabulary by
-      declaring new Archetypes whose schema references a GSM base. E.g., a
-      tenant creates Archetype "SecurityCheckMechanism" whose schema declares
-      allOf[{ $ref: MechanismArchetype }] and adds { complianceFramework }
-      alongside the base's `MechanismArchetype.rule`,
-      `MechanismArchetype.ruleLanguage`, and `MechanismArchetype.function`.
-    - Schema evolution MUST NOT mutate an existing `definition.schemaUri`
-      target. If a schema must change, publish a new version at a new,
-      version-pinned URI and author a new Archetype revision that references it.
-      Existing Ascriptions remain pinned to the schema addressed by their
-      Archetype's `definition.schemaUri`.
-
     **State Rules**:
 
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+
+    **Derivation Rules**:
+
+    - Base archetype classification is derived from the schema content
+      (`allOf.$ref`), not from a separate field.
+    - `getSchemaUri()` → `definition.schemaUri`
 
     **Notes**:
 

@@ -1,0 +1,32 @@
+openapi: 3.1.0
+info:
+  title: SIE Definition Manager API
+  version: v1
+  description: |
+    Contract-first API baseline for the Definition Manager.
+servers:
+  - url: /api/v1
+paths:
+  /info:
+    get:
+      summary: Service information endpoint
+      operationId: getInfo
+      responses:
+        "200":
+          description: HAL or JSON payload with service metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+            application/hal+json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          description: Unexpected server error
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                additionalProperties: true

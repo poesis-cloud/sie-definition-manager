@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/your-org/sie-definition-manager
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: dm.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+env:
+  DB_URL: jdbc:postgresql://sie-definition-database:5432/sie_definition
+  DB_USER: sie
+  SCHEMA_REGISTRY_URL: http://sie-schema-registry:8081
+  KAFKA_BOOTSTRAP_SERVERS: sie-event-bus-kafka:9092
+  OIDC_ISSUER_URI: https://issuer.example.com
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  DM_RELIABILITY_MODE: alo-idempotent
+  KAFKA_ENABLE_IDEMPOTENCE: "true"
+  KAFKA_TX_ID_PREFIX: dm-tx-
+
+secrets:
+  DB_PASSWORD: ""
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

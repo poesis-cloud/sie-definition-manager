@@ -11,6 +11,18 @@
         "mechanism",
         "archetype"
     ],
+    "examples": [
+        {
+            "mechanism": "019cc49a-dc5a-799b-8f0b-3d951621a86f",
+            "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62",
+            "interface": "019cc49a-dc5a-77df-b1d4-11d16d6e319a"
+        },
+        {
+            "mechanism": "019cc49a-dc5a-732d-be73-ccd173616a7c",
+            "archetype": "019cc49a-dc5a-7069-ab42-c742d270b108",
+            "interface": null
+        }
+    ],
     "properties": {
         "mechanism": {
             "type": "string",
@@ -23,11 +35,15 @@
             "description": "ID reference to the Archetype that types the Receptor's input payload."
         },
         "interface": {
-            "type": [
-                "string",
-                "null"
+            "anyOf": [
+                {
+                    "type": "string",
+                    "minLength": 1
+                },
+                {
+                    "type": "null"
+                }
             ],
-            "minLength": 1,
             "description": "Optional ID reference to the Interface that exposes this Receptor for inter-Structure coupling. Null means the port is private to the Structure."
         }
     },

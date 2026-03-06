@@ -10,6 +10,12 @@
         "effector",
         "receptor"
     ],
+    "examples": [
+        {
+            "effector": "019cc49a-dc5a-7a3b-909f-969bfe0d738e",
+            "receptor": "019cc49a-dc5a-75ab-a4cb-e02d100e6c01"
+        }
+    ],
     "properties": {
         "effector": {
             "type": "string",

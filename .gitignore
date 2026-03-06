@@ -1,3 +1,11 @@
 # Python
 __pycache__/
 *.pyc
+
+# Java / Maven
+target/
+.mvn/
+.idea/
+.classpath
+.project
+.settings/

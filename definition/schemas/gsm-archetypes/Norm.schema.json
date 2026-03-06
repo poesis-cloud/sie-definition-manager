@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Norm.schema.json",
     "title": "Norm",
-    "description": "Governance DNA archetype for Norm \u2014 measurable constraint predicates (DNA 'N'). Standalone first-class GSM class with independent lifecycle, typed by NormArchetype. Fields: structure, guard, predicate, toleranceMode, temporalWindow, temporalAggregation, sustainedThreshold.",
+    "description": "Governance DNA archetype for Norm - measurable constraint predicates (DNA 'N'). Standalone first-class GSM class with independent lifecycle, typed by NormArchetype. Fields: structure, guard, predicate, toleranceMode, temporalWindow, temporalAggregation, sustainedThreshold.",
     "$gsm:sealed": true,
     "$gsm:gsmClass": "Norm",
     "allOf": [
@@ -63,6 +63,21 @@
         "predicate",
         "toleranceMode"
     ],
+    "examples": [
+        {
+            "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+            "guard": "DeploymentProperties.environment == \"production\"",
+            "predicate": "PerformanceProperties.p99Latency < 500",
+            "toleranceMode": "AGGREGATED",
+            "temporalWindow": "PT5M",
+            "temporalAggregation": "P99"
+        },
+        {
+            "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+            "predicate": "SecurityProperties.tlsEnabled == true",
+            "toleranceMode": "INSTANTANEOUS"
+        }
+    ],
     "properties": {
         "structure": {
             "type": "string",
@@ -72,7 +87,7 @@
         "guard": {
             "type": "string",
             "default": "true",
-            "description": "CEL expression conforming to the applicability-guard CEL profile \u2014 activation condition. Predicate is only evaluated when guard evaluates to true. Default: 'true' (unconditional activation)."
+            "description": "CEL expression conforming to the applicability-guard CEL profile - activation condition. Predicate is only evaluated when guard evaluates to true. Default: 'true' (unconditional activation)."
         },
         "predicate": {
             "type": "string",
@@ -112,7 +127,8 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "description": "Ratio [0,1] \u2014 fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
+            "description": "Ratio [0,1] - fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
         }
-    }
+    },
+    "additionalProperties": false
 }

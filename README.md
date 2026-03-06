@@ -4,6 +4,76 @@ SIE (Systemic Intelligence Engine) is an **AI Context Platform**: it turns "cont
 
 This module hosts the **Definition plane** conceptual models, primarily the **GSM (Generative System Model)** — SIE's generative/definitional system model.
 
+## DM v1 service scaffold
+
+This module now also includes a runnable **Definition Manager API scaffold**:
+
+- `Java 21` + `Spring Boot` + `Maven`
+- REST API with both `application/hal+json` and `application/json`
+- OpenAPI-first contract source: `src/main/resources/openapi/dm-v1.yaml`
+- RFC 7807 error model (`application/problem+json`)
+- PostgreSQL + Flyway integration
+- Kafka + Schema Registry integration hooks
+- OAuth2/OIDC baseline (resource server + social client registrations)
+- OTel baseline (`OTLP` endpoint wiring)
+- GitHub Actions CI/CD baseline
+- Helm chart for AKS and on-prem deployment profiles (`deploy/helm`)
+
+### Local development
+
+Use the simple local flow:
+
+- Validate local tooling and cluster connectivity:
+  - `cd sie/sie-definition-manager && make local-check`
+- Deploy dependencies and expose them on localhost:
+  - `cd sie/sie-definition-manager && make local-up`
+- Run DM locally:
+  - `cd sie/sie-definition-manager && make run-api`
+- Teardown dependencies and port-forwards:
+  - `cd sie/sie-definition-manager && make local-down`
+
+`make local-up` deploys dependencies using each dependency repo's own Helm
+chart:
+
+- Event bus: `sie/sie-event-bus/deploy/helm/sie-event-bus-kafka`
+- Schema Registry: `sie/sie-schema-registry/deploy/helm/sie-schema-registry`
+- Definition DB: `sie/sie-definition-database`
+
+Environment template:
+
+- Copy `.env.example` values into your shell or IDE run configuration.
+- To enable social OAuth providers, run with profile `social`
+  (e.g. `SPRING_PROFILES_ACTIVE=social`) and set provider client IDs/secrets.
+
+Deployment values structure:
+
+- Base chart values: `deploy/helm/sie-definition-manager/values.yaml`
+- Platform overlays: `deploy/helm/sie-definition-manager/values-aks.yaml`,
+  `deploy/helm/sie-definition-manager/values-onprem.yaml`
+- Environment overlays:
+  - `deploy/helm/sie-definition-manager/environments/local/values.yaml`
+  - `deploy/helm/sie-definition-manager/environments/preprod/values.yaml`
+  - `deploy/helm/sie-definition-manager/environments/prod/values.yaml`
+
+Secrets are not stored in these files for real environments. Inject
+`secrets.DB_PASSWORD` at deploy time via CI/CD secret store.
+
+### Schema registration policy
+
+DM is configured for an explicit **registration pipeline** (no auto-registration at runtime):
+
+- `DM_SCHEMA_AUTO_REGISTER=false` (default)
+
+Schemas should be registered by CI/CD or dedicated governance pipelines before DM runtime operations rely on them.
+
+### Reliability profile
+
+Default profile is:
+
+- `DM_RELIABILITY_MODE=alo-idempotent`
+
+This keeps v1 cost-effective while preserving a path to stricter producer transaction settings when needed.
+
 ## GSM — the Generative System Model
 
 GSM is a fundamental departure from classical systemic models such as Beer's Viable System Model (VSM) or von Bertalanffy's General System Theory (GST). Those models are *descriptive*: they provide analytical frameworks for observing and reasoning about systems that already exist. GSM, by contrast, is *generative* (equivalently: *definitional*). Its primitives are not passive descriptions of an observed reality; they are **active definitions** from which system structure, behavior, governance, and viability are *derived and produced*:
@@ -13,156 +83,6 @@ GSM is a fundamental departure from classical systemic models such as Beer's Via
 - A **Mechanism rule** auto-derives the Effectors and Receptors needed to realize and observe the effect (closed-loop vs. open-loop pattern).
 
 Classical models *describe* systems; GSM *defines* them. Description tells you what a system is; definition tells the system what it must become — and provides the governance machinery to get there.
-
-## DNA across governance planes — the visual grammar
-
-> **⚠️ STALE SECTION.** This section (including the ASCII art diagram and sub-chain table) uses the pre-GSM-update terminology and concepts: DNA, Qualifier, Controller/Actuator/Sensor, Constitution/Organization/Infrastructure layers. In current GSM: DNA → DNA (Directives, Norms, Ascriptions); Qualifier → eliminated (subsumed by Ascription + Archetype); Controller/Actuator/Sensor → eliminated (Mechanism is the single causal unit, with auto-derived Effectors/Receptors); Constitution/Organization/Infrastructure → eliminated (replaced by six-plane, two-layer architecture). This section needs a conceptual rewrite, not just a terminology swap.
-
-
-DNA (Directives, Policies, Qualifiers, Rules) is the **System Definitional Grammar** — the definitional spine that cross-cuts all three layers of a System. The following diagram shows how governance artifacts flow from identity (Constitution) through governance logic (Organization) down to structural realization (Infrastructure):
-
-```
-CONSTITUTION (identity — WHY)
-+---------+          +--------------------------+
-| Purpose |<---------+        Directive         |
-|         |  scopes  | Modal x Verb x Qual x P  |
-+---------+          +------------+-------------+
-. . . . . . . . . . . . . . . . .|. . . . . . . .
-ORGANIZATION (governance — HOW)   | operationalizes
-                       +----------+----------+
-                       |       Policy        |
-                       |  guard + predicate  |
-                       +---+-------+------+--+
-                           |       |      |
-            +--------------+       |      +-----------+
-      DPR   |         DP-only      |             DPQ  |
-      +-----+------+        (no terminal)    +--------+---+
-      |    Rule    |       Supervision       | Qualifier  |
-      |  Starlark  |        evaluates        |    JSON    |
-      +-----+------+        directly         +------------+
-      . . . | . . . . auto-derives . . . . . . . . . . .
-INFRASTRUCTURE (substrate — WITH WHAT)
-      +-----+------+
-      | Controller +---> Actuator ---> Sensor
-      +------------+   Mechanism, R/E, Channel
-
-Specificity: Directive --> Policy --> {Rule, Qualifier}
-Modality:    constraining (DP) --> defining (R, Q)
-Velocity:    slow (DP) ---------> fast (R, Q)
-```
-
-Three sub-chains fork from the common constraining root (Directive → Policy):
-
-| Chain | Terminal atom | Modality | Governs | Verification |
-|-------|---------------|----------|---------|--------------|
-| **DPR** | Rule (Starlark) | Imperative | Behavioral logic | Observation-time |
-| **DPQ** | Qualifier (JSON) | Imperative | Structural properties | Definition-time |
-| **DP-only** | — (none) | — | Graph topology / cardinality | Definition-time |
-
-Together these layers form the system's **generative envelope** — the complete definitional specification from which governance processes derive their runtime behavior.
-
-## Quality as Purpose operationalization effectiveness
-
-The quality level of a system IS the effectiveness of its Purpose operationalization through DNA. Quality is not an external metric imposed on the system — it is an intrinsic structural property of the DNA graph itself.
-
-**Why this follows from GSM semantics:**
-
-- **Directive IS a quality attribute.** Its grammar (`Modal × Verb × Qualifier × Purpose`) simultaneously declares the value axis (Purpose) and the viability axis (qualifier). Quality is constitutive identity.
-- **Operationalization IS the quality lineage.** The full structural chain `Structure (purpose) ← Directive → Norm → Mechanism (rule)` makes quality operationalization a graph property.
-- **Quality level IS operationalization effectiveness.** Complete, coherent, adequate DNA chains = high quality. Gaps, contradictions, unenforced Directives = low quality.
-
-**Quality dimensions** (all derivable from existing constructs):
-
-| Dimension | Question | Source |
-|-----------|----------|--------|
-| Governance coverage | What fraction of Purpose × qualifier space has DNA chains? | Operationalization graph |
-| Governance depth | What ratio of chains reach terminal atoms (DNA terminal atoms) vs. DP-only? | Operationalization completeness |
-| Normative integrity | Are DNA chains contradiction-free? | Norm Appraisal |
-| Normative adequacy | Do Norms adequately translate Directives? | Norm Appraisal |
-| Operational fidelity | Does observed state deviate from defined Norms? | Form Appraisal |
-| Governance velocity | How quickly does governance adapt to such deviation? | S3×S4 homeostat |
-
-**Effective criticality** (weighting function): not all Purposes are equally important. The effective criticality of a Purpose is derived from its Directive distribution: `effectiveCriticality(P) = max(modal)` over all Directives scoping P. A Purpose governed by MUST Directives is de facto critical; one with zero Directives is an ungoverned governance gap.
-
-**No new quality primitives needed.** DNA already IS the quality grammar. Quality assessment is goverable through meta-Directives (see §12 in `gsm.puml` GsmArchitectureAnalysis).
-
-## Three definitional layers
-
-> **⚠️ STALE SECTION.** This section describes the former Constitution/Organization/Infrastructure layering and the old primitives table. In current GSM: (a) layers are eliminated as fixed categories — they are "relative representations, not absolute" (GSM §6); (b) many primitives listed here are eliminated (Controller, Actuator, Sensor, Component, Channel, Qualifier, Operationalization, Relationship, Role, Actuation, Sensing, EventArchetype, StateObjectArchetype); (c) the base class is now Ascription (not SystemicPrimitiveDefinition); (d) the single Archetype kind replaces EventArchetype + StateObjectArchetype. This section needs a conceptual rewrite.
-
-
-Every System is defined through three layers:
-
-### Constitution — "What the system IS" (WHY)
-
-The constitutional layer declares the system's identity: its reason for existence and the immovable quality commitments it upholds.
-
-- **Purpose**: the system's reasons for existence — the intended outcomes or objectives. Purposes are the functional anchors to which all governance is traceable through the DNA chain.
-- **Directive**: identity-level normative constraints expressed as structured quality-attribute sentences (`Modal × Verb × Qualifier × Purpose`). The subject is always the owning System. Directives are the normative root of the DNA chain.
-
-Constitution carries both the *value axis* (Purpose: what the system does) and the *viability axis* (Directive: how well it must do it).
-
-### Organization — "How the system governs itself" (HOW)
-
-The organizational layer defines how the system achieves its constitutional purposes while respecting its directives. Organization is the **logical structure realizing Constitution, by means of its Infrastructure**. It contains:
-
-**Governance norms and behavioral logic (DNA + relationships):**
-
-- **Policy**: measurable normative envelopes (CEL predicates with tolerance modes) that operationalize Directives into bounded, falsifiable constraints across all governance axes.
-- **Rule**: behavioral logic — event-triggered Starlark programs. The atomic, compilable/executable governance logic. Infrastructure primitives (Controller, Actuator, Sensor) are auto-derived from Rule bodies by the Definition Manager.
-- **Qualifier**: structural/property definition atom — JSON values within Policy bounds. The atomic, declarative structural set point. Schema-extensible for cross-domain properties.
-- **Operationalization**: traced governance lineage path (Directive → Policy → {Rule, Qualifier}). Each instance pins one thread from the many-to-many DNA web.
-- **Relationship**: positional links to other systems, encoding role pairs (via canonical Roles) and governance postures.
-- **Actuation** / **Sensing**: auto-derived governance markers for state mutations and their homeostatic verification (closed-loop vs. open-loop actuations).
-
-**Information model (epistemic constructs):**
-
-- **Function**: an activity or process that the system can perform — the logical capability that Mechanisms realize.
-- **EventArchetype**: the structure and semantics of events that flow through mechanisms.
-- **StateObjectArchetype**: the structure and semantics of observable/mutable state objects.
-
-### Infrastructure — "What it is made of" (WITH WHAT)
-
-Inherited from Component (the base type). The structural substrate — mechanism topology upon which governance operates:
-
-- **Mechanism**: atomic causal unit of behavior (at least one Receptor, one Effector). Subtypes: **Controller** (implements Rules), **Actuator** (executes Actuations), **Sensor** (observes Sensings).
-- **Receptor** / **Effector**: event I/O channels bound to EventArchetypes.
-- **Interaction**: atomic causal coupling (Effector → Receptor).
-- **Channel**: declared exchange medium carrying Interactions.
-- **Interface**: named I/O surface — a curated selection of Receptors/Effectors grouped into a coherent, addressable contact point.
-
-A System IS-A Component with reflexive capacity. Components have first-order dynamics only (process inputs, produce outputs). Systems add second-order dynamics (self-governance through Constitution + Organization).
-
-## Primitives at a glance
-
-| Layer | Primitive | Role |
-|-------|-----------|------|
-| **Meta** | Schema | Defines property vocabulary for extensible primitives |
-| **Meta** | SystemicPrimitiveDefinition | Abstract base — carries `id` + `definitionStatus` lifecycle |
-| **Constitution** | Purpose | Reason for existence — value axis anchor |
-| **Constitution** | Directive | Identity-level quality constraint (Modal × Verb × Qual × Purpose) |
-| **Organization** | Policy | Measurable boundary condition (CEL guard + predicate + tolerance) |
-| **Organization** | Rule | Behavioral logic atom (event-triggered Starlark body) |
-| **Organization** | Qualifier | Structural/property definition atom (JSON value within Policy bounds) |
-| **Organization** | Operationalization | Governance lineage trace (D → P → R or Q) |
-| **Organization** | Function | Named capability that Mechanisms realize |
-| **Organization** | Relationship | Positional link between Systems (Role × Role) |
-| **Organization** | Role | Relational label for Systems in Relationships |
-| **Organization** | Actuation | State mutation marker (auto-derived from Rule body) |
-| **Organization** | Sensing | Homeostatic verification marker (auto-derived, closed-loop) |
-| **Organization** | EventArchetype | Event structure + semantics (Schema-bound) |
-| **Organization** | StateObjectArchetype | State object structure + semantics (Schema-bound) |
-| **Infrastructure** | Component | Structural organ — mechanisms + I/O topology |
-| **Infrastructure** | Mechanism | Atomic causal unit (Receptors → processing → Effectors) |
-| **Infrastructure** | Controller | Mechanism subtype — implements Rules |
-| **Infrastructure** | Actuator | Mechanism subtype — executes Actuations |
-| **Infrastructure** | Sensor | Mechanism subtype — observes Sensings |
-| **Infrastructure** | Receptor / Effector | Event input / output channels |
-| **Infrastructure** | Interaction | Causal coupling (Effector → Receptor) |
-| **Infrastructure** | Channel | Exchange medium carrying Interactions |
-| **Infrastructure** | Interface | Named I/O surface (curated R/E group) |
-
-Every primitive inherits `AscriptionStatus` (DRAFT → PROPOSED → APPROVED → ACTIVE → SUSPENDED / DEPRECATED → RETIRED). Domain-extensible primitives (EventArchetype, StateObjectArchetype, Qualifier) additionally carry a Schema for structural extensibility.
 
 ## Six governance planes
 
