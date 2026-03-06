@@ -2,7 +2,7 @@
 
 SIE (Systemic Intelligence Engine) is an **AI Context Platform**: it turns "context" into a governed, typed, provenance-backed asset (observations + definitions + evaluations) that can be assembled for AI reasoning, deterministic checks, and remediation decisions.
 
-This module hosts the **Definition plane** conceptual models, primarily the **GSM (Generative System Model)** — SIE's generative/definitional system model.
+This module hosts the **Definition Manager** service managing the core conceptual model, primarily the **GSM (Generative System Model)** — SIE's generative/definitional system model.
 
 ## DM v1 service scaffold
 
@@ -76,66 +76,31 @@ This keeps v1 cost-effective while preserving a path to stricter producer transa
 
 ## GSM — the Generative System Model
 
-GSM is a fundamental departure from classical systemic models such as Beer's Viable System Model (VSM) or von Bertalanffy's General System Theory (GST). Those models are *descriptive*: they provide analytical frameworks for observing and reasoning about systems that already exist. GSM, by contrast, is *generative* (equivalently: *definitional*). Its primitives are not passive descriptions of an observed reality; they are **active definitions** from which system structure, behavior, governance, and viability are *derived and produced*:
+GSM is a fundamental departure from classical systemic models such as Beer's Viable System Model (VSM) or von Bertalanffy's General System Theory (GST). Those models are *descriptive*: they provide analytical frameworks for observing and reasoning about systems that already exist. GSM, by contrast, is *generative* (equivalently: *definitional*). Its primitives are not passive descriptions of an observed reality; they are **active definitions** from which system structure, behavior, governance, and viability are *derived and produced*.
 
-- A declared **Directive** generates identity constraints enforced by the governance plane; the regulation plane produces Norms from them.
-- A declared **Norm** constraint automatically derives its own evaluation semantics, closing the homeostatic cycle.
-- A **Mechanism rule** auto-derives the Effectors and Receptors needed to realize and observe the effect (closed-loop vs. open-loop pattern).
+**Structure** is the foundational aggregate — an intentional assembly of Elements (Mechanisms, Interactions, Interfaces) arranged to address a governed **purpose**. GSM does not model "System" as a primitive; whether something *is* a system is derived at inference time from reflexivity and governance scope, not asserted at definition time. A Structure becomes a System when its Mechanisms become reflexive — when it operates itself.
+
+**DNA** (Directives / Norms / Ascriptions) is the unified governance grammar, stratified by rate of change:
+
+| Layer | Primitive | Tempo | What it governs |
+|-------|-----------|-------|-----------------|
+| **D** | **Directive** | Slow (identity) | What the system fundamentally is. Grammar: **Modal × Verb × Qualifier × Purpose** (e.g., *"order-processing MUST ENSURE SecurityProperties OF payment-service"*). |
+| **N** | **Norm** | Medium (constraints) | Measurable constraint predicates operationalizing Directives. **Guard** (applicability-guard CEL profile) + **Predicate** (property-assertion CEL profile) + tolerance mode (INSTANTANEOUS / AGGREGATED / SUSTAINED). |
+| **A** | **Ascription** | Fast (definition) | Concrete, version-specific definition of each Element, typed by an **Archetype** (JSON Schema). All GSM primitives — Structure, Mechanism, Directive, Norm, Archetype itself — extend Ascription. |
+
+Each layer can evolve at its natural rate without destabilizing the others.
+
+**Teleological decomposition** connects intent to implementation:
+
+- **Purpose** (Structure) → *why* the aggregate exists.
+- **Function** (Mechanism) → *what capacity* each causal unit contributes.
+- **Rule** (Mechanism, Starlark) → *how* that capacity is realized. The definition-manager auto-derives **Effectors** (output ports) and **Receptors** (input ports) from the rule's AST — closed-loop vs. open-loop pattern.
+
+**Archetype** is the sole typed deliverable in the definition plane — the domain model / vocabulary. Every Ascription references one Archetype; every Archetype references a JSON Schema (`schemaUri`) that validates its instances. The type system bootstraps from a single axiomatic seed (the Archetype that types itself).
+
+**Systemic recursion** closes the loop: Mechanisms operate on Ascriptions; all definitions are Ascriptions; therefore Mechanisms can operate on Mechanisms — including producing governance DNA (Directives and Norms). The system defines itself through itself.
 
 Classical models *describe* systems; GSM *defines* them. Description tells you what a system is; definition tells the system what it must become — and provides the governance machinery to get there.
-
-## Six governance planes
-
-SIE is organized into six canonical planes grouped into two layers:
-
-| Layer | Plane | Function | DNA role |
-|-------|-------|----------|-----------|
-| **Reflexive** | Governance | Defines and enforces Directives | Governor (S5) |
-| **Reflexive** | Regulation | Interprets Directives → Norms | Regulator (S4) |
-| **Reflexive** | Supervision | Evaluates Norms (appraisal) | Supervisor (S3) |
-| **Reflexive** | Coordination | Stabilizes concurrent governance loops | Coordinator (S2) |
-| **Ontic** | Operation | Executes Mechanism rules in the state plane | Operator (S1) |
-| **Ontic** | State | Ground truth — external systems | — |
-
-GRS&CO labels (Governor, Regulator, Supervisor, Coordinator, Operator) name **SIE's own governance functions** — one per plane. They are SIE's own Systems, not Components composed by tenant Systems. DNA is the **System's DNA**: SIE deploys GRS&CO to operate on each System's DNA.
-
-## GSM ↔ DSM (Definition–Description duality)
-
-GSM is one half of SIE's core duality:
-
-- **GSM** (this module) defines *what the system must become*: Directives, Norms, Mechanisms, Archetypes, and their governance relationships. GSM primitives are active definitions from which structure, behavior, and viability are derived. GSM has **definitional primacy**.
-- **DSM** (`../sie-description-manager/`) captures *what the system currently is*: state descriptions, signals, measurements, comparisons, deviations, and assessments. DSM feeds evidence into GSM's generative machinery. DSM has **evidential primacy**.
-
-In the Six Planes model:
-
-| Layer | Plane | Model | Cybernetic role |
-|-------|-------|-------|-----------------|
-| Reflexive | **Governance + Regulation** | GSM | Definition semantics |
-| Reflexive | **Supervision** | DSM | Receptor + comparator semantics |
-| Reflexive | **Coordination** | — | Stabilizes pacing between GSM and DSM |
-| Ontic | **Operation** | — | Realizes GSM definitions |
-| Ontic | **State** | — | Ground truth — observed by DSM |
-
-Closed-loop flow: **State → DSM (observe) → GSM (define/adjust) → Operation (actuate) → State**.
-
-Definition without description is dogma; description without definition is noise.
-
-### Structural and behavioral description (completeness–complexity tradeoff)
-
-GSM deliberately stops at the **structural properties layer** — the lowest definitional layer. Structure defines the arrangement and constraints of behavior (Rules, Mechanisms, topology), but behavior itself emerges in the State plane and is *observed*, not *defined*.
-
-DSM mirrors this structural layer and extends observation into behavior:
-
-- **Structural description** captures system topology at a point in time (components, interfaces, mechanisms, connections). It is cheap, stable, and immediately available — the efficient approximation.
-- **Behavioral description** captures state transitions, event sequences, and I/O patterns over time. It is the more complete epistemic form: given perfect behavioral observation, structure can be inferred.
-
-This creates a natural priority gradient for DSM:
-
-1. **Discovery mode**: structural descriptions dominate (cheapest to acquire, sufficient to scaffold governance definitions via Emergence).
-2. **Steady-state mode**: behavioral descriptions deepen (needed for dynamic Form Appraisal — does the system *behave* as defined?).
-3. **At convergence**: behavioral observation approaches completeness, and structural assumptions become empirically grounded rather than inferred.
-
-GSM and DSM are therefore coupled at the structural layer — this is their shared correlation surface — but DSM's descriptive reach extends beyond structure into behavior, where governance definitions are ultimately validated or falsified.
 
 ## Where to start
 

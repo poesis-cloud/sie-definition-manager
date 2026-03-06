@@ -26,11 +26,10 @@ local-check:
 local-up:
 	@$(MAKE) local-check
 	kubectl get ns $(NAMESPACE) >/dev/null 2>&1 || kubectl create ns $(NAMESPACE) >/dev/null
-	helm upgrade --install $(RELEASE_EVENT_BUS) $(EVENT_BUS_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s
+	helm upgrade --install $(RELEASE_EVENT_BUS) $(EVENT_BUS_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s --set persistence.enabled=false
 	helm upgrade --install $(RELEASE_SCHEMA_REG) $(SCHEMA_REG_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s \
-		--set kafka.bootstrapServers[0]="PLAINTEXT://$(RELEASE_EVENT_BUS):9092" \
-		--set configuration.hostName="$(RELEASE_SCHEMA_REG)"
-	helm upgrade --install $(RELEASE_DEF_DB) $(DEF_DB_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s
+		--set kafka.bootstrapServers[0]="PLAINTEXT://$(RELEASE_EVENT_BUS):9092"
+	helm upgrade --install $(RELEASE_DEF_DB) $(DEF_DB_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s --set persistence.enabled=false
 	@if [[ -f "$(PORT_FORWARD_PID_FILE)" ]]; then \
 		xargs -r kill < "$(PORT_FORWARD_PID_FILE)" 2>/dev/null || true; \
 		rm -f "$(PORT_FORWARD_PID_FILE)"; \
