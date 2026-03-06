@@ -2,20 +2,13 @@ name: dm-ci
 
 on:
   push:
-    paths:
-      - "sie/sie-definition-manager/**"
-      - ".github/workflows/**"
+    branches: [main]
   pull_request:
-    paths:
-      - "sie/sie-definition-manager/**"
-      - ".github/workflows/**"
+    branches: [main]
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: sie/sie-definition-manager
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -31,15 +24,12 @@ jobs:
         with:
           name: dm-test-reports
           path: |
-            sie/sie-definition-manager/target/surefire-reports
-            sie/sie-definition-manager/target/site/jacoco
-            sie/sie-definition-manager/target/bom.json
+            target/surefire-reports
+            target/site/jacoco
+            target/bom.json
 
   security:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: sie/sie-definition-manager
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -53,13 +43,10 @@ jobs:
         uses: aquasecurity/trivy-action@0.24.0
         with:
           scan-type: fs
-          scan-ref: sie/sie-definition-manager
+          scan-ref: .
 
   contract:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: sie/sie-definition-manager
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
