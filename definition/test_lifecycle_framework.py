@@ -16,7 +16,7 @@ from typing import Optional
 # ============================================================
 
 class S(Enum):
-    """ElementDefinitionStatus."""
+    """AscriptionStatus."""
     DRAFT = "DRAFT"
     PROPOSED = "PROPOSED"
     APPROVED = "APPROVED"

@@ -17,16 +17,18 @@
     "structure": {
       "type": "string",
       "minLength": 1,
-      "description": "ID reference to the owning/authoring Structure that issues the Directive."
+      "description": "ID reference to the authoring Structure that issues the Directive."
     },
     "modal": {
       "type": "string",
       "enum": [
         "MUST",
+        "MUST_NOT",
         "SHOULD",
+        "SHOULD_NOT",
         "MAY"
       ],
-      "description": "Deontic obligation strength. MUST = mandatory (violation = non-compliance). SHOULD = recommended (violation = warning). MAY = optional (informational)."
+      "description": "Deontic obligation strength. MUST = obligatory (violation = non-compliance). MUST_NOT = forbidden (violation = non-compliance). SHOULD = recommended (violation = warning). SHOULD_NOT = discouraged (violation = warning). MAY = permitted (informational)."
     },
     "verb": {
       "type": "string",
@@ -50,7 +52,7 @@
     "purpose": {
       "type": "string",
       "minLength": 1,
-      "description": "ID reference to the purposed/governed Structure."
+      "description": "ID reference to the purposed Structure."
     }
   }
 }

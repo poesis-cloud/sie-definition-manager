@@ -25,7 +25,7 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Define canonical Archetype catalog per ElementDefinition
+' - Define canonical Archetype catalog per Ascription
 '   subtype (well-known schemas).
 ' - Design inter-Structure governance patterns (governing
 '   Structure DNA → governed Structure Elements).
@@ -302,8 +302,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Effector, Receptor, Interface, Interaction.
 
     Domain semantics are expressed through **Archetypes** — each Archetype
-    references a JSON Schema (`definition.schemaUri`) that validates the definition
-    payload of Ascriptions typed by that Archetype. There is one
+    references a JSON Schema (`definition.schemaUri`) that validates the
+    definition payload of Ascriptions typed by that Archetype. There is one
     Archetype kind; no separate "domain" or "metadata" typing layers.
 
     **Archetype** is the general-purpose typed deliverable in the definition
@@ -563,23 +563,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Attribute Semantics**:
 
-    - `structure`: The owning/authoring Structure.
+    - `structure`: The authoring Structure. Stored as a **table column**
+      (envelope-level, alongside `id`, `revisionId`, `archetype`) — not
+      inside the `definition` JSONB payload — to enable foreign-key
+      referential integrity at the database level.
     - `modal`: Deontic obligation strength (see DirectiveModal enum).
     - `verb`: Governance direction/guarantee semantics (see DirectiveVerb
       enum).
     - `qualifier`: Reference to the Archetype that defines the viability
       dimension being governed. The Archetype's schema defines the
-      measurable properties; Norms operationalizing this Directive MUST
+      measurable properties; Norms operationalizing this Directive
       reference this same Archetype in their guard/predicate CEL
       expressions.
-    - `purpose`: Reference to the purposed/governed Structure.
+    - `purpose`: Reference to the purposed Structure (nullable).
 
     **Validation Rules**:
 
+    - `definition.structure` MUST reference an existing Structure.
     - `definition.modal` MUST be a valid DirectiveModal value.
     - `definition.verb` MUST be a valid DirectiveVerb value.
     - `definition.qualifier` MUST reference an existing Archetype.
-    - `definition.structure` MUST reference an existing Structure.
     - `definition.purpose`, if present, MUST match the purpose of an existing
       Structure.
 
@@ -589,26 +592,37 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       qualifier AND same Purpose → contradiction (error).
     - Two directives with opposing verb directions on the same
       qualifier AND same Purpose → conflict. Resolved by
-      DirectiveModal precedence (MUST > SHOULD > MAY).
+      DirectiveModal precedence (MUST/MUST_NOT > SHOULD/SHOULD_NOT
+      > MAY).
+    - A positive modal and its negation (e.g., MUST + MUST_NOT) on
+      the same verb + qualifier + Purpose → contradiction (error).
     - Different Purposes on the same qualifier are NOT conflicts.
+
+    **State Rules**:
+
+    - See `gsm-ascription-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Derivation Rules**:
 
-    - `getStructure()` → `definition.structure` → resolves Structure
+    - `structure` → definition.structure
     - `getModal()` → `definition.modal`
     - `getVerb()` → `definition.verb`
     - `getQualifier()` → `definition.qualifier` → resolves Archetype
-    - `getPurpose()` → `definition.purpose` → resolves Structure by purpose name (nullable)
+    - `getPurpose()` → `definition.purpose` → resolves Structure (nullable)
   end note
 
   Directive --|> Ascription
   Directive "0..*" --> "1" Structure: definedBy
-  Directive "0..*" --> "0..1" Structure: directsPurposeOf
   Directive "0..*" --> "1" Archetype: qualifies
+  Directive "0..*" --> "0..1" Structure: qualifiedPurposeOf
 
   enum DirectiveModal {
     MUST
+    MUST_NOT
     SHOULD
+    SHOULD_NOT
     MAY
   }
 
@@ -618,41 +632,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Concept Semantics**:
 
     - Encodes the normative strength of a Directive.
+    - Defines how violations are treated downstream (e.g., error vs warning).
+    - Grounded in deontic logic: {Obligatory, Forbidden, Recommended,
+      Discouraged, Permitted}.
+    - When two Directives conflict on the same qualifier and Purpose,
+      the higher-precedence modal tier wins.
+    - **Modal precedence** (for conflict resolution):
+      MUST/MUST_NOT > SHOULD/SHOULD_NOT > MAY.
+      Within the same tier, a positive modal (MUST, SHOULD) and its
+      negation (MUST_NOT, SHOULD_NOT) on the same verb + qualifier +
+      Purpose is a **contradiction** (error, not resolvable by
+      precedence).
 
     **Attribute Semantics**:
 
-    - `MUST`: mandatory (violation = non-compliance).
-    - `SHOULD`: recommended (violation = warning).
-    - `MAY`: optional (informational).
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - None.
-
-    **Derivation Rules**:
-
-    - None.
-
-    **Usage Rules**:
-
-    - Select MUST for mandatory constraints where violations constitute
-      non-compliance.
-    - Select SHOULD for recommended constraints where violations produce
-      warnings.
-    - Select MAY for informational/optional guidance.
-
-    **Notes**:
-
-    - Modal semantics define how violations are treated downstream (e.g., error
-      vs warning).
+    - MUST: Obligatory — hard constraint. The governance direction
+      expressed by the verb is mandatory. Appraisal treats violations
+      as errors.
+    - MUST_NOT: Forbidden — hard constraint. The governance direction
+      expressed by the verb is prohibited. Appraisal treats violations
+      as errors.
+    - SHOULD: Recommended — soft constraint. The governance direction
+      is recommended but not mandatory. Appraisal treats violations
+      as warnings.
+    - SHOULD_NOT: Discouraged — soft constraint. The governance
+      direction is discouraged but not forbidden. Appraisal treats
+      violations as warnings.
+    - MAY: Permitted — advisory. Appraisal treats as informational.
   end note
 
   enum DirectiveVerb {
@@ -671,40 +677,47 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Concept Semantics**:
 
-    - Expresses what the governance intent does to the quality dimension.
+    - Expresses the governance direction on the qualifier Archetype's
+      viability dimension.
+    - Combined with DirectiveModal (obligation strength), determines
+      the full governance stance.
+    - Verb choice influences how downstream Norm predicates are framed.
 
     **Attribute Semantics**:
 
-    - None.
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - None.
-
-    **Derivation Rules**:
-
-    - None.
-
-    **Usage Rules**:
-
-    - Choose verb to express governance intent: ENSURE/PREVENT for binary
-      outcomes, OPTIMIZE/MINIMIZE/MAXIMIZE for continuous tuning, MONITOR for
-      observability-only, ENABLE for capability provisioning.
-    - Verb choice influences how downstream Norm predicates are framed (e.g.,
-      PREVENT → negation predicate, ENSURE → positive predicate).
-
-    **Notes**:
-
-    - Verb choice influences how Norm predicates are authored (e.g., PREVENT vs
-      ENSURE framing).
+    - MAXIMIZE: Drive the qualifier properties to their highest
+      feasible level.
+      *e.g., "order-processing MUST MAXIMIZE ThroughputProperties
+      OF order-processing"*
+    - MINIMIZE: Drive the qualifier properties to their lowest
+      feasible level.
+      *e.g., "order-processing MUST MINIMIZE LatencyProperties OF
+      payment-processing"*
+    - MAINTAIN: Keep the qualifier properties at their current
+      level; resist change. Stability-oriented.
+      *e.g., "order-processing MUST MAINTAIN BackwardCompatibility
+      OF public-api"*
+    - OPTIMIZE: Drive the qualifier properties toward their optimal
+      feasible level (direction inferred from property semantics).
+      *e.g., "order-processing SHOULD OPTIMIZE PerformanceProperties
+      OF payment-service"*
+    - ENSURE: Guarantee the qualifier properties are present,
+      satisfied, or hold true. Positive existential guarantee.
+      *e.g., "order-processing MUST ENSURE SecurityProperties OF
+      payment-service"*
+    - PREVENT: Guarantee the qualifier properties (framed as
+      negative conditions) do not manifest. Negative existential
+      guarantee.
+      *e.g., "order-processing MUST PREVENT DataLossProperties OF
+      audit-logging"*
+    - MONITOR: Observe and report the qualifier properties without
+      enforcing constraints. Observability-only governance stance.
+      *e.g., "order-processing SHOULD MONITOR CostProperties OF
+      data-storage"*
+    - ENABLE: Provision or activate the qualifier properties as
+      capabilities. Capability governance.
+      *e.g., "order-processing MUST ENABLE EncryptionCapabilities
+      OF data-storage"*
   end note
 
   ' ============================================================
@@ -734,14 +747,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `definition`.
     - Faster-changing than Directive. Operationalizes a Directive's intent into
       an evaluable predicate.
+    - Guard and predicate use two distinct **CEL profiles** — restricted
+      subsets of CEL calibrated for their respective governance analysis
+      purposes (see CEL Profiles below). The definition-manager validates
+      expressions against their applicable profile and rejects non-conforming
+      expressions at authoring time.
 
     **Attribute Semantics**:
 
-    - `guard`: CEL expression (default: "true"). Activation condition —
-      predicate is only evaluated when guard is true.
-    - `predicate`: CEL expression → true/false. The constraint. References
-      exactly one Archetype by name as root identifier, then navigates its JSON
-      fields. Example: `SecurityProperties.encryptionLevel >= "AES-128"`
+    - `structure`: The authoring Structure. Stored as a **table column**
+      (envelope-level, alongside `id`, `revisionId`, `archetype`) — not
+      inside the `definition` JSONB payload — to enable foreign-key
+      referential integrity at the database level.
+    - `guard`: CEL expression conforming to the **applicability-guard
+      profile** (default: `"true"`). Activation condition — predicate
+      is only evaluated when guard evaluates to true.
+    - `predicate`: CEL expression conforming to the **property-assertion
+      profile** → bool. The constraint. References exactly one Archetype
+      by name as root identifier, then navigates its JSON Schema fields.
+      Example: `SecurityProperties.encryptionLevel >= "AES-128"`.
     - `toleranceMode`: how violations are measured over time.
     - `temporalWindow`: ISO 8601 duration for time-based modes.
     - `temporalAggregation`: aggregation function for the window.
@@ -749,28 +773,32 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `guard` MUST be valid CEL.
-    - `predicate` MUST be valid CEL returning boolean.
-    - `predicate` MUST reference exactly one Archetype.
-    - `toleranceMode` MUST NOT be null.
-    - `temporalWindow` required when `toleranceMode` is time-based.
-    - `sustainedThreshold` required when `toleranceMode` = SUSTAINED, MUST be in
-      [0, 1].
+    - `definition.structure` MUST reference an existing Structure.
+    - `definition.guard` MUST conform to the **applicability-guard CEL
+      profile** (see CEL Profiles above).
+    - `definition.predicate` MUST conform to the **property-assertion
+      CEL profile** (see CEL Profiles above).
+    - `definition.predicate` root Archetype MUST be in-scope for the
+      governing Structure.
+    - `definition.toleranceMode` MUST NOT be null.
+    - `definition.temporalWindow` required when `definition.toleranceMode` is
+      time-based.
+    - `definition.sustainedThreshold` required when `definition.toleranceMode`
+      = SUSTAINED, MUST be in [0, 1].
 
     **Assignment Rules**:
 
     - When `guard` is omitted, the definition-manager MUST default it to `true`.
 
-    **Relational Consistency Rules**:
+    **State Rules**:
 
-    - `predicate` SHOULD reference in-scope archetypes for the governed
-      Structure.
+    - See `gsm-ascription-lifecycle` state machine diagram
+      for valid transitions, preconditions, cascades,
+      and audit-log invariants.
 
     **Derivation Rules**:
 
-    - Evaluation scheduling and aggregation semantics are derived from
-      `toleranceMode`, `temporalWindow`, and `temporalAggregation`.
-    - `getStructure()` → `definition.structure` → resolves Structure
+    - `structure` → definition.structure
     - `getGuard()` → `definition.guard`
     - `getPredicate()` → `definition.predicate`
     - `getToleranceMode()` → `definition.toleranceMode`
@@ -778,19 +806,234 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getTemporalAggregation()` → `definition.temporalAggregation` (nullable)
     - `getSustainedThreshold()` → `definition.sustainedThreshold` (nullable)
 
-    **Usage Rules**:
+    **CEL Profiles**:
 
-    - `predicate` MUST reference exactly one Archetype by name as root
-      identifier, then navigate its JSON fields.
-    - Select `toleranceMode` based on the measurement semantics; pair time-based
-      modes with a `temporalWindow`.
-    - Author `guard` and `predicate` in CEL within the selected profile; the
-      definition-manager rejects out-of-profile expressions.
+    Norm fields `guard` and `predicate` each conform to a named CEL
+    profile. Profiles are restricted subsets of CEL with different
+    expressiveness, each calibrated for a specific governance analysis
+    purpose.
 
-    **Notes**:
+    *Applicability-Guard profile* (`guard`):
 
-    - CEL profile constraints are part of governance; the definition-manager
-      selects a CEL profile and rejects predicates that violate it.
+    Enables deterministic overlap and containment detection between Norm
+    activation conditions — the foundation for governance conflict analysis
+    and coverage computation.
+
+    Structure — **axis-predicate normal form**:
+    The guard MUST be expressible as a conjunction of single-axis
+    predicates:
+      `pred₁ && pred₂ && ... && predₙ`
+    where each predᵢ targets a single (Archetype, propertyPath) axis.
+    The degenerate case (n = 0) is the default guard `true`
+    (unconditional activation).
+
+    Allowed constructs:
+    - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`.
+    - **Set membership**: `value in [lit₁, lit₂, ...]` and
+      `!(value in [lit₁, lit₂, ...])`. `in` list MUST have ≥ 2
+      elements (single value → use `==`). Elements MUST be unique
+      and type-homogeneous.
+    - **Regex match**: `value.matches("pattern")` — string property
+      against a static regex literal.
+    - **Left operand**: Archetype property reference only
+      (`ArchetypeName.propertyPath`). No computed values, no function
+      calls, no arithmetic.
+    - **Right operand**: static literal (string, number, bool) or list
+      literal of static values. No computed values, no property
+      references.
+
+    Forbidden constructs:
+    - **Disjunction**: `||` (OR) is forbidden. The guard is a pure
+      conjunction.
+    - **Function calls** except `matches()` on string properties.
+    - **Cross-property comparisons**: each predicate compares a property
+      to a literal, never a property to another property.
+    - **Arithmetic**: no `+`, `-`, `*`, `/`, `%`.
+    - **Ternary** (`?:`), comprehensions, macros (except `in`).
+    - **One predicate per axis**: at most one predicate per
+      (Archetype, propertyPath) combination. Duplicates are rejected.
+
+    Why this restriction:
+    The axis-predicate normal form enables **deterministic** overlap
+    and containment detection between any two guards:
+    - Two guards **overlap** iff every shared axis has overlapping
+      value sets.
+    - Guard A **contains** guard B iff for every axis in A, A's
+      predicate accepts all values that B's predicate accepts.
+    This is the analytical foundation for Norm conflict detection
+    and governance coverage analysis.
+
+    Examples (applicability-guard profile):
+    ```
+    // Unconditional (default) — applies to all instances:
+    true
+
+    // Single-axis equality:
+    DeploymentProperties.environment == "production"
+
+    // Single-axis set membership:
+    DeploymentProperties.tier in ["production", "staging"]
+
+    // Single-axis negated set membership:
+    !(DeploymentProperties.region in ["cn-north-1", "cn-northwest-1"])
+
+    // Single-axis regex match:
+    ServiceProperties.name.matches("^payment-.*")
+
+    // Single-axis inequality:
+    PerformanceProperties.criticality >= 3
+
+    // Multi-axis conjunction (two independent axes):
+    DeploymentProperties.environment == "production"
+      && ServiceProperties.classification == "PII"
+
+    // Multi-axis conjunction (three axes):
+    DeploymentProperties.environment == "production"
+      && DataProperties.classification == "confidential"
+      && ServiceProperties.owner != "deprecated-team"
+    ```
+    Invalid (rejected by the definition-manager):
+    ```
+    // OR is forbidden:
+    DeploymentProperties.env == "prod"
+      || DeploymentProperties.env == "staging"
+    // → fix: use `in ["prod", "staging"]`
+
+    // Cross-property comparison is forbidden:
+    PerformanceProperties.actual > PerformanceProperties.budget
+
+    // Arithmetic is forbidden:
+    PerformanceProperties.score + 1 > 5
+
+    // Duplicate axis is forbidden:
+    DeploymentProperties.env == "prod"
+      && DeploymentProperties.env == "staging"
+    // → fix: use `in ["prod", "staging"]`
+
+    // Function call (other than matches) is forbidden:
+    DeploymentProperties.tags.size() > 0
+    ```
+
+    *Property-Assertion profile* (`predicate`):
+
+    Enables expressive, deterministic, side-effect-free constraint
+    evaluation. More permissive than the guard profile — full boolean
+    logic, cross-property comparisons, and aggregation-compatible
+    functions.
+
+    Structure — **boolean expression over Archetype properties**:
+    The predicate MUST evaluate to `bool`. The root identifier MUST
+    be exactly one Archetype name (the Norm's target Archetype for
+    evaluation). The Archetype name is the entry point into its JSON
+    Schema fields.
+
+    Allowed constructs:
+    - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`.
+    - **Boolean connectives**: `&&` (AND), `||` (OR), `!` (NOT).
+      Parenthesized sub-expressions for precedence.
+    - **Set membership**: `in`, `!(... in ...)`.
+    - **Arithmetic**: `+`, `-`, `*`, `/`, `%` on numeric values
+      (for computed thresholds, e.g.,
+      `Perf.p99Latency < Perf.budget * 1.1`).
+    - **String functions**: `matches(regex)`,
+      `startsWith(prefix)`, `endsWith(suffix)`,
+      `contains(substring)`.
+    - **Collection functions**: `size()` on strings, lists, maps.
+      `exists(x, predicate)`, `all(x, predicate)` macros on lists.
+    - **Field presence**: `has(field)` macro.
+    - **Type constructors**: `duration(string)`,
+      `timestamp(string)` for temporal comparisons.
+    - **Type conversions**: `int()`, `uint()`, `double()`,
+      `string()`.
+    - **Cross-property comparisons**: allowed
+      (e.g., `Perf.actual < Perf.target`).
+    - **Ternary**: `cond ? a : b` for conditional expressions.
+
+    Forbidden constructs:
+    - **Non-deterministic functions**: `now()`, `uuid()`, or any
+      function whose result varies across evaluations with the same
+      input.
+    - **Imperative constructs**: no variable declarations, no
+      assignments, no loops.
+    - **Side effects**: no mutation, no I/O.
+    - **Multiple root Archetypes**: the predicate MUST reference
+      exactly one Archetype as root identifier.
+
+    Why this restriction:
+    The property-assertion profile enables **static analysis** for
+    governance coverage computation (which Archetype fields are
+    constrained and which are governance gaps) and deterministic
+    re-evaluation over time (for tolerance-mode semantics).
+
+    Examples (property-assertion profile):
+    ```
+    // Simple threshold:
+    SecurityProperties.encryptionLevel >= "AES-128"
+
+    // Boolean AND / OR:
+    SecurityProperties.tlsEnabled == true
+      && SecurityProperties.tlsVersion >= "1.2"
+
+    // Disjunction (OR allowed in predicate):
+    SecurityProperties.authMethod == "mTLS"
+      || SecurityProperties.authMethod == "OAuth2"
+
+    // Negation:
+    !SecurityProperties.allowsAnonymousAccess
+
+    // Cross-property comparison:
+    PerformanceProperties.p99Latency < PerformanceProperties.budget
+
+    // Arithmetic threshold:
+    PerformanceProperties.p99Latency < PerformanceProperties.budget * 1.1
+
+    // Set membership:
+    SecurityProperties.cipherSuite in
+      ["TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"]
+
+    // String functions:
+    DataProperties.schema.matches("^https://.*")
+      && !DataProperties.owner.endsWith("-deprecated")
+
+    // Collection macro — all items satisfy:
+    NetworkProperties.ports.all(p, p >= 1024)
+
+    // Collection macro — at least one item satisfies:
+    ComplianceProperties.certifications.exists(c,
+      c == "SOC2" || c == "ISO27001")
+
+    // Field presence check:
+    has(DataProperties.retentionPolicy)
+
+    // Size check:
+    DataProperties.tags.size() >= 1
+
+    // Temporal comparison:
+    DataProperties.retentionPeriod >= duration("720h")
+
+    // Ternary (conditional threshold):
+    (PerformanceProperties.tier == "critical"
+      ? PerformanceProperties.p99Latency < 100
+      : PerformanceProperties.p99Latency < 500)
+
+    // Type conversion:
+    double(CostProperties.monthlyBudget) > 0.0
+    ```
+    Invalid (rejected by the definition-manager):
+    ```
+    // Non-deterministic function:
+    AuditProperties.lastReview > now() - duration("8760h")
+    // → now() varies across evaluations
+
+    // Multiple root Archetypes:
+    SecurityProperties.tlsEnabled
+      && PerformanceProperties.p99Latency < 500
+    // → must reference exactly one Archetype
+
+    // Variable declaration (imperative):
+    var threshold = 500;
+    PerformanceProperties.p99Latency < threshold
+    ```
   end note
 
   Norm --|> Ascription
@@ -808,47 +1051,44 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Concept Semantics**:
 
     - Defines how a Norm predicate is evaluated over time.
+    - ToleranceMode is the **primary discriminant** of a Norm's violation
+      boundary. The same predicate with a different tolerance mode defines
+      a **different Norm** — a different violation boundary. This is a
+      governance concern, not an analytical distinction.
 
     **Attribute Semantics**:
 
-    - `INSTANTANEOUS`: single-point evaluation. No temporalWindow,
-      temporalAggregation, or sustainedThreshold.
-    - `AGGREGATED`: aggregated metric value over temporalWindow against
-      predicate using temporalAggregation function. Requires temporalWindow
-      and temporalAggregation. sustainedThreshold is forbidden.
-    - `SUSTAINED`: predicate must hold for sustainedThreshold fraction of
-      temporalWindow. Requires temporalWindow, temporalAggregation, and
+    - `INSTANTANEOUS`: The predicate is evaluated instantaneously.
+      Violation = predicate is false. No temporal tolerance — any
+      instant of non-compliance is a violation.
+      No temporalWindow, temporalAggregation, or sustainedThreshold.
+      *Sourced from: OCL invariants, design-by-contract.*
+    - `AGGREGATED`: The numeric metric referenced by the predicate
+      is collected over temporalWindow, aggregated using
+      temporalAggregation, then compared against the threshold
+      from the predicate. Predicate MUST be in metric-comparison
+      form (`ArchetypeName.property ComparisonOp Literal`).
+      Requires temporalWindow and temporalAggregation.
+      sustainedThreshold is forbidden.
+      *E.g., P99 latency < 100ms over 5 minutes.*
+      *Sourced from: Google SLO definitions, Prometheus alerting.*
+    - `SUSTAINED`: The predicate is evaluated at each sample point
+      over temporalWindow, producing a boolean series. The compliance
+      ratio (fraction of true evaluations) is computed using
+      temporalAggregation and compared against sustainedThreshold.
+      Requires temporalWindow, temporalAggregation, and
       sustainedThreshold.
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - AGGREGATED and SUSTAINED modes MUST be paired with a temporalWindow.
-    - SUSTAINED mode MUST additionally have sustainedThreshold in [0, 1].
-
-    **Derivation Rules**:
-
-    - Required temporal fields are derived from the selected tolerance mode
-      (see Norm schema conditional allOf rules).
-
-    **Usage Rules**:
-
-    - Select INSTANTANEOUS for point-in-time constraint checks.
-    - Select AGGREGATED for time-windowed metric evaluation.
-    - Select SUSTAINED for constraints that must hold over a sustained
-      fraction of the window.
-
-    **Notes**:
-
-    - The mode affects both violation detection and reporting.
-  end note
+      *E.g., replicas >= 2 for 99% of the last 5 minutes.*
+      *Sourced from: availability SLAs.*
+    - **Norm field applicability by mode**:
+      | Field | INSTANTANEOUS | AGGREGATED | SUSTAINED |
+      |---|:---:|:---:|:---:|
+      | predicate | Required (any form) | Required (metric-comparison) | Required (any form) |
+      | guard | Optional | Optional | Optional |
+      | temporalWindow | Null | Required | Required |
+      | temporalAggregation | Null | Required | Required |
+      | sustainedThreshold | Null | Null | Required |
+ end note
 
   enum NormAggregationType {
     SUM
@@ -869,40 +1109,67 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - Applied to values within the temporalWindow when toleranceMode requires
       aggregation.
+    - Aggregations describe how measurements are summarized, not how they are
+      collected.
+    - In AGGREGATED mode: aggregates the **numeric metric** referenced by
+      the predicate over the temporal window.
+    - In SUSTAINED mode: aggregates the **boolean compliance series**
+      (fraction of true evaluations) over the temporal window. Typically
+      AVG (= percentage of true samples) or MIN (= always true).
+    - The toleranceMode discriminates *what* is aggregated (numeric value
+      vs. compliance ratio); temporalAggregation specifies *how*.
 
     **Attribute Semantics**:
 
-    - None.
-
-    **Validation Rules**:
-
-    - None.
-
-    **Assignment Rules**:
-
-    - None.
-
-    **Relational Consistency Rules**:
-
-    - Percentile aggregations SHOULD only be used when the underlying metric is
-      numeric.
-
-    **Derivation Rules**:
-
-    - Aggregation applicability is derived from the measured value type and the
-      tolerance mode.
-
-    **Usage Rules**:
-
-    - Match aggregation to metric type: SUM/AVG/MIN/MAX/ COUNT for numeric
-      metrics, percentiles (P50–P99) for latency/performance distributions.
-    - Aggregation is only relevant when `toleranceMode` requires temporal
-      aggregation.
-
-    **Notes**:
-
-    - Aggregations describe how measurements are summarized, not how they are
-      collected.
+    - `SUM`: Sum of all values in the window.
+      AGGREGATED: total cumulative metric (e.g., total errors in 5m).
+      SUSTAINED: sum of boolean compliance values (= count of true
+      samples). Rarely used directly — prefer AVG for ratio.
+      *Use when the governance concern is cumulative volume.*
+    - `AVG`: Arithmetic mean of values in the window.
+      AGGREGATED: average metric value (e.g., avg CPU % over 5m).
+      SUSTAINED: fraction of compliant samples (= compliance ratio).
+      **The natural default for SUSTAINED mode** — directly
+      comparable against sustainedThreshold.
+      *E.g., sustainedThreshold=0.99 + AVG → "compliant 99% of
+      the time."*
+    - `MIN`: Minimum value in the window.
+      AGGREGATED: worst-case floor (e.g., min available replicas
+      over 5m).
+      SUSTAINED: 1.0 iff ALL samples are compliant (= universal
+      quantifier). MIN + sustainedThreshold=1.0 → "always true."
+      *Use when the governance concern is worst-case guarantee.*
+    - `MAX`: Maximum value in the window.
+      AGGREGATED: worst-case peak (e.g., max latency over 5m).
+      SUSTAINED: 1.0 if at least one sample is compliant (=
+      existential quantifier). Rarely useful for SUSTAINED.
+      *Use when the governance concern is peak/burst detection.*
+    - `COUNT`: Number of observations in the window.
+      AGGREGATED: event volume (e.g., error count > 100 in 5m).
+      SUSTAINED: number of evaluation points (pool size). Useful
+      for meta-governance (ensuring sufficient sampling density).
+      *Use when the governance concern is event frequency.*
+    - `P50`: 50th percentile (median).
+      The typical-case metric value. More robust against outliers
+      than AVG for skewed distributions. AGGREGATED mode only.
+      *E.g., median response time < 200ms over 5m.*
+    - `P90`: 90th percentile.
+      90% of observations fall below this value. Captures the
+      general tail behavior without penalizing rare spikes.
+      AGGREGATED mode only.
+      *E.g., P90 latency < 300ms over 5m.*
+    - `P95`: 95th percentile.
+      The standard SLO percentile for service-level indicators.
+      Balances tail sensitivity with noise rejection.
+      AGGREGATED mode only.
+      *E.g., P95 latency < 500ms over 5m.*
+      *Sourced from: Google SRE SLO conventions.*
+    - `P99`: 99th percentile.
+      The strictest standard percentile. Captures near-worst-case
+      behavior — only 1% of observations exceed this value.
+      AGGREGATED mode only.
+      *E.g., P99 latency < 1000ms over 5m.*
+      *Sourced from: Google SRE SLO conventions, Datadog monitors.*
   end note
 
   ' ============================================================
@@ -1034,14 +1301,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getDefinition()` → column `definition` (JSONB)
     - `getVersion()` → column `version`
     - `getStatus()` → column `status` (denormalized from latest transition)
-    - `getStatusTransitions()` → composition (AscriptionStatusTransition rows for this `revision_id`)
-
-    **Usage Rules**:
-
-    - When creating a new definition of an element, reuse the same `id`.
+    - `getStatusTransitions()` → composition (AscriptionStatusTransition rows
+      for this `revision_id`)
   end note
 
-  Ascription "0..*" --> "1" Archetype : structuredBy
+  Ascription "0..*" --> "1" Archetype : has
   Ascription "1" *--> "1..*" AscriptionStatusTransition : has
 
   class AscriptionStatusTransition {

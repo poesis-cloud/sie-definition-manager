@@ -67,17 +67,17 @@
         "structure": {
             "type": "string",
             "minLength": 1,
-            "description": "Reference to the authoring/owning Structure. May differ from the Directive's owning Structure."
+            "description": "Reference to the authoring Structure. May differ from the Directive's authoring Structure."
         },
         "guard": {
             "type": "string",
             "default": "true",
-            "description": "CEL expression \u2014 activation condition. Predicate is only evaluated when guard is true."
+            "description": "CEL expression conforming to the applicability-guard CEL profile \u2014 activation condition. Predicate is only evaluated when guard evaluates to true. Default: 'true' (unconditional activation)."
         },
         "predicate": {
             "type": "string",
             "minLength": 1,
-            "description": "CEL expression returning boolean. The constraint. References exactly one Archetype by name as root identifier, then navigates its JSON fields. Example: SecurityProperties.encryptionLevel >= 'AES-128'."
+            "description": "CEL expression conforming to the property-assertion CEL profile, returning boolean. The constraint. References exactly one Archetype by name as root identifier, then navigates its JSON Schema fields. Example: SecurityProperties.encryptionLevel >= 'AES-128'."
         },
         "toleranceMode": {
             "type": "string",
