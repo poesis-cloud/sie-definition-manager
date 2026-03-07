@@ -8,4 +8,7 @@ target/
 .idea/
 .classpath
 .project
+
+# Local environment overrides
+.env.local
 .settings/

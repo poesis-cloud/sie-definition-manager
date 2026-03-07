@@ -1,6 +1,20 @@
 apiVersion: v2
 name: sie-definition-manager
-description: SIE Definition Manager Helm chart
+description: Umbrella chart for SIE Definition Manager and its dependencies
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+
+dependencies:
+  - name: sie-event-bus-kafka
+    version: "0.1.0"
+    repository: "file://../../../../sie-event-bus/deploy/helm/sie-event-bus-kafka"
+    alias: eventbus
+  - name: sie-schema-registry
+    version: "0.1.0"
+    repository: "file://../../../../sie-schema-registry/deploy/helm/sie-schema-registry"
+    alias: schemaregistry
+  - name: sie-definition-database
+    version: "0.1.0"
+    repository: "file://../../../../sie-definition-database/deploy/helm/sie-definition-database"
+    alias: definitiondatabase

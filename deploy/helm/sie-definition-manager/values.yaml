@@ -1,5 +1,7 @@
 replicaCount: 1
 
+deployApp: false
+
 image:
   repository: ghcr.io/your-org/sie-definition-manager
   tag: "0.1.0"
@@ -36,8 +38,6 @@ env:
 
 secrets:
   DB_PASSWORD: ""
-
-resources: {}
 
 nodeSelector: {}
 tolerations: []

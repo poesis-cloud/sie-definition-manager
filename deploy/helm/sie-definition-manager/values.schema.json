@@ -226,6 +226,21 @@
         "affinity": {
             "type": "object",
             "additionalProperties": true
+        },
+        "deployApp": {
+            "type": "boolean"
+        },
+        "eventbus": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "schemaregistry": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "definitiondatabase": {
+            "type": "object",
+            "additionalProperties": true
         }
     }
 }

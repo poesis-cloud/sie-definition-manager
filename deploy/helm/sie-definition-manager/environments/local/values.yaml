@@ -11,3 +11,21 @@ resources:
   limits:
     cpu: "1000m"
     memory: "1Gi"
+
+# Local subchart configurations
+eventbus:
+  persistence:
+    enabled: true
+    size: 10Gi
+
+definitiondatabase:
+  persistence:
+    enabled: true
+    size: 20Gi
+
+schemaregistry:
+  kafka:
+    bootstrapServers:
+      - "PLAINTEXT://{{ .Release.Name }}-eventbus:9092"
+  probes:
+    enabled: false
