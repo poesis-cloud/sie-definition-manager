@@ -8,7 +8,7 @@ RELEASE_DEF_DB ?= sie-definition-database
 RELEASE_SCHEMA_REG ?= sie-schema-registry
 
 EVENT_BUS_CHART ?= ../sie-event-bus/deploy/helm/sie-event-bus-kafka
-DEF_DB_CHART ?= ../sie-definition-database
+DEF_DB_CHART ?= ../sie-definition-database/deploy/helm/sie-definition-database
 SCHEMA_REG_CHART ?= ../sie-schema-registry/deploy/helm/sie-schema-registry
 
 PORT_FORWARD_PID_FILE ?= .local-port-forwards.pids
@@ -28,7 +28,8 @@ local-up:
 	kubectl get ns $(NAMESPACE) >/dev/null 2>&1 || kubectl create ns $(NAMESPACE) >/dev/null
 	helm upgrade --install $(RELEASE_EVENT_BUS) $(EVENT_BUS_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s --set persistence.enabled=false
 	helm upgrade --install $(RELEASE_SCHEMA_REG) $(SCHEMA_REG_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s \
-		--set kafka.bootstrapServers[0]="PLAINTEXT://$(RELEASE_EVENT_BUS):9092"
+		--set kafka.bootstrapServers[0]="PLAINTEXT://$(RELEASE_EVENT_BUS):9092" \
+		--set probes.enabled=false
 	helm upgrade --install $(RELEASE_DEF_DB) $(DEF_DB_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s --set persistence.enabled=false
 	@if [[ -f "$(PORT_FORWARD_PID_FILE)" ]]; then \
 		xargs -r kill < "$(PORT_FORWARD_PID_FILE)" 2>/dev/null || true; \
