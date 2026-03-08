@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.enums;
 
 /**
  * Maps to PostgreSQL enum type {@code ascription_status}.

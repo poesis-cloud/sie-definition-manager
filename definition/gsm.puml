@@ -302,8 +302,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Effector, Receptor, Interface, Interaction.
 
     Domain semantics are expressed through **Archetypes** — each Archetype
-    references a JSON Schema (`definition.schemaUri`) that validates the
-    definition payload of Ascriptions typed by that Archetype. There is one
+    carries a JSON Schema (`definition.schema`) that validates the
+    definition payload of Ascriptions typed by that Archetype. The
+    definition-manager publishes that schema to the schema registry and derives
+    an envelope-level `schemaUri` reference for resolution. There is one
     Archetype kind; no separate "domain" or "metadata" typing layers.
 
     **Archetype** is the general-purpose typed deliverable in the definition
@@ -1275,7 +1277,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Validation Rules**:
 
     - `definition` MUST validate against the JSON Schema referenced by
-      `archetype.definition.schemaUri`.
+      `archetype.definition.schema`.
 
     **Assignment Rules**:
 
@@ -1930,24 +1932,31 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Unified type construct for all structural and domain typing.
     - Effectors and Receptors reference Archetypes directly to declare the
       type of information they emit/consume. The Archetype's
-      `definition.schemaUri` determines the data structure.
+      `definition.schema` is the governed JSON Schema content; the
+      definition-manager publishes the same content to the schema registry and
+      exposes the resulting envelope-level `schemaUri` through
+      `getSchemaUri()`.
 
     **Attribute Semantics**:
 
-    - `schemaUri`: canonical URI for the JSON Schema document defining
-      the structure of instances typed by this Archetype.
+    - `description.schema`: the governed JSON Schema content (draft 2020-12+) carried in
+      the Archetype `definition` payload. This is the authoritative typed
+      specification that validates instances of Ascriptions referencing this
+      Archetype.
+    - `schemaUri`: canonical URI for the same JSON Schema document after the
+      definition-manager publishes it to the schema registry. `schemaUri` is an
+      envelope-level field assigned by the definition-manager; it is not part
+      of the governed `definition` payload.
 
     **Validation Rules**:
 
-    - `definition.schemaUri` MUST NOT be null.
-    - `definition.schemaUri` MUST reference a valid JSON Schema
+    - `definition.schema` MUST NOT be null.
+    - `definition.schema` MUST be a valid JSON Schema
       (draft 2020-12+).
-    - `definition.schemaUri` MUST be unique across all Archetypes.
-    - `definition.schemaUri` MUST be immutable and version-pinned:
       dereferencing it must always return the same schema content over time.
       Mutable aliases such as "latest" (or any moving target) MUST be rejected
       by the definition-manager.
-    - `definition.schemaUri` MUST point to a schema whose `allOf` chain
+    - `definition.schema` MUST declare an `allOf` chain that
       ultimately roots at the GSM base archetype schema. Intermediate
       tenant archetypes are permitted (depth-N chains) as long as all `allOf`
       paths converge to the same GSM base.
@@ -1958,7 +1967,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - Any Ascription that references this Archetype MUST have
       `definition` compatible with the JSON Schema referenced by
-      `definition.schemaUri`.
+      `definition.schema`.
+
+    **Assignment Rules**:
+
+    - Authors provide `definition.schema` when authoring an Archetype.
+    - The definition-manager publishes `definition.schema` to the schema
+      registry and assigns the resulting immutable `schemaUri` in the
+      Archetype envelope before persistence.
 
     **State Rules**:
 
@@ -1969,8 +1985,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Derivation Rules**:
 
     - Base archetype classification is derived from the schema content
-      (`allOf.$ref`), not from a separate field.
-    - `getSchemaUri()` → `definition.schemaUri`
+      (`definition.schema.allOf.$ref`), not from a separate field.
+    - `getSchemaUri()` → envelope field / column `schema_uri`
 
     **Notes**:
 

@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -18,9 +18,19 @@ public class InteractionEntity extends AbstractAscription {
     @JoinColumn(name = "receptor_id", nullable = false, updatable = false)
     private ReceptorEntity receptor;
 
-    public EffectorEntity getEffector() { return effector; }
-    public void setEffector(EffectorEntity effector) { this.effector = effector; }
+    public EffectorEntity getEffector() {
+        return effector;
+    }
 
-    public ReceptorEntity getReceptor() { return receptor; }
-    public void setReceptor(ReceptorEntity receptor) { this.receptor = receptor; }
+    public void setEffector(EffectorEntity effector) {
+        this.effector = effector;
+    }
+
+    public ReceptorEntity getReceptor() {
+        return receptor;
+    }
+
+    public void setReceptor(ReceptorEntity receptor) {
+        this.receptor = receptor;
+    }
 }

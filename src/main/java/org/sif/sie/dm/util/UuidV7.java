@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.util;
 
 import java.security.SecureRandom;
 import java.util.UUID;
@@ -10,7 +10,8 @@ public final class UuidV7 {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private UuidV7() {}
+    private UuidV7() {
+    }
 
     public static UUID generate() {
         long timestamp = System.currentTimeMillis();

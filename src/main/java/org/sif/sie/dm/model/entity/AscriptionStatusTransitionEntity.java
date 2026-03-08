@@ -1,19 +1,21 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.entity;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.sif.sie.dm.model.enums.AscriptionStatus;
+import org.sif.sie.dm.model.enums.GsmType;
+import org.sif.sie.dm.util.UuidV7;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.Immutable;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.generator.EventType;
-import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-import java.util.Objects;
-import java.util.UUID;
 
 /**
  * Immutable audit record of a lifecycle state change on an Ascription.
@@ -42,7 +44,6 @@ public class AscriptionStatusTransitionEntity {
     @Column(name = "post_status", nullable = false, updatable = false)
     private AscriptionStatus postStatus;
 
-    @Generated(event = EventType.INSERT)
     @Column(name = "\"timestamp\"", insertable = false, updatable = false)
     private Instant timestamp;
 
@@ -55,29 +56,58 @@ public class AscriptionStatusTransitionEntity {
 
     // ---- accessors ----
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() {
+        return id;
+    }
 
-    public GsmType getGsmType() { return gsmType; }
-    public void setGsmType(GsmType gsmType) { this.gsmType = gsmType; }
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
-    public UUID getRevisionId() { return revisionId; }
-    public void setRevisionId(UUID revisionId) { this.revisionId = revisionId; }
+    public GsmType getGsmType() {
+        return gsmType;
+    }
 
-    public AscriptionStatus getPreStatus() { return preStatus; }
-    public void setPreStatus(AscriptionStatus preStatus) { this.preStatus = preStatus; }
+    public void setGsmType(GsmType gsmType) {
+        this.gsmType = gsmType;
+    }
 
-    public AscriptionStatus getPostStatus() { return postStatus; }
-    public void setPostStatus(AscriptionStatus postStatus) { this.postStatus = postStatus; }
+    public UUID getRevisionId() {
+        return revisionId;
+    }
 
-    public Instant getTimestamp() { return timestamp; }
+    public void setRevisionId(UUID revisionId) {
+        this.revisionId = revisionId;
+    }
+
+    public AscriptionStatus getPreStatus() {
+        return preStatus;
+    }
+
+    public void setPreStatus(AscriptionStatus preStatus) {
+        this.preStatus = preStatus;
+    }
+
+    public AscriptionStatus getPostStatus() {
+        return postStatus;
+    }
+
+    public void setPostStatus(AscriptionStatus postStatus) {
+        this.postStatus = postStatus;
+    }
+
+    public Instant getTimestamp() {
+        return timestamp;
+    }
 
     // ---- equals / hashCode ----
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         AscriptionStatusTransitionEntity that = (AscriptionStatusTransitionEntity) o;
         return id != null && Objects.equals(id, that.id);
     }

@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -7,8 +7,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "effector")
-public class EffectorEntity extends AbstractAscription {
+@Table(name = "receptor")
+public class ReceptorEntity extends AbstractAscription {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "mechanism_id", nullable = false, updatable = false)
@@ -22,12 +22,27 @@ public class EffectorEntity extends AbstractAscription {
     @JoinColumn(name = "interface_id", updatable = false)
     private InterfaceEntity exposedBy;
 
-    public MechanismEntity getMechanism() { return mechanism; }
-    public void setMechanism(MechanismEntity mechanism) { this.mechanism = mechanism; }
+    public MechanismEntity getMechanism() {
+        return mechanism;
+    }
 
-    public ArchetypeEntity getPortArchetype() { return portArchetype; }
-    public void setPortArchetype(ArchetypeEntity portArchetype) { this.portArchetype = portArchetype; }
+    public void setMechanism(MechanismEntity mechanism) {
+        this.mechanism = mechanism;
+    }
 
-    public InterfaceEntity getExposedBy() { return exposedBy; }
-    public void setExposedBy(InterfaceEntity exposedBy) { this.exposedBy = exposedBy; }
+    public ArchetypeEntity getPortArchetype() {
+        return portArchetype;
+    }
+
+    public void setPortArchetype(ArchetypeEntity portArchetype) {
+        this.portArchetype = portArchetype;
+    }
+
+    public InterfaceEntity getExposedBy() {
+        return exposedBy;
+    }
+
+    public void setExposedBy(InterfaceEntity exposedBy) {
+        this.exposedBy = exposedBy;
+    }
 }

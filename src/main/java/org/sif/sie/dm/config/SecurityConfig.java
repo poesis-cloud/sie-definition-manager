@@ -14,24 +14,24 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-  @Bean
-  SecurityFilterChain securityFilterChain(
-      HttpSecurity http,
-      @Value("${dm.security.oauth2-login-enabled:false}") boolean oauth2LoginEnabled) throws Exception {
-    http
-        .csrf(csrf -> csrf.disable())
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/actuator/health", "/actuator/info")
-            .permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/v1/info").permitAll()
-            .anyRequest().authenticated())
-        .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+    @Bean
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            @Value("${dm.security.oauth2-login-enabled:false}") boolean oauth2LoginEnabled) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/info").permitAll()
+                .requestMatchers("/api/v1/ascriptions/**").permitAll()
+                .anyRequest().authenticated())
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
-    if (oauth2LoginEnabled) {
-      http.oauth2Login(Customizer.withDefaults());
+        if (oauth2LoginEnabled) {
+            http.oauth2Login(Customizer.withDefaults());
+        }
+
+        return http.build();
     }
-
-    return http.build();
-  }
 }

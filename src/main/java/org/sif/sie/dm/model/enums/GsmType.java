@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.enums;
 
 /**
  * Discriminator for {@code ascription_status_transition.gsm_type}.
@@ -27,7 +27,8 @@ public enum GsmType {
 
     public static GsmType fromValue(String v) {
         for (GsmType t : values()) {
-            if (t.value.equals(v)) return t;
+            if (t.value.equals(v))
+                return t;
         }
         throw new IllegalArgumentException("Unknown gsm_type: " + v);
     }

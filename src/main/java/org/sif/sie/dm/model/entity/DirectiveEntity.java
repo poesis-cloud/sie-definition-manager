@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -22,12 +22,27 @@ public class DirectiveEntity extends AbstractAscription {
     @JoinColumn(name = "purpose_id", updatable = false)
     private StructureEntity purpose;
 
-    public StructureEntity getStructure() { return structure; }
-    public void setStructure(StructureEntity structure) { this.structure = structure; }
+    public StructureEntity getStructure() {
+        return structure;
+    }
 
-    public ArchetypeEntity getQualifier() { return qualifier; }
-    public void setQualifier(ArchetypeEntity qualifier) { this.qualifier = qualifier; }
+    public void setStructure(StructureEntity structure) {
+        this.structure = structure;
+    }
 
-    public StructureEntity getPurpose() { return purpose; }
-    public void setPurpose(StructureEntity purpose) { this.purpose = purpose; }
+    public ArchetypeEntity getQualifier() {
+        return qualifier;
+    }
+
+    public void setQualifier(ArchetypeEntity qualifier) {
+        this.qualifier = qualifier;
+    }
+
+    public StructureEntity getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(StructureEntity purpose) {
+        this.purpose = purpose;
+    }
 }

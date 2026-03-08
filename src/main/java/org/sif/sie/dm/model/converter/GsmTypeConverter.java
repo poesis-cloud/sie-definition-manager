@@ -1,4 +1,6 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.converter;
+
+import org.sif.sie.dm.model.enums.GsmType;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

@@ -1,4 +1,4 @@
-package org.sif.sie.dm.model;
+package org.sif.sie.dm.model.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
