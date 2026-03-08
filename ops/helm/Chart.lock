@@ -1,0 +1,12 @@
+dependencies:
+- name: sie-event-bus-kafka
+  repository: file://../../../sie-event-bus/ops/helm
+  version: 0.1.0
+- name: sie-schema-registry
+  repository: file://../../../sie-schema-registry/ops/helm
+  version: 0.1.0
+- name: sie-definition-database
+  repository: file://../../../sie-definition-database/ops/helm
+  version: 0.1.0
+digest: sha256:445458c71e07de30b9e01aeb801907ecde447446e33a60bd9a8961a67d40d617
+generated: "2026-03-07T23:53:48.934050272+01:00"

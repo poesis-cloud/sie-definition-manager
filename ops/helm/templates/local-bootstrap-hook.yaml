@@ -1,0 +1,180 @@
+{{- if .Values.dbBootstrap.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "sie-definition-manager.fullname" . }}-db-bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+type: Opaque
+stringData:
+  ADMIN_DB_PASSWORD: {{ required "dbBootstrap.adminPassword is required when dbBootstrap.enabled=true" .Values.dbBootstrap.adminPassword | quote }}
+  DB_PASSWORD: {{ required "dbBootstrap.dbPassword is required when dbBootstrap.enabled=true" .Values.dbBootstrap.dbPassword | quote }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "sie-definition-manager.fullname" . }}-db-bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: {{ include "sie-definition-manager.fullname" . }}-db-bootstrap
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-bootstrap
+          image: "{{ .Values.dbBootstrap.image.repository }}:{{ .Values.dbBootstrap.image.tag }}"
+          imagePullPolicy: {{ .Values.dbBootstrap.image.pullPolicy }}
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sie-definition-manager.fullname" . }}-db-bootstrap
+                  key: ADMIN_DB_PASSWORD
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sie-definition-manager.fullname" . }}-db-bootstrap
+                  key: DB_PASSWORD
+            - name: DB_USER
+              value: {{ required "dbBootstrap.dbUser is required when dbBootstrap.enabled=true" .Values.dbBootstrap.dbUser | quote }}
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              attempt=1
+              until pg_isready -h definitiondatabase -U {{ .Values.dbBootstrap.adminUser | quote }} -d {{ .Values.dbBootstrap.database | quote }} >/dev/null 2>&1; do
+                if [ "$attempt" -ge 30 ]; then
+                  echo "Definition database did not become ready in time."
+                  exit 1
+                fi
+                attempt=$((attempt + 1))
+                sleep 2
+              done
+
+              role_bootstrapped="$(printf '%s\n' \
+                'with role_state as (' \
+                '  select exists (' \
+                '    select 1' \
+                '    from pg_catalog.pg_roles' \
+                "    where rolname = :'dm_user'" \
+                '  ) as role_exists' \
+                '),' \
+                'database_privilege as (' \
+                "  select coalesce(has_database_privilege(:'dm_user', current_database(), 'CONNECT'), false) as ok" \
+                '),' \
+                'schema_privileges as (' \
+                '  select coalesce(' \
+                "    has_schema_privilege(:'dm_user', 'public', 'USAGE')" \
+                "    and has_schema_privilege(:'dm_user', 'public', 'CREATE')," \
+                '    false' \
+                '  ) as ok' \
+                '),' \
+                'table_privileges as (' \
+                '  select not exists (' \
+                '    select 1' \
+                '    from pg_catalog.pg_tables t' \
+                "    where t.schemaname = 'public'" \
+                '      and not has_table_privilege(' \
+                "        :'dm_user'," \
+                "        format('%I.%I', t.schemaname, t.tablename)," \
+                "        'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'" \
+                '      )' \
+                '  ) as ok' \
+                '),' \
+                'sequence_privileges as (' \
+                '  select not exists (' \
+                '    select 1' \
+                '    from information_schema.sequences s' \
+                "    where s.sequence_schema = 'public'" \
+                '      and not has_sequence_privilege(' \
+                "        :'dm_user'," \
+                "        format('%I.%I', s.sequence_schema, s.sequence_name)," \
+                "        'USAGE,SELECT,UPDATE'" \
+                '      )' \
+                '  ) as ok' \
+                '),' \
+                'default_table_privileges as (' \
+                '  select exists (' \
+                '    select 1' \
+                '    from pg_catalog.pg_default_acl d' \
+                '    join pg_catalog.pg_roles r on r.oid = d.defaclrole' \
+                "    where r.rolname = {{ .Values.dbBootstrap.adminUser | squote }}" \
+                "      and d.defaclnamespace = 'public'::regnamespace" \
+                "      and d.defaclobjtype = 'r'" \
+                "      and d.defaclacl::text like '%' || :'dm_user' || '=arwdDxt/%'" \
+                '  ) as ok' \
+                '),' \
+                'default_sequence_privileges as (' \
+                '  select exists (' \
+                '    select 1' \
+                '    from pg_catalog.pg_default_acl d' \
+                '    join pg_catalog.pg_roles r on r.oid = d.defaclrole' \
+                "    where r.rolname = {{ .Values.dbBootstrap.adminUser | squote }}" \
+                "      and d.defaclnamespace = 'public'::regnamespace" \
+                "      and d.defaclobjtype = 'S'" \
+                "      and d.defaclacl::text like '%' || :'dm_user' || '=rwU/%'" \
+                '  ) as ok' \
+                ')' \
+                'select case' \
+                '  when role_state.role_exists' \
+                '    and database_privilege.ok' \
+                '    and schema_privileges.ok' \
+                '    and table_privileges.ok' \
+                '    and sequence_privileges.ok' \
+                '    and default_table_privileges.ok' \
+                '    and default_sequence_privileges.ok' \
+                "  then 'true'" \
+                "  else 'false'" \
+                'end' \
+                'from role_state' \
+                'cross join database_privilege' \
+                'cross join schema_privileges' \
+                'cross join table_privileges' \
+                'cross join sequence_privileges' \
+                'cross join default_table_privileges' \
+                'cross join default_sequence_privileges;' | psql -tA -v ON_ERROR_STOP=1 \
+                  -h "definitiondatabase" \
+                  -U {{ .Values.dbBootstrap.adminUser | quote }} \
+                  -d {{ .Values.dbBootstrap.database | quote }} \
+                  --set=dm_user="$DB_USER"
+              )";
+
+              if [ "$role_bootstrapped" = "true" ]; then
+                echo "Local DB role $DB_USER already has the expected grants; skipping bootstrap."
+                exit 0
+              fi
+
+              dm_user_sql=$(printf '%s' "$DB_USER" | sed "s/'/''/g")
+              dm_password_sql=$(printf '%s' "$DB_PASSWORD" | sed "s/'/''/g")
+
+              printf '%s\n' \
+                'DO $bootstrap$' \
+                'DECLARE' \
+                "  dm_user constant text := '$dm_user_sql';" \
+                "  dm_password constant text := '$dm_password_sql';" \
+                'BEGIN' \
+                '  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = dm_user) THEN' \
+                "    EXECUTE format('create role %I login password %L', dm_user, dm_password);" \
+                '  ELSE' \
+                "    EXECUTE format('alter role %I login password %L', dm_user, dm_password);" \
+                '  END IF;' \
+                "  EXECUTE format('grant connect on database %I to %I', current_database(), dm_user);" \
+                "  EXECUTE format('grant usage, create on schema public to %I', dm_user);" \
+                "  EXECUTE format('grant select, insert, update, delete, truncate, references, trigger on all tables in schema public to %I', dm_user);" \
+                "  EXECUTE format('grant usage, select, update on all sequences in schema public to %I', dm_user);" \
+                "  EXECUTE format('alter default privileges in schema public grant select, insert, update, delete, truncate, references, trigger on tables to %I', dm_user);" \
+                "  EXECUTE format('alter default privileges in schema public grant usage, select, update on sequences to %I', dm_user);" \
+                'END;' \
+                '$bootstrap$;' | psql -v ON_ERROR_STOP=1 \
+                  -h "definitiondatabase" \
+                  -U {{ .Values.dbBootstrap.adminUser | quote }} \
+                  -d {{ .Values.dbBootstrap.database | quote }}
+{{- end }}

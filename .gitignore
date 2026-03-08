@@ -9,6 +9,6 @@ target/
 .classpath
 .project
 
-# Local environment overrides
-.env.local
+# Dev environment overrides
+.env.dev
 .settings/

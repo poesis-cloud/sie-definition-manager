@@ -1,0 +1,193 @@
+# Prod environment values
+
+replicaCount: 1
+
+deployApp: true
+
+image:
+  repository: ghcr.io/your-org/sie-definition-manager
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: dm.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+env:
+  DB_URL: jdbc:postgresql://definitiondatabase:5432/sie_definition
+  DB_USER: dm_app
+  SCHEMA_REGISTRY_URL: http://schemaregistry:8081
+  KAFKA_BOOTSTRAP_SERVERS: sie-definition-manager-eventbus:9092
+  OIDC_ISSUER_URI: https://login.microsoftonline.com/<prod-tenant-id>/v2.0
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.monitoring.svc.cluster.local:4317
+  DM_RELIABILITY_MODE: alo-idempotent
+  KAFKA_ENABLE_IDEMPOTENCE: "true"
+  KAFKA_TX_ID_PREFIX: dm-tx-
+
+secrets:
+  DB_PASSWORD: ""
+
+dbBootstrap:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16.3"
+    pullPolicy: IfNotPresent
+  adminUser: sie
+  adminPassword: ""
+  database: sie_definition
+  dbUser: dm_app
+  dbPassword: ""
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+eventbus:
+  replicaCount: 1
+  image:
+    repository: apache/kafka
+    tag: "3.7.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 9092
+  kraft:
+    clusterId: ""
+    nodeId: 1
+    listeners: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+    advertisedListeners: "PLAINTEXT://sie-definition-manager-eventbus.sie.svc.cluster.local:9092"
+    controllerListenerNames: "CONTROLLER"
+    listenerSecurityProtocolMap: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+    interBrokerListenerName: "PLAINTEXT"
+    controllerQuorumVoters: "1@localhost:9093"
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+definitiondatabase:
+  nameOverride: ""
+  fullnameOverride: ""
+  image:
+    repository: postgres
+    tag: "16.3"
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  service:
+    type: ClusterIP
+    port: 5432
+    annotations: {}
+  postgres:
+    user: sie
+    database: sie_definition
+    existingSecret: ""
+    extensions: []
+  secrets:
+    DB_PASSWORD: ""
+  initdb:
+    enabled: true
+    extraScripts: {}
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  resources: {}
+  podSecurityContext: {}
+  securityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+schemaregistry:
+  replicaCount: 1
+  image:
+    repository: confluentinc/cp-schema-registry
+    tag: "7.6.0"
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    create: false
+    name: ""
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 8081
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: schema-registry.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  kafka:
+    bootstrapServers:
+      - "PLAINTEXT://sie-definition-manager-eventbus:9092"
+  configuration:
+    listeners: "http://localhost:8081"
+    hostName: "schemaregistry.sie.svc.cluster.local"
+    extraEnv:
+      SCHEMA_REGISTRY_DISABLE_PREFLIGHT_CHECKS: "true"
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: "1"
+      SCHEMA_REGISTRY_MASTER_ELIGIBILITY: "true"
+      SCHEMA_REGISTRY_MODE: "READWRITE"
+      SCHEMA_REGISTRY_GROUP_ID: "schema-registry-sie"
+  probes:
+    enabled: false
+    readinessPath: /subjects
+    livenessPath: /subjects
+    initialDelaySeconds: 120
+    timeoutSeconds: 10
+    periodSeconds: 10
+    failureThreshold: 3
+  persistence:
+    enabled: false
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    storageClass: ""
+    mountPath: /var/lib/schema-registry
+  extraVolumes: []
+  extraVolumeMounts: []

@@ -17,43 +17,44 @@ This module now also includes a runnable **Definition Manager API scaffold**:
 - OAuth2/OIDC baseline (resource server + social client registrations)
 - OTel baseline (`OTLP` endpoint wiring)
 - GitHub Actions CI/CD baseline
-- Helm chart for AKS and on-prem deployment profiles (`deploy/helm`)
+- Helm chart for AKS and on-prem deployment profiles (`ops/helm`)
 
-### Local development
+### Dev development
 
-Use the simple local flow:
+Use the simple dev flow:
 
 - Validate local tooling and cluster connectivity:
-  - `cd sie/sie-definition-manager && make local-check`
+  - `cd sie/sie-definition-manager && make dev-check`
 - Deploy dependencies and expose them on localhost:
-  - `cd sie/sie-definition-manager && make local-up`
+  - `cd sie/sie-definition-manager && make dev-up`
 - Run DM locally:
   - `cd sie/sie-definition-manager && make run-api`
 - Teardown dependencies and port-forwards:
-  - `cd sie/sie-definition-manager && make local-down`
+  - `cd sie/sie-definition-manager && make dev-down`
 
-`make local-up` deploys dependencies using each dependency repo's own Helm
+`make dev-up` deploys dependencies using each dependency repo's own Helm
 chart:
 
-- Event bus: `sie/sie-event-bus/deploy/helm/sie-event-bus-kafka`
-- Schema Registry: `sie/sie-schema-registry/deploy/helm/sie-schema-registry`
+- Event bus: `sie/sie-event-bus/ops/helm`
+- Schema Registry: `sie/sie-schema-registry/ops/helm`
 - Definition DB: `sie/sie-definition-database`
 
-Environment template:
+Environment files:
 
-- Copy `.env.example` values into your shell or IDE run configuration.
+- Use `.env` for checked-in non-secret defaults.
+- Use `.env.dev` for machine-local dev secrets and overrides.
 - To enable social OAuth providers, run with profile `social`
   (e.g. `SPRING_PROFILES_ACTIVE=social`) and set provider client IDs/secrets.
 
 Deployment values structure:
 
-- Base chart values: `deploy/helm/sie-definition-manager/values.yaml`
-- Platform overlays: `deploy/helm/sie-definition-manager/values-aks.yaml`,
-  `deploy/helm/sie-definition-manager/values-onprem.yaml`
-- Environment overlays:
-  - `deploy/helm/sie-definition-manager/environments/local/values.yaml`
-  - `deploy/helm/sie-definition-manager/environments/preprod/values.yaml`
-  - `deploy/helm/sie-definition-manager/environments/prod/values.yaml`
+- Environment values:
+  - `ops/helm/environments/dev/values.yaml`
+  - `ops/helm/environments/preprod/values.yaml`
+  - `ops/helm/environments/prod/values.yaml`
+
+Each environment file is self-contained and carries the chart defaults for that
+target environment.
 
 Secrets are not stored in these files for real environments. Inject
 `secrets.DB_PASSWORD` at deploy time via CI/CD secret store.

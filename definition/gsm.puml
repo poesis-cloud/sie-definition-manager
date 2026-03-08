@@ -1179,6 +1179,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   abstract class Ascription {
     +getId(): String
     +getRevisionId(): String
+    +getRevisionTimestamp(): String
     +getArchetype(): Archetype
     +getDefinition(): String
     +getVersion(): String
@@ -1199,9 +1200,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       definitions (revisions) share the same `id` — each is a distinct
       definition snapshot of the same thing. `revisionId` uniquely identifies
       each revision row. Both `id` and `revisionId` are **UUIDv7**
-      (RFC 9562): time-sortable (Unix epoch ms + random), monotonically
-      increasing, and B-tree friendly. At most one in-effect definition per
-      `id` (status = ACTIVE or DEPRECATED).
+      (RFC 9562): time-sortable (Unix epoch ms + random) and B-tree friendly.
+      `revisionTimestamp` provides authoritative temporal ordering where
+      UUIDv7 millisecond granularity is insufficient. At most one in-effect
+      definition per `id` (status = ACTIVE or DEPRECATED).
     - Every Ascription is representable as Archetype-typed information
       for Mechanisms. This enables systemic recursion — reflexive Mechanisms
       inspect and transform the Structure's own Ascriptions.
@@ -1243,8 +1245,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       across all revisions/definitions of the same referent. Immutable once
       assigned. Time-sortable — encodes creation timestamp.
     - `revisionId`: globally unique identity of THIS revision (UUIDv7,
-      unique per revision row). Time-sortable — encodes creation
-      timestamp. The creation timestamp is derivable from the UUIDv7 value.
+      unique per revision row). Time-sortable — encodes approximate creation
+      time (millisecond granularity).
+    - `revisionTimestamp`: authoritative creation timestamp of THIS revision
+      (timestamptz). Set by the database at insert time — the caller never
+      controls it. Provides authoritative temporal ordering for revisions
+      (where UUIDv7 alone is insufficient within the same millisecond).
+      Serialized as ISO 8601 at the API boundary.
     - `archetype`: reference to the Archetype that types this definition,
       constraining its definition content and providing domain semantics.
     - `definition`: JSON-serializable payload applied to the element.
@@ -1282,6 +1289,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Until APPROVED transition, `version` MUST be null.
     - `version` MUST be monotonically increasing within the APPROVED lineage for
       each `id`.
+    - `revisionTimestamp` is auto-assigned by the database at insert time —
+      never set manually. Immutable once assigned.
 
     **State Rules**:
 
@@ -1295,6 +1304,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `getId()` → column `id` (UUIDv7)
     - `getRevisionId()` → column `revision_id` (UUIDv7)
+    - `getRevisionTimestamp()` → column `revision_timestamp` (timestamptz)
     - `getArchetype()` → column `archetype_id` → resolves Archetype
     - `getDefinition()` → column `definition` (JSON)
     - `getVersion()` → column `version`
@@ -1309,6 +1319,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   class AscriptionStatusTransition {
     +getId(): String
     +getRevisionId(): String
+    +getTimestamp(): String
     +getPreStatus(): AscriptionStatus
     +getPostStatus(): AscriptionStatus
   }
@@ -1330,12 +1341,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Attribute Semantics**:
 
     - `id`: unique identity of THIS transition record (UUIDv7, RFC 9562).
-      Time-sortable — the transition timestamp is embedded in the UUIDv7
-      value and derivable from it. This eliminates a separate `datetime`
-      field: the moment the transition is created IS the moment it occurred,
-      encoded in `id`.
+      Time-sortable — embeds approximate creation time (millisecond
+      granularity).
     - `revisionId`: reference to the owning Ascription's `revisionId` (the
       specific revision row, not `id`). Immutable once assigned.
+    - `timestamp`: authoritative timestamp of when this transition occurred
+      (timestamptz). Set by the database at insert time. Provides
+      authoritative temporal ordering for transitions (where UUIDv7 alone
+      is insufficient within the same millisecond). Serialized as ISO 8601
+      at the API boundary.
     - `preStatus`: the status before the transition. Null for the initial
       creation entry.
     - `postStatus`: the status after the transition.
