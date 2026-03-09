@@ -10,7 +10,7 @@ This module now also includes a runnable **Definition Manager API scaffold**:
 
 - `Java 21` + `Spring Boot` + `Maven`
 - REST API with both `application/hal+json` and `application/json`
-- OpenAPI-first contract source: `src/main/resources/openapi/dm-v1.yaml`
+- Dynamic OpenAPI endpoint: `/api/v1/openapi`
 - RFC 7807 error model (`application/problem+json`)
 - PostgreSQL + Flyway integration
 - Kafka + Schema Registry integration hooks

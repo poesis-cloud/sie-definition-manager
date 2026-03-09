@@ -3,23 +3,20 @@ info:
   title: SIE Definition Manager API
   version: v1
   description: |
-    Contract-first API baseline for the Definition Manager.
+    Minimal checked-in bootstrap pointer for the Definition Manager.
+    The authoritative API and schema surface is exposed dynamically by GET /openapi.
 servers:
   - url: /api/v1
 paths:
-  /info:
+  /openapi:
     get:
-      summary: Service information endpoint
-      operationId: getInfo
+      summary: Dynamic OpenAPI specification endpoint
+      operationId: getOpenApi
       responses:
         "200":
-          description: HAL or JSON payload with service metadata
+          description: OpenAPI 3.1 document generated from active archetype schemas
           content:
             application/json:
-              schema:
-                type: object
-                additionalProperties: true
-            application/hal+json:
               schema:
                 type: object
                 additionalProperties: true
