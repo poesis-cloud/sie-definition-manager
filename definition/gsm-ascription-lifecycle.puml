@@ -43,10 +43,10 @@ note as Legend
   - RETIRED: permanently not in effect; preserved for historical traceability
     (terminal).
   - ABANDONED: author-initiated termination of a DRAFT; never submitted for
-    governance review. A new creative cycle requires authoring a new revision
+    governance review. A new creative cycle requires authoring a new Ascription
     (terminal).
   - REJECTED: denied by governance; not in effect. Only reachable from
-    PROPOSED. A new creative cycle requires authoring a new revision
+    PROPOSED. A new creative cycle requires authoring a new Ascription
     (terminal).
 
   **Status Transitions**:
@@ -68,13 +68,13 @@ end note
 note as Rules
   **Transition Rules**
 
-  A Referee is an Ascription whose definition
+  A Referee is an Ascription whose statement
   **incorporates** a Reference (another Ascription)
-  — i.e., the Referee's definition is semantically
+  — i.e., the Referee's statement is semantically
   incomplete or meaningless without the Reference it points
   to. Because the Referee incorporates the Reference, its
   lifecycle cannot advance beyond what the Reference can
-  sustain: a definition that incorporates an unready or
+  sustain: a statement that incorporates an unready or
   retired reference is itself incoherent.
 
   This yields a uniform **lifecycle referential integrity**

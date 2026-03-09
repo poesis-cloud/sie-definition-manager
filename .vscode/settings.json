@@ -1,0 +1,22 @@
+{
+    "spring-boot.ls.problem.application-yaml.unknown-property": "IGNORE",
+    "spring-boot.ls.problem.application-yaml.YAML_SHOULD_ESCAPE": "IGNORE",
+    "yaml.customTags": [
+        "!And scalar",
+        "!If scalar",
+        "!Not scalar",
+        "!Equals scalar",
+        "!Or scalar",
+        "!FindInMap sequence",
+        "!Base64 scalar",
+        "!Cidr sequence",
+        "!Ref scalar",
+        "!Sub scalar",
+        "!GetAtt scalar",
+        "!GetAZs scalar",
+        "!ImportValue scalar",
+        "!Select sequence",
+        "!Split sequence",
+        "!Join sequence"
+    ]
+}

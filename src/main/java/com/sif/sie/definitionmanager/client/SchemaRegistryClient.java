@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.URI;
 import java.util.Objects;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -101,7 +102,7 @@ public class SchemaRegistryClient {
       * @param archetypeId the stable archetype id (not revisionId)
       * @return subject name
       */
-    public static String subjectFor(java.util.UUID archetypeId) {
+    public static String subjectFor(UUID archetypeId) {
         return "gsm.archetype." + archetypeId;
     }
 }

@@ -179,16 +179,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - Directive (D): identity-level normative constraint.
     - Norm (N): measurable constraint predicate on Element.
-    - Ascription (A): definition applied to the Element.
+    - Ascription (A): governed statement applied to the Element.
 
     Together, these define the **DNA** grammar of a System.
 
-    Directive and Norm extend Ascription: they inherit identity, lifecycle,
-    Archetype-typing, and definition from the Ascription base. What makes
-    them governance DNA is their sealed Archetype: DirectiveArchetype and
-    NormArchetype define the governance grammar within the `definition`
-    payload. A governance Mechanism producing a Directive simply creates one
-    via `sys.create("DirectiveArchetype", {...})`.
+    Directive and Norm extend Ascription: they inherit lifecycle,
+    Archetype-typing, and statement from the Ascription base. Identity is
+    held by the referenced Definition. What makes them governance DNA is
+    their sealed Archetype: DirectiveArchetype and NormArchetype define the
+    governance grammar within the `statement` payload. A governance Mechanism
+    producing a Directive simply creates one via
+    `sys.create("DirectiveArchetype", {...})`.
 
     Like biological DNA encodes the instructions for proteins that build and
     regulate an organism, a System's DNA encodes the governance instructions
@@ -205,10 +206,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       measurable, evaluable predicates. They adapt as the environment,
       technology, or risk landscape shifts — without touching identity.
       Comparable to policies and compliance rules.
-    - **A — fast (definition)**: Ascriptions carry the concrete,
-      version-specific definition of each Element (element-level
+    - **A — fast (ascription)**: Ascriptions carry the concrete,
+      version-specific statement of each Element (element-level
       configuration, parameters, operational metadata). They change
-      frequently — every definition update produces a new Ascription.
+      frequently — every statement update produces a new Ascription.
 
     This stratification is deliberate: it decouples slow identity decisions from
     fast operational details, so that each layer can evolve at its natural rate
@@ -235,7 +236,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     rather than **structural** (systems containing sub-systems).
 
     The recursion chain:
-    1. Mechanisms operate on Ascriptions (all definitions are Ascriptions).
+    1. Mechanisms operate on Ascriptions (all governed snapshots are Ascriptions).
     2. All Ascriptions are typed by Archetypes.
     3. Therefore Mechanisms can operate on any Ascription.
     4. Including: Mechanisms operating on other Mechanisms.
@@ -302,8 +303,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Effector, Receptor, Interface, Interaction.
 
     Domain semantics are expressed through **Archetypes** — each Archetype
-    carries a JSON Schema (`definition.schema`) that validates the
-    definition payload of Ascriptions typed by that Archetype. The
+    carries a JSON Schema (`statement.schema`) that validates the
+    statement payload of Ascriptions typed by that Archetype. The
     definition-manager publishes that schema to the schema registry and derives
     an envelope-level `schemaUri` reference for resolution. There is one
     Archetype kind; no separate "domain" or "metadata" typing layers.
@@ -317,25 +318,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     type of information they emit/consume.
 
     **Governance DNA as Archetypes**: Directive and Norm extend Ascription,
-    inheriting identity, lifecycle, and definition. Their governance
+    inheriting lifecycle, and statement. Identity is held by the
+    referenced Definition. Their governance
     grammar (modal, verb, guard, predicate, etc.) lives in the
-    `definition` payload, typed by sealed GSM Archetypes
+    `statement` payload, typed by sealed GSM Archetypes
     (DirectiveArchetype, NormArchetype). Domain-specific accessors
     (getModal(), getGuard(), etc.) are convenience delegations into
-    `definition`.
+    `statement`.
     A governance Mechanism creates a Directive by calling
     `sys.create("DirectiveArchetype", {...})`. This closes §3 systemic
     recursion naturally: governance DNA follows the same Archetype typing
-    and the same Effector→Archetype port model as all other definitions.
+    and the same Effector→Archetype port model as all other Ascriptions.
 
     ----
 
     Architecture (class roles + composition):
     ┌──────────────────────────────  ┐
-    │ Ascription                     │
-    │  id, revisionId, archetype,    │
-    │  definition, version,          │
-    │  status, statusTransitions     │
+    │ Definition                     │
+    │  id, subjectType, Ascriptions  │
+    ├──────────────────────────────  ┤
+    │ Ascription (→ Definition)      │
+    │  id, archetype, statement,     │
+    │  version, status, timestamp,   │
+    │  statusTransitions             │
     ├───────────────┬─────────────── ┤
     │ STRUCTURAL    │ GOVERNANCE DNA│
     │ Structure     │ Directive     │
@@ -361,7 +366,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │   Extend Ascription; sealed Archetypes        │
     ├─────────────────────────────────────────────┤
     │ DOMAIN MODEL: vocabulary, semantics, schemas  │
-    │   Archetype (types definition via schema)    │
+    │   Archetype (types statement via schema)    │
     │   typing, structure, extensibility             │
     └─────────────────────────────────────────────┘
 
@@ -374,10 +379,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │  Composition graph (has, from/to, exposes)   │
     │  Not extensible by tenants                   │
     ├─────────────────────────────────────────────┤
-    │ ARCHETYPE + ASCRIPTION (tenant-extensible)  │
-    │  All element definition in Ascription,       │
-    │  typed by Archetype schema (base + allOf).   │
-    │  One Archetype kind. One validation surface. │
+    │ DEFINITION + ARCHETYPE + ASCRIPTION           │
+    │  (tenant-extensible)                         │
+    │  Definition = stable identity + subject type. │
+    │  Ascription = governed snapshot, typed by     │
+    │  Archetype schema (base + allOf).             │
+    │  One Archetype kind. One validation surface.  │
     └─────────────────────────────────────────────┘
 
     Base archetype enforcement is a definition-manager concern. Tenant-defined
@@ -497,6 +504,106 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   end note
 
   ' ============================================================
+  ' DEFINITION
+  ' ============================================================
+
+  class Definition {
+    +getId(): String
+    +getSubjectType(): DefinitionSubjectType
+    +getAscriptions(): Ascription[]
+  }
+
+  note bottom of Definition
+    **Definition** — Stable identity of a governed subject.
+
+    **Concept Semantics**:
+
+    - A Definition is the stable identity of a governed subject in GSM.
+      It answers *what thing is being governed* — the referent that persists
+      across all Ascriptions (normative snapshots) that describe it over time.
+    - Definition does NOT extend Ascription. It is a separate entity that
+      provides the identity anchor to which Ascriptions attach. This
+      separation reflects the ontological distinction between *what something
+      is* (identity, slow-changing, structural) and *what is ascribed to it*
+      (normative content, fast-changing, governed).
+    - Multiple Ascriptions can reference the same Definition, each
+      representing a different normative snapshot of the same subject.
+    - The `subjectType` field discriminates the structural role of the subject
+      (Structure, Mechanism, etc.) — this is a GSM-sealed enum, not
+      extensible by tenants. Domain-level typing extensibility is provided
+      by the Archetype reference on each Ascription.
+    - At most one in-effect Ascription per Definition (status = ACTIVE or
+      DEPRECATED).
+
+    **Attribute Semantics**:
+
+    - `id`: globally unique identity of the subject (UUIDv7, RFC 9562).
+      Immutable once assigned. Time-sortable — encodes creation timestamp.
+    - `subjectType`: the GSM structural role of this subject. Sealed enum
+      (DefinitionSubjectType). Immutable once assigned — the structural role
+      of a subject does not change.
+    - `ascriptions`: the ordered collection of Ascriptions that have been
+      ascribed to this Definition over time. Derived by reverse lookup
+      (all Ascriptions whose `definition` references this Definition).
+
+    **Validation Rules**:
+
+    - `id` MUST NOT be null.
+    - `subjectType` MUST be a valid DefinitionSubjectType value.
+    - `subjectType` MUST NOT be modified after creation.
+
+    **Assignment Rules**:
+
+    - `id` is assigned at creation time and MUST NOT be modified.
+    - `subjectType` is assigned at creation time and MUST NOT be modified.
+
+    **Derivation Rules**:
+
+    - `getId()` → column `id` (UUIDv7)
+    - `getSubjectType()` → column `subject_type`
+    - `getAscriptions()` → reverse lookup (Ascriptions whose
+      `definition_id` = this.id), ordered by `timestamp`
+  end note
+
+  enum DefinitionSubjectType {
+    STRUCTURE
+    MECHANISM
+    EFFECTOR
+    RECEPTOR
+    INTERACTION
+    INTERFACE
+    ARCHETYPE
+    NORM
+    DIRECTIVE
+  }
+
+  note bottom of DefinitionSubjectType
+    **DefinitionSubjectType** — GSM structural role (sealed enum).
+
+    **Concept Semantics**:
+
+    - Discriminates the structural role of a Definition — what kind of
+      GSM primitive the subject is. This is a GSM-sealed enum: tenants
+      MUST NOT extend it. Domain-level typing extensibility is expressed
+      exclusively through Archetypes (tenant-defined Archetype schemas
+      extending GSM base schemas via allOf).
+    - Determines which GSM base Archetype schema the Ascription's
+      Archetype allOf chain MUST converge to.
+
+    **Attribute Semantics**:
+
+    - STRUCTURE: the subject is a Structure.
+    - MECHANISM: the subject is a Mechanism.
+    - EFFECTOR: the subject is an Effector.
+    - RECEPTOR: the subject is a Receptor.
+    - INTERACTION: the subject is an Interaction.
+    - INTERFACE: the subject is an Interface.
+    - ARCHETYPE: the subject is an Archetype.
+    - NORM: the subject is a Norm.
+    - DIRECTIVE: the subject is a Directive.
+  end note
+
+  ' ============================================================
   ' DIRECTIVE 
   ' ============================================================
 
@@ -515,13 +622,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - An identity-level, long-term normative constraint that defines what
       the system fundamentally is and stands for.
-    - Extends Ascription. Inherits identity (`id`, `revisionId`), lifecycle
+    - Extends Ascription. Inherits lifecycle
       (`status`, `version`, `statusTransitions`), Archetype-typing
-      (`archetype`), and `definition`. Typed by the sealed
+      (`archetype`), and `statement`. Typed by the sealed
       DirectiveArchetype: the governance grammar (modal, verb, qualifier,
-      purpose) lives in `definition`. Class-specific accessors
+      purpose) lives in `statement`. Class-specific accessors
       (`getModal()`, `getVerb()`, etc.) are convenience delegations into
-      `definition`.
+      `statement`.
     - The slowest-changing governance primitive.
     - Grammar: Modal × Verb × Qualifier × Purpose
       e.g., "order-processing MUST ENSURE SecurityProperties OF
@@ -566,8 +673,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Attribute Semantics**:
 
     - `structure`: The authoring Structure. Stored as a **table column**
-      (envelope-level, alongside `id`, `revisionId`, `archetype`) — not
-      inside the `definition` JSONB payload — to enable foreign-key
+      (envelope-level, alongside `id`, `archetype`) — not
+      inside the `statement` JSONB payload — to enable foreign-key
       referential integrity at the database level.
     - `modal`: Deontic obligation strength (see DirectiveModal enum).
     - `verb`: Governance direction/guarantee semantics (see DirectiveVerb
@@ -581,11 +688,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition.structure` MUST reference an existing Structure.
-    - `definition.modal` MUST be a valid DirectiveModal value.
-    - `definition.verb` MUST be a valid DirectiveVerb value.
-    - `definition.qualifier` MUST reference an existing Archetype.
-    - `definition.purpose`, if present, MUST match the purpose of an existing
+    - `statement.structure` MUST reference an existing Structure.
+    - `statement.modal` MUST be a valid DirectiveModal value.
+    - `statement.verb` MUST be a valid DirectiveVerb value.
+    - `statement.qualifier` MUST reference an existing Archetype.
+    - `statement.purpose`, if present, MUST match the purpose of an existing
       Structure.
 
     **Consistency Rules**:
@@ -608,11 +715,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → definition.structure
-    - `getModal()` → `definition.modal`
-    - `getVerb()` → `definition.verb`
-    - `getQualifier()` → `definition.qualifier` → resolves Archetype
-    - `getPurpose()` → `definition.purpose` → resolves Structure (nullable)
+    - `structure` → statement.structure
+    - `getModal()` → `statement.modal`
+    - `getVerb()` → `statement.verb`
+    - `getQualifier()` → `statement.qualifier` → resolves Archetype
+    - `getPurpose()` → `statement.purpose` → resolves Structure (nullable)
   end note
 
   Directive --|> Ascription
@@ -741,12 +848,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Concept Semantics**:
 
-    - Extends Ascription. Inherits identity, lifecycle, Archetype-typing,
-      and definition. Typed by the sealed NormArchetype: the constraint
+    - Extends Ascription. Inherits lifecycle, Archetype-typing,
+      and statement. Typed by the sealed NormArchetype: the constraint
       grammar (guard, predicate, toleranceMode, etc.) lives in
-      `definition`. Class-specific accessors (`getGuard()`,
+      `statement`. Class-specific accessors (`getGuard()`,
       `getPredicate()`, etc.) are convenience delegations into
-      `definition`.
+      `statement`.
     - Faster-changing than Directive. Operationalizes a Directive's intent into
       an evaluable predicate.
     - Guard and predicate use two distinct **CEL profiles** — restricted
@@ -758,8 +865,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Attribute Semantics**:
 
     - `structure`: The authoring Structure. Stored as a **table column**
-      (envelope-level, alongside `id`, `revisionId`, `archetype`) — not
-      inside the `definition` JSONB payload — to enable foreign-key
+      (envelope-level, alongside `id`, `archetype`) — not
+      inside the `statement` JSONB payload — to enable foreign-key
       referential integrity at the database level.
     - `guard`: CEL expression conforming to the **applicability-guard
       profile** (default: `"true"`). Activation condition — predicate
@@ -775,17 +882,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition.structure` MUST reference an existing Structure.
-    - `definition.guard` MUST conform to the **applicability-guard CEL
+    - `statement.structure` MUST reference an existing Structure.
+    - `statement.guard` MUST conform to the **applicability-guard CEL
       profile** (see CEL Profiles above).
-    - `definition.predicate` MUST conform to the **property-assertion
+    - `statement.predicate` MUST conform to the **property-assertion
       CEL profile** (see CEL Profiles above).
-    - `definition.predicate` root Archetype MUST be in-scope for the
+    - `statement.predicate` root Archetype MUST be in-scope for the
       governing Structure.
-    - `definition.toleranceMode` MUST NOT be null.
-    - `definition.temporalWindow` required when `definition.toleranceMode` is
+    - `statement.toleranceMode` MUST NOT be null.
+    - `statement.temporalWindow` required when `statement.toleranceMode` is
       time-based.
-    - `definition.sustainedThreshold` required when `definition.toleranceMode`
+    - `statement.sustainedThreshold` required when `statement.toleranceMode`
       = SUSTAINED, MUST be in [0, 1].
 
     **Assignment Rules**:
@@ -800,13 +907,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → definition.structure
-    - `getGuard()` → `definition.guard`
-    - `getPredicate()` → `definition.predicate`
-    - `getToleranceMode()` → `definition.toleranceMode`
-    - `getTemporalWindow()` → `definition.temporalWindow` (nullable)
-    - `getTemporalAggregation()` → `definition.temporalAggregation` (nullable)
-    - `getSustainedThreshold()` → `definition.sustainedThreshold` (nullable)
+    - `structure` → statement.structure
+    - `getGuard()` → `statement.guard`
+    - `getPredicate()` → `statement.predicate`
+    - `getToleranceMode()` → `statement.toleranceMode`
+    - `getTemporalWindow()` → `statement.temporalWindow` (nullable)
+    - `getTemporalAggregation()` → `statement.temporalAggregation` (nullable)
+    - `getSustainedThreshold()` → `statement.sustainedThreshold` (nullable)
 
     **CEL Profiles**:
 
@@ -1180,93 +1287,97 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
   abstract class Ascription {
     +getId(): String
-    +getRevisionId(): String
-    +getRevisionTimestamp(): String
+    +getDefinition(): Definition
     +getArchetype(): Archetype
-    +getDefinition(): String
+    +getStatement(): String
+    +getTimestamp(): String
     +getVersion(): String
     +getStatus(): AscriptionStatus
     +getStatusTransitions(): AscriptionStatusTransition[]
   }
 
   note bottom of Ascription
-    **Ascription** — Abstract base for all GSM definitions.
+    **Ascription** — Governed normative snapshot of a Definition.
 
     **Concept Semantics**:
 
-    - An Ascription is the act of assigning normative structure to an identity.
-      Every structural constituent of a Structure (Mechanism, Interaction,
+    - An Ascription is the act of ascribing normative structure to a
+      Definition — a governed snapshot that carries the concrete, version-
+      specific statement of what the governed subject currently IS.
+    - Every structural constituent of a Structure (Mechanism, Interaction,
       Interface), the Structure itself, Archetypes, Directives, and Norms
-      are Ascriptions.
-    - `id` is the stable identity of the thing being defined. Multiple
-      definitions (revisions) share the same `id` — each is a distinct
-      definition snapshot of the same thing. `revisionId` uniquely identifies
-      each revision row. Both `id` and `revisionId` are **UUIDv7**
-      (RFC 9562): time-sortable (Unix epoch ms + random) and B-tree friendly.
-      `revisionTimestamp` provides authoritative temporal ordering where
-      UUIDv7 millisecond granularity is insufficient. At most one in-effect
-      definition per `id` (status = ACTIVE or DEPRECATED).
+      are Ascriptions. The subtypes express *what kind of statement* is being
+      ascribed; the Ascription base provides the common governance envelope.
+    - `id` is the globally unique identity of THIS Ascription (snapshot).
+      **UUIDv7** (RFC 9562): time-sortable (Unix epoch ms + random) and
+      B-tree friendly.
+    - `definition` is a reference to the Definition whose stable identity
+      this Ascription ascribes to. Multiple Ascriptions can reference the
+      same Definition — each is a distinct normative snapshot of the same
+      subject.
+    - `timestamp` provides authoritative temporal ordering where UUIDv7
+      millisecond granularity is insufficient. At most one in-effect
+      Ascription per Definition (status = ACTIVE or DEPRECATED).
     - Every Ascription is representable as Archetype-typed information
       for Mechanisms. This enables systemic recursion — reflexive Mechanisms
       inspect and transform the Structure's own Ascriptions.
-    - Multiple revisions of the same `id` can coexist in non-terminal
+    - Multiple Ascriptions of the same Definition can coexist in non-terminal
       states (DRAFT, PROPOSED) concurrently — the creative/authoring phase is
-      open. Governance converges at approval: approving any one revision
-      auto-rejects all other non-terminal sibling revisions for that
-      `id`.
-    - `version` tracks governance-validated definition lineage (gapless). A
-      DRAFT that is ABANDONED, or a PROPOSED revision that is REJECTED or
+      open. Governance converges at approval: approving any one Ascription
+      auto-rejects all other non-terminal sibling Ascriptions for that
+      Definition.
+    - `version` tracks governance-validated lineage (gapless). A
+      DRAFT that is ABANDONED, or a PROPOSED Ascription that is REJECTED or
       never APPROVED, never consumes a `version` number.
     - `statusTransitions` provides a complete governance audit trail: who
       changed the status, when, and why.
-    - An Ascription **revision** is an **immutable snapshot**. Any change
-      to the definition MUST be expressed by authoring a new revision
-      (new `revisionId`) for the same `id`. The only
-      permitted in-place evolution of a revision row is the append-only growth
-      of its `statusTransitions` audit trail.
+    - An Ascription is an **immutable snapshot**. Any change
+      to the statement MUST be expressed by authoring a new Ascription
+      (new `id`) for the same Definition. The only
+      permitted in-place evolution of an Ascription row is the append-only
+      growth of its `statusTransitions` audit trail.
     - **Governance convergence pattern**: the creative phase allows concurrent
-      authoring (multiple DRAFT and PROPOSED revisions for the same
-      `id`). The governance decision phase converges: approving one
-      revision auto-terminates all siblings (DRAFT siblings → ABANDONED,
+      authoring (multiple DRAFT and PROPOSED Ascriptions for the same
+      Definition). The governance decision phase converges: approving one
+      Ascription auto-terminates all siblings (DRAFT siblings → ABANDONED,
       PROPOSED siblings → REJECTED). This separates creative freedom
       (author many alternatives) from governance rigor (exactly one winner).
-      After convergence, new revisions can be authored to start a new creative
-      cycle.
+      After convergence, new Ascriptions can be authored to start a new
+      creative cycle.
     - **Terminality of ABANDONED and REJECTED**: ABANDONED and REJECTED are
-      both terminal states. Once a revision reaches either state, it cannot be
-      reopened or set back to any prior status. ABANDONED applies to DRAFTs
-      (never submitted for review); REJECTED applies to PROPOSED revisions
+      both terminal states. Once an Ascription reaches either state, it cannot
+      be reopened or set back to any prior status. ABANDONED applies to DRAFTs
+      (never submitted for review); REJECTED applies to PROPOSED Ascriptions
       (denied by governance). If a new creative cycle is needed, author a new
-      revision (new `revisionId`, fresh DRAFT) — do not resurrect a
-      terminated revision. This preserves governance convergence and a clean
+      Ascription (new `id`, fresh DRAFT) — do not resurrect a
+      terminated Ascription. This preserves governance convergence and a clean
       audit trail.
 
     **Attribute Semantics**:
 
-    - `id`: stable identity of the thing being defined (UUIDv7). Shared
-      across all revisions/definitions of the same referent. Immutable once
-      assigned. Time-sortable — encodes creation timestamp.
-    - `revisionId`: globally unique identity of THIS revision (UUIDv7,
-      unique per revision row). Time-sortable — encodes approximate creation
+    - `id`: globally unique identity of THIS Ascription (UUIDv7,
+      unique per Ascription row). Time-sortable — encodes approximate creation
       time (millisecond granularity).
-    - `revisionTimestamp`: authoritative creation timestamp of THIS revision
-      (timestamptz). Set by the database at insert time — the caller never
-      controls it. Provides authoritative temporal ordering for revisions
-      (where UUIDv7 alone is insufficient within the same millisecond).
-      Serialized as ISO 8601 at the API boundary.
-    - `archetype`: reference to the Archetype that types this definition,
-      constraining its definition content and providing domain semantics.
-    - `definition`: JSON-serializable payload applied to the element.
+    - `definition`: reference to the Definition whose stable identity
+      this Ascription ascribes to. Immutable once assigned.
+    - `archetype`: reference to the Archetype that types this Ascription,
+      constraining its statement content and providing domain semantics.
+    - `statement`: JSON-serializable payload ascribed to the element.
       Carries the concrete, version-specific content whose structure is
       constrained by the Archetype schema (extension via `allOf`).
-      The `definition` payload is the fast-changing layer (A) of the
+      The `statement` payload is the fast-changing layer (A) of the
       DNA — element-level configuration, parameters, and operational metadata.
+    - `timestamp`: authoritative creation timestamp of THIS Ascription
+      (timestamptz). Set by the database at insert time — the caller never
+      controls it. Provides authoritative temporal ordering for Ascriptions
+      (where UUIDv7 alone is insufficient within the same millisecond).
+      Serialized as ISO 8601 at the API boundary.
     - `version`: numerical string assigned only upon APPROVED transition.
       Monotonically increasing within the APPROVED lineage for a given
-      `id`. Null/unset until approved. Governance-meaningful — represents
-      the validated definition lineage (gapless). A definition earns a version
-      when governance accepts it as a definition; whether it is later applied
-      (ACTIVE) is a downstream realization concern, not a definitional one.
+      Definition. Null/unset until approved. Governance-meaningful — represents
+      the validated lineage (gapless). An Ascription earns a version
+      when governance accepts it; whether it is later applied
+      (ACTIVE) is a downstream realization concern.
     - `status`: lifecycle state (cf. AscriptionStatus).
       Denormalized/cache field derived from the latest
       `statusTransitions[*].postStatus`.
@@ -1276,22 +1387,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition` MUST validate against the JSON Schema referenced by
-      `archetype.definition.schema`.
+    - `statement` MUST validate against the JSON Schema referenced by
+      `archetype.statement.schema`.
 
     **Assignment Rules**:
 
-    - When creating a new definition revision, reuse the same `id`.
-    - Immutability (revision snapshot): once a revision row is created, `id`,
-      `revisionId`, `archetype`, and `definition` MUST NOT be modified in place.
+    - When creating a new Ascription for the same subject, reference the same
+      Definition.
+    - Immutability (snapshot): once an Ascription row is created, `id`,
+      `definition`, `archetype`, and `statement` MUST NOT be modified in place.
     - Once `version` is assigned at APPROVED transition, it MUST NOT be
       modified.
     - `version` is auto-assigned by the definition-manager at APPROVED
       transition — never set manually.
     - Until APPROVED transition, `version` MUST be null.
     - `version` MUST be monotonically increasing within the APPROVED lineage for
-      each `id`.
-    - `revisionTimestamp` is auto-assigned by the database at insert time —
+      each Definition.
+    - `timestamp` is auto-assigned by the database at insert time —
       never set manually. Immutable once assigned.
 
     **State Rules**:
@@ -1299,31 +1411,32 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-    - At most one in-effect definition per `id` (status = ACTIVE or
+    - At most one in-effect Ascription per Definition (status = ACTIVE or
       DEPRECATED).
 
     **Derivation Rules**:
 
     - `getId()` → column `id` (UUIDv7)
-    - `getRevisionId()` → column `revision_id` (UUIDv7)
-    - `getRevisionTimestamp()` → column `revision_timestamp` (timestamptz)
+    - `getDefinition()` → column `definition_id` → resolves Definition
+    - `getTimestamp()` → column `timestamp` (timestamptz)
     - `getArchetype()` → column `archetype_id` → resolves Archetype
-    - `getDefinition()` → column `definition` (JSON)
+    - `getStatement()` → column `statement` (JSON)
     - `getVersion()` → column `version`
     - `getStatus()` → column `status` (denormalized from latest transition)
     - `getStatusTransitions()` → composition (AscriptionStatusTransition rows
-      for this `revision_id`)
+      for this Ascription `id`)
   end note
 
+  Ascription "0..*" --> "1" Definition : ascribes
   Ascription "0..*" --> "1" Archetype : has
   Ascription "1" *--> "1..*" AscriptionStatusTransition : has
 
   class AscriptionStatusTransition {
     +getId(): String
-    +getRevisionId(): String
-    +getTimestamp(): String
+    +getAscription(): Ascription
     +getPreStatus(): AscriptionStatus
     +getPostStatus(): AscriptionStatus
+    +getTimestamp(): String
   }
 
   note bottom of AscriptionStatusTransition
@@ -1334,9 +1447,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Immutable record of a single lifecycle state change on an
       Ascription.
     - Lifecycle-coupled to the owning Ascription (destroying the
-      definition destroys its transitions).
+      Ascription destroys its transitions).
     - The ordered collection of transitions constitutes the complete governance
-      audit trail for a definition.
+      audit trail for an Ascription.
     - The initial entry captures creation (preStatus = null, postStatus =
       DRAFT).
 
@@ -1345,22 +1458,22 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `id`: unique identity of THIS transition record (UUIDv7, RFC 9562).
       Time-sortable — embeds approximate creation time (millisecond
       granularity).
-    - `revisionId`: reference to the owning Ascription's `revisionId` (the
-      specific revision row, not `id`). Immutable once assigned.
+    - `ascription`: reference to the owning Ascription's `id`. Immutable
+      once assigned.
+    - `preStatus`: the status before the transition. Null for the initial
+      creation entry.
+    - `postStatus`: the status after the transition.
     - `timestamp`: authoritative timestamp of when this transition occurred
       (timestamptz). Set by the database at insert time. Provides
       authoritative temporal ordering for transitions (where UUIDv7 alone
       is insufficient within the same millisecond). Serialized as ISO 8601
       at the API boundary.
-    - `preStatus`: the status before the transition. Null for the initial
-      creation entry.
-    - `postStatus`: the status after the transition.
 
     **Validation Rules**:
 
     - `postStatus` MUST NOT be null.
-    - `revisionId` MUST NOT be null.
-    - `revisionId` MUST reference an existing Ascription `revisionId`.
+    - `ascription` MUST NOT be null.
+    - `ascription` MUST reference an existing Ascription `id`.
 
     **Assignment Rules**:
 
@@ -1375,7 +1488,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Derivation Rules**:
 
     - `getId()` → column `id` (UUIDv7)
-    - `getRevisionId()` → column `revision_id` (FK to Ascription)
+    - `getAscription()` → column `ascription_id` (FK to Ascription)
+    - `getTimestamp()` → column `timestamp` (timestamptz)
     - `getPreStatus()` → column `pre_status`
     - `getPostStatus()` → column `post_status`
   end note
@@ -1412,11 +1526,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       new references.
     - `RETIRED`: permanently not in effect; preserved for historical
       traceability (terminal).
-    - `ABANDONED`: author-initiated termination of a DRAFT; the revision was
+    - `ABANDONED`: author-initiated termination of a DRAFT; the Ascription was
       never submitted for governance review. A new creative cycle requires
-      authoring a new revision (terminal).
+      authoring a new Ascription (terminal).
     - `REJECTED`: denied by governance; not in effect. Only reachable from
-      PROPOSED. A new creative cycle requires authoring a new revision
+      PROPOSED. A new creative cycle requires authoring a new Ascription
       (terminal).
 
     **State Rules**:
@@ -1495,7 +1609,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `getPurpose()` → `definition.purpose`
+    - `getPurpose()` → `statement.purpose`
     - `getMechanisms()` → reverse lookup (Mechanisms
       whose `structure` = this.id)
     - `getInterfaces()` → derived (Interfaces whose effectors/receptors belong
@@ -1560,13 +1674,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition.structure` MUST reference an existing Structure `id`.
-    - `definition.function` MUST be non-empty.
-    - `definition.function` MUST be unique among all in-effect
+    - `statement.structure` MUST reference an existing Structure `id`.
+    - `statement.function` MUST be non-empty.
+    - `statement.function` MUST be unique among all in-effect
       Mechanisms belonging to the same Structure.
-    - `definition.rule` MUST be syntactically valid Starlark
+    - `statement.rule` MUST be syntactically valid Starlark
       (parseable by the Starlark parser).
-      - `definition.rule` MUST begin with exactly one
+      - `statement.rule` MUST begin with exactly one
         `on("...")` call as its first executable statement.
       - The `on()` argument MUST be a string literal resolving to a defined
         Archetype in the governed scope.
@@ -1582,7 +1696,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
         Any other global → error.
       - No `load()` statements.
       - Execution budget: configurable max steps (default 100k).
-    - `definition.ruleLanguage` MUST be a supported value.
+    - `statement.ruleLanguage` MUST be a supported value.
 
     **State Rules**:
 
@@ -1598,12 +1712,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - The Structure reference is derived from the Mechanism's Archetype
       (`structure`).
-    - `structure` → definition.structure
-    - `getFunction()` → `definition.function`
-    - `getRule()` → `definition.rule`
-    - `getRuleLanguage()` → `definition.ruleLanguage`
-    - `getEffectors()` → derived ports (auto-derived from `definition.rule` AST)
-    - `getReceptors()` → derived ports (auto-derived from `definition.rule` AST)
+    - `structure` → statement.structure
+    - `getFunction()` → `statement.function`
+    - `getRule()` → `statement.rule`
+    - `getRuleLanguage()` → `statement.ruleLanguage`
+    - `getEffectors()` → derived ports (auto-derived from `statement.rule` AST)
+    - `getReceptors()` → derived ports (auto-derived from `statement.rule` AST)
     - *Receptor derivation (inputs)*
       - `on("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
@@ -1683,7 +1797,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Mechanism.
     - `archetype`: the Archetype that types and constrains the
       effector's output. Note: this is the **port data archetype** (from
-      `definition.archetype`), distinct from the Ascription-level
+      `statement.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Effector Ascription
       itself as EffectorArchetype.
     - `interface`: optional reference to an Interface that exposes this Effector
@@ -1692,9 +1806,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition.mechanism` reference MUST NOT be null.
-    - `definition.archetype` reference MUST NOT be null.
-    - `definition.interface` reference, if present, MUST reference an Interface
+    - `statement.mechanism` reference MUST NOT be null.
+    - `statement.archetype` reference MUST NOT be null.
+    - `statement.interface` reference, if present, MUST reference an Interface
       that belongs to the same Structure as the Mechanism.
 
     **State Rules**:
@@ -1705,9 +1819,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `mechanism` → definition.mechanism
-    - `archetype` → definition.archetype
-    - `interface` → definition.interface
+    - `mechanism` → statement.mechanism
+    - `archetype` → statement.archetype
+    - `interface` → statement.interface
   end note
 
   Effector --|> Ascription
@@ -1745,7 +1859,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Mechanism.
     - `archetype`: the Archetype that types and constrains the
       receptor's input. Note: this is the **port data archetype** (from
-      `definition.archetype`), distinct from the Ascription-level
+      `statement.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Receptor Ascription
       itself as ReceptorArchetype.
     - `interface`: optional reference to an Interface that exposes this Receptor
@@ -1754,9 +1868,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition.mechanism` reference MUST NOT be null.
-    - `definition.archetype` reference MUST NOT be null.
-    - `definition.interface` reference, if present, MUST reference an Interface that
+    - `statement.mechanism` reference MUST NOT be null.
+    - `statement.archetype` reference MUST NOT be null.
+    - `statement.interface` reference, if present, MUST reference an Interface that
       belongs to the same Structure as the Mechanism.
 
     **State Rules**:
@@ -1767,9 +1881,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `mechanism` → definition.mechanism
-    - `archetype` → definition.archetype
-    - `interface` → definition.interface
+    - `mechanism` → statement.mechanism
+    - `archetype` → statement.archetype
+    - `interface` → statement.interface
   end note
 
   Receptor --|> Ascription
@@ -1813,10 +1927,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `definition.effector` MUST NOT be null.
-    - `definition.receptor` MUST NOT be null.
-    - `definition.effector.archetype` MUST be schema-compatible with
-      `definition.receptor.archetype`.
+    - `statement.effector` MUST NOT be null.
+    - `statement.receptor` MUST NOT be null.
+    - `statement.effector.archetype` MUST be schema-compatible with
+      `statement.receptor.archetype`.
 
     **State Rules**:
 
@@ -1826,8 +1940,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `effector` → definition.effector
-    - `receptor` → definition.receptor
+    - `effector` → statement.effector
+    - `receptor` → statement.receptor
   end note
 
   Interaction --|> Ascription
@@ -1867,7 +1981,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-      - If `definition.effectors`/`definition.receptors` are
+      - If `statement.effectors`/`statement.receptors` are
         present, they MUST reference ports (Effector/Receptor `id`) that belong
         to Mechanisms within the same Structure as the Interface's Structure.
 
@@ -1879,9 +1993,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → definition.structure
-    - `getEffectors()` → derived ports (auto-derived from `definition.rule` AST)
-    - `getReceptors()` → derived ports (auto-derived from `definition.rule` AST)
+    - `structure` → statement.structure
+    - `getEffectors()` → derived ports (auto-derived from `statement.rule` AST)
+    - `getReceptors()` → derived ports (auto-derived from `statement.rule` AST)
 
     **Usage Rules**:
 
@@ -1932,7 +2046,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Unified type construct for all structural and domain typing.
     - Effectors and Receptors reference Archetypes directly to declare the
       type of information they emit/consume. The Archetype's
-      `definition.schema` is the governed JSON Schema content; the
+      `statement.schema` is the governed JSON Schema content; the
       definition-manager publishes the same content to the schema registry and
       exposes the resulting envelope-level `schemaUri` through
       `getSchemaUri()`.
@@ -1940,23 +2054,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Attribute Semantics**:
 
     - `description.schema`: the governed JSON Schema content (draft 2020-12+) carried in
-      the Archetype `definition` payload. This is the authoritative typed
+      the Archetype `statement` payload. This is the authoritative typed
       specification that validates instances of Ascriptions referencing this
       Archetype.
     - `schemaUri`: canonical URI for the same JSON Schema document after the
       definition-manager publishes it to the schema registry. `schemaUri` is an
       envelope-level field assigned by the definition-manager; it is not part
-      of the governed `definition` payload.
+      of the governed `statement` payload.
 
     **Validation Rules**:
 
-    - `definition.schema` MUST NOT be null.
-    - `definition.schema` MUST be a valid JSON Schema
+    - `statement.schema` MUST NOT be null.
+    - `statement.schema` MUST be a valid JSON Schema
       (draft 2020-12+).
       dereferencing it must always return the same schema content over time.
       Mutable aliases such as "latest" (or any moving target) MUST be rejected
       by the definition-manager.
-    - `definition.schema` MUST declare an `allOf` chain that
+    - `statement.schema` MUST declare an `allOf` chain that
       ultimately roots at the GSM base archetype schema. Intermediate
       tenant archetypes are permitted (depth-N chains) as long as all `allOf`
       paths converge to the same GSM base.
@@ -1966,13 +2080,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Relational Consistency Rules**:
 
     - Any Ascription that references this Archetype MUST have
-      `definition` compatible with the JSON Schema referenced by
-      `definition.schema`.
+      `statement` compatible with the JSON Schema referenced by
+      `statement.schema`.
 
     **Assignment Rules**:
 
-    - Authors provide `definition.schema` when authoring an Archetype.
-    - The definition-manager publishes `definition.schema` to the schema
+    - Authors provide `statement.schema` when authoring an Archetype.
+    - The definition-manager publishes `statement.schema` to the schema
       registry and assigns the resulting immutable `schemaUri` in the
       Archetype envelope before persistence.
 
@@ -1985,7 +2099,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Derivation Rules**:
 
     - Base archetype classification is derived from the schema content
-      (`definition.schema.allOf.$ref`), not from a separate field.
+      (`statement.schema.allOf.$ref`), not from a separate field.
     - `getSchemaUri()` → envelope field / column `schema_uri`
 
     **Notes**:
@@ -2006,7 +2120,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       most, a single-level embedded archetype) or use cycle-aware serializers.
     - **Equality/logging hazards**: do not include the `archetype` object graph
       in `equals`/`hashCode`/`toString` implementations; use stable identifiers
-      (`id`/`revisionId`) only.
+      (`id`) only.
   end note
 
   Archetype --|> Ascription

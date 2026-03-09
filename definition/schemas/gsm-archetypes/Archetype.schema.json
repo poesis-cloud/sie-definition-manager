@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sie://schemas/gsm/v1/Archetype.schema.json",
     "title": "Archetype",
-    "description": "Base archetype schema for the definition payload of Archetype Ascriptions. The `schema` property defined here carries the governed JSON Schema content for the Archetype. The definition-manager publishes that content to the schema registry and assigns an envelope-level `schemaUri` outside this payload. Archetype extends Ascription and is the sole typed deliverable in the definition plane.",
+    "description": "Base archetype schema for the statement payload of Archetype Ascriptions. The `schema` property defined here carries the governed JSON Schema content for the Archetype. The definition-manager publishes that content to the schema registry and assigns an envelope-level `schemaUri` outside this payload. Archetype extends Ascription and is the sole typed deliverable in the definition plane.",
     "$gsm:sealed": true,
     "$gsm:gsmClass": "Archetype",
     "type": "object",
