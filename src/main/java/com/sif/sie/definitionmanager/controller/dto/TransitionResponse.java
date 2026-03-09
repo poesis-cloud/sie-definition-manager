@@ -5,4 +5,5 @@ import java.util.UUID;
 
 /** Response for a lifecycle transition. */
 public record TransitionResponse(
-        UUID transitionId, UUID revisionId, String preStatus, String postStatus, Instant timestamp) {}
+                UUID transitionId, UUID ascriptionId, String preStatus, String postStatus, Instant timestamp) {
+}

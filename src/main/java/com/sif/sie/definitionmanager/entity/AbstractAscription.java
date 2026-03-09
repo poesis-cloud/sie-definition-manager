@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.lang.NonNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
@@ -32,8 +33,8 @@ import jakarta.persistence.PrePersist;
  * <p>
  * Immutable-after-creation fields ({@code definition}, {@code archetype},
  * {@code statement}) are
- * set via constructor. The only mutable field is {@code version} (assigned at
- * APPROVED transition).
+ * set via constructor. All other fields ({@code timestamp}, {@code status},
+ * {@code version}) are DB trigger-managed — no setters exposed.
  *
  * <p>
  * DB triggers handle:
@@ -43,9 +44,23 @@ import jakarta.persistence.PrePersist;
  * accepted from JPA
  * when pre-set via {@link #ensureId()}
  * <li>{@code timestamp} — always DB-authoritative
- * <li>{@code status} — synced from latest status transition row
+ * <li>{@code status} — synced from latest status transition row by DB trigger
+ * <li>{@code version} — assigned atomically by DB trigger on APPROVED
+ * transition
+ * </ul>
+ *
+ * <p>
+ * Column insertable/updatable rationale:
+ * <ul>
+ * <li>{@code id} — insertable (JPA generates via @PrePersist), not updatable
+ * <li>{@code definition_id}, {@code archetype_id}, {@code statement} —
+ * insertable,
+ * not updatable (immutable-after-creation)
+ * <li>{@code timestamp}, {@code status}, {@code version} — neither insertable
+ * nor updatable (DB trigger-managed exclusively)
  * </ul>
  */
+@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @MappedSuperclass
 public abstract class AbstractAscription {
 
@@ -57,23 +72,23 @@ public abstract class AbstractAscription {
     @JoinColumn(name = "definition_id", nullable = false, updatable = false)
     private DefinitionEntity definition;
 
-    @Column(name = "\"timestamp\"", insertable = false, updatable = false)
-    private Instant timestamp;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "archetype_id", nullable = false, updatable = false)
     private ArchetypeEntity archetype;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "statement", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "statement", nullable = false, updatable = false, columnDefinition = "jsonb")
     private JsonNode statement;
 
-    @Column(name = "version")
-    private Integer version;
+    @Column(name = "\"timestamp\"", nullable = false, updatable = false, insertable = false)
+    private Instant timestamp;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", insertable = false, updatable = false)
+    @Column(name = "status", nullable = false, updatable = false, insertable = false)
     private AscriptionStatus status;
+
+    @Column(name = "version", nullable = false, updatable = false, insertable = false)
+    private Integer version;
 
     /** JPA requires a no-arg constructor. */
     protected AbstractAscription() {
@@ -81,9 +96,9 @@ public abstract class AbstractAscription {
 
     protected AbstractAscription(
             DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
-        this.definition = definition;
-        this.archetype = archetype;
-        this.statement = statement;
+        this.definition = Objects.requireNonNull(definition, "definition");
+        this.archetype = Objects.requireNonNull(archetype, "archetype");
+        this.statement = Objects.requireNonNull(statement, "statement");
     }
 
     @PrePersist
@@ -95,36 +110,38 @@ public abstract class AbstractAscription {
 
     // ---- accessors ----
 
+    @NonNull
     public UUID getId() {
         return id;
     }
 
+    @NonNull
     public DefinitionEntity getDefinition() {
         return definition;
     }
 
-    public Instant getTimestamp() {
-        return timestamp;
-    }
-
+    @NonNull
     public ArchetypeEntity getArchetype() {
         return archetype;
     }
 
+    @NonNull
     public JsonNode getStatement() {
         return statement;
     }
 
-    public Integer getVersion() {
-        return version;
+    @NonNull
+    public Instant getTimestamp() {
+        return timestamp;
     }
 
-    public void setVersion(Integer version) {
-        this.version = version;
-    }
-
+    @NonNull
     public AscriptionStatus getStatus() {
         return status;
+    }
+
+    public int getVersion() {
+        return version;
     }
 
     // ---- equals / hashCode (Vlad Mihalcea pattern) ----

@@ -1291,7 +1291,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     +getArchetype(): Archetype
     +getStatement(): String
     +getTimestamp(): String
-    +getVersion(): String
+    +getVersion(): Integer
     +getStatus(): AscriptionStatus
     +getStatusTransitions(): AscriptionStatusTransition[]
   }
@@ -1372,15 +1372,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       controls it. Provides authoritative temporal ordering for Ascriptions
       (where UUIDv7 alone is insufficient within the same millisecond).
       Serialized as ISO 8601 at the API boundary.
-    - `version`: numerical string assigned only upon APPROVED transition.
+    - `version`: non-negative integer. 0 = not yet approved; governance
+      versions start at 1. Assigned atomically by a DB trigger when the
+      APPROVED transition is recorded — never set by application code.
       Monotonically increasing within the APPROVED lineage for a given
-      Definition. Null/unset until approved. Governance-meaningful — represents
-      the validated lineage (gapless). An Ascription earns a version
-      when governance accepts it; whether it is later applied
-      (ACTIVE) is a downstream realization concern.
+      Definition. Governance-meaningful — represents the validated lineage
+      (gapless). An Ascription earns a version when governance accepts it;
+      whether it is later applied (ACTIVE) is a downstream realization
+      concern.
     - `status`: lifecycle state (cf. AscriptionStatus).
-      Denormalized/cache field derived from the latest
-      `statusTransitions[*].postStatus`.
+      Denormalized/cache field, set atomically by a DB trigger when a
+      transition is recorded — never set by application code directly.
+      Derived from the latest `statusTransitions[*].postStatus`.
     - `statusTransitions`: ordered list of AscriptionStatusTransition
       records capturing every lifecycle state change. Append-only — transitions
       are never modified or deleted (cf. AscriptionStatusTransition).
@@ -1398,11 +1401,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `definition`, `archetype`, and `statement` MUST NOT be modified in place.
     - Once `version` is assigned at APPROVED transition, it MUST NOT be
       modified.
-    - `version` is auto-assigned by the definition-manager at APPROVED
-      transition — never set manually.
-    - Until APPROVED transition, `version` MUST be null.
-    - `version` MUST be monotonically increasing within the APPROVED lineage for
-      each Definition.
+    - `version` is auto-assigned atomically by a DB trigger when the
+      APPROVED transition is recorded — never set by application code.
+    - Before APPROVED transition, `version` MUST be 0.
+    - `version` MUST be monotonically increasing (starting from 1) within
+      the APPROVED lineage for each Definition.
+    - `status` is auto-assigned atomically by a DB trigger when a
+      transition is recorded — never set by application code directly.
     - `timestamp` is auto-assigned by the database at insert time —
       never set manually. Immutable once assigned.
 

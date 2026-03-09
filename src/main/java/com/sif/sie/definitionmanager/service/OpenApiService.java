@@ -1,5 +1,9 @@
 package com.sif.sie.definitionmanager.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -7,8 +11,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
 import com.sif.sie.definitionmanager.repository.ArchetypeRepository;
-import java.util.List;
-import org.springframework.stereotype.Service;
 
 @Service
 public class OpenApiService {
@@ -47,9 +49,9 @@ public class OpenApiService {
 
     private void buildPaths(ObjectNode paths) {
         buildAscriptionsPath(paths.putObject("/ascriptions"));
-        buildAscriptionByIdPath(paths.putObject("/ascriptions/{revisionId}"));
-        buildRevisionsPath(paths.putObject("/ascriptions/revisions"));
-        buildTransitionsPath(paths.putObject("/ascriptions/{revisionId}/transitions"));
+        buildAscriptionByIdPath(paths.putObject("/ascriptions/{id}"));
+        buildHistoryPath(paths.putObject("/ascriptions/history"));
+        buildTransitionsPath(paths.putObject("/ascriptions/{id}/transitions"));
     }
 
     private void buildAscriptionsPath(ObjectNode path) {
@@ -76,7 +78,7 @@ public class OpenApiService {
                 "type",
                 "string",
                 true,
-                "GSM type (archetype, structure, mechanism, interface, effector, receptor, interaction, directive, norm)");
+                "Subject type (archetype, structure, mechanism, interface, effector, receptor, interaction, directive, norm)");
         queryParam(getParams, "status", "string", false, "Filter by status");
         queryParam(getParams, "page", "integer", false, "Page number (0-based)");
         queryParam(getParams, "size", "integer", false, "Page size (default 20)");
@@ -87,25 +89,25 @@ public class OpenApiService {
 
     private void buildAscriptionByIdPath(ObjectNode path) {
         ObjectNode get = path.putObject("get");
-        get.put("summary", "Get ascription by revision ID");
-        get.put("operationId", "getAscriptionByRevisionId");
+        get.put("summary", "Get ascription by ID");
+        get.put("operationId", "getAscriptionById");
         ArrayNode params = get.putArray("parameters");
-        pathParam(params, "revisionId", "string", "uuid", "Ascription revision ID");
+        pathParam(params, "id", "string", "uuid", "Ascription ID");
         ObjectNode responses = get.putObject("responses");
         jsonResponse(responses, "200", "Found", "#/components/schemas/AscriptionResponse");
         problemResponse(responses, "400", "Not found");
     }
 
-    private void buildRevisionsPath(ObjectNode path) {
+    private void buildHistoryPath(ObjectNode path) {
         ObjectNode get = path.putObject("get");
-        get.put("summary", "Get revision history for a lineage");
-        get.put("operationId", "getRevisionHistory");
+        get.put("summary", "Get ascription history for a definition");
+        get.put("operationId", "getAscriptionHistory");
         ArrayNode params = get.putArray("parameters");
-        queryParam(params, "id", "string", true, "Lineage ID (shared across revisions)");
-        queryParam(params, "type", "string", true, "GSM type");
+        queryParam(params, "definitionId", "string", true, "Definition ID");
+        queryParam(params, "type", "string", true, "Subject type");
         ObjectNode responses = get.putObject("responses");
         ObjectNode resp200 = responses.putObject("200");
-        resp200.put("description", "Revision list");
+        resp200.put("description", "Ascription history");
         resp200
                 .putObject("content")
                 .putObject("application/hal+json")
@@ -120,7 +122,7 @@ public class OpenApiService {
         get.put("summary", "Get transition audit trail");
         get.put("operationId", "getTransitions");
         ArrayNode getParams = get.putArray("parameters");
-        pathParam(getParams, "revisionId", "string", "uuid", "Ascription revision ID");
+        pathParam(getParams, "id", "string", "uuid", "Ascription ID");
         ObjectNode getResponses = get.putObject("responses");
         ObjectNode resp200 = getResponses.putObject("200");
         resp200.put("description", "Transition history");
@@ -136,7 +138,7 @@ public class OpenApiService {
         post.put("summary", "Transition ascription to a new status");
         post.put("operationId", "transitionAscription");
         ArrayNode postParams = post.putArray("parameters");
-        pathParam(postParams, "revisionId", "string", "uuid", "Ascription revision ID");
+        pathParam(postParams, "id", "string", "uuid", "Ascription ID");
         ObjectNode postBody = post.putObject("requestBody");
         postBody.put("required", true);
         postBody
@@ -154,23 +156,23 @@ public class OpenApiService {
         ObjectNode req = schemas.putObject("AscriptionRequest");
         req.put("type", "object");
         ObjectNode reqProps = req.putObject("properties");
-        uuidProp(reqProps, "archetypeId", "Reference to the typing Archetype revision_id");
-        reqProps.putObject("definition").put("$ref", "#/components/schemas/DefinitionPayload");
-        uuidProp(reqProps, "id", "Optional: set for new revision of existing lineage");
-        req.putArray("required").add("archetypeId").add("definition");
+        uuidProp(reqProps, "archetypeId", "Reference to the typing Archetype ID");
+        reqProps.putObject("statement").put("$ref", "#/components/schemas/StatementPayload");
+        uuidProp(reqProps, "definitionId", "Optional: set for new ascription of existing definition");
+        req.putArray("required").add("archetypeId").add("statement");
 
         ObjectNode resp = schemas.putObject("AscriptionResponse");
         resp.put("type", "object");
         ObjectNode respProps = resp.putObject("properties");
-        respProps.putObject("gsmType").put("type", "string");
-        uuidProp(respProps, "id", "Lineage identity (shared across revisions)");
-        uuidProp(respProps, "revisionId", "Unique revision identity");
-        respProps.putObject("revisionTimestamp").put("type", "string").put("format", "date-time");
-        uuidProp(respProps, "archetypeId", "Typing archetype revision_id");
+        respProps.putObject("subjectType").put("type", "string");
+        uuidProp(respProps, "definitionId", "Definition identity");
+        uuidProp(respProps, "id", "Unique ascription identity");
+        respProps.putObject("timestamp").put("type", "string").put("format", "date-time");
+        uuidProp(respProps, "archetypeId", "Typing archetype ID");
         respProps
-                .putObject("definition")
+                .putObject("statement")
                 .put("type", "object")
-                .put("description", "Definition payload (schema depends on archetype)");
+                .put("description", "Statement payload (schema depends on archetype)");
         respProps
                 .putObject("version")
                 .put("type", "integer")
@@ -196,7 +198,7 @@ public class OpenApiService {
         tResp.put("type", "object");
         ObjectNode tRespProps = tResp.putObject("properties");
         uuidProp(tRespProps, "transitionId", "Transition record ID");
-        uuidProp(tRespProps, "revisionId", "Owning ascription revision_id");
+        uuidProp(tRespProps, "ascriptionId", "Owning ascription ID");
         tRespProps.putObject("preStatus").put("type", "string");
         tRespProps.putObject("postStatus").put("type", "string");
         tRespProps.putObject("timestamp").put("type", "string").put("format", "date-time");
@@ -226,7 +228,7 @@ public class OpenApiService {
         ArrayNode oneOf = mapper.createArrayNode();
 
         for (ArchetypeEntity archetype : archetypes) {
-            JsonNode definition = archetype.getDefinition();
+            JsonNode definition = archetype.getStatement();
             if (definition == null || !definition.has("schema")) {
                 continue;
             }
@@ -245,16 +247,16 @@ public class OpenApiService {
             archetypeSchema.remove("$schema");
             archetypeSchema.remove("$id");
             archetypeSchema.remove("$gsm:sealed");
-            archetypeSchema.put("title", name + " definition");
-            schemas.set(name + "Definition", archetypeSchema);
+            archetypeSchema.put("title", name + " statement");
+            schemas.set(name + "Statement", archetypeSchema);
 
-            oneOf.addObject().put("$ref", "#/components/schemas/" + name + "Definition");
+            oneOf.addObject().put("$ref", "#/components/schemas/" + name + "Statement");
         }
 
-        ObjectNode payload = schemas.putObject("DefinitionPayload");
+        ObjectNode payload = schemas.putObject("StatementPayload");
         payload.put(
                 "description",
-                "Definition payload. The applicable schema depends on the archetypeId "
+                "Statement payload. The applicable schema depends on the archetypeId "
                         + "used in the request. See per-archetype schemas below.");
         if (oneOf.isEmpty()) {
             payload.put("type", "object");

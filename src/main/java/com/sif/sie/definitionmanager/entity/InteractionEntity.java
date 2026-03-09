@@ -1,5 +1,9 @@
 package com.sif.sie.definitionmanager.entity;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.persistence.Entity;
@@ -30,14 +34,16 @@ public class InteractionEntity extends AbstractAscription {
             EffectorEntity effector,
             ReceptorEntity receptor) {
         super(definition, archetype, statement);
-        this.effector = effector;
-        this.receptor = receptor;
+        this.effector = Objects.requireNonNull(effector, "effector");
+        this.receptor = Objects.requireNonNull(receptor, "receptor");
     }
 
+    @NonNull
     public EffectorEntity getEffector() {
         return effector;
     }
 
+    @NonNull
     public ReceptorEntity getReceptor() {
         return receptor;
     }

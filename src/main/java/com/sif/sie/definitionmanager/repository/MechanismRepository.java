@@ -1,22 +1,25 @@
 package com.sif.sie.definitionmanager.repository;
 
-import com.sif.sie.definitionmanager.entity.MechanismEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.sif.sie.definitionmanager.entity.MechanismEntity;
+import com.sif.sie.definitionmanager.enums.AscriptionStatus;
 
 public interface MechanismRepository extends JpaRepository<MechanismEntity, UUID> {
     Page<MechanismEntity> findAllByStatus(AscriptionStatus status, Pageable pageable);
 
     Page<MechanismEntity> findAllByStatusIn(Collection<AscriptionStatus> statuses, Pageable pageable);
 
-    List<MechanismEntity> findAllByIdOrderByRevisionTimestampDesc(UUID id);
+    List<MechanismEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
-    List<MechanismEntity> findAllByIdAndStatusIn(UUID id, Collection<AscriptionStatus> statuses);
+    List<MechanismEntity> findAllByDefinition_IdAndStatusIn(
+            UUID definitionId, Collection<AscriptionStatus> statuses);
 
-    Page<MechanismEntity> findAllByStructure_RevisionId(UUID structureRevisionId, Pageable pageable);
+    Page<MechanismEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
 }

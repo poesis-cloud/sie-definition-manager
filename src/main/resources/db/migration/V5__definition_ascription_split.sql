@@ -307,14 +307,39 @@ return NEW;
 end;
 $$;
 -- 7c. tgf_sync_owner_status_from_transition
-create or replace function tgf_sync_owner_status_from_transition() returns trigger language plpgsql as $$ begin perform set_config('sif.status_sync', 'on', true);
-execute format(
-  'update %I set status = $1 where id = $2',
-  lower(NEW.subject_type::text)
-) using NEW.post_status,
-NEW.ascription_id;
-perform set_config('sif.status_sync', 'off', true);
-return NEW;
+--     On every transition INSERT:
+--       1) set status = post_status on the owner ascription row
+--       2) if post_status = 'APPROVED', atomically assign version =
+--          max(version) + 1 within the same definition_id lineage
+create or replace function tgf_sync_owner_status_from_transition() returns trigger language plpgsql as $$
+declare
+  next_version integer;
+begin
+  perform set_config('sif.status_sync', 'on', true);
+
+  if NEW.post_status = 'APPROVED' then
+    -- Compute next version for this definition lineage (across the owner table)
+    execute format(
+      'select coalesce(max(o.version), 0) + 1
+       from %I o
+       where o.definition_id = (select definition_id from %I where id = $1)',
+      lower(NEW.subject_type::text),
+      lower(NEW.subject_type::text)
+    ) into next_version using NEW.ascription_id;
+
+    execute format(
+      'update %I set status = $1, version = $2 where id = $3',
+      lower(NEW.subject_type::text)
+    ) using NEW.post_status, next_version, NEW.ascription_id;
+  else
+    execute format(
+      'update %I set status = $1 where id = $2',
+      lower(NEW.subject_type::text)
+    ) using NEW.post_status, NEW.ascription_id;
+  end if;
+
+  perform set_config('sif.status_sync', 'off', true);
+  return NEW;
 end;
 $$;
 -- 7d. tgf_assert_owner_status_matches_history
@@ -507,4 +532,26 @@ alter index idx_ast_revision
 rename to idx_ast_ascription;
 alter index idx_ast_type_revision
 rename to idx_ast_type_ascription;
+-- ============================================================
+-- 10. VERSION: NOT NULL DEFAULT 0
+-- ============================================================
+-- version = 0 means "not yet approved"; governance versions start at 1.
+do $$
+declare
+  tbl text;
+begin
+  foreach tbl in array array[
+    'archetype','structure','mechanism','interface',
+    'effector','receptor','interaction','directive','norm']
+  loop
+    execute format(
+      'alter table %I alter column version set default 0', tbl);
+    execute format(
+      'update %I set version = 0 where version is null', tbl);
+    execute format(
+      'alter table %I alter column version set not null', tbl);
+  end loop;
+end
+$$;
+commit;
 commit;

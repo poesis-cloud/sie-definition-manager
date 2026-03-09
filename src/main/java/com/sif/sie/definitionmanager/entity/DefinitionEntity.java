@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.lang.NonNull;
 
 import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
 import com.sif.sie.definitionmanager.util.UuidV7Generator;
@@ -34,6 +35,7 @@ import jakarta.persistence.Table;
  * {@code subjectType}) are
  * immutable after creation — assigned via constructor, no setters exposed.
  */
+@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "definition")
 public class DefinitionEntity {
@@ -55,7 +57,7 @@ public class DefinitionEntity {
     }
 
     public DefinitionEntity(DefinitionSubjectType subjectType) {
-        this.subjectType = subjectType;
+        this.subjectType = Objects.requireNonNull(subjectType, "subjectType");
     }
 
     @PrePersist
@@ -67,14 +69,17 @@ public class DefinitionEntity {
 
     // ---- accessors (read-only) ----
 
+    @NonNull
     public UUID getId() {
         return id;
     }
 
+    @NonNull
     public DefinitionSubjectType getSubjectType() {
         return subjectType;
     }
 
+    @NonNull
     public List<AscriptionProjection> getAscriptions() {
         return ascriptions;
     }

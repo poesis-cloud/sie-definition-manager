@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
 import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
@@ -20,13 +22,13 @@ import jakarta.persistence.Table;
 
 /**
  * Immutable audit record of a lifecycle state change on an Ascription. Maps to
- * the shared {@code
- * ascription_status_transition} table.
+ * the shared {@code ascription_status_transition} table.
  *
  * <p>
  * All fields are immutable after creation — assigned via constructor, no
  * setters exposed.
  */
+@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Immutable
 @Table(name = "ascription_status_transition")
@@ -61,12 +63,12 @@ public class AscriptionStatusTransitionEntity {
     public AscriptionStatusTransitionEntity(
             DefinitionSubjectType subjectType,
             UUID ascriptionId,
-            AscriptionStatus preStatus,
+            @Nullable AscriptionStatus preStatus,
             AscriptionStatus postStatus) {
-        this.subjectType = subjectType;
-        this.ascriptionId = ascriptionId;
+        this.subjectType = Objects.requireNonNull(subjectType, "subjectType");
+        this.ascriptionId = Objects.requireNonNull(ascriptionId, "ascriptionId");
         this.preStatus = preStatus;
-        this.postStatus = postStatus;
+        this.postStatus = Objects.requireNonNull(postStatus, "postStatus");
     }
 
     @PrePersist
@@ -78,26 +80,32 @@ public class AscriptionStatusTransitionEntity {
 
     // ---- accessors (read-only) ----
 
+    @NonNull
     public UUID getId() {
         return id;
     }
 
+    @NonNull
     public DefinitionSubjectType getSubjectType() {
         return subjectType;
     }
 
+    @NonNull
     public UUID getAscriptionId() {
         return ascriptionId;
     }
 
+    @Nullable
     public AscriptionStatus getPreStatus() {
         return preStatus;
     }
 
+    @NonNull
     public AscriptionStatus getPostStatus() {
         return postStatus;
     }
 
+    @NonNull
     public Instant getTimestamp() {
         return timestamp;
     }

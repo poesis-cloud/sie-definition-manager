@@ -1,5 +1,9 @@
 package com.sif.sie.definitionmanager.entity;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.persistence.Entity;
@@ -25,9 +29,10 @@ public class NormEntity extends AbstractAscription {
             JsonNode statement,
             StructureEntity structure) {
         super(definition, archetype, statement);
-        this.structure = structure;
+        this.structure = Objects.requireNonNull(structure, "structure");
     }
 
+    @NonNull
     public StructureEntity getStructure() {
         return structure;
     }

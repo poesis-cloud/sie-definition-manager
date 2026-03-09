@@ -1,5 +1,10 @@
 package com.sif.sie.definitionmanager.entity;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.persistence.Entity;
@@ -33,21 +38,24 @@ public class EffectorEntity extends AbstractAscription {
             JsonNode statement,
             MechanismEntity mechanism,
             ArchetypeEntity portArchetype,
-            InterfaceEntity exposedBy) {
+            @Nullable InterfaceEntity exposedBy) {
         super(definition, archetype, statement);
-        this.mechanism = mechanism;
-        this.portArchetype = portArchetype;
+        this.mechanism = Objects.requireNonNull(mechanism, "mechanism");
+        this.portArchetype = Objects.requireNonNull(portArchetype, "portArchetype");
         this.exposedBy = exposedBy;
     }
 
+    @NonNull
     public MechanismEntity getMechanism() {
         return mechanism;
     }
 
+    @NonNull
     public ArchetypeEntity getPortArchetype() {
         return portArchetype;
     }
 
+    @Nullable
     public InterfaceEntity getExposedBy() {
         return exposedBy;
     }

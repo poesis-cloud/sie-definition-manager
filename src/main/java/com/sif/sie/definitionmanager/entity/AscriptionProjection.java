@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.lang.NonNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
@@ -33,6 +34,7 @@ import jakarta.persistence.Table;
  * This entity is {@link Immutable}: Hibernate will never attempt INSERT,
  * UPDATE, or DELETE on it.
  */
+@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Immutable
 @Table(name = "ascription_all")
@@ -61,40 +63,47 @@ public class AscriptionProjection {
     private JsonNode statement;
 
     @Column(name = "version")
-    private Integer version;
+    private int version;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status")
     private AscriptionStatus status;
 
+    @NonNull
     public UUID getId() {
         return id;
     }
 
+    @NonNull
     public DefinitionSubjectType getSubjectType() {
         return subjectType;
     }
 
+    @NonNull
     public DefinitionEntity getDefinition() {
         return definition;
     }
 
+    @NonNull
     public Instant getTimestamp() {
         return timestamp;
     }
 
+    @NonNull
     public UUID getArchetypeId() {
         return archetypeId;
     }
 
+    @NonNull
     public JsonNode getStatement() {
         return statement;
     }
 
-    public Integer getVersion() {
+    public int getVersion() {
         return version;
     }
 
+    @NonNull
     public AscriptionStatus getStatus() {
         return status;
     }

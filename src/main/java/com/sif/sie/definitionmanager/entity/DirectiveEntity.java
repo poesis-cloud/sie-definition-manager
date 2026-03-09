@@ -1,5 +1,10 @@
 package com.sif.sie.definitionmanager.entity;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.persistence.Entity;
@@ -33,21 +38,24 @@ public class DirectiveEntity extends AbstractAscription {
             JsonNode statement,
             StructureEntity structure,
             ArchetypeEntity qualifier,
-            StructureEntity purpose) {
+            @Nullable StructureEntity purpose) {
         super(definition, archetype, statement);
-        this.structure = structure;
-        this.qualifier = qualifier;
+        this.structure = Objects.requireNonNull(structure, "structure");
+        this.qualifier = Objects.requireNonNull(qualifier, "qualifier");
         this.purpose = purpose;
     }
 
+    @NonNull
     public StructureEntity getStructure() {
         return structure;
     }
 
+    @NonNull
     public ArchetypeEntity getQualifier() {
         return qualifier;
     }
 
+    @Nullable
     public StructureEntity getPurpose() {
         return purpose;
     }
