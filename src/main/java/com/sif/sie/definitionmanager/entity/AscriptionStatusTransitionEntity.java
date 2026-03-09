@@ -1,25 +1,31 @@
 package com.sif.sie.definitionmanager.entity;
 
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
 import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
 import com.sif.sie.definitionmanager.util.UuidV7Generator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.util.Objects;
-import java.util.UUID;
-import org.hibernate.annotations.Immutable;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 /**
- * Immutable audit record of a lifecycle state change on an Ascription. Maps to the shared {@code
+ * Immutable audit record of a lifecycle state change on an Ascription. Maps to
+ * the shared {@code
  * ascription_status_transition} table.
  *
- * <p>All fields are immutable after creation — assigned via constructor, no setters exposed.
+ * <p>
+ * All fields are immutable after creation — assigned via constructor, no
+ * setters exposed.
  */
 @Entity
 @Immutable
@@ -49,7 +55,8 @@ public class AscriptionStatusTransitionEntity {
     private Instant timestamp;
 
     /** JPA requires a no-arg constructor. */
-    protected AscriptionStatusTransitionEntity() {}
+    protected AscriptionStatusTransitionEntity() {
+    }
 
     public AscriptionStatusTransitionEntity(
             DefinitionSubjectType subjectType,
@@ -99,8 +106,10 @@ public class AscriptionStatusTransitionEntity {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         AscriptionStatusTransitionEntity that = (AscriptionStatusTransitionEntity) o;
         return id != null && Objects.equals(id, that.id);
     }

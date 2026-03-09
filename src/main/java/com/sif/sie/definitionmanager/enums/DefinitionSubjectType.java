@@ -1,13 +1,20 @@
 package com.sif.sie.definitionmanager.enums;
 
 /**
- * GSM structural role of a Definition — what kind of primitive the subject is. Sealed enum: tenants
- * MUST NOT extend it. Domain-level typing extensibility is expressed through Archetypes.
+ * GSM structural role of a Definition — what kind of primitive the subject is.
+ * Sealed enum: tenants
+ * MUST NOT extend it. Domain-level typing extensibility is expressed through
+ * Archetypes.
  *
- * <p>Maps to PostgreSQL enum {@code definition_subject_type}. Values stored as uppercase enum names
- * via {@link org.hibernate.annotations.JdbcTypeCode} / {@link org.hibernate.type.SqlTypes#NAMED_ENUM}.
+ * <p>
+ * Maps to PostgreSQL enum {@code definition_subject_type}. Values stored as
+ * uppercase enum names
+ * via {@link org.hibernate.annotations.JdbcTypeCode} /
+ * {@link org.hibernate.type.SqlTypes#NAMED_ENUM}.
  *
- * <p>The lowercase {@link #value} is provided for API-layer compatibility (e.g., query parameters,
+ * <p>
+ * The lowercase {@link #value} is provided for API-layer compatibility (e.g.,
+ * query parameters,
  * OpenAPI type discriminators).
  */
 public enum DefinitionSubjectType {
@@ -33,7 +40,8 @@ public enum DefinitionSubjectType {
 
     public static DefinitionSubjectType fromValue(String v) {
         for (DefinitionSubjectType t : values()) {
-            if (t.value.equals(v)) return t;
+            if (t.value.equals(v))
+                return t;
         }
         throw new IllegalArgumentException("Unknown definition_subject_type: " + v);
     }

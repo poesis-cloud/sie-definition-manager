@@ -1,6 +1,7 @@
 package com.sif.sie.definitionmanager.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -15,7 +16,8 @@ public class MechanismEntity extends AbstractAscription {
     @JoinColumn(name = "structure_id", nullable = false, updatable = false)
     private StructureEntity structure;
 
-    protected MechanismEntity() {}
+    protected MechanismEntity() {
+    }
 
     public MechanismEntity(
             DefinitionEntity definition,

@@ -1,6 +1,7 @@
 package com.sif.sie.definitionmanager.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -23,7 +24,8 @@ public class DirectiveEntity extends AbstractAscription {
     @JoinColumn(name = "purpose_id", updatable = false)
     private StructureEntity purpose;
 
-    protected DirectiveEntity() {}
+    protected DirectiveEntity() {
+    }
 
     public DirectiveEntity(
             DefinitionEntity definition,

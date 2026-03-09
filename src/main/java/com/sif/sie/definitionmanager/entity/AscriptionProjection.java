@@ -1,8 +1,16 @@
 package com.sif.sie.definitionmanager.entity;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
 import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,19 +18,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.util.UUID;
-import org.hibernate.annotations.Immutable;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 /**
- * Read-only projection of any Ascription, backed by the {@code ascription_all} union view.
+ * Read-only projection of any Ascription, backed by the {@code ascription_all}
+ * union view.
  *
- * <p>Used by {@link DefinitionEntity#getAscriptions()} to provide a lazy-loaded, ordered collection
- * of all Ascriptions for a given Definition — regardless of their concrete GSM class table.
+ * <p>
+ * Used by {@link DefinitionEntity#getAscriptions()} to provide a lazy-loaded,
+ * ordered collection
+ * of all Ascriptions for a given Definition — regardless of their concrete GSM
+ * class table.
  *
- * <p>This entity is {@link Immutable}: Hibernate will never attempt INSERT, UPDATE, or DELETE on it.
+ * <p>
+ * This entity is {@link Immutable}: Hibernate will never attempt INSERT,
+ * UPDATE, or DELETE on it.
  */
 @Entity
 @Immutable

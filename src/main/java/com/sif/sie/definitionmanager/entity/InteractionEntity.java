@@ -1,6 +1,7 @@
 package com.sif.sie.definitionmanager.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -19,7 +20,8 @@ public class InteractionEntity extends AbstractAscription {
     @JoinColumn(name = "receptor_id", nullable = false, updatable = false)
     private ReceptorEntity receptor;
 
-    protected InteractionEntity() {}
+    protected InteractionEntity() {
+    }
 
     public InteractionEntity(
             DefinitionEntity definition,

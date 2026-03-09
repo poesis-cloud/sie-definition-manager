@@ -1,6 +1,7 @@
 package com.sif.sie.definitionmanager.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -23,7 +24,8 @@ public class ReceptorEntity extends AbstractAscription {
     @JoinColumn(name = "interface_id", updatable = false)
     private InterfaceEntity exposedBy;
 
-    protected ReceptorEntity() {}
+    protected ReceptorEntity() {
+    }
 
     public ReceptorEntity(
             DefinitionEntity definition,

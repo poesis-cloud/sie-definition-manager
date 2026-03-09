@@ -1,6 +1,7 @@
 package com.sif.sie.definitionmanager.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -8,7 +9,8 @@ import jakarta.persistence.Table;
 @Table(name = "structure")
 public class StructureEntity extends AbstractAscription {
 
-    protected StructureEntity() {}
+    protected StructureEntity() {
+    }
 
     public StructureEntity(
             DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
