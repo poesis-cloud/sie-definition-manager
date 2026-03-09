@@ -1,7 +1,7 @@
 package com.sif.sie.definitionmanager.entity;
 
 import com.sif.sie.definitionmanager.enums.AscriptionStatus;
-import com.sif.sie.definitionmanager.enums.GsmType;
+import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
 import com.sif.sie.definitionmanager.util.UuidV7Generator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,9 +16,11 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
-  * Immutable audit record of a lifecycle state change on an Ascription. Maps to the shared {@code
-  * ascription_status_transition} table.
-  */
+ * Immutable audit record of a lifecycle state change on an Ascription. Maps to the shared {@code
+ * ascription_status_transition} table.
+ *
+ * <p>All fields are immutable after creation — assigned via constructor, no setters exposed.
+ */
 @Entity
 @Immutable
 @Table(name = "ascription_status_transition")
@@ -28,11 +30,12 @@ public class AscriptionStatusTransitionEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "gsm_type", nullable = false, updatable = false)
-    private GsmType gsmType;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "subject_type", nullable = false, updatable = false)
+    private DefinitionSubjectType subjectType;
 
-    @Column(name = "revision_id", nullable = false, updatable = false)
-    private UUID revisionId;
+    @Column(name = "ascription_id", nullable = false, updatable = false)
+    private UUID ascriptionId;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "pre_status", updatable = false)
@@ -45,6 +48,20 @@ public class AscriptionStatusTransitionEntity {
     @Column(name = "\"timestamp\"", insertable = false, updatable = false)
     private Instant timestamp;
 
+    /** JPA requires a no-arg constructor. */
+    protected AscriptionStatusTransitionEntity() {}
+
+    public AscriptionStatusTransitionEntity(
+            DefinitionSubjectType subjectType,
+            UUID ascriptionId,
+            AscriptionStatus preStatus,
+            AscriptionStatus postStatus) {
+        this.subjectType = subjectType;
+        this.ascriptionId = ascriptionId;
+        this.preStatus = preStatus;
+        this.postStatus = postStatus;
+    }
+
     @PrePersist
     void ensureId() {
         if (id == null) {
@@ -52,46 +69,26 @@ public class AscriptionStatusTransitionEntity {
         }
     }
 
-    // ---- accessors ----
+    // ---- accessors (read-only) ----
 
     public UUID getId() {
         return id;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public DefinitionSubjectType getSubjectType() {
+        return subjectType;
     }
 
-    public GsmType getGsmType() {
-        return gsmType;
-    }
-
-    public void setGsmType(GsmType gsmType) {
-        this.gsmType = gsmType;
-    }
-
-    public UUID getRevisionId() {
-        return revisionId;
-    }
-
-    public void setRevisionId(UUID revisionId) {
-        this.revisionId = revisionId;
+    public UUID getAscriptionId() {
+        return ascriptionId;
     }
 
     public AscriptionStatus getPreStatus() {
         return preStatus;
     }
 
-    public void setPreStatus(AscriptionStatus preStatus) {
-        this.preStatus = preStatus;
-    }
-
     public AscriptionStatus getPostStatus() {
         return postStatus;
-    }
-
-    public void setPostStatus(AscriptionStatus postStatus) {
-        this.postStatus = postStatus;
     }
 
     public Instant getTimestamp() {

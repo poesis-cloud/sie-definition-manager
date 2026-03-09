@@ -1,5 +1,6 @@
 package com.sif.sie.definitionmanager.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -22,27 +23,30 @@ public class EffectorEntity extends AbstractAscription {
     @JoinColumn(name = "interface_id", updatable = false)
     private InterfaceEntity exposedBy;
 
-    public MechanismEntity getMechanism() {
-        return mechanism;
+    protected EffectorEntity() {}
+
+    public EffectorEntity(
+            DefinitionEntity definition,
+            ArchetypeEntity archetype,
+            JsonNode statement,
+            MechanismEntity mechanism,
+            ArchetypeEntity portArchetype,
+            InterfaceEntity exposedBy) {
+        super(definition, archetype, statement);
+        this.mechanism = mechanism;
+        this.portArchetype = portArchetype;
+        this.exposedBy = exposedBy;
     }
 
-    public void setMechanism(MechanismEntity mechanism) {
-        this.mechanism = mechanism;
+    public MechanismEntity getMechanism() {
+        return mechanism;
     }
 
     public ArchetypeEntity getPortArchetype() {
         return portArchetype;
     }
 
-    public void setPortArchetype(ArchetypeEntity portArchetype) {
-        this.portArchetype = portArchetype;
-    }
-
     public InterfaceEntity getExposedBy() {
         return exposedBy;
-    }
-
-    public void setExposedBy(InterfaceEntity exposedBy) {
-        this.exposedBy = exposedBy;
     }
 }

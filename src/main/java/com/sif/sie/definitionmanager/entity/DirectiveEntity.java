@@ -1,5 +1,6 @@
 package com.sif.sie.definitionmanager.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -22,27 +23,30 @@ public class DirectiveEntity extends AbstractAscription {
     @JoinColumn(name = "purpose_id", updatable = false)
     private StructureEntity purpose;
 
-    public StructureEntity getStructure() {
-        return structure;
+    protected DirectiveEntity() {}
+
+    public DirectiveEntity(
+            DefinitionEntity definition,
+            ArchetypeEntity archetype,
+            JsonNode statement,
+            StructureEntity structure,
+            ArchetypeEntity qualifier,
+            StructureEntity purpose) {
+        super(definition, archetype, statement);
+        this.structure = structure;
+        this.qualifier = qualifier;
+        this.purpose = purpose;
     }
 
-    public void setStructure(StructureEntity structure) {
-        this.structure = structure;
+    public StructureEntity getStructure() {
+        return structure;
     }
 
     public ArchetypeEntity getQualifier() {
         return qualifier;
     }
 
-    public void setQualifier(ArchetypeEntity qualifier) {
-        this.qualifier = qualifier;
-    }
-
     public StructureEntity getPurpose() {
         return purpose;
-    }
-
-    public void setPurpose(StructureEntity purpose) {
-        this.purpose = purpose;
     }
 }
