@@ -112,7 +112,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Mechanism: the logical causal unit. Rule logic + Effectors +
       Receptors.
     - Interaction: causal coupling (Effector → Receptor).
-    - Interface: exposed boundary (named set of ports).
+    - Interface: exposed boundary (named set of Effectors and Receptors).
 
     A Structure operates with its capacity constrained by its
     **governing** Structures. Its operations are encoded by
@@ -328,7 +328,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     A governance Mechanism creates a Directive by calling
     `sys.create("DirectiveArchetype", {...})`. This closes §3 systemic
     recursion naturally: governance DNA follows the same Archetype typing
-    and the same Effector→Archetype port model as all other Ascriptions.
+    and the same Effector→Archetype type model as all other Ascriptions.
 
     ----
 
@@ -396,7 +396,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
     InteractionArchetype, InterfaceArchetype, Archetype.
     EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
-    for Mechanism ports (lifecycle-coupled, derived at compilation time) and
+    for Mechanism Effectors and Receptors (lifecycle-coupled, derived at compilation time) and
     MUST NOT be tenant-extended. DirectiveArchetype and NormArchetype are
     governance DNA archetypes (their schemas carry the governance grammar
     for Directive and Norm instances respectively). Base archetypes carry
@@ -680,11 +680,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `verb`: Governance direction/guarantee semantics (see DirectiveVerb
       enum).
     - `qualifier`: Reference to the Archetype that defines the viability
-      dimension being governed. The Archetype's schema defines the
-      measurable properties; Norms operationalizing this Directive
-      reference this same Archetype in their guard/predicate CEL
-      expressions.
-    - `purpose`: Reference to the purposed Structure (nullable).
+      dimension being governed. Stored as a **table column**
+      (envelope-level, alongside `id`, `archetype`, `structure`) —
+      derived from `statement.qualifier` at authoring time by the
+      definition-manager, materialized for foreign-key referential
+      integrity. The Archetype's schema defines the measurable
+      properties; Norms operationalizing this Directive reference this
+      same Archetype in their guard/predicate CEL expressions.
+    - `purpose`: Reference to the purposed Structure. Stored as a
+      **table column** (envelope-level) — derived from
+      `statement.purpose` at authoring time by the definition-manager,
+      materialized for foreign-key referential integrity.
 
     **Validation Rules**:
 
@@ -692,7 +698,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statement.modal` MUST be a valid DirectiveModal value.
     - `statement.verb` MUST be a valid DirectiveVerb value.
     - `statement.qualifier` MUST reference an existing Archetype.
-    - `statement.purpose`, if present, MUST match the purpose of an existing
+    - `statement.purpose` MUST reference the purpose of an existing
       Structure.
 
     **Consistency Rules**:
@@ -719,13 +725,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getModal()` → `statement.modal`
     - `getVerb()` → `statement.verb`
     - `getQualifier()` → `statement.qualifier` → resolves Archetype
-    - `getPurpose()` → `statement.purpose` → resolves Structure (nullable)
+    - `getPurpose()` → `statement.purpose` → resolves Structure
   end note
 
   Directive --|> Ascription
   Directive "0..*" --> "1" Structure: definedBy
   Directive "0..*" --> "1" Archetype: qualifies
-  Directive "0..*" --> "0..1" Structure: qualifiedPurposeOf
+  Directive "0..*" --> "1" Structure: qualifiedPurposeOf
 
   enum DirectiveModal {
     MUST
@@ -1633,7 +1639,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     +getStructure(): Structure
     +getFunction(): String
     +getRule(): String
-    +getRuleLanguage(): String
     +getEffectors(): Effector[]
     +getReceptors(): Receptor[]
   }
@@ -1644,15 +1649,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Concept Semantics**:
 
     - Composite of processing logic (`MechanismArchetype.rule`) and its
-      I/O ports (Effectors and Receptors).
-    - Effectors/Receptors are **derived ports**: they are not authored as part
-      of the Mechanism's Ascription schema. The definition-manager derives and
-      creates them from `MechanismArchetype.rule` (STARLARK) as part of
+      I/O Effectors and Receptors.
+    - Effectors/Receptors are **derived**: they are not explicitly authored as
+      part of the Mechanism's Ascription schema. The definition-manager derives
+      and creates them from `MechanismArchetype.rule` (STARLARK) as part of
       definition compilation.
-    - Ports do not exist independently — destroying a Mechanism destroys its
-      parts. This IS internal composition (lifecycle coupling, existential
-      dependency) — distinct from the inter-structure "composition" that GSM
-      eliminates. A port without a processor has no causal autonomy.
+    - Effectors and Receptors do not exist independently — destroying a
+      Mechanism destroys its Effectors and Receptors. This IS internal
+      composition (lifecycle coupling, existential dependency) — distinct
+      from the inter-structure "composition" that GSM eliminates. An Effector
+      or Receptor without a Mechanism has no causal autonomy.
     - When `MechanismArchetype.rule` targets the owning Structure's
       Elements, it is reflexive. Reflexive Mechanisms produce governance DNA
       (Directives, Norms), making the Structure a *System*.
@@ -1672,8 +1678,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       truth for imperative behavioral definitions. The definition-manager
       auto-derives the Mechanism's Effectors and Receptors from the rule
       body's AST (see Derivation Rules for the full derivation table).
-    - `ruleLanguage`: the language of the `rule` code. Supported values:
-      "STARLARK".
     - `effectors`: the set of Effectors derived from `rule`.
     - `receptors`: the set of Receptors derived from `rule`.
 
@@ -1690,7 +1694,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - The `on()` argument MUST be a string literal resolving to a defined
         Archetype in the governed scope.
       - String literals in `sys.*` calls (first argument = archetype name)
-        MUST be string literals (enables static analysis and port
+        MUST be string literals (enables static analysis and Effector/Receptor
         auto-derivation).
       - String literals in `sys.*` calls MUST resolve to declared Archetypes
         in the governed scope.
@@ -1701,7 +1705,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
         Any other global → error.
       - No `load()` statements.
       - Execution budget: configurable max steps (default 100k).
-    - `statement.ruleLanguage` MUST be a supported value.
 
     **State Rules**:
 
@@ -1720,9 +1723,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `structure` → statement.structure
     - `getFunction()` → `statement.function`
     - `getRule()` → `statement.rule`
-    - `getRuleLanguage()` → `statement.ruleLanguage`
-    - `getEffectors()` → derived ports (auto-derived from `statement.rule` AST)
-    - `getReceptors()` → derived ports (auto-derived from `statement.rule` AST)
+    - `getEffectors()` → derived Effectors (auto-derived from `statement.rule` AST)
+    - `getReceptors()` → derived Receptors (auto-derived from `statement.rule` AST)
     - *Receptor derivation (inputs)*
       - `on("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
@@ -1780,41 +1782,37 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   class Effector {
     +getMechanism(): Mechanism
     +getArchetype(): Archetype
-    +getInterface(): Interface
   }
 
   note bottom of Effector
-    **Effector** — Output port of a Mechanism. Extends Ascription.
+    **Effector** — Output endpoint of a Mechanism. Extends Ascription.
 
     **Concept Semantics**:
 
-    - Represents a mechanism's capability to produce an *effect*.
+    - Represents a Mechanism's capability to produce an *effect*.
     - Interactions originate from Effectors.
     - Declares the type of information the Mechanism emits, by referencing an
       Archetype. The Archetype's schema determines the structure of the emitted
       data.
-    - Effectors are *ports*; they do not carry values at the GSM level. Values
-      exist in runtime instances.
+    - Effectors do not carry values at the GSM level. Values exist in runtime
+      instances.
+    - Exposure to inter-Structure coupling is managed by Interface (which
+      references Effectors via a join relationship), not by the Effector itself.
 
     **Attribute Semantics**:
 
     - `mechanism`: the composite Mechanism. An Effector cannot exist without a
       Mechanism.
     - `archetype`: the Archetype that types and constrains the
-      effector's output. Note: this is the **port data archetype** (from
+      Effector's output. Note: this is the **data archetype** (from
       `statement.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Effector Ascription
       itself as EffectorArchetype.
-    - `interface`: optional reference to an Interface that exposes this Effector
-      for inter-Structure coupling. If null, the Effector is private to its
-      Structure.
 
     **Validation Rules**:
 
     - `statement.mechanism` reference MUST NOT be null.
     - `statement.archetype` reference MUST NOT be null.
-    - `statement.interface` reference, if present, MUST reference an Interface
-      that belongs to the same Structure as the Mechanism.
 
     **State Rules**:
 
@@ -1824,15 +1822,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `mechanism` → statement.mechanism
-    - `archetype` → statement.archetype
-    - `interface` → statement.interface
+    - `mechanism` → statement.mechanism.
+      Stored as a **table column** (`mechanism_id`) — derived from
+      `statement.mechanism` at authoring time by the definition-manager,
+      materialized for foreign-key referential integrity.
+    - `archetype` → statement.archetype.
+      Stored as a **table column**
+      (`output_archetype_id`) — derived from `statement.archetype` at
+      authoring time by the definition-manager, materialized for
+      foreign-key referential integrity.
   end note
 
   Effector --|> Ascription
   Effector "1..*" --> "1" Mechanism : constitutes
   Effector "0..*" --> "1" Archetype : produces
-  Effector "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
   ' RECEPTOR
@@ -1841,11 +1844,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   class Receptor {
     +getMechanism(): Mechanism
     +getArchetype(): Archetype
-    +getInterface(): Interface
   }
 
   note bottom of Receptor
-    **Receptor** — Input port of a Mechanism. Extends Ascription.
+    **Receptor** — Input endpoint of a Mechanism. Extends Ascription.
 
     **Concept Semantics**:
 
@@ -1853,30 +1855,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Archetype. The Archetype's schema determines the structure of the
       received data.
     - Interactions terminate at Receptors.
-    - Received Archetype-typed instances represent a *cause* for the mechanism
+    - Received Archetype-typed instances represent a *cause* for the Mechanism
       to operate.
-    - Receptors are *ports*; they do not carry values at the GSM level. Values
-      exist in runtime instances.
+    - Receptors do not carry values at the GSM level. Values exist in runtime
+      instances.
+    - Exposure to inter-Structure coupling is managed by Interface (which
+      references Receptors via a join relationship), not by the Receptor itself.
 
     **Attribute Semantics**:
 
     - `mechanism`: the composite Mechanism. A Receptor cannot exist without a
       Mechanism.
     - `archetype`: the Archetype that types and constrains the
-      receptor's input. Note: this is the **port data archetype** (from
+      Receptor's input. Note: this is the **data archetype** (from
       `statement.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Receptor Ascription
       itself as ReceptorArchetype.
-    - `interface`: optional reference to an Interface that exposes this Receptor
-      for inter-Structure coupling. If null, the Receptor is private to its
-      Structure.
 
     **Validation Rules**:
 
     - `statement.mechanism` reference MUST NOT be null.
     - `statement.archetype` reference MUST NOT be null.
-    - `statement.interface` reference, if present, MUST reference an Interface that
-      belongs to the same Structure as the Mechanism.
 
     **State Rules**:
 
@@ -1886,15 +1885,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `mechanism` → statement.mechanism
-    - `archetype` → statement.archetype
-    - `interface` → statement.interface
+    - `mechanism` → statement.mechanism.
+      Stored as a **table column** (`mechanism_id`) — derived from
+      `statement.mechanism` at authoring time by the definition-manager,
+      materialized for foreign-key referential integrity.
+    - `archetype` → statement.archetype.
+      Stored as a **table column**
+      (`input_archetype_id`) — derived from `statement.archetype` at
+      authoring time by the definition-manager, materialized for
+      foreign-key referential integrity.
   end note
 
   Receptor --|> Ascription
   Receptor "1..*" --> "1" Mechanism : constitutes
   Receptor "0..*" --> "1" Archetype : consumes
-  Receptor "0..*" --> "0..1" Interface : exposedBy
 
   ' ============================================================
   ' INTERACTION
@@ -1916,9 +1920,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       same Mechanism.
     - An Interaction may connect an Effector and a Receptor belonging to
       different Structures.
-    - When coupling crosses Structures, the participating ports is
-      exposed by Interfaces of their respective Structures (Interface is the
-      exposure manifest; Interaction is the causal binding).
+    - When coupling crosses Structures, the participating Effectors and
+      Receptors are exposed by Interfaces of their respective Structures
+      (Interface is the exposure manifest; Interaction is the causal binding).
     - All causality is Interaction-mediated — no shared state at the structural
       level.
     - Channel properties (environmental constraints, capacity, ...) are
@@ -1969,25 +1973,33 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Concept Semantics**:
 
     - Declarative *exposure manifest*. Defines Structure's boundary
-      surface by listing which Mechanism ports (Effectors/Receptors) are
+      surface by listing which Mechanism Effectors and Receptors are
       exposed for external coupling.
     - An Interface is **not** a Mechanism and has **no behavior** of its own.
       All behavior and realization lives in Mechanisms; Interfaces only define
       exposure.
     - Makes the boundary explicit and governable. Governance Norms can target an
-      Interface directly (e.g., "all ports in this Interface must use mTLS").
+      Interface directly (e.g., "all Effectors in this Interface must use mTLS").
+    - **Interface owns the exposure relationship**: the Interface references
+      Effectors and Receptors (via join tables), not the other way around.
+      This preserves Ascription immutability — defining or redacting an
+      Interface does not force new Effector/Receptor Ascription versions.
 
     **Attribute Semantics**:
 
     - `structure`: the owning Structure. An Interface cannot exist without
       a Structure.
-    - `effectors`/`receptors`: lists of referenced Effector/Receptor
-      `id`s that declare which ports are exposed by this Interface.
+    - `effectors`: list of referenced Effector `id`s that declare which
+      Effectors are exposed by this Interface. Materialized as
+      `interface_effector` join table.
+    - `receptors`: list of referenced Receptor `id`s that declare which
+      Receptors are exposed by this Interface. Materialized as
+      `interface_receptor` join table.
 
     **Validation Rules**:
 
-      - If `statement.effectors`/`statement.receptors` are
-        present, they MUST reference ports (Effector/Receptor `id`) that belong
+      - If `statement.effectorIds`/`statement.receptorIds` are
+        present, they MUST reference Effector/Receptor `id`s that belong
         to Mechanisms within the same Structure as the Interface's Structure.
 
     **State Rules**:
@@ -1999,16 +2011,18 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Derivation Rules**:
 
     - `structure` → statement.structure
-    - `getEffectors()` → derived ports (auto-derived from `statement.rule` AST)
-    - `getReceptors()` → derived ports (auto-derived from `statement.rule` AST)
+    - `getEffectors()` → `interface_effector` join table (resolved from
+      `statement.effectorIds` at authoring time by the definition-manager)
+    - `getReceptors()` → `interface_receptor` join table (resolved from
+      `statement.receptorIds` at authoring time by the definition-manager)
 
     **Usage Rules**:
 
-    - Group ports by external exposure semantics (e.g., "admin", "monitoring",
-      "public API").
+    - Group Effectors/Receptors by external exposure semantics (e.g.,
+      "admin", "monitoring", "public API").
     - Apply boundary-level governance Norms to Interfaces rather than individual
-      ports when the constraint is uniform across all grouped ports, (AND)
-      relative to the Interface itself.
+      Effectors/Receptors when the constraint is uniform across all grouped
+      Effectors/Receptors, (AND) relative to the Interface itself.
   end note
 
   Interface --|> Ascription

@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 import com.sif.sie.definitionmanager.repository.ArchetypeRepository;
 
 @Service
@@ -189,7 +189,7 @@ public class OpenApiService {
         ObjectNode targetStatus = tReqProps.putObject("targetStatus");
         targetStatus.put("type", "string");
         ArrayNode statusEnum = targetStatus.putArray("enum");
-        for (AscriptionStatus status : AscriptionStatus.values()) {
+        for (AscriptionStatusType status : AscriptionStatusType.values()) {
             statusEnum.add(status.name());
         }
         tReq.putArray("required").add("targetStatus");
@@ -224,7 +224,7 @@ public class OpenApiService {
     }
 
     private void buildArchetypeSchemas(ObjectNode schemas) {
-        List<ArchetypeEntity> archetypes = archetypeRepository.findAllByStatus(AscriptionStatus.ACTIVE);
+        List<ArchetypeEntity> archetypes = archetypeRepository.findAllByStatus(AscriptionStatusType.ACTIVE);
         ArrayNode oneOf = mapper.createArrayNode();
 
         for (ArchetypeEntity archetype : archetypes) {

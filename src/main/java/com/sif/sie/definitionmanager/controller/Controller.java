@@ -7,9 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-public abstract class BaseController {
+public abstract class Controller {
 
-    private static final Logger log = LoggerFactory.getLogger(BaseController.class);
+    private static final Logger log = LoggerFactory.getLogger(Controller.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {

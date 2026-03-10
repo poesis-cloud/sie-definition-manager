@@ -1,4 +1,4 @@
-package com.sif.sie.definitionmanager.enums;
+package com.sif.sie.definitionmanager.type;
 
 /**
  * GSM structural role of a Definition — what kind of primitive the subject is.

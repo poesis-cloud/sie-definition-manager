@@ -10,13 +10,15 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
-import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
-import com.sif.sie.definitionmanager.util.UuidV7Generator;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
+import com.sif.sie.definitionmanager.util.UuidV7GeneratorUtil;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -38,22 +40,19 @@ public class AscriptionStatusTransitionEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "subject_type", nullable = false, updatable = false)
-    private DefinitionSubjectType subjectType;
-
-    @Column(name = "ascription_id", nullable = false, updatable = false)
-    private UUID ascriptionId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ascription_id", nullable = false, updatable = false)
+    private AscriptionEntity ascription;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "pre_status", updatable = false)
-    private AscriptionStatus preStatus;
+    private AscriptionStatusType preStatus;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "post_status", nullable = false, updatable = false)
-    private AscriptionStatus postStatus;
+    private AscriptionStatusType postStatus;
 
-    @Column(name = "\"timestamp\"", insertable = false, updatable = false)
+    @Column(name = "\"timestamp\"", nullable = false, updatable = false, insertable = false)
     private Instant timestamp;
 
     /** JPA requires a no-arg constructor. */
@@ -61,12 +60,10 @@ public class AscriptionStatusTransitionEntity {
     }
 
     public AscriptionStatusTransitionEntity(
-            DefinitionSubjectType subjectType,
-            UUID ascriptionId,
-            @Nullable AscriptionStatus preStatus,
-            AscriptionStatus postStatus) {
-        this.subjectType = Objects.requireNonNull(subjectType, "subjectType");
-        this.ascriptionId = Objects.requireNonNull(ascriptionId, "ascriptionId");
+            AscriptionEntity ascription,
+            @Nullable AscriptionStatusType preStatus,
+            AscriptionStatusType postStatus) {
+        this.ascription = Objects.requireNonNull(ascription, "ascription");
         this.preStatus = preStatus;
         this.postStatus = Objects.requireNonNull(postStatus, "postStatus");
     }
@@ -74,7 +71,7 @@ public class AscriptionStatusTransitionEntity {
     @PrePersist
     void ensureId() {
         if (id == null) {
-            id = UuidV7Generator.generate();
+            id = UuidV7GeneratorUtil.generate();
         }
     }
 
@@ -86,22 +83,17 @@ public class AscriptionStatusTransitionEntity {
     }
 
     @NonNull
-    public DefinitionSubjectType getSubjectType() {
-        return subjectType;
-    }
-
-    @NonNull
-    public UUID getAscriptionId() {
-        return ascriptionId;
+    public AscriptionEntity getAscription() {
+        return ascription;
     }
 
     @Nullable
-    public AscriptionStatus getPreStatus() {
+    public AscriptionStatusType getPreStatus() {
         return preStatus;
     }
 
     @NonNull
-    public AscriptionStatus getPostStatus() {
+    public AscriptionStatusType getPostStatus() {
         return postStatus;
     }
 

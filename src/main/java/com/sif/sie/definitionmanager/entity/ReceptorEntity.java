@@ -3,7 +3,6 @@ package com.sif.sie.definitionmanager.entity;
 import java.util.Objects;
 
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -13,21 +12,18 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "receptor")
-public class ReceptorEntity extends AbstractAscription {
+public class ReceptorEntity extends AscriptionEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "mechanism_id", nullable = false, updatable = false)
     private MechanismEntity mechanism;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "port_archetype_id", nullable = false, updatable = false)
-    private ArchetypeEntity portArchetype;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "interface_id", updatable = false)
-    private InterfaceEntity exposedBy;
+    @JoinColumn(name = "input_archetype_id", nullable = false, updatable = false)
+    private ArchetypeEntity inputArchetype;
 
     protected ReceptorEntity() {
     }
@@ -37,12 +33,10 @@ public class ReceptorEntity extends AbstractAscription {
             ArchetypeEntity archetype,
             JsonNode statement,
             MechanismEntity mechanism,
-            ArchetypeEntity portArchetype,
-            @Nullable InterfaceEntity exposedBy) {
+            ArchetypeEntity inputArchetype) {
         super(definition, archetype, statement);
         this.mechanism = Objects.requireNonNull(mechanism, "mechanism");
-        this.portArchetype = Objects.requireNonNull(portArchetype, "portArchetype");
-        this.exposedBy = exposedBy;
+        this.inputArchetype = Objects.requireNonNull(inputArchetype, "inputArchetype");
     }
 
     @NonNull
@@ -51,12 +45,7 @@ public class ReceptorEntity extends AbstractAscription {
     }
 
     @NonNull
-    public ArchetypeEntity getPortArchetype() {
-        return portArchetype;
-    }
-
-    @Nullable
-    public InterfaceEntity getExposedBy() {
-        return exposedBy;
+    public ArchetypeEntity getInputArchetype() {
+        return inputArchetype;
     }
 }

@@ -1,4 +1,4 @@
-package com.sif.sie.definitionmanager.controller.dto;
+package com.sif.sie.definitionmanager.dto;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * level. {@code subjectType} is derived server-side from the archetype's schema
  * URI.
  */
-public record AscriptionResponse(
+public record AscriptionResponseDto(
     String subjectType,
     UUID definitionId,
     UUID id,

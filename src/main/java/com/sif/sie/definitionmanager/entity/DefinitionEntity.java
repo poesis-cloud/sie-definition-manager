@@ -8,8 +8,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.lang.NonNull;
 
-import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
-import com.sif.sie.definitionmanager.util.UuidV7Generator;
+import com.sif.sie.definitionmanager.type.DefinitionSubjectType;
+import com.sif.sie.definitionmanager.util.UuidV7GeneratorUtil;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -50,7 +50,7 @@ public class DefinitionEntity {
 
     @OneToMany(mappedBy = "definition", fetch = FetchType.LAZY)
     @OrderBy("timestamp DESC")
-    private List<AscriptionProjection> ascriptions;
+    private List<AscriptionEntity> ascriptions;
 
     /** JPA requires a no-arg constructor. */
     protected DefinitionEntity() {
@@ -63,7 +63,7 @@ public class DefinitionEntity {
     @PrePersist
     void ensureId() {
         if (id == null) {
-            id = UuidV7Generator.generate();
+            id = UuidV7GeneratorUtil.generate();
         }
     }
 
@@ -80,7 +80,7 @@ public class DefinitionEntity {
     }
 
     @NonNull
-    public List<AscriptionProjection> getAscriptions() {
+    public List<AscriptionEntity> getAscriptions() {
         return ascriptions;
     }
 

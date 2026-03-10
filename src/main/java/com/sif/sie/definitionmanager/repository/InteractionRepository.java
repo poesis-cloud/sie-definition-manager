@@ -9,13 +9,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.sif.sie.definitionmanager.entity.InteractionEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 
 public interface InteractionRepository extends JpaRepository<InteractionEntity, UUID> {
-    Page<InteractionEntity> findAllByStatus(AscriptionStatus status, Pageable pageable);
+    Page<InteractionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
     List<InteractionEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
     List<InteractionEntity> findAllByDefinition_IdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatus> statuses);
+            UUID definitionId, Collection<AscriptionStatusType> statuses);
 }

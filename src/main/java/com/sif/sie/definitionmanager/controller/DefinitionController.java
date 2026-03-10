@@ -25,12 +25,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.sif.sie.definitionmanager.controller.dto.AscriptionRequest;
-import com.sif.sie.definitionmanager.controller.dto.AscriptionResponse;
-import com.sif.sie.definitionmanager.controller.dto.TransitionRequest;
-import com.sif.sie.definitionmanager.controller.dto.TransitionResponse;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
-import com.sif.sie.definitionmanager.service.AscriptionService;
+import com.sif.sie.definitionmanager.dto.AscriptionRequestDto;
+import com.sif.sie.definitionmanager.dto.AscriptionResponseDto;
+import com.sif.sie.definitionmanager.dto.TransitionRequestDto;
+import com.sif.sie.definitionmanager.dto.TransitionResponseDto;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
+import com.sif.sie.definitionmanager.service.DefinitionService;
 
 import jakarta.validation.Valid;
 
@@ -45,11 +45,11 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping(value = "/api/v1/ascriptions", produces = { MediaTypes.HAL_JSON_VALUE,
         MediaType.APPLICATION_JSON_VALUE })
-public class AscriptionController extends BaseController {
+public class DefinitionController extends Controller {
 
-    private final AscriptionService service;
+    private final DefinitionService service;
 
-    public AscriptionController(AscriptionService service) {
+    public DefinitionController(DefinitionService service) {
         this.service = service;
     }
 
@@ -58,10 +58,10 @@ public class AscriptionController extends BaseController {
     // ========================================================================
 
     @PostMapping
-    public ResponseEntity<EntityModel<AscriptionResponse>> create(
-            @Valid @RequestBody AscriptionRequest request) {
-        AscriptionResponse response = service.create(request);
-        EntityModel<AscriptionResponse> model = wrapWithLinks(response);
+    public ResponseEntity<EntityModel<AscriptionResponseDto>> create(
+            @Valid @RequestBody AscriptionRequestDto request) {
+        AscriptionResponseDto response = service.create(request);
+        EntityModel<AscriptionResponseDto> model = wrapWithLinks(response);
         URI location = selfLinkFor(response).toUri();
         return ResponseEntity.created(location).body(model);
     }
@@ -71,23 +71,23 @@ public class AscriptionController extends BaseController {
     // ========================================================================
 
     @GetMapping("/{id}")
-    public EntityModel<AscriptionResponse> getById(@PathVariable UUID id) {
-        AscriptionResponse response = service.getById(id);
+    public EntityModel<AscriptionResponseDto> getById(@PathVariable UUID id) {
+        AscriptionResponseDto response = service.getById(id);
         return wrapWithLinks(response);
     }
 
     @GetMapping
-    public PagedModel<EntityModel<AscriptionResponse>> list(
+    public PagedModel<EntityModel<AscriptionResponseDto>> list(
             @RequestParam String type,
             @RequestParam(required = false) String status,
             @PageableDefault(size = 20) Pageable pageable) {
-        AscriptionStatus statusEnum = (status != null) ? AscriptionStatus.valueOf(status) : null;
-        Page<AscriptionResponse> page = service.list(type, statusEnum, pageable);
+        AscriptionStatusType statusEnum = (status != null) ? AscriptionStatusType.valueOf(status) : null;
+        Page<AscriptionResponseDto> page = service.list(type, statusEnum, pageable);
         return toPagedModel(page, type, status);
     }
 
     @GetMapping("/history")
-    public List<EntityModel<AscriptionResponse>> getAscriptionHistory(
+    public List<EntityModel<AscriptionResponseDto>> getAscriptionHistory(
             @RequestParam UUID definitionId, @RequestParam String type) {
         return service.getAscriptionHistory(definitionId, type).stream()
                 .map(this::wrapWithLinks)
@@ -95,7 +95,7 @@ public class AscriptionController extends BaseController {
     }
 
     @GetMapping("/{id}/transitions")
-    public List<TransitionResponse> getTransitions(@PathVariable UUID id) {
+    public List<TransitionResponseDto> getTransitions(@PathVariable UUID id) {
         return service.getTransitions(id);
     }
 
@@ -104,9 +104,9 @@ public class AscriptionController extends BaseController {
     // ========================================================================
 
     @PostMapping("/{id}/transitions")
-    public ResponseEntity<TransitionResponse> transition(
-            @PathVariable UUID id, @Valid @RequestBody TransitionRequest request) {
-        TransitionResponse response = service.transition(id, request);
+    public ResponseEntity<TransitionResponseDto> transition(
+            @PathVariable UUID id, @Valid @RequestBody TransitionRequestDto request) {
+        TransitionResponseDto response = service.transition(id, request);
         return ResponseEntity.ok(response);
     }
 
@@ -114,33 +114,33 @@ public class AscriptionController extends BaseController {
     // HATEOAS HELPERS
     // ========================================================================
 
-    private EntityModel<AscriptionResponse> wrapWithLinks(AscriptionResponse response) {
-        EntityModel<AscriptionResponse> model = EntityModel.of(Objects.requireNonNull(response));
+    private EntityModel<AscriptionResponseDto> wrapWithLinks(AscriptionResponseDto response) {
+        EntityModel<AscriptionResponseDto> model = EntityModel.of(Objects.requireNonNull(response));
         model.add(selfLinkFor(response));
         model.add(historyLinkFor(response));
         model.add(transitionsLinkFor(response));
         return model;
     }
 
-    private PagedModel<EntityModel<AscriptionResponse>> toPagedModel(
-            Page<AscriptionResponse> page, String type, String status) {
-        List<EntityModel<AscriptionResponse>> content = page.getContent().stream().map(this::wrapWithLinks).toList();
+    private PagedModel<EntityModel<AscriptionResponseDto>> toPagedModel(
+            Page<AscriptionResponseDto> page, String type, String status) {
+        List<EntityModel<AscriptionResponseDto>> content = page.getContent().stream().map(this::wrapWithLinks).toList();
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
                 page.getSize(), page.getNumber(),
                 page.getTotalElements(), page.getTotalPages());
-        PagedModel<EntityModel<AscriptionResponse>> model = PagedModel.of(Objects.requireNonNull(content), metadata);
+        PagedModel<EntityModel<AscriptionResponseDto>> model = PagedModel.of(Objects.requireNonNull(content), metadata);
         model.add(listSelfLink(type, status, page.getPageable()));
         return model;
     }
 
-    private @NonNull Link selfLinkFor(AscriptionResponse response) {
-        return linkTo(AscriptionController.class)
+    private @NonNull Link selfLinkFor(AscriptionResponseDto response) {
+        return linkTo(DefinitionController.class)
                 .slash(Objects.requireNonNull(response.id()))
                 .withSelfRel();
     }
 
-    private @NonNull Link historyLinkFor(AscriptionResponse response) {
-        String href = linkTo(AscriptionController.class)
+    private @NonNull Link historyLinkFor(AscriptionResponseDto response) {
+        String href = linkTo(DefinitionController.class)
                 .slash("history")
                 .toUriComponentsBuilder()
                 .queryParam("definitionId", Objects.requireNonNull(response.definitionId()))
@@ -149,15 +149,15 @@ public class AscriptionController extends BaseController {
         return Link.of(href, "history");
     }
 
-    private @NonNull Link transitionsLinkFor(AscriptionResponse response) {
-        return linkTo(AscriptionController.class)
+    private @NonNull Link transitionsLinkFor(AscriptionResponseDto response) {
+        return linkTo(DefinitionController.class)
                 .slash(Objects.requireNonNull(response.id()))
                 .slash("transitions")
                 .withRel("transitions");
     }
 
     private @NonNull Link listSelfLink(String type, String status, Pageable pageable) {
-        var builder = linkTo(AscriptionController.class)
+        var builder = linkTo(DefinitionController.class)
                 .toUriComponentsBuilder()
                 .queryParam("type", Objects.requireNonNull(type))
                 .queryParam("page", pageable.getPageNumber())

@@ -18,12 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sif.sie.definitionmanager.client.SchemaRegistryClient;
-import com.sif.sie.definitionmanager.controller.dto.AscriptionRequest;
-import com.sif.sie.definitionmanager.controller.dto.AscriptionResponse;
-import com.sif.sie.definitionmanager.controller.dto.TransitionRequest;
-import com.sif.sie.definitionmanager.controller.dto.TransitionResponse;
-import com.sif.sie.definitionmanager.entity.AbstractAscription;
+import com.sif.sie.definitionmanager.dto.AscriptionRequestDto;
+import com.sif.sie.definitionmanager.dto.AscriptionResponseDto;
+import com.sif.sie.definitionmanager.dto.TransitionRequestDto;
+import com.sif.sie.definitionmanager.dto.TransitionResponseDto;
 import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
+import com.sif.sie.definitionmanager.entity.AscriptionEntity;
 import com.sif.sie.definitionmanager.entity.AscriptionStatusTransitionEntity;
 import com.sif.sie.definitionmanager.entity.DefinitionEntity;
 import com.sif.sie.definitionmanager.entity.DirectiveEntity;
@@ -34,8 +34,8 @@ import com.sif.sie.definitionmanager.entity.MechanismEntity;
 import com.sif.sie.definitionmanager.entity.NormEntity;
 import com.sif.sie.definitionmanager.entity.ReceptorEntity;
 import com.sif.sie.definitionmanager.entity.StructureEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
-import com.sif.sie.definitionmanager.enums.DefinitionSubjectType;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
+import com.sif.sie.definitionmanager.type.DefinitionSubjectType;
 import com.sif.sie.definitionmanager.repository.ArchetypeRepository;
 import com.sif.sie.definitionmanager.repository.DefinitionRepository;
 import com.sif.sie.definitionmanager.repository.DirectiveRepository;
@@ -45,9 +45,9 @@ import com.sif.sie.definitionmanager.repository.InterfaceRepository;
 import com.sif.sie.definitionmanager.repository.MechanismRepository;
 import com.sif.sie.definitionmanager.repository.NormRepository;
 import com.sif.sie.definitionmanager.repository.ReceptorRepository;
-import com.sif.sie.definitionmanager.repository.StatusTransitionRepository;
+import com.sif.sie.definitionmanager.repository.AscriptionStatusTransitionRepository;
 import com.sif.sie.definitionmanager.repository.StructureRepository;
-import com.sif.sie.definitionmanager.util.DefinitionValidator;
+import com.sif.sie.definitionmanager.util.StatementValidatorUtil;
 
 import jakarta.persistence.EntityManager;
 
@@ -65,7 +65,7 @@ import jakarta.persistence.EntityManager;
  */
 @Service
 @Transactional("transactionManager")
-public class AscriptionService {
+public class DefinitionService {
 
     /** Maps schema URI suffix to DefinitionSubjectType for base archetypes. */
     private static final Map<String, DefinitionSubjectType> SCHEMA_URI_TO_SUBJECT_TYPE = Map.of(
@@ -89,36 +89,36 @@ public class AscriptionService {
     private final DirectiveRepository directiveRepo;
     private final NormRepository normRepo;
     private final DefinitionRepository definitionRepo;
-    private final StatusTransitionRepository transitionRepo;
+    private final AscriptionStatusTransitionRepository transitionRepo;
     private final SchemaRegistryClient schemaRegistryClient;
-    private final DefinitionValidator definitionValidator;
+    private final StatementValidatorUtil definitionValidator;
     private final EntityManager entityManager;
 
     // Valid lifecycle transitions: current status -> set of allowed target statuses
-    private static final Map<AscriptionStatus, Set<AscriptionStatus>> VALID_TRANSITIONS;
+    private static final Map<AscriptionStatusType, Set<AscriptionStatusType>> VALID_TRANSITIONS;
 
     static {
-        VALID_TRANSITIONS = new EnumMap<>(AscriptionStatus.class);
+        VALID_TRANSITIONS = new EnumMap<>(AscriptionStatusType.class);
         VALID_TRANSITIONS.put(
-                AscriptionStatus.DRAFT, EnumSet.of(AscriptionStatus.PROPOSED, AscriptionStatus.ABANDONED));
+                AscriptionStatusType.DRAFT, EnumSet.of(AscriptionStatusType.PROPOSED, AscriptionStatusType.ABANDONED));
         VALID_TRANSITIONS.put(
-                AscriptionStatus.PROPOSED,
-                EnumSet.of(AscriptionStatus.APPROVED, AscriptionStatus.REJECTED));
-        VALID_TRANSITIONS.put(AscriptionStatus.APPROVED, EnumSet.of(AscriptionStatus.ACTIVE));
+                AscriptionStatusType.PROPOSED,
+                EnumSet.of(AscriptionStatusType.APPROVED, AscriptionStatusType.REJECTED));
+        VALID_TRANSITIONS.put(AscriptionStatusType.APPROVED, EnumSet.of(AscriptionStatusType.ACTIVE));
         VALID_TRANSITIONS.put(
-                AscriptionStatus.ACTIVE,
-                EnumSet.of(AscriptionStatus.SUSPENDED, AscriptionStatus.DEPRECATED));
+                AscriptionStatusType.ACTIVE,
+                EnumSet.of(AscriptionStatusType.SUSPENDED, AscriptionStatusType.DEPRECATED));
         VALID_TRANSITIONS.put(
-                AscriptionStatus.SUSPENDED,
-                EnumSet.of(AscriptionStatus.ACTIVE, AscriptionStatus.DEPRECATED));
-        VALID_TRANSITIONS.put(AscriptionStatus.DEPRECATED, EnumSet.of(AscriptionStatus.RETIRED));
+                AscriptionStatusType.SUSPENDED,
+                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
+        VALID_TRANSITIONS.put(AscriptionStatusType.DEPRECATED, EnumSet.of(AscriptionStatusType.RETIRED));
         // RETIRED, ABANDONED, REJECTED are terminal — no outgoing transitions
-        VALID_TRANSITIONS.put(AscriptionStatus.RETIRED, EnumSet.noneOf(AscriptionStatus.class));
-        VALID_TRANSITIONS.put(AscriptionStatus.ABANDONED, EnumSet.noneOf(AscriptionStatus.class));
-        VALID_TRANSITIONS.put(AscriptionStatus.REJECTED, EnumSet.noneOf(AscriptionStatus.class));
+        VALID_TRANSITIONS.put(AscriptionStatusType.RETIRED, EnumSet.noneOf(AscriptionStatusType.class));
+        VALID_TRANSITIONS.put(AscriptionStatusType.ABANDONED, EnumSet.noneOf(AscriptionStatusType.class));
+        VALID_TRANSITIONS.put(AscriptionStatusType.REJECTED, EnumSet.noneOf(AscriptionStatusType.class));
     }
 
-    public AscriptionService(
+    public DefinitionService(
             ArchetypeRepository archetypeRepo,
             StructureRepository structureRepo,
             MechanismRepository mechanismRepo,
@@ -129,9 +129,9 @@ public class AscriptionService {
             DirectiveRepository directiveRepo,
             NormRepository normRepo,
             DefinitionRepository definitionRepo,
-            StatusTransitionRepository transitionRepo,
+            AscriptionStatusTransitionRepository transitionRepo,
             SchemaRegistryClient schemaRegistryClient,
-            DefinitionValidator definitionValidator,
+            StatementValidatorUtil definitionValidator,
             EntityManager entityManager) {
         this.archetypeRepo = archetypeRepo;
         this.structureRepo = structureRepo;
@@ -153,7 +153,7 @@ public class AscriptionService {
     // CREATE
     // ========================================================================
 
-    public AscriptionResponse create(AscriptionRequest req) {
+    public AscriptionResponseDto create(AscriptionRequestDto req) {
         UUID archetypeId = requireUuid(req.archetypeId(), "archetypeId");
         ArchetypeEntity archetypeRef = archetypeRepo
                 .findById(archetypeId)
@@ -177,12 +177,12 @@ public class AscriptionService {
             definition = definitionRepo.save(new DefinitionEntity(type));
         }
 
-        AbstractAscription entity = buildEntity(type, definition, req.statement(), archetypeRef);
-        AbstractAscription saved = saveEntity(type, entity);
+        AscriptionEntity entity = buildEntity(type, definition, req.statement(), archetypeRef);
+        AscriptionEntity saved = saveEntity(type, entity);
 
         // Record initial DRAFT transition
         transitionRepo.save(
-                new AscriptionStatusTransitionEntity(type, saved.getId(), null, AscriptionStatus.DRAFT));
+                new AscriptionStatusTransitionEntity(saved, null, AscriptionStatusType.DRAFT));
 
         // Flush + refresh to load DB-generated values (status from trigger, timestamp)
         entityManager.flush();
@@ -196,28 +196,26 @@ public class AscriptionService {
     // ========================================================================
 
     @Transactional(value = "transactionManager", readOnly = true)
-    public AscriptionResponse getById(UUID ascriptionId) {
-        DefinitionSubjectType type = transitionRepo
-                .findSubjectTypeByAscriptionId(ascriptionId)
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "No ascription found for id: " + ascriptionId));
-
-        AbstractAscription entity = findByAscriptionId(type, ascriptionId);
+    public AscriptionResponseDto getById(UUID ascriptionId) {
+        AscriptionEntity entity = entityManager.find(AscriptionEntity.class, ascriptionId);
+        if (entity == null) {
+            throw new IllegalArgumentException("No ascription found for id: " + ascriptionId);
+        }
+        DefinitionSubjectType type = entity.getDefinition().getSubjectType();
         return toResponse(type, entity);
     }
 
     @Transactional(value = "transactionManager", readOnly = true)
-    public Page<AscriptionResponse> list(
-            String subjectTypeStr, AscriptionStatus status, Pageable pageable) {
+    public Page<AscriptionResponseDto> list(
+            String subjectTypeStr, AscriptionStatusType status, Pageable pageable) {
         DefinitionSubjectType type = DefinitionSubjectType.fromValue(subjectTypeStr);
-        Page<? extends AbstractAscription> page = (status != null) ? findAllByStatus(type, status, pageable)
+        Page<? extends AscriptionEntity> page = (status != null) ? findAllByStatus(type, status, pageable)
                 : findAll(type, pageable);
         return page.map(e -> toResponse(type, e));
     }
 
     @Transactional(value = "transactionManager", readOnly = true)
-    public List<AscriptionResponse> getAscriptionHistory(UUID definitionId, String subjectTypeStr) {
+    public List<AscriptionResponseDto> getAscriptionHistory(UUID definitionId, String subjectTypeStr) {
         DefinitionSubjectType type = DefinitionSubjectType.fromValue(subjectTypeStr);
         return findAllByDefinitionId(type, definitionId).stream()
                 .map(e -> toResponse(type, e))
@@ -225,12 +223,12 @@ public class AscriptionService {
     }
 
     @Transactional(value = "transactionManager", readOnly = true)
-    public List<TransitionResponse> getTransitions(UUID ascriptionId) {
-        return transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId).stream()
+    public List<TransitionResponseDto> getTransitions(UUID ascriptionId) {
+        return transitionRepo.findAllByAscription_IdOrderByTimestampAsc(ascriptionId).stream()
                 .map(
-                        t -> new TransitionResponse(
+                        t -> new TransitionResponseDto(
                                 t.getId(),
-                                t.getAscriptionId(),
+                                t.getAscription().getId(),
                                 t.getPreStatus() != null ? t.getPreStatus().name() : null,
                                 t.getPostStatus().name(),
                                 t.getTimestamp()))
@@ -241,21 +239,19 @@ public class AscriptionService {
     // LIFECYCLE TRANSITIONS
     // ========================================================================
 
-    public TransitionResponse transition(UUID ascriptionId, TransitionRequest req) {
-        AscriptionStatus targetStatus = AscriptionStatus.valueOf(req.targetStatus());
+    public TransitionResponseDto transition(UUID ascriptionId, TransitionRequestDto req) {
+        AscriptionStatusType targetStatus = AscriptionStatusType.valueOf(req.targetStatus());
 
-        DefinitionSubjectType type = transitionRepo
-                .findSubjectTypeByAscriptionId(ascriptionId)
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "No ascription found for id: " + ascriptionId));
-
-        AbstractAscription entity = findByAscriptionId(type, ascriptionId);
-        AscriptionStatus currentStatus = entity.getStatus();
+        AscriptionEntity entity = entityManager.find(AscriptionEntity.class, ascriptionId);
+        if (entity == null) {
+            throw new IllegalArgumentException("No ascription found for id: " + ascriptionId);
+        }
+        DefinitionSubjectType type = entity.getDefinition().getSubjectType();
+        AscriptionStatusType currentStatus = entity.getStatus();
 
         // Validate transition
-        Set<AscriptionStatus> allowed = VALID_TRANSITIONS.getOrDefault(currentStatus,
-                EnumSet.noneOf(AscriptionStatus.class));
+        Set<AscriptionStatusType> allowed = VALID_TRANSITIONS.getOrDefault(currentStatus,
+                EnumSet.noneOf(AscriptionStatusType.class));
         if (!allowed.contains(targetStatus)) {
             throw new IllegalArgumentException(
                     "Invalid transition: " + currentStatus + " -> " + targetStatus);
@@ -263,19 +259,19 @@ public class AscriptionService {
 
         // Governance convergence: APPROVED triggers version assignment + sibling
         // termination
-        if (targetStatus == AscriptionStatus.APPROVED) {
+        if (targetStatus == AscriptionStatusType.APPROVED) {
             handleApproval(type, entity);
         }
 
         // ACTIVE triggers cascade of previous ACTIVE to DEPRECATED (if any)
-        if (targetStatus == AscriptionStatus.ACTIVE) {
+        if (targetStatus == AscriptionStatusType.ACTIVE) {
             handleActivation(type, entity);
         }
 
         // Record transition (DB trigger will update entity's status column)
         AscriptionStatusTransitionEntity saved = transitionRepo.save(
                 new AscriptionStatusTransitionEntity(
-                        type, ascriptionId, currentStatus, targetStatus));
+                        entity, currentStatus, targetStatus));
 
         // Flush + detach + re-read to load DB-generated timestamp
         // (refresh() not supported for @Immutable entities in Hibernate)
@@ -284,9 +280,9 @@ public class AscriptionService {
         UUID transitionId = requireUuid(saved.getId(), "transition.id");
         saved = transitionRepo.findById(transitionId).orElseThrow();
 
-        return new TransitionResponse(
+        return new TransitionResponseDto(
                 saved.getId(),
-                saved.getAscriptionId(),
+                saved.getAscription().getId(),
                 currentStatus.name(),
                 targetStatus.name(),
                 saved.getTimestamp());
@@ -307,40 +303,40 @@ public class AscriptionService {
      * Version assignment is handled atomically by the DB trigger on the APPROVED
      * transition INSERT.
      */
-    private void handleApproval(DefinitionSubjectType type, AbstractAscription approved) {
+    private void handleApproval(DefinitionSubjectType type, AscriptionEntity approved) {
         UUID definitionId = approved.getDefinition().getId();
 
         // Auto-terminate siblings
-        List<? extends AbstractAscription> allAscriptions = findAllByDefinitionId(type, definitionId);
-        for (AbstractAscription sibling : allAscriptions) {
+        List<? extends AscriptionEntity> allAscriptions = findAllByDefinitionId(type, definitionId);
+        for (AscriptionEntity sibling : allAscriptions) {
             if (sibling.getId().equals(approved.getId()))
                 continue;
-            AscriptionStatus siblingStatus = sibling.getStatus();
-            AscriptionStatus terminalStatus;
-            if (siblingStatus == AscriptionStatus.DRAFT) {
-                terminalStatus = AscriptionStatus.ABANDONED;
-            } else if (siblingStatus == AscriptionStatus.PROPOSED) {
-                terminalStatus = AscriptionStatus.REJECTED;
+            AscriptionStatusType siblingStatus = sibling.getStatus();
+            AscriptionStatusType terminalStatus;
+            if (siblingStatus == AscriptionStatusType.DRAFT) {
+                terminalStatus = AscriptionStatusType.ABANDONED;
+            } else if (siblingStatus == AscriptionStatusType.PROPOSED) {
+                terminalStatus = AscriptionStatusType.REJECTED;
             } else {
                 continue; // already terminal or in-effect — skip
             }
             transitionRepo.save(
                     new AscriptionStatusTransitionEntity(
-                            type, sibling.getId(), siblingStatus, terminalStatus));
+                            sibling, siblingStatus, terminalStatus));
         }
     }
 
     /** Activation: cascade previous ACTIVE ascription to DEPRECATED. */
-    private void handleActivation(DefinitionSubjectType type, AbstractAscription activating) {
+    private void handleActivation(DefinitionSubjectType type, AscriptionEntity activating) {
         UUID definitionId = activating.getDefinition().getId();
-        List<? extends AbstractAscription> activeAscriptions = findAllByDefinitionIdAndStatus(type, definitionId,
-                List.of(AscriptionStatus.ACTIVE));
-        for (AbstractAscription prev : activeAscriptions) {
+        List<? extends AscriptionEntity> activeAscriptions = findAllByDefinitionIdAndStatus(type, definitionId,
+                List.of(AscriptionStatusType.ACTIVE));
+        for (AscriptionEntity prev : activeAscriptions) {
             if (prev.getId().equals(activating.getId()))
                 continue;
             transitionRepo.save(
                     new AscriptionStatusTransitionEntity(
-                            type, prev.getId(), AscriptionStatus.ACTIVE, AscriptionStatus.DEPRECATED));
+                            prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
         }
     }
 
@@ -348,7 +344,7 @@ public class AscriptionService {
     // ENTITY BUILDING & MAPPING
     // ========================================================================
 
-    private AbstractAscription buildEntity(
+    private AscriptionEntity buildEntity(
             DefinitionSubjectType type,
             DefinitionEntity definition,
             JsonNode statement,
@@ -375,7 +371,11 @@ public class AscriptionService {
                         archetypeRef,
                         statement,
                         requireRefFromStatement(
-                                structureRepo, statement, "structureId", "structureId"));
+                                structureRepo, statement, "structureId", "structureId"),
+                        resolveRefListFromStatement(
+                                effectorRepo, statement, "effectorIds"),
+                        resolveRefListFromStatement(
+                                receptorRepo, statement, "receptorIds"));
             case EFFECTOR ->
                 new EffectorEntity(
                         definition,
@@ -384,8 +384,7 @@ public class AscriptionService {
                         requireRefFromStatement(
                                 mechanismRepo, statement, "mechanismId", "mechanismId"),
                         requireRefFromStatement(
-                                archetypeRepo, statement, "portArchetypeId", "portArchetypeId"),
-                        optionalRefFromStatement(interfaceRepo, statement, "interfaceId"));
+                                archetypeRepo, statement, "outputArchetypeId", "outputArchetypeId"));
             case RECEPTOR ->
                 new ReceptorEntity(
                         definition,
@@ -394,8 +393,7 @@ public class AscriptionService {
                         requireRefFromStatement(
                                 mechanismRepo, statement, "mechanismId", "mechanismId"),
                         requireRefFromStatement(
-                                archetypeRepo, statement, "portArchetypeId", "portArchetypeId"),
-                        optionalRefFromStatement(interfaceRepo, statement, "interfaceId"));
+                                archetypeRepo, statement, "inputArchetypeId", "inputArchetypeId"));
             case INTERACTION ->
                 new InteractionEntity(
                         definition,
@@ -414,7 +412,8 @@ public class AscriptionService {
                                 structureRepo, statement, "structureId", "structureId"),
                         requireRefFromStatement(
                                 archetypeRepo, statement, "qualifierId", "qualifierId"),
-                        optionalRefFromStatement(structureRepo, statement, "purposeId"));
+                        requireRefFromStatement(
+                                structureRepo, statement, "purposeId", "purposeId"));
             case NORM ->
                 new NormEntity(
                         definition,
@@ -425,13 +424,13 @@ public class AscriptionService {
         };
     }
 
-    private AscriptionResponse toResponse(DefinitionSubjectType type, AbstractAscription entity) {
+    private AscriptionResponseDto toResponse(DefinitionSubjectType type, AscriptionEntity entity) {
         String schemaUri = null;
         if (type == DefinitionSubjectType.ARCHETYPE) {
             schemaUri = ((ArchetypeEntity) entity).getSchemaUri();
         }
 
-        return new AscriptionResponse(
+        return new AscriptionResponseDto(
                 type.getValue(),
                 entity.getDefinition().getId(),
                 entity.getId(),
@@ -448,17 +447,17 @@ public class AscriptionService {
     // ========================================================================
 
     @SuppressWarnings("unchecked")
-    private <T extends AbstractAscription> T findByAscriptionId(
+    private <T extends AscriptionEntity> T findByAscriptionId(
             DefinitionSubjectType type, UUID ascriptionId) {
-        JpaRepository<? extends AbstractAscription, UUID> repo = repoFor(type);
+        JpaRepository<? extends AscriptionEntity, UUID> repo = repoFor(type);
         return (T) repo.findById(requireUuid(ascriptionId, "ascriptionId"))
                 .orElseThrow(
                         () -> new IllegalArgumentException(
                                 type.getValue() + " not found: " + ascriptionId));
     }
 
-    private Page<? extends AbstractAscription> findAllByStatus(
-            DefinitionSubjectType type, AscriptionStatus status, Pageable pageable) {
+    private Page<? extends AscriptionEntity> findAllByStatus(
+            DefinitionSubjectType type, AscriptionStatusType status, Pageable pageable) {
         return switch (type) {
             case ARCHETYPE -> archetypeRepo.findAllByStatus(status, pageable);
             case STRUCTURE -> structureRepo.findAllByStatus(status, pageable);
@@ -472,12 +471,12 @@ public class AscriptionService {
         };
     }
 
-    private Page<? extends AbstractAscription> findAll(
+    private Page<? extends AscriptionEntity> findAll(
             DefinitionSubjectType type, Pageable pageable) {
         return repoFor(type).findAll(Objects.requireNonNull(pageable, "pageable must not be null"));
     }
 
-    private List<? extends AbstractAscription> findAllByDefinitionId(
+    private List<? extends AscriptionEntity> findAllByDefinitionId(
             DefinitionSubjectType type, UUID definitionId) {
         return switch (type) {
             case ARCHETYPE -> archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
@@ -493,8 +492,8 @@ public class AscriptionService {
         };
     }
 
-    private List<? extends AbstractAscription> findAllByDefinitionIdAndStatus(
-            DefinitionSubjectType type, UUID definitionId, Collection<AscriptionStatus> statuses) {
+    private List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
+            DefinitionSubjectType type, UUID definitionId, Collection<AscriptionStatusType> statuses) {
         return switch (type) {
             case ARCHETYPE -> archetypeRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
             case STRUCTURE -> structureRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
@@ -509,7 +508,7 @@ public class AscriptionService {
         };
     }
 
-    private AbstractAscription saveEntity(DefinitionSubjectType type, AbstractAscription entity) {
+    private AscriptionEntity saveEntity(DefinitionSubjectType type, AscriptionEntity entity) {
         return switch (type) {
             case ARCHETYPE -> archetypeRepo.save(Objects.requireNonNull((ArchetypeEntity) entity));
             case STRUCTURE -> structureRepo.save(Objects.requireNonNull((StructureEntity) entity));
@@ -524,7 +523,7 @@ public class AscriptionService {
         };
     }
 
-    private JpaRepository<? extends AbstractAscription, UUID> repoFor(DefinitionSubjectType type) {
+    private JpaRepository<? extends AscriptionEntity, UUID> repoFor(DefinitionSubjectType type) {
         return switch (type) {
             case ARCHETYPE -> archetypeRepo;
             case STRUCTURE -> structureRepo;
@@ -557,22 +556,27 @@ public class AscriptionService {
                 .orElseThrow(() -> new IllegalArgumentException(displayName + " not found: " + refId));
     }
 
-    /** Extracts an optional UUID FK reference from the statement JSON payload. */
-    private <T> T optionalRefFromStatement(
+    /** Resolves an optional JSON array of UUID references to a list of entities. */
+    private <T> List<T> resolveRefListFromStatement(
             JpaRepository<T, UUID> repo, JsonNode statement, String jsonField) {
         JsonNode node = statement.get(jsonField);
-        if (node == null || node.isNull() || node.asText().isBlank()) {
-            return null;
+        if (node == null || node.isNull() || !node.isArray()) {
+            return List.of();
         }
-        UUID refId;
-        try {
-            refId = UUID.fromString(node.asText());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Invalid UUID for field '" + jsonField + "': " + node.asText());
+        List<T> result = new java.util.ArrayList<>(node.size());
+        for (JsonNode element : node) {
+            UUID refId;
+            try {
+                refId = UUID.fromString(element.asText());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Invalid UUID in '" + jsonField + "': " + element.asText());
+            }
+            result.add(repo.findById(requireUuid(refId, jsonField))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            jsonField + " element not found: " + refId)));
         }
-        return repo.findById(requireUuid(refId, jsonField))
-                .orElseThrow(() -> new IllegalArgumentException(jsonField + " not found: " + refId));
+        return result;
     }
 
     private @NonNull UUID requireUuid(UUID value, String fieldName) {

@@ -4,11 +4,11 @@ import java.security.SecureRandom;
 import java.util.UUID;
 
 /** RFC 9562 UUIDv7 generator: Unix epoch milliseconds + cryptographic random. */
-public final class UuidV7Generator {
+public final class UuidV7GeneratorUtil {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private UuidV7Generator() {}
+    private UuidV7GeneratorUtil() {}
 
     public static UUID generate() {
         long timestamp = System.currentTimeMillis();

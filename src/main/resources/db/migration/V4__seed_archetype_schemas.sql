@@ -76,10 +76,10 @@ set definition = definition || jsonb_build_object(
            "type": "object",
            "properties": {
                "mechanismId": { "type": "string", "format": "uuid", "description": "Reference to the owning Mechanism revision_id." },
-               "portArchetypeId": { "type": "string", "format": "uuid", "description": "Archetype that types the port data." },
-               "interfaceId": { "type": "string", "format": "uuid", "description": "Optional Interface exposing this port." }
+               "outputArchetypeId": { "type": "string", "format": "uuid", "description": "Archetype that types the Effector output data." },
+               "interfaceId": { "type": "string", "format": "uuid", "description": "Optional Interface exposing this Effector." }
            },
-           "required": ["mechanismId", "portArchetypeId"],
+           "required": ["mechanismId", "outputArchetypeId"],
            "additionalProperties": true
        }'::jsonb
     )
@@ -95,10 +95,10 @@ set definition = definition || jsonb_build_object(
            "type": "object",
            "properties": {
                "mechanismId": { "type": "string", "format": "uuid", "description": "Reference to the owning Mechanism revision_id." },
-               "portArchetypeId": { "type": "string", "format": "uuid", "description": "Archetype that types the port data." },
-               "interfaceId": { "type": "string", "format": "uuid", "description": "Optional Interface exposing this port." }
+               "inputArchetypeId": { "type": "string", "format": "uuid", "description": "Archetype that types the Receptor input data." },
+               "interfaceId": { "type": "string", "format": "uuid", "description": "Optional Interface exposing this Receptor." }
            },
-           "required": ["mechanismId", "portArchetypeId"],
+           "required": ["mechanismId", "inputArchetypeId"],
            "additionalProperties": true
        }'::jsonb
     )

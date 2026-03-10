@@ -7,7 +7,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "structure")
-public class StructureEntity extends AbstractAscription {
+public class StructureEntity extends AscriptionEntity {
 
     protected StructureEntity() {
     }

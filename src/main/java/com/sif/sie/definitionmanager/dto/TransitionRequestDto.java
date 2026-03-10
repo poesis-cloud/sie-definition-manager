@@ -1,6 +1,6 @@
-package com.sif.sie.definitionmanager.controller.dto;
+package com.sif.sie.definitionmanager.dto;
 
 import jakarta.validation.constraints.NotNull;
 
 /** Request to transition an ascription to a new lifecycle status. */
-public record TransitionRequest(@NotNull String targetStatus) {}
+public record TransitionRequestDto(@NotNull String targetStatus) {}

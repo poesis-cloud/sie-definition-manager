@@ -3,7 +3,6 @@ package com.sif.sie.definitionmanager.entity;
 import java.util.Objects;
 
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -13,9 +12,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "directive")
-public class DirectiveEntity extends AbstractAscription {
+public class DirectiveEntity extends AscriptionEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "structure_id", nullable = false, updatable = false)
@@ -25,8 +25,8 @@ public class DirectiveEntity extends AbstractAscription {
     @JoinColumn(name = "qualifier_id", nullable = false, updatable = false)
     private ArchetypeEntity qualifier;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "purpose_id", updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "purpose_id", nullable = false, updatable = false)
     private StructureEntity purpose;
 
     protected DirectiveEntity() {
@@ -38,11 +38,11 @@ public class DirectiveEntity extends AbstractAscription {
             JsonNode statement,
             StructureEntity structure,
             ArchetypeEntity qualifier,
-            @Nullable StructureEntity purpose) {
+            StructureEntity purpose) {
         super(definition, archetype, statement);
         this.structure = Objects.requireNonNull(structure, "structure");
         this.qualifier = Objects.requireNonNull(qualifier, "qualifier");
-        this.purpose = purpose;
+        this.purpose = Objects.requireNonNull(purpose, "purpose");
     }
 
     @NonNull
@@ -55,7 +55,7 @@ public class DirectiveEntity extends AbstractAscription {
         return qualifier;
     }
 
-    @Nullable
+    @NonNull
     public StructureEntity getPurpose() {
         return purpose;
     }

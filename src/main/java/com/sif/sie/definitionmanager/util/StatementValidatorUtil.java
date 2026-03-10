@@ -18,11 +18,11 @@ import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
  * JSON Schema ({@code statement.schema}).
  */
 @Component
-public class DefinitionValidator {
+public class StatementValidatorUtil {
 
     private final JsonSchemaFactory schemaFactory;
 
-    public DefinitionValidator() {
+    public StatementValidatorUtil() {
         this.schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
     }
 

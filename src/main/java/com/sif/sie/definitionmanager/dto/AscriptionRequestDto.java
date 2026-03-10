@@ -1,4 +1,4 @@
-package com.sif.sie.definitionmanager.controller.dto;
+package com.sif.sie.definitionmanager.dto;
 
 import java.util.UUID;
 
@@ -16,7 +16,7 @@ import jakarta.validation.constraints.NotNull;
  * payload and
  * validated against the archetype's JSON Schema.
  */
-public record AscriptionRequest(
+public record AscriptionRequestDto(
     @NotNull UUID archetypeId,
     @NotNull JsonNode statement,
     UUID definitionId) // optional: for new ascription of existing definition

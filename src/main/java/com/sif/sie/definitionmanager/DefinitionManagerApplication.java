@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class DmApplication {
+public class DefinitionManagerApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DmApplication.class, args);
+        SpringApplication.run(DefinitionManagerApplication.class, args);
     }
 }

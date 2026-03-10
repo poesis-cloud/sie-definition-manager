@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "archetype")
-public class ArchetypeEntity extends AbstractAscription {
+public class ArchetypeEntity extends AscriptionEntity {
 
     @Column(name = "schema_uri", nullable = false, updatable = false)
     private String schemaUri;

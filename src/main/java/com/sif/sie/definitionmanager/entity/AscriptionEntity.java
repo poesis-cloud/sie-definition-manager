@@ -9,15 +9,17 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.lang.NonNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
-import com.sif.sie.definitionmanager.util.UuidV7Generator;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
+import com.sif.sie.definitionmanager.util.UuidV7GeneratorUtil;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 
 /**
@@ -61,8 +63,9 @@ import jakarta.persistence.PrePersist;
  * </ul>
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
-@MappedSuperclass
-public abstract class AbstractAscription {
+@Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+public abstract class AscriptionEntity {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
@@ -85,16 +88,16 @@ public abstract class AbstractAscription {
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, updatable = false, insertable = false)
-    private AscriptionStatus status;
+    private AscriptionStatusType status;
 
     @Column(name = "version", nullable = false, updatable = false, insertable = false)
     private Integer version;
 
     /** JPA requires a no-arg constructor. */
-    protected AbstractAscription() {
+    protected AscriptionEntity() {
     }
 
-    protected AbstractAscription(
+    protected AscriptionEntity(
             DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
         this.definition = Objects.requireNonNull(definition, "definition");
         this.archetype = Objects.requireNonNull(archetype, "archetype");
@@ -104,7 +107,7 @@ public abstract class AbstractAscription {
     @PrePersist
     void ensureId() {
         if (id == null) {
-            id = UuidV7Generator.generate();
+            id = UuidV7GeneratorUtil.generate();
         }
     }
 
@@ -136,7 +139,7 @@ public abstract class AbstractAscription {
     }
 
     @NonNull
-    public AscriptionStatus getStatus() {
+    public AscriptionStatusType getStatus() {
         return status;
     }
 
@@ -152,7 +155,7 @@ public abstract class AbstractAscription {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        AbstractAscription that = (AbstractAscription) o;
+        AscriptionEntity that = (AscriptionEntity) o;
         return id != null && Objects.equals(id, that.id);
     }
 

@@ -1,9 +1,9 @@
-package com.sif.sie.definitionmanager.controller.dto;
+package com.sif.sie.definitionmanager.dto;
 
 import java.time.Instant;
 import java.util.UUID;
 
 /** Response for a lifecycle transition. */
-public record TransitionResponse(
+public record TransitionResponseDto(
                 UUID transitionId, UUID ascriptionId, String preStatus, String postStatus, Instant timestamp) {
 }

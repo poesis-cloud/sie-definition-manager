@@ -9,15 +9,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.sif.sie.definitionmanager.entity.StructureEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 
 public interface StructureRepository extends JpaRepository<StructureEntity, UUID> {
-    Page<StructureEntity> findAllByStatus(AscriptionStatus status, Pageable pageable);
+    Page<StructureEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    Page<StructureEntity> findAllByStatusIn(Collection<AscriptionStatus> statuses, Pageable pageable);
+    Page<StructureEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
 
     List<StructureEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
     List<StructureEntity> findAllByDefinition_IdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatus> statuses);
+            UUID definitionId, Collection<AscriptionStatusType> statuses);
 }

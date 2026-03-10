@@ -1,7 +1,7 @@
-package com.sif.sie.definitionmanager.enums;
+package com.sif.sie.definitionmanager.type;
 
 /** Maps to PostgreSQL enum type {@code ascription_status}. */
-public enum AscriptionStatus {
+public enum AscriptionStatusType {
     DRAFT,
     PROPOSED,
     APPROVED,

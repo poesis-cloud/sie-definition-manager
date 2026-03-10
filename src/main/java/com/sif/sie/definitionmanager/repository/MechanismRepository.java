@@ -9,17 +9,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.sif.sie.definitionmanager.entity.MechanismEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 
 public interface MechanismRepository extends JpaRepository<MechanismEntity, UUID> {
-    Page<MechanismEntity> findAllByStatus(AscriptionStatus status, Pageable pageable);
+    Page<MechanismEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    Page<MechanismEntity> findAllByStatusIn(Collection<AscriptionStatus> statuses, Pageable pageable);
+    Page<MechanismEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
 
     List<MechanismEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
     List<MechanismEntity> findAllByDefinition_IdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatus> statuses);
+            UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<MechanismEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
 }

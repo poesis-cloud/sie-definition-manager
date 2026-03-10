@@ -9,15 +9,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.sif.sie.definitionmanager.entity.NormEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 
 public interface NormRepository extends JpaRepository<NormEntity, UUID> {
-    Page<NormEntity> findAllByStatus(AscriptionStatus status, Pageable pageable);
+    Page<NormEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
     List<NormEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
     List<NormEntity> findAllByDefinition_IdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatus> statuses);
+            UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<NormEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
 }

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Thin transport wrapper for the dynamic OpenAPI specification. */
 @RestController
 @RequestMapping("/api/v1/openapi")
-public class OpenApiController extends BaseController {
+public class OpenApiController extends Controller {
 
     private final OpenApiService openApiService;
 

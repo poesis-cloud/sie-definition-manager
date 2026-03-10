@@ -10,19 +10,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
-import com.sif.sie.definitionmanager.enums.AscriptionStatus;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 
 public interface ArchetypeRepository extends JpaRepository<ArchetypeEntity, UUID> {
-    Page<ArchetypeEntity> findAllByStatus(AscriptionStatus status, Pageable pageable);
+    Page<ArchetypeEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    List<ArchetypeEntity> findAllByStatus(AscriptionStatus status);
+    List<ArchetypeEntity> findAllByStatus(AscriptionStatusType status);
 
-    Page<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatus> statuses, Pageable pageable);
+    Page<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
 
     List<ArchetypeEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
     Optional<ArchetypeEntity> findBySchemaUri(String schemaUri);
 
     List<ArchetypeEntity> findAllByDefinition_IdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatus> statuses);
+            UUID definitionId, Collection<AscriptionStatusType> statuses);
 }
