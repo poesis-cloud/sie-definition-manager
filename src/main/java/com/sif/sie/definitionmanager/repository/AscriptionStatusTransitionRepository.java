@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.sif.sie.definitionmanager.entity.AscriptionStatusTransitionEntity;
 
 public interface AscriptionStatusTransitionRepository
-                extends JpaRepository<AscriptionStatusTransitionEntity, UUID> {
-        List<AscriptionStatusTransitionEntity> findAllByAscription_IdOrderByTimestampAsc(
-                        UUID ascriptionId);
+        extends JpaRepository<AscriptionStatusTransitionEntity, UUID> {
+    List<AscriptionStatusTransitionEntity> findAllByAscription_IdOrderByTimestampAsc(
+            UUID ascriptionId);
 }

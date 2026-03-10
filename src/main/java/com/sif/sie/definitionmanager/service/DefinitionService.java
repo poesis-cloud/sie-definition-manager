@@ -34,9 +34,8 @@ import com.sif.sie.definitionmanager.entity.MechanismEntity;
 import com.sif.sie.definitionmanager.entity.NormEntity;
 import com.sif.sie.definitionmanager.entity.ReceptorEntity;
 import com.sif.sie.definitionmanager.entity.StructureEntity;
-import com.sif.sie.definitionmanager.type.AscriptionStatusType;
-import com.sif.sie.definitionmanager.type.DefinitionSubjectType;
 import com.sif.sie.definitionmanager.repository.ArchetypeRepository;
+import com.sif.sie.definitionmanager.repository.AscriptionStatusTransitionRepository;
 import com.sif.sie.definitionmanager.repository.DefinitionRepository;
 import com.sif.sie.definitionmanager.repository.DirectiveRepository;
 import com.sif.sie.definitionmanager.repository.EffectorRepository;
@@ -45,8 +44,9 @@ import com.sif.sie.definitionmanager.repository.InterfaceRepository;
 import com.sif.sie.definitionmanager.repository.MechanismRepository;
 import com.sif.sie.definitionmanager.repository.NormRepository;
 import com.sif.sie.definitionmanager.repository.ReceptorRepository;
-import com.sif.sie.definitionmanager.repository.AscriptionStatusTransitionRepository;
 import com.sif.sie.definitionmanager.repository.StructureRepository;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
+import com.sif.sie.definitionmanager.type.DefinitionSubjectType;
 import com.sif.sie.definitionmanager.util.StatementValidatorUtil;
 
 import jakarta.persistence.EntityManager;
@@ -352,8 +352,8 @@ public class DefinitionService {
         return switch (type) {
             case ARCHETYPE -> {
                 JsonNode schema = statement.get("schema");
-                int schemaId = schemaRegistryClient.registerSchema(
-                        SchemaRegistryClient.subjectFor(definition.getId()), schema);
+                String subject = "gsm_archetype_definition_" + definition.getId();
+                int schemaId = schemaRegistryClient.registerSchema(subject, schema);
                 String schemaUri = schemaRegistryClient.buildSchemaUri(schemaId);
                 yield new ArchetypeEntity(definition, archetypeRef, statement, schemaUri);
             }

@@ -34,15 +34,16 @@ public class StatementValidatorUtil {
     public void validate(JsonNode statement, ArchetypeEntity archetype) {
         JsonNode archetypeStatement = archetype.getStatement();
         JsonNode schemaNode = archetypeStatement.get("schema");
-        if (schemaNode == null || schemaNode.isNull()) {
-            // Archetype has no embedded schema — skip validation (bootstrap compat)
-            return;
-        }
+
         SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
+
         JsonSchema schema = schemaFactory.getSchema(schemaNode, config);
+
         Set<ValidationMessage> errors = schema.validate(statement);
+
         if (!errors.isEmpty()) {
             String details = errors.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("; "));
+
             throw new IllegalArgumentException(
                     "Definition validation failed against archetype schema ["
                             + archetype.getSchemaUri()

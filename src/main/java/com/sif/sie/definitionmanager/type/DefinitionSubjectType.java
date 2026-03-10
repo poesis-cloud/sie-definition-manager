@@ -2,20 +2,17 @@ package com.sif.sie.definitionmanager.type;
 
 /**
  * GSM structural role of a Definition — what kind of primitive the subject is.
- * Sealed enum: tenants
- * MUST NOT extend it. Domain-level typing extensibility is expressed through
- * Archetypes.
+ * Sealed enum: tenants MUST NOT extend it. Domain-level typing extensibility is
+ * expressed through Archetypes.
  *
  * <p>
  * Maps to PostgreSQL enum {@code definition_subject_type}. Values stored as
- * uppercase enum names
- * via {@link org.hibernate.annotations.JdbcTypeCode} /
+ * uppercase enum names via {@link org.hibernate.annotations.JdbcTypeCode} /
  * {@link org.hibernate.type.SqlTypes#NAMED_ENUM}.
  *
  * <p>
  * The lowercase {@link #value} is provided for API-layer compatibility (e.g.,
- * query parameters,
- * OpenAPI type discriminators).
+ * query parameters, OpenAPI type discriminators).
  */
 public enum DefinitionSubjectType {
     ARCHETYPE("archetype"),

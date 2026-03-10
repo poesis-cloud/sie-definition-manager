@@ -25,15 +25,14 @@ import jakarta.persistence.Table;
  *
  * <p>
  * A Definition answers <em>what thing is being governed</em> — the referent
- * that persists across
- * all Ascriptions (normative snapshots) that describe it over time. Definition
- * does NOT extend
- * Ascription; it is a separate entity providing the identity anchor.
+ * that persists across all Ascriptions (normative snapshots) that describe it
+ * over time. Definition does NOT extend Ascription; it is a separate entity
+ * providing the identity anchor.
  *
  * <p>
  * Maps to the {@code definition} table. Both fields ({@code id},
- * {@code subjectType}) are
- * immutable after creation — assigned via constructor, no setters exposed.
+ * {@code subjectType}) are immutable after creation — assigned via constructor,
+         * no setters exposed.
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
