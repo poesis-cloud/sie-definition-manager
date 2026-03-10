@@ -10,18 +10,17 @@ import com.fasterxml.jackson.databind.JsonNode;
  *
  * <p>
  * FK references are part of the {@code statement} payload — not flattened at
- * the envelope
- * level. {@code subjectType} is derived server-side from the archetype's schema
- * URI.
+ * the envelope level. {@code subjectType} is derived server-side from the
+ * archetype's schema URI.
  */
-public record AscriptionResponseDto(
+public record AscriptionDto(
     String subjectType,
-    UUID definitionId,
     UUID id,
-    Instant timestamp,
+    UUID definitionId,
     UUID archetypeId,
     JsonNode statement,
     int version,
     String status,
-    String schemaUri) {
+    String schemaUri,
+    Instant timestamp) {
 }
