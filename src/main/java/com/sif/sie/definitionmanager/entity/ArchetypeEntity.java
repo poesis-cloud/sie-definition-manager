@@ -22,9 +22,9 @@ public class ArchetypeEntity extends AscriptionEntity {
     }
 
     public ArchetypeEntity(
-            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement,
+            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode compilation,
             String schemaUri) {
-        super(definition, archetype, statement);
+        super(definition, archetype, compilation);
         this.schemaUri = Objects.requireNonNull(schemaUri, "schemaUri");
     }
 

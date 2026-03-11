@@ -43,7 +43,7 @@ import com.sif.sie.definitionmanager.repository.ReceptorRepository;
 import com.sif.sie.definitionmanager.repository.StructureRepository;
 import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 import com.sif.sie.definitionmanager.type.DefinitionSubjectType;
-import com.sif.sie.definitionmanager.util.StatementValidatorUtil;
+import com.sif.sie.definitionmanager.util.CompilationValidatorUtil;
 
 import jakarta.persistence.EntityManager;
 
@@ -54,7 +54,7 @@ import jakarta.persistence.EntityManager;
  * Routes operations to the appropriate entity table based on subject type,
  * derived from the
  * archetype's schema URI. FK references are extracted from the
- * {@code statement} JSON payload —
+ * {@code compilation} JSON payload —
  * not from request-level fields. Manages lifecycle transitions with governance
  * convergence
  * semantics (see gsm-ascription-lifecycle state machine).
@@ -87,7 +87,7 @@ public class AscriptionService {
     private final DefinitionRepository definitionRepo;
     private final AscriptionStatusTransitionRepository transitionRepo;
     private final SchemaRegistryClient schemaRegistryClient;
-    private final StatementValidatorUtil definitionValidator;
+    private final CompilationValidatorUtil definitionValidator;
     private final EntityManager entityManager;
 
     // Valid lifecycle transitions: current status -> set of allowed target statuses
@@ -127,7 +127,7 @@ public class AscriptionService {
             DefinitionRepository definitionRepo,
             AscriptionStatusTransitionRepository transitionRepo,
             SchemaRegistryClient schemaRegistryClient,
-            StatementValidatorUtil definitionValidator,
+            CompilationValidatorUtil definitionValidator,
             EntityManager entityManager) {
         this.archetypeRepo = archetypeRepo;
         this.structureRepo = structureRepo;
@@ -153,11 +153,11 @@ public class AscriptionService {
      * Creates a new ascription from raw fields.
      *
      * @param archetypeId  the archetype UUID that types this ascription
-     * @param statement    the JSON statement payload
+     * @param compilation  the JSON compilation payload
      * @param definitionId optional: attach to an existing Definition; null = create
      *                     new
      */
-    public AscriptionEntity create(UUID archetypeId, JsonNode statement, UUID definitionId) {
+    public AscriptionEntity create(UUID archetypeId, JsonNode compilation, UUID definitionId) {
         UUID resolvedArchetypeId = requireUuid(archetypeId, "archetypeId");
         ArchetypeEntity archetypeRef = archetypeRepo
                 .findById(resolvedArchetypeId)
@@ -166,8 +166,8 @@ public class AscriptionService {
 
         DefinitionSubjectType type = resolveSubjectType(archetypeRef);
 
-        // Validate statement against archetype schema
-        definitionValidator.validate(statement, archetypeRef);
+        // Validate compilation against archetype schema
+        definitionValidator.validate(compilation, archetypeRef);
 
         // Resolve or create the Definition (stable identity)
         DefinitionEntity definition;
@@ -181,7 +181,7 @@ public class AscriptionService {
             definition = definitionRepo.save(new DefinitionEntity(type));
         }
 
-        AscriptionEntity entity = buildEntity(type, definition, statement, archetypeRef);
+        AscriptionEntity entity = buildEntity(type, definition, compilation, archetypeRef);
         AscriptionEntity saved = saveEntity(type, entity);
 
         // Record initial DRAFT transition
@@ -342,80 +342,80 @@ public class AscriptionService {
     private AscriptionEntity buildEntity(
             DefinitionSubjectType type,
             DefinitionEntity definition,
-            JsonNode statement,
+            JsonNode compilation,
             ArchetypeEntity archetypeRef) {
         return switch (type) {
             case ARCHETYPE -> {
-                JsonNode schema = statement.get("schema");
+                JsonNode schema = compilation.get("schema");
                 String subject = "gsm_archetype_definition_" + definition.getId();
                 int schemaId = schemaRegistryClient.registerSchema(subject, schema);
                 String schemaUri = schemaRegistryClient.buildSchemaUri(schemaId);
-                yield new ArchetypeEntity(definition, archetypeRef, statement, schemaUri);
+                yield new ArchetypeEntity(definition, archetypeRef, compilation, schemaUri);
             }
-            case STRUCTURE -> new StructureEntity(definition, archetypeRef, statement);
+            case STRUCTURE -> new StructureEntity(definition, archetypeRef, compilation);
             case MECHANISM ->
                 new MechanismEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                structureRepo, statement, "structureId", "structureId"));
+                        compilation,
+                        requireRefFromCompilation(
+                                structureRepo, compilation, "structureId", "structureId"));
             case INTERFACE ->
                 new InterfaceEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                structureRepo, statement, "structureId", "structureId"),
-                        resolveRefListFromStatement(
-                                effectorRepo, statement, "effectorIds"),
-                        resolveRefListFromStatement(
-                                receptorRepo, statement, "receptorIds"));
+                        compilation,
+                        requireRefFromCompilation(
+                                structureRepo, compilation, "structureId", "structureId"),
+                        resolveRefListFromCompilation(
+                                effectorRepo, compilation, "effectorIds"),
+                        resolveRefListFromCompilation(
+                                receptorRepo, compilation, "receptorIds"));
             case EFFECTOR ->
                 new EffectorEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                mechanismRepo, statement, "mechanismId", "mechanismId"),
-                        requireRefFromStatement(
-                                archetypeRepo, statement, "outputArchetypeId", "outputArchetypeId"));
+                        compilation,
+                        requireRefFromCompilation(
+                                mechanismRepo, compilation, "mechanismId", "mechanismId"),
+                        requireRefFromCompilation(
+                                archetypeRepo, compilation, "outputArchetypeId", "outputArchetypeId"));
             case RECEPTOR ->
                 new ReceptorEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                mechanismRepo, statement, "mechanismId", "mechanismId"),
-                        requireRefFromStatement(
-                                archetypeRepo, statement, "inputArchetypeId", "inputArchetypeId"));
+                        compilation,
+                        requireRefFromCompilation(
+                                mechanismRepo, compilation, "mechanismId", "mechanismId"),
+                        requireRefFromCompilation(
+                                archetypeRepo, compilation, "inputArchetypeId", "inputArchetypeId"));
             case INTERACTION ->
                 new InteractionEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                effectorRepo, statement, "effectorId", "effectorId"),
-                        requireRefFromStatement(
-                                receptorRepo, statement, "receptorId", "receptorId"));
+                        compilation,
+                        requireRefFromCompilation(
+                                effectorRepo, compilation, "effectorId", "effectorId"),
+                        requireRefFromCompilation(
+                                receptorRepo, compilation, "receptorId", "receptorId"));
             case DIRECTIVE ->
                 new DirectiveEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                structureRepo, statement, "structureId", "structureId"),
-                        requireRefFromStatement(
-                                archetypeRepo, statement, "qualifierId", "qualifierId"),
-                        requireRefFromStatement(
-                                structureRepo, statement, "purposeId", "purposeId"));
+                        compilation,
+                        requireRefFromCompilation(
+                                structureRepo, compilation, "structureId", "structureId"),
+                        requireRefFromCompilation(
+                                archetypeRepo, compilation, "qualifierId", "qualifierId"),
+                        requireRefFromCompilation(
+                                structureRepo, compilation, "purposeId", "purposeId"));
             case NORM ->
                 new NormEntity(
                         definition,
                         archetypeRef,
-                        statement,
-                        requireRefFromStatement(
-                                structureRepo, statement, "structureId", "structureId"));
+                        compilation,
+                        requireRefFromCompilation(
+                                structureRepo, compilation, "structureId", "structureId"));
         };
     }
 
@@ -514,13 +514,13 @@ public class AscriptionService {
         };
     }
 
-    /** Extracts a required UUID FK reference from the statement JSON payload. */
-    private <T> T requireRefFromStatement(
-            JpaRepository<T, UUID> repo, JsonNode statement, String jsonField, String displayName) {
-        JsonNode node = statement.get(jsonField);
+    /** Extracts a required UUID FK reference from the compilation JSON payload. */
+    private <T> T requireRefFromCompilation(
+            JpaRepository<T, UUID> repo, JsonNode compilation, String jsonField, String displayName) {
+        JsonNode node = compilation.get(jsonField);
         if (node == null || node.isNull() || node.asText().isBlank()) {
             throw new IllegalArgumentException(
-                    "Required field '" + jsonField + "' missing in statement payload");
+                    "Required field '" + jsonField + "' missing in compilation payload");
         }
         UUID refId;
         try {
@@ -534,9 +534,9 @@ public class AscriptionService {
     }
 
     /** Resolves an optional JSON array of UUID references to a list of entities. */
-    private <T> List<T> resolveRefListFromStatement(
-            JpaRepository<T, UUID> repo, JsonNode statement, String jsonField) {
-        JsonNode node = statement.get(jsonField);
+    private <T> List<T> resolveRefListFromCompilation(
+            JpaRepository<T, UUID> repo, JsonNode compilation, String jsonField) {
+        JsonNode node = compilation.get(jsonField);
         if (node == null || node.isNull() || !node.isArray()) {
             return List.of();
         }
@@ -571,7 +571,7 @@ public class AscriptionService {
     private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
         String schemaUri = archetype.getSchemaUri();
         if (schemaUri == null) {
-            JsonNode stmt = archetype.getStatement();
+            JsonNode stmt = archetype.getCompilation();
             if (stmt != null && stmt.has("schemaUri")) {
                 schemaUri = stmt.get("schemaUri").asText();
             }

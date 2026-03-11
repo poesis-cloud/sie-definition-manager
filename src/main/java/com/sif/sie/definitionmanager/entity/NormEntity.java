@@ -27,9 +27,9 @@ public class NormEntity extends AscriptionEntity {
     public NormEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode statement,
+            JsonNode compilation,
             StructureEntity structure) {
-        super(definition, archetype, statement);
+        super(definition, archetype, compilation);
         this.structure = Objects.requireNonNull(structure, "structure");
     }
 

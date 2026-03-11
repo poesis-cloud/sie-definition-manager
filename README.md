@@ -103,6 +103,44 @@ Each layer can evolve at its natural rate without destabilizing the others.
 
 Classical models *describe* systems; GSM *defines* them. Description tells you what a system is; definition tells the system what it must become — and provides the governance machinery to get there.
 
+## DM as compiler — concept layers
+
+The Definition Manager is not a passive store — it is a **compiler**. The API request is the *authored input*; the Ascription's `compilation` payload is the *compiled output*. Archetype schemas define the **output contract** (what the compiled artifact looks like), not the input shape. FK columns are materialized indexes derived from the compilation, for DB-level referential integrity.
+
+This compiler paradigm evolves through four concept layers:
+
+### Layer 0 — Axiomatic Bootstrap (hardcoded) `[current]`
+
+The seed layer. 9 GSM base Archetypes and their compilation logic are hardcoded in Java (`switch(type)` in `AscriptionService.buildEntity`). The DM knows how to compile each GSM primitive: resolving FK references from the request payload, validating against the Archetype schema, registering schemas, and producing the immutable `compilation` JSONB.
+
+- **What exists**: base Archetype schemas (Structure, Mechanism, Effector, Receptor, Interaction, Interface, Directive, Norm, Archetype), hardcoded entity builders, schema validation.
+- **Extension model**: none — tenants consume GSM primitives but cannot extend the type system.
+- **Compiler surface**: Java code only. The Archetype schema validates the output; the DM code defines the input-to-output transformation.
+
+### Layer 1 — Schema-driven Adaptation
+
+Tenants create Archetypes extending GSM bases via `allOf`. The DM adapts by reading the tenant Archetype's schema, auto-deriving input requirements from the schema diff (base portion compiled by Layer 0 logic, extension fields passed through).
+
+- **What changes**: DM inspects `allOf` chains at authoring time. For any tenant Archetype that extends a GSM base, DM applies Layer 0 compilation for the base portion and passes through tenant-defined extension fields.
+- **Extension model**: schema-only. Tenants define *what* properties exist; the DM controls *how* they are compiled.
+- **Compiler surface**: Java (Layer 0 core) + schema introspection (auto-adaptation).
+
+### Layer 2 — Mechanism-driven Compilation
+
+Tenants author Mechanisms (Starlark rules) for custom domain-specific compilation. The DM orchestrates Layer 0 + tenant Mechanisms.
+
+- **What changes**: tenant Mechanisms can intercept, transform, or enrich the compilation pipeline. A Mechanism's Starlark rule receives the authored input, applies domain logic, and produces the compilation output conforming to its Archetype schema.
+- **Extension model**: behavioral. Tenants define *what* properties exist (Archetype schema) **and** *how* they are compiled (Mechanism rules). This is SIE operating itself through itself.
+- **Compiler surface**: Java (Layer 0 core) + Starlark (tenant Mechanisms).
+
+### Layer 3 — Full Reflexivity (autopoietic end-state)
+
+The DM's own Layer 0 compilation logic is modeled as governable Mechanisms. The governance loop governs the compiler itself.
+
+- **What changes**: Layer 0 Java logic is replaced by (or wrapped in) GSM Mechanisms whose rules the governance loop can inspect, evaluate, and evolve. The DM becomes a System in the GSM sense — reflexive Mechanisms defining and operating the compilation pipeline.
+- **Extension model**: self-governing. The compiler is part of the governed system.
+- **Compiler surface**: GSM Mechanisms (Starlark) all the way down.
+
 ## Where to start
 
 - GSM model: `definition/gsm.puml`

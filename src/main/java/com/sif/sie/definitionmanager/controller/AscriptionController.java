@@ -62,7 +62,7 @@ public class AscriptionController extends Controller {
     @PostMapping
     public ResponseEntity<EntityModel<AscriptionDto>> create(
             @Valid @RequestBody AscriptionRequestDto request) {
-        AscriptionEntity entity = service.create(request.archetypeId(), request.statement(), request.definitionId());
+        AscriptionEntity entity = service.create(request.archetypeId(), request.compilation(), request.definitionId());
         AscriptionDto response = toAscriptionDto(entity);
         EntityModel<AscriptionDto> model = wrapWithLinks(response);
         URI location = selfLinkFor(response).toUri();

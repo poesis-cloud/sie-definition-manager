@@ -9,18 +9,18 @@ import com.fasterxml.jackson.databind.JsonNode;
  * Unified response for any GSM ascription.
  *
  * <p>
- * FK references are part of the {@code statement} payload — not flattened at
+ * FK references are part of the {@code compilation} payload — not flattened at
  * the envelope level. {@code subjectType} is derived server-side from the
  * archetype's schema URI.
  */
 public record AscriptionDto(
-    String subjectType,
-    UUID id,
-    UUID definitionId,
-    UUID archetypeId,
-    JsonNode statement,
-    int version,
-    String status,
-    String schemaUri,
-    Instant timestamp) {
+        String subjectType,
+        UUID id,
+        UUID definitionId,
+        UUID archetypeId,
+        JsonNode compilation,
+        int version,
+        String status,
+        String schemaUri,
+        Instant timestamp) {
 }

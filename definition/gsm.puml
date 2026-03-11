@@ -179,15 +179,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - Directive (D): identity-level normative constraint.
     - Norm (N): measurable constraint predicate on Element.
-    - Ascription (A): governed statement applied to the Element.
+    - Ascription (A): governed compilation applied to the Element.
 
     Together, these define the **DNA** grammar of a System.
 
     Directive and Norm extend Ascription: they inherit lifecycle,
-    Archetype-typing, and statement from the Ascription base. Identity is
+    Archetype-typing, and compilation from the Ascription base. Identity is
     held by the referenced Definition. What makes them governance DNA is
     their sealed Archetype: DirectiveArchetype and NormArchetype define the
-    governance grammar within the `statement` payload. A governance Mechanism
+    governance grammar within the `compilation` payload. A governance Mechanism
     producing a Directive simply creates one via
     `sys.create("DirectiveArchetype", {...})`.
 
@@ -207,9 +207,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       technology, or risk landscape shifts — without touching identity.
       Comparable to policies and compliance rules.
     - **A — fast (ascription)**: Ascriptions carry the concrete,
-      version-specific statement of each Element (element-level
+      version-specific compilation of each Element (element-level
       configuration, parameters, operational metadata). They change
-      frequently — every statement update produces a new Ascription.
+      frequently — every compilation update produces a new Ascription.
 
     This stratification is deliberate: it decouples slow identity decisions from
     fast operational details, so that each layer can evolve at its natural rate
@@ -303,8 +303,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Effector, Receptor, Interface, Interaction.
 
     Domain semantics are expressed through **Archetypes** — each Archetype
-    carries a JSON Schema (`statement.schema`) that validates the
-    statement payload of Ascriptions typed by that Archetype. The
+    carries a JSON Schema (`compilation.schema`) that validates the
+    compilation payload of Ascriptions typed by that Archetype. The
     definition-manager publishes that schema to the schema registry and derives
     an envelope-level `schemaUri` reference for resolution. There is one
     Archetype kind; no separate "domain" or "metadata" typing layers.
@@ -318,13 +318,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     type of information they emit/consume.
 
     **Governance DNA as Archetypes**: Directive and Norm extend Ascription,
-    inheriting lifecycle, and statement. Identity is held by the
+    inheriting lifecycle, and compilation. Identity is held by the
     referenced Definition. Their governance
     grammar (modal, verb, guard, predicate, etc.) lives in the
-    `statement` payload, typed by sealed GSM Archetypes
+    `compilation` payload, typed by sealed GSM Archetypes
     (DirectiveArchetype, NormArchetype). Domain-specific accessors
     (getModal(), getGuard(), etc.) are convenience delegations into
-    `statement`.
+    `compilation`.
     A governance Mechanism creates a Directive by calling
     `sys.create("DirectiveArchetype", {...})`. This closes §3 systemic
     recursion naturally: governance DNA follows the same Archetype typing
@@ -338,7 +338,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │  id, subjectType, Ascriptions  │
     ├──────────────────────────────  ┤
     │ Ascription (→ Definition)      │
-    │  id, archetype, statement,     │
+    │  id, archetype, compilation,     │
     │  version, status, timestamp,   │
     │  statusTransitions             │
     ├───────────────┬─────────────── ┤
@@ -366,7 +366,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │   Extend Ascription; sealed Archetypes        │
     ├─────────────────────────────────────────────┤
     │ DOMAIN MODEL: vocabulary, semantics, schemas  │
-    │   Archetype (types statement via schema)    │
+    │   Archetype (types compilation via schema)    │
     │   typing, structure, extensibility             │
     └─────────────────────────────────────────────┘
 
@@ -624,11 +624,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       the system fundamentally is and stands for.
     - Extends Ascription. Inherits lifecycle
       (`status`, `version`, `statusTransitions`), Archetype-typing
-      (`archetype`), and `statement`. Typed by the sealed
+      (`archetype`), and `compilation`. Typed by the sealed
       DirectiveArchetype: the governance grammar (modal, verb, qualifier,
-      purpose) lives in `statement`. Class-specific accessors
+      purpose) lives in `compilation`. Class-specific accessors
       (`getModal()`, `getVerb()`, etc.) are convenience delegations into
-      `statement`.
+      `compilation`.
     - The slowest-changing governance primitive.
     - Grammar: Modal × Verb × Qualifier × Purpose
       e.g., "order-processing MUST ENSURE SecurityProperties OF
@@ -674,7 +674,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `structure`: The authoring Structure. Stored as a **table column**
       (envelope-level, alongside `id`, `archetype`) — not
-      inside the `statement` JSONB payload — to enable foreign-key
+      inside the `compilation` JSONB payload — to enable foreign-key
       referential integrity at the database level.
     - `modal`: Deontic obligation strength (see DirectiveModal enum).
     - `verb`: Governance direction/guarantee semantics (see DirectiveVerb
@@ -682,23 +682,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `qualifier`: Reference to the Archetype that defines the viability
       dimension being governed. Stored as a **table column**
       (envelope-level, alongside `id`, `archetype`, `structure`) —
-      derived from `statement.qualifier` at authoring time by the
+      derived from `compilation.qualifier` at authoring time by the
       definition-manager, materialized for foreign-key referential
       integrity. The Archetype's schema defines the measurable
       properties; Norms operationalizing this Directive reference this
       same Archetype in their guard/predicate CEL expressions.
     - `purpose`: Reference to the purposed Structure. Stored as a
       **table column** (envelope-level) — derived from
-      `statement.purpose` at authoring time by the definition-manager,
+      `compilation.purpose` at authoring time by the definition-manager,
       materialized for foreign-key referential integrity.
 
     **Validation Rules**:
 
-    - `statement.structure` MUST reference an existing Structure.
-    - `statement.modal` MUST be a valid DirectiveModal value.
-    - `statement.verb` MUST be a valid DirectiveVerb value.
-    - `statement.qualifier` MUST reference an existing Archetype.
-    - `statement.purpose` MUST reference the purpose of an existing
+    - `compilation.structure` MUST reference an existing Structure.
+    - `compilation.modal` MUST be a valid DirectiveModal value.
+    - `compilation.verb` MUST be a valid DirectiveVerb value.
+    - `compilation.qualifier` MUST reference an existing Archetype.
+    - `compilation.purpose` MUST reference the purpose of an existing
       Structure.
 
     **Consistency Rules**:
@@ -721,11 +721,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → statement.structure
-    - `getModal()` → `statement.modal`
-    - `getVerb()` → `statement.verb`
-    - `getQualifier()` → `statement.qualifier` → resolves Archetype
-    - `getPurpose()` → `statement.purpose` → resolves Structure
+    - `structure` → compilation.structure
+    - `getModal()` → `compilation.modal`
+    - `getVerb()` → `compilation.verb`
+    - `getQualifier()` → `compilation.qualifier` → resolves Archetype
+    - `getPurpose()` → `compilation.purpose` → resolves Structure
   end note
 
   Directive --|> Ascription
@@ -855,11 +855,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Concept Semantics**:
 
     - Extends Ascription. Inherits lifecycle, Archetype-typing,
-      and statement. Typed by the sealed NormArchetype: the constraint
+      and compilation. Typed by the sealed NormArchetype: the constraint
       grammar (guard, predicate, toleranceMode, etc.) lives in
-      `statement`. Class-specific accessors (`getGuard()`,
+      `compilation`. Class-specific accessors (`getGuard()`,
       `getPredicate()`, etc.) are convenience delegations into
-      `statement`.
+      `compilation`.
     - Faster-changing than Directive. Operationalizes a Directive's intent into
       an evaluable predicate.
     - Guard and predicate use two distinct **CEL profiles** — restricted
@@ -872,7 +872,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `structure`: The authoring Structure. Stored as a **table column**
       (envelope-level, alongside `id`, `archetype`) — not
-      inside the `statement` JSONB payload — to enable foreign-key
+      inside the `compilation` JSONB payload — to enable foreign-key
       referential integrity at the database level.
     - `guard`: CEL expression conforming to the **applicability-guard
       profile** (default: `"true"`). Activation condition — predicate
@@ -888,17 +888,17 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `statement.structure` MUST reference an existing Structure.
-    - `statement.guard` MUST conform to the **applicability-guard CEL
+    - `compilation.structure` MUST reference an existing Structure.
+    - `compilation.guard` MUST conform to the **applicability-guard CEL
       profile** (see CEL Profiles above).
-    - `statement.predicate` MUST conform to the **property-assertion
+    - `compilation.predicate` MUST conform to the **property-assertion
       CEL profile** (see CEL Profiles above).
-    - `statement.predicate` root Archetype MUST be in-scope for the
+    - `compilation.predicate` root Archetype MUST be in-scope for the
       governing Structure.
-    - `statement.toleranceMode` MUST NOT be null.
-    - `statement.temporalWindow` required when `statement.toleranceMode` is
+    - `compilation.toleranceMode` MUST NOT be null.
+    - `compilation.temporalWindow` required when `compilation.toleranceMode` is
       time-based.
-    - `statement.sustainedThreshold` required when `statement.toleranceMode`
+    - `compilation.sustainedThreshold` required when `compilation.toleranceMode`
       = SUSTAINED, MUST be in [0, 1].
 
     **Assignment Rules**:
@@ -913,13 +913,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → statement.structure
-    - `getGuard()` → `statement.guard`
-    - `getPredicate()` → `statement.predicate`
-    - `getToleranceMode()` → `statement.toleranceMode`
-    - `getTemporalWindow()` → `statement.temporalWindow` (nullable)
-    - `getTemporalAggregation()` → `statement.temporalAggregation` (nullable)
-    - `getSustainedThreshold()` → `statement.sustainedThreshold` (nullable)
+    - `structure` → compilation.structure
+    - `getGuard()` → `compilation.guard`
+    - `getPredicate()` → `compilation.predicate`
+    - `getToleranceMode()` → `compilation.toleranceMode`
+    - `getTemporalWindow()` → `compilation.temporalWindow` (nullable)
+    - `getTemporalAggregation()` → `compilation.temporalAggregation` (nullable)
+    - `getSustainedThreshold()` → `compilation.sustainedThreshold` (nullable)
 
     **CEL Profiles**:
 
@@ -1295,7 +1295,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     +getId(): String
     +getDefinition(): Definition
     +getArchetype(): Archetype
-    +getStatement(): String
+    +getCompilation(): String
     +getTimestamp(): String
     +getVersion(): Integer
     +getStatus(): AscriptionStatus
@@ -1309,10 +1309,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - An Ascription is the act of ascribing normative structure to a
       Definition — a governed snapshot that carries the concrete, version-
-      specific statement of what the governed subject currently IS.
+      specific compilation of what the governed subject currently IS.
     - Every structural constituent of a Structure (Mechanism, Interaction,
       Interface), the Structure itself, Archetypes, Directives, and Norms
-      are Ascriptions. The subtypes express *what kind of statement* is being
+      are Ascriptions. The subtypes express *what kind of compilation* is being
       ascribed; the Ascription base provides the common governance envelope.
     - `id` is the globally unique identity of THIS Ascription (snapshot).
       **UUIDv7** (RFC 9562): time-sortable (Unix epoch ms + random) and
@@ -1338,7 +1338,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statusTransitions` provides a complete governance audit trail: who
       changed the status, when, and why.
     - An Ascription is an **immutable snapshot**. Any change
-      to the statement MUST be expressed by authoring a new Ascription
+      to the compilation MUST be expressed by authoring a new Ascription
       (new `id`) for the same Definition. The only
       permitted in-place evolution of an Ascription row is the append-only
       growth of its `statusTransitions` audit trail.
@@ -1367,11 +1367,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `definition`: reference to the Definition whose stable identity
       this Ascription ascribes to. Immutable once assigned.
     - `archetype`: reference to the Archetype that types this Ascription,
-      constraining its statement content and providing domain semantics.
-    - `statement`: JSON-serializable payload ascribed to the element.
+      constraining its compilation content and providing domain semantics.
+    - `compilation`: JSON-serializable payload ascribed to the element.
       Carries the concrete, version-specific content whose structure is
       constrained by the Archetype schema (extension via `allOf`).
-      The `statement` payload is the fast-changing layer (A) of the
+      The `compilation` payload is the fast-changing layer (A) of the
       DNA — element-level configuration, parameters, and operational metadata.
     - `timestamp`: authoritative creation timestamp of THIS Ascription
       (timestamptz). Set by the database at insert time — the caller never
@@ -1396,15 +1396,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `statement` MUST validate against the JSON Schema referenced by
-      `archetype.statement.schema`.
+    - `compilation` MUST validate against the JSON Schema referenced by
+      `archetype.compilation.schema`.
 
     **Assignment Rules**:
 
     - When creating a new Ascription for the same subject, reference the same
       Definition.
     - Immutability (snapshot): once an Ascription row is created, `id`,
-      `definition`, `archetype`, and `statement` MUST NOT be modified in place.
+      `definition`, `archetype`, and `compilation` MUST NOT be modified in place.
     - Once `version` is assigned at APPROVED transition, it MUST NOT be
       modified.
     - `version` is auto-assigned atomically by a DB trigger when the
@@ -1431,7 +1431,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getDefinition()` → column `definition_id` → resolves Definition
     - `getTimestamp()` → column `timestamp` (timestamptz)
     - `getArchetype()` → column `archetype_id` → resolves Archetype
-    - `getStatement()` → column `statement` (JSON)
+    - `getCompilation()` → column `compilation` (JSON)
     - `getVersion()` → column `version`
     - `getStatus()` → column `status` (denormalized from latest transition)
     - `getStatusTransitions()` → composition (AscriptionStatusTransition rows
@@ -1620,7 +1620,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `getPurpose()` → `statement.purpose`
+    - `getPurpose()` → `compilation.purpose`
     - `getMechanisms()` → reverse lookup (Mechanisms
       whose `structure` = this.id)
     - `getInterfaces()` → derived (Interfaces whose effectors/receptors belong
@@ -1683,13 +1683,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `statement.structure` MUST reference an existing Structure `id`.
-    - `statement.function` MUST be non-empty.
-    - `statement.function` MUST be unique among all in-effect
+    - `compilation.structure` MUST reference an existing Structure `id`.
+    - `compilation.function` MUST be non-empty.
+    - `compilation.function` MUST be unique among all in-effect
       Mechanisms belonging to the same Structure.
-    - `statement.rule` MUST be syntactically valid Starlark
+    - `compilation.rule` MUST be syntactically valid Starlark
       (parseable by the Starlark parser).
-      - `statement.rule` MUST begin with exactly one
+      - `compilation.rule` MUST begin with exactly one
         `on("...")` call as its first executable statement.
       - The `on()` argument MUST be a string literal resolving to a defined
         Archetype in the governed scope.
@@ -1720,11 +1720,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - The Structure reference is derived from the Mechanism's Archetype
       (`structure`).
-    - `structure` → statement.structure
-    - `getFunction()` → `statement.function`
-    - `getRule()` → `statement.rule`
-    - `getEffectors()` → derived Effectors (auto-derived from `statement.rule` AST)
-    - `getReceptors()` → derived Receptors (auto-derived from `statement.rule` AST)
+    - `structure` → compilation.structure
+    - `getFunction()` → `compilation.function`
+    - `getRule()` → `compilation.rule`
+    - `getEffectors()` → derived Effectors (auto-derived from `compilation.rule` AST)
+    - `getReceptors()` → derived Receptors (auto-derived from `compilation.rule` AST)
     - *Receptor derivation (inputs)*
       - `on("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
@@ -1805,14 +1805,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Mechanism.
     - `archetype`: the Archetype that types and constrains the
       Effector's output. Note: this is the **data archetype** (from
-      `statement.archetype`), distinct from the Ascription-level
+      `compilation.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Effector Ascription
       itself as EffectorArchetype.
 
     **Validation Rules**:
 
-    - `statement.mechanism` reference MUST NOT be null.
-    - `statement.archetype` reference MUST NOT be null.
+    - `compilation.mechanism` reference MUST NOT be null.
+    - `compilation.archetype` reference MUST NOT be null.
 
     **State Rules**:
 
@@ -1822,13 +1822,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `mechanism` → statement.mechanism.
+    - `mechanism` → compilation.mechanism.
       Stored as a **table column** (`mechanism_id`) — derived from
-      `statement.mechanism` at authoring time by the definition-manager,
+      `compilation.mechanism` at authoring time by the definition-manager,
       materialized for foreign-key referential integrity.
-    - `archetype` → statement.archetype.
+    - `archetype` → compilation.archetype.
       Stored as a **table column**
-      (`output_archetype_id`) — derived from `statement.archetype` at
+      (`output_archetype_id`) — derived from `compilation.archetype` at
       authoring time by the definition-manager, materialized for
       foreign-key referential integrity.
   end note
@@ -1868,14 +1868,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Mechanism.
     - `archetype`: the Archetype that types and constrains the
       Receptor's input. Note: this is the **data archetype** (from
-      `statement.archetype`), distinct from the Ascription-level
+      `compilation.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Receptor Ascription
       itself as ReceptorArchetype.
 
     **Validation Rules**:
 
-    - `statement.mechanism` reference MUST NOT be null.
-    - `statement.archetype` reference MUST NOT be null.
+    - `compilation.mechanism` reference MUST NOT be null.
+    - `compilation.archetype` reference MUST NOT be null.
 
     **State Rules**:
 
@@ -1885,13 +1885,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `mechanism` → statement.mechanism.
+    - `mechanism` → compilation.mechanism.
       Stored as a **table column** (`mechanism_id`) — derived from
-      `statement.mechanism` at authoring time by the definition-manager,
+      `compilation.mechanism` at authoring time by the definition-manager,
       materialized for foreign-key referential integrity.
-    - `archetype` → statement.archetype.
+    - `archetype` → compilation.archetype.
       Stored as a **table column**
-      (`input_archetype_id`) — derived from `statement.archetype` at
+      (`input_archetype_id`) — derived from `compilation.archetype` at
       authoring time by the definition-manager, materialized for
       foreign-key referential integrity.
   end note
@@ -1936,10 +1936,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `statement.effector` MUST NOT be null.
-    - `statement.receptor` MUST NOT be null.
-    - `statement.effector.archetype` MUST be schema-compatible with
-      `statement.receptor.archetype`.
+    - `compilation.effector` MUST NOT be null.
+    - `compilation.receptor` MUST NOT be null.
+    - `compilation.effector.archetype` MUST be schema-compatible with
+      `compilation.receptor.archetype`.
 
     **State Rules**:
 
@@ -1949,8 +1949,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `effector` → statement.effector
-    - `receptor` → statement.receptor
+    - `effector` → compilation.effector
+    - `receptor` → compilation.receptor
   end note
 
   Interaction --|> Ascription
@@ -1998,7 +1998,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-      - If `statement.effectorIds`/`statement.receptorIds` are
+      - If `compilation.effectorIds`/`compilation.receptorIds` are
         present, they MUST reference Effector/Receptor `id`s that belong
         to Mechanisms within the same Structure as the Interface's Structure.
 
@@ -2010,11 +2010,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → statement.structure
+    - `structure` → compilation.structure
     - `getEffectors()` → `interface_effector` join table (resolved from
-      `statement.effectorIds` at authoring time by the definition-manager)
+      `compilation.effectorIds` at authoring time by the definition-manager)
     - `getReceptors()` → `interface_receptor` join table (resolved from
-      `statement.receptorIds` at authoring time by the definition-manager)
+      `compilation.receptorIds` at authoring time by the definition-manager)
 
     **Usage Rules**:
 
@@ -2065,7 +2065,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Unified type construct for all structural and domain typing.
     - Effectors and Receptors reference Archetypes directly to declare the
       type of information they emit/consume. The Archetype's
-      `statement.schema` is the governed JSON Schema content; the
+      `compilation.schema` is the governed JSON Schema content; the
       definition-manager publishes the same content to the schema registry and
       exposes the resulting envelope-level `schemaUri` through
       `getSchemaUri()`.
@@ -2073,23 +2073,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Attribute Semantics**:
 
     - `description.schema`: the governed JSON Schema content (draft 2020-12+) carried in
-      the Archetype `statement` payload. This is the authoritative typed
+      the Archetype `compilation` payload. This is the authoritative typed
       specification that validates instances of Ascriptions referencing this
       Archetype.
     - `schemaUri`: canonical URI for the same JSON Schema document after the
       definition-manager publishes it to the schema registry. `schemaUri` is an
       envelope-level field assigned by the definition-manager; it is not part
-      of the governed `statement` payload.
+      of the governed `compilation` payload.
 
     **Validation Rules**:
 
-    - `statement.schema` MUST NOT be null.
-    - `statement.schema` MUST be a valid JSON Schema
+    - `compilation.schema` MUST NOT be null.
+    - `compilation.schema` MUST be a valid JSON Schema
       (draft 2020-12+).
       dereferencing it must always return the same schema content over time.
       Mutable aliases such as "latest" (or any moving target) MUST be rejected
       by the definition-manager.
-    - `statement.schema` MUST declare an `allOf` chain that
+    - `compilation.schema` MUST declare an `allOf` chain that
       ultimately roots at the GSM base archetype schema. Intermediate
       tenant archetypes are permitted (depth-N chains) as long as all `allOf`
       paths converge to the same GSM base.
@@ -2099,13 +2099,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Relational Consistency Rules**:
 
     - Any Ascription that references this Archetype MUST have
-      `statement` compatible with the JSON Schema referenced by
-      `statement.schema`.
+      `compilation` compatible with the JSON Schema referenced by
+      `compilation.schema`.
 
     **Assignment Rules**:
 
-    - Authors provide `statement.schema` when authoring an Archetype.
-    - The definition-manager publishes `statement.schema` to the schema
+    - Authors provide `compilation.schema` when authoring an Archetype.
+    - The definition-manager publishes `compilation.schema` to the schema
       registry and assigns the resulting immutable `schemaUri` in the
       Archetype envelope before persistence.
 
@@ -2118,7 +2118,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Derivation Rules**:
 
     - Base archetype classification is derived from the schema content
-      (`statement.schema.allOf.$ref`), not from a separate field.
+      (`compilation.schema.allOf.$ref`), not from a separate field.
     - `getSchemaUri()` → envelope field / column `schema_uri`
 
     **Notes**:

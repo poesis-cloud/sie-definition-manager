@@ -33,7 +33,7 @@ import jakarta.persistence.PrePersist;
  *
  * <p>
  * Immutable-after-creation fields ({@code definition}, {@code archetype},
- * {@code statement}) are set via constructor. All other fields
+ * {@code compilation}) are set via constructor. All other fields
  * ({@code timestamp}, {@code status}, {@code version}) are DB
  * trigger-managed — no setters exposed.
  *
@@ -54,7 +54,7 @@ import jakarta.persistence.PrePersist;
  * <ul>
  * <li>{@code id} — insertable (JPA generates via @PrePersist), not updatable
  * <li>{@code definition_id}, {@code archetype_id},
- * {@code statement} — insertable, not updatable (immutable-after-creation)
+ * {@code compilation} — insertable, not updatable (immutable-after-creation)
  * <li>{@code timestamp}, {@code status}, {@code version} — neither insertable
  * nor updatable (DB trigger-managed exclusively)
  * </ul>
@@ -77,8 +77,8 @@ public abstract class AscriptionEntity {
     private ArchetypeEntity archetype;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "statement", nullable = false, updatable = false, columnDefinition = "jsonb")
-    private JsonNode statement;
+    @Column(name = "compilation", nullable = false, updatable = false, columnDefinition = "jsonb")
+    private JsonNode compilation;
 
     @Column(name = "\"timestamp\"", nullable = false, updatable = false, insertable = false)
     private Instant timestamp;
@@ -95,10 +95,10 @@ public abstract class AscriptionEntity {
     }
 
     protected AscriptionEntity(
-            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
+            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode compilation) {
         this.definition = Objects.requireNonNull(definition, "definition");
         this.archetype = Objects.requireNonNull(archetype, "archetype");
-        this.statement = Objects.requireNonNull(statement, "statement");
+        this.compilation = Objects.requireNonNull(compilation, "compilation");
     }
 
     @PrePersist
@@ -126,8 +126,8 @@ public abstract class AscriptionEntity {
     }
 
     @NonNull
-    public JsonNode getStatement() {
-        return statement;
+    public JsonNode getCompilation() {
+        return compilation;
     }
 
     @NonNull

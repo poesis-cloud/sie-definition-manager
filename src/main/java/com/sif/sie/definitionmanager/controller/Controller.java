@@ -30,14 +30,14 @@ public abstract class Controller {
         }
         return new AscriptionDto(
                 type.getValue(),
-                entity.getDefinition().getId(),
                 entity.getId(),
-                entity.getTimestamp(),
+                entity.getDefinition().getId(),
                 entity.getArchetype().getId(),
-                entity.getStatement(),
+                entity.getCompilation(),
                 entity.getVersion(),
                 entity.getStatus() != null ? entity.getStatus().name() : "DRAFT",
-                schemaUri);
+                schemaUri,
+                entity.getTimestamp());
     }
 
     protected AscriptionStatusTransitionDto toTransitionDto(AscriptionStatusTransitionEntity t) {
@@ -80,9 +80,8 @@ public abstract class Controller {
     @ExceptionHandler(Exception.class)
     ProblemDetail handleGeneric(Exception ex) {
         log.error("Unexpected error", ex);
-        ProblemDetail pd =
-                ProblemDetail.forStatusAndDetail(
-                        HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
         pd.setTitle("Internal server error");
         return pd;
     }

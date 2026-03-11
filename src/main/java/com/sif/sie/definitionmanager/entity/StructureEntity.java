@@ -30,8 +30,8 @@ public class StructureEntity extends AscriptionEntity {
     }
 
     public StructureEntity(
-            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
-        super(definition, archetype, statement);
+            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode compilation) {
+        super(definition, archetype, compilation);
     }
 
     @NonNull

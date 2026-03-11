@@ -46,7 +46,7 @@ import com.sif.sie.definitionmanager.client.SchemaRegistryClient;
  * <p>
  * API shape: subjectType is derived from archetype's schema URI; FK references
  * live in the
- * statement payload; ascription history is queried via
+ * compilation payload; ascription history is queried via
  * {@code /history?definitionId=X&type=Y}.
  */
 @SpringBootTest
@@ -107,7 +107,7 @@ class AscriptionApiIT {
         JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
         JsonNode items = body.at("/_embedded/ascriptionResponseList");
         for (JsonNode item : items) {
-            String stmtStr = item.get("statement").toString();
+            String stmtStr = item.get("compilation").toString();
             if (stmtStr.contains("Archetype.schema.json")) {
                 seedArchetypeId = UUID.fromString(item.get("id").asText());
             }
@@ -137,9 +137,9 @@ class AscriptionApiIT {
     @Test
     @Order(10)
     void createArchetype_returnsDraftWithHalLinks() throws Exception {
-        ObjectNode statement = mapper.createObjectNode();
-        statement.put("name", "TestArchetype");
-        statement.set(
+        ObjectNode compilation = mapper.createObjectNode();
+        compilation.put("name", "TestArchetype");
+        compilation.set(
                 "schema",
                 mapper
                         .createObjectNode()
@@ -148,7 +148,7 @@ class AscriptionApiIT {
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", seedArchetypeId.toString());
-        request.set("statement", statement);
+        request.set("compilation", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -174,9 +174,9 @@ class AscriptionApiIT {
     @Test
     @Order(11)
     void createSiblingAscription_sameDefinitionDifferentAscription() throws Exception {
-        ObjectNode statement = mapper.createObjectNode();
-        statement.put("name", "TestArchetype-v2");
-        statement.set(
+        ObjectNode compilation = mapper.createObjectNode();
+        compilation.put("name", "TestArchetype-v2");
+        compilation.set(
                 "schema",
                 mapper
                         .createObjectNode()
@@ -186,7 +186,7 @@ class AscriptionApiIT {
         ObjectNode request = mapper.createObjectNode();
         request.put("definitionId", createdArchetypeDefinitionId.toString());
         request.put("archetypeId", seedArchetypeId.toString());
-        request.set("statement", statement);
+        request.set("compilation", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -321,12 +321,12 @@ class AscriptionApiIT {
     @Test
     @Order(50)
     void createStructure_withArchetypeFk() throws Exception {
-        ObjectNode statement = mapper.createObjectNode();
-        statement.put("purpose", "test-payment-processing");
+        ObjectNode compilation = mapper.createObjectNode();
+        compilation.put("purpose", "test-payment-processing");
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", structureArchetypeId.toString());
-        request.set("statement", statement);
+        request.set("compilation", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -343,17 +343,17 @@ class AscriptionApiIT {
 
     @Test
     @Order(51)
-    void createMechanism_withStructureFkInStatement() throws Exception {
-        ObjectNode statement = mapper.createObjectNode();
-        statement.put("function", "PaymentValidation");
-        statement.put(
+    void createMechanism_withStructureFkInCompilation() throws Exception {
+        ObjectNode compilation = mapper.createObjectNode();
+        compilation.put("function", "PaymentValidation");
+        compilation.put(
                 "rule", "on(\"PaymentRequest\")\nresult = sys.emit(\"PaymentResult\", {\"ok\": True})");
-        statement.put("ruleLanguage", "STARLARK");
-        statement.put("structureId", createdStructureId.toString());
+        compilation.put("ruleLanguage", "STARLARK");
+        compilation.put("structureId", createdStructureId.toString());
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", mechanismArchetypeId.toString());
-        request.set("statement", statement);
+        request.set("compilation", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -369,16 +369,16 @@ class AscriptionApiIT {
 
     @Test
     @Order(52)
-    void createMechanism_missingStructureInStatement_returns400() throws Exception {
-        ObjectNode statement = mapper.createObjectNode();
-        statement.put("function", "Orphan");
-        statement.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
-        statement.put("ruleLanguage", "STARLARK");
-        // structureId intentionally omitted from statement
+    void createMechanism_missingStructureInCompilation_returns400() throws Exception {
+        ObjectNode compilation = mapper.createObjectNode();
+        compilation.put("function", "Orphan");
+        compilation.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+        compilation.put("ruleLanguage", "STARLARK");
+        // structureId intentionally omitted from compilation
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", mechanismArchetypeId.toString());
-        request.set("statement", statement);
+        request.set("compilation", compilation);
 
         mvc.perform(
                 post("/api/v1/ascriptions")
@@ -389,16 +389,16 @@ class AscriptionApiIT {
 
     @Test
     @Order(53)
-    void createMechanism_bogusStructureInStatement_returns400() throws Exception {
-        ObjectNode statement = mapper.createObjectNode();
-        statement.put("function", "Orphan");
-        statement.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
-        statement.put("ruleLanguage", "STARLARK");
-        statement.put("structureId", UUID.randomUUID().toString());
+    void createMechanism_bogusStructureInCompilation_returns400() throws Exception {
+        ObjectNode compilation = mapper.createObjectNode();
+        compilation.put("function", "Orphan");
+        compilation.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+        compilation.put("ruleLanguage", "STARLARK");
+        compilation.put("structureId", UUID.randomUUID().toString());
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", mechanismArchetypeId.toString());
-        request.set("statement", statement);
+        request.set("compilation", compilation);
 
         mvc.perform(
                 post("/api/v1/ascriptions")
@@ -435,7 +435,7 @@ class AscriptionApiIT {
         ObjectNode stmt = mapper.createObjectNode().put("purpose", "cascade-test");
         ObjectNode req = mapper.createObjectNode();
         req.put("archetypeId", structureArchetypeId.toString());
-        req.set("statement", stmt);
+        req.set("compilation", stmt);
 
         MvcResult r1 = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -456,7 +456,7 @@ class AscriptionApiIT {
         ObjectNode req2 = mapper.createObjectNode();
         req2.put("definitionId", defId.toString());
         req2.put("archetypeId", structureArchetypeId.toString());
-        req2.set("statement", stmt2);
+        req2.set("compilation", stmt2);
 
         MvcResult r2 = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -489,7 +489,7 @@ class AscriptionApiIT {
         stmt.set("schema", mapper.createObjectNode().put("type", "object"));
         ObjectNode req = mapper.createObjectNode();
         req.put("archetypeId", seedArchetypeId.toString());
-        req.set("statement", stmt);
+        req.set("compilation", stmt);
 
         MvcResult r = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -547,9 +547,9 @@ class AscriptionApiIT {
                 .andExpect(jsonPath("$.components.schemas.DirectiveDefinition").exists())
                 .andExpect(jsonPath("$.components.schemas.NormDefinition").exists())
                 .andExpect(jsonPath("$.components.schemas.ArchetypeDefinition").exists())
-                // StatementPayload oneOf references
-                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf").isArray())
-                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf", hasSize(9)))
+                // CompilationPayload oneOf references
+                .andExpect(jsonPath("$.components.schemas.CompilationPayload.oneOf").isArray())
+                .andExpect(jsonPath("$.components.schemas.CompilationPayload.oneOf", hasSize(9)))
                 .andReturn();
 
         // Verify a concrete archetype schema has the expected properties

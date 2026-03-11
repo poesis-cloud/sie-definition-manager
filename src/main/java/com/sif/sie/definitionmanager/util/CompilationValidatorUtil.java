@@ -14,32 +14,32 @@ import com.networknt.schema.ValidationMessage;
 import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
 
 /**
- * Validates ascription {@code statement} payloads against their archetype's
- * JSON Schema ({@code statement.schema}).
+ * Validates ascription {@code compilation} payloads against their archetype's
+ * JSON Schema ({@code compilation.schema}).
  */
 @Component
-public class StatementValidatorUtil {
+public class CompilationValidatorUtil {
 
     private final JsonSchemaFactory schemaFactory;
 
-    public StatementValidatorUtil() {
+    public CompilationValidatorUtil() {
         this.schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
     }
 
     /**
-     * Validates the given statement against the archetype's embedded schema.
+     * Validates the given compilation against the archetype's embedded schema.
      *
      * @throws IllegalArgumentException if validation fails, with details
      */
-    public void validate(JsonNode statement, ArchetypeEntity archetype) {
-        JsonNode archetypeStatement = archetype.getStatement();
-        JsonNode schemaNode = archetypeStatement.get("schema");
+    public void validate(JsonNode compilation, ArchetypeEntity archetype) {
+        JsonNode archetypeCompilation = archetype.getCompilation();
+        JsonNode schemaNode = archetypeCompilation.get("schema");
 
         SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
 
         JsonSchema schema = schemaFactory.getSchema(schemaNode, config);
 
-        Set<ValidationMessage> errors = schema.validate(statement);
+        Set<ValidationMessage> errors = schema.validate(compilation);
 
         if (!errors.isEmpty()) {
             String details = errors.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("; "));

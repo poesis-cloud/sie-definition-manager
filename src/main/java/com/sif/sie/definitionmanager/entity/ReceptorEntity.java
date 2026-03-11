@@ -31,10 +31,10 @@ public class ReceptorEntity extends AscriptionEntity {
     public ReceptorEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode statement,
+            JsonNode compilation,
             MechanismEntity mechanism,
             ArchetypeEntity inputArchetype) {
-        super(definition, archetype, statement);
+        super(definition, archetype, compilation);
         this.mechanism = Objects.requireNonNull(mechanism, "mechanism");
         this.inputArchetype = Objects.requireNonNull(inputArchetype, "inputArchetype");
     }
