@@ -466,6 +466,7 @@ not a compilation artifact.
 | GSM conceptual integrity | Receptor role is partly decorative | Receptor and Effector are first-class structural contracts |
 
 **Recommendation**: Option C. The additional structural entities (Receptor
+
 - Effector per tenant Archetype) are a real cost, but they preserve the
 conceptual integrity of the Receptor/Effector/Mechanism model. Option B
 reduces the Receptor to a decorative label — the real typing authority is the
@@ -496,6 +497,7 @@ tenant's explicit responsibility, or does DM create them automatically?
 #### Strategy 1a — Fully explicit (tenant creates everything)
 
 Tenant workflow:
+
 1. Create `MyStructureArchetype` (Archetype Ascription)
 2. Create `MyStructureReceptor` (Receptor Ascription, inputArchetype = MyStructureArchetype)
 3. Create `MyStructureEffector` (Effector Ascription, outputArchetype = MyStructureArchetype)
@@ -503,6 +505,7 @@ Tenant workflow:
 5. Update pipeline Interface to expose new Receptor/Effector
 
 **Advantages**:
+
 - Full governance control. Every entity goes through the standard lifecycle
   (DRAFT → PROPOSED → APPROVED → ACTIVE). No hidden side effects.
 - The tenant chooses which Mechanisms to wire to — they can compose a custom
@@ -511,6 +514,7 @@ Tenant workflow:
   is governed.
 
 **Disadvantages**:
+
 - High ceremony. Creating one Archetype requires 4+ additional Ascriptions
   before it's usable. This is operationally expensive — especially at Layer 1
   where the compilation logic is identical to the base (pass-through of
@@ -524,6 +528,7 @@ Tenant workflow:
 
 When a tenant creates a non-facet Archetype that extends a GSM base via allOf,
 DM auto-derives:
+
 - A Receptor typed by the new Archetype
 - An Effector typed by the new Archetype
 - Interactions wiring them to the same Mechanism(s) as the parent Archetype's
@@ -535,6 +540,7 @@ governable. They enter the lifecycle at DRAFT (or PROPOSED, following the parent
 Archetype's status).
 
 **Advantages**:
+
 - Low ceremony. Create the Archetype; the pipeline is usable immediately
   (or after governance approval of the derived entities).
 - Consistent behavior: every allOf Archetype automatically gets a pipeline
@@ -544,6 +550,7 @@ Archetype's status).
   Auto-derivation is the default, not a constraint.
 
 **Disadvantages**:
+
 - Side effects: creating one Ascription triggers creation of others. This is
   conceptually similar to how Mechanism compilation auto-derives Effectors
   and Receptors from the rule AST — so there IS precedent in GSM. But
@@ -620,7 +627,7 @@ plumbing.
 
 #### Analysis: does the Effector determine the Receptor?
 
-At Layer 0: yes. One pipeline per base type. `StructureCompilationEffector` 
+At Layer 0: yes. One pipeline per base type. `StructureCompilationEffector`
 → `StructureCompilationMechanism` → `StructureReceptor`. Unique path.
 
 At Layer 1 (with auto-derived Receptor/Effector per allOf Archetype):
@@ -630,10 +637,12 @@ unique — auto-derivation preserves the 1:1 mapping.
 At Layer 2: a tenant may create multiple pipelines producing the same
 Effector Archetype (e.g., JSON pipeline and YAML pipeline → same
 StructureArchetype output). In this case:
+
 ```
 StructureJsonReceptor    → JsonPipelineMechanism    → StructureEffector
 StructureYamlReceptor    → YamlPipelineMechanism    → StructureEffector
 ```
+
 Now the Effector does NOT determine the Receptor. Both are required.
 
 But wait — under Option C, each allOf variant has its OWN Effector. So the
@@ -646,10 +655,12 @@ If each input format has its own Effector → redundant again.
 **The conceptual argument**: an Effector is the output endpoint of a specific
 Mechanism. Two different pipeline Mechanisms cannot share the same Effector
 instance — each has its own Effectors. So:
+
 ```
 JsonPipelineMechanism.effector₁  →  StructureArchetype (output)
 YamlPipelineMechanism.effector₂  →  StructureArchetype (output)
 ```
+
 These are DIFFERENT Effector instances (effector₁ ≠ effector₂), even though
 they produce the same Archetype. The client specifying `compilationEffectorId`
 already selects the pipeline.
@@ -874,6 +885,7 @@ is vendor-governed with regulatory Norms. "TenantDomainCompilation" is
 tenant-governed.
 
 **Who decides the grouping?** The entity that governs the Structure:
+
 - GSM base Interface → governed by SIE's own governance Structure (Layer 0)
 - Vendor Interfaces → governed by vendor's governance Structure (Layer 1-2)
 - Tenant Interfaces → governed by tenant's governance Structure (Layer 2)
@@ -885,6 +897,7 @@ cross-contamination.
 
 When DM auto-derives Receptors/Effectors (Strategy 1c from Q1), the
 assignment to an Interface follows the Archetype's governance domain:
+
 - allOf extends a base → add to "BaseCompilation" Interface (default)
 - allOf extends a vendor Archetype → add to vendor's Interface
 - Tenant can move them to a different Interface afterward
