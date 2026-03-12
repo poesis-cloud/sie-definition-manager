@@ -1,27 +1,40 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sie://schemas/gsm/v1/Archetype.schema.json",
+    "$id": "gsm://archetypes/Archetype/v1",
     "title": "Archetype",
-    "description": "Base archetype schema for the statement payload of Archetype Ascriptions. The `schema` property defined here carries the governed JSON Schema content for the Archetype. The definition-manager publishes that content to the schema registry and assigns an envelope-level `schemaUri` outside this payload. Archetype extends Ascription and is the sole typed deliverable in the definition plane.",
+    "description": "Schema for Archetype Ascriptions — type definition (meta-model). The Archetype's identity is carried by schema.title (DM-enforced identity-bound rule: MUST be non-empty, globally unique among in-effect Archetypes, and MUST NOT change across Ascriptions of the same Definition). schema.title is used as the root identifier in Norm CEL predicates. The schema property carries the governed JSON Schema document. DM persists the schema as-is and assigns $id using the convention gsm://archetypes/{schema.title}/v{version}. DM input = DM output (1:1). Sealed — tenant-defined archetypes MUST NOT extend Archetype.",
     "$gsm:sealed": true,
-    "$gsm:gsmClass": "Archetype",
     "type": "object",
-    "required": [
-        "schema"
-    ],
     "examples": [
         {
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "$id": "sie://schemas/gsm/v1/Structure.schema.json",
-                "$ref": "sie://schemas/gsm/v1/Structure.schema.json"
+                "$id": "gsm://archetypes/SecurityProperties/v1",
+                "title": "SecurityProperties",
+                "allOf": [
+                    {
+                        "$ref": "gsm://archetypes/Structure/v1"
+                    }
+                ],
+                "properties": {
+                    "encryptionLevel": {
+                        "type": "string"
+                    },
+                    "tlsEnabled": {
+                        "type": "boolean"
+                    }
+                }
             }
         }
+    ],
+    "required": [
+        "schema"
     ],
     "properties": {
         "schema": {
             "type": "object",
-            "description": "The governed JSON Schema document (draft 2020-12+) defining the structure of instances typed by this Archetype. The definition-manager publishes this exact schema content to the schema registry and assigns an immutable envelope-level schemaUri for dereferencing. The schema MUST root, via allOf, at exactly one GSM base archetype schema."
+            "description": "The governed JSON Schema document (draft 2020-12+) defining the structure and semantics of instances typed by this Archetype. MUST root, via allOf, at exactly one GSM base archetype schema. DM validates the schema and persists it as-is. DM assigns $id inside the schema document using the convention gsm://archetypes/{schema.title}/v{version} — deterministic from schema.title (identity) and Ascription version. The schema content may evolve across Ascription versions (new properties, updated constraints). However, the set of properties annotated $gsm:identityBound within this schema IS immutable per Archetype Definition — changing the identity-bound set requires a new Definition. DM-enforced identity rule: schema.title MUST be non-empty, globally unique among in-effect Archetypes, and MUST NOT change across Ascriptions of the same Definition. schema.title is the Archetype's human-readable identity — used as the root identifier in Norm CEL guard/predicate expressions (e.g., 'SecurityProperties.encryptionLevel')."
         }
-    }
+    },
+    "additionalProperties": false
 }

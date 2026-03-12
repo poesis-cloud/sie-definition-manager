@@ -1,31 +1,33 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sie://schemas/gsm/v1/Interaction.schema.json",
+    "$id": "gsm://archetypes/Interaction/v1",
     "title": "Interaction",
-    "description": "Base ascription schema for Interaction Ascriptions. Defines the causal binding by referencing an Effector and a Receptor. Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
+    "description": "Schema for Interaction Ascriptions — causal coupling between Mechanisms. Defines the Effector→Receptor binding. DM validates Archetype schema-compatibility between the Effector output and Receptor input. DM input = DM output (1:1). Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
     "$gsm:sealed": true,
-    "$gsm:gsmClass": "Interaction",
     "type": "object",
-    "required": [
-        "effector",
-        "receptor"
-    ],
     "examples": [
         {
             "effector": "019cc49a-dc5a-7a3b-909f-969bfe0d738e",
             "receptor": "019cc49a-dc5a-75ab-a4cb-e02d100e6c01"
         }
     ],
+    "required": [
+        "effector",
+        "receptor"
+    ],
     "properties": {
         "effector": {
             "type": "string",
-            "minLength": 1,
-            "description": "ID reference to the Effector that is the emitting endpoint."
+            "format": "uuid",
+            "$gsm:identityBound": true,
+            "description": "ID reference to the Effector that is the emitting endpoint of this causal coupling."
         },
         "receptor": {
             "type": "string",
-            "minLength": 1,
-            "description": "ID reference to the Receptor that is the receiving endpoint."
+            "format": "uuid",
+            "$gsm:identityBound": true,
+            "description": "ID reference to the Receptor that is the receiving endpoint of this causal coupling."
         }
-    }
+    },
+    "unevaluatedProperties": false
 }

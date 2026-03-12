@@ -1,10 +1,33 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sie://schemas/gsm/v1/Norm.schema.json",
+    "$id": "gsm://archetypes/Norm/v1",
     "title": "Norm",
-    "description": "Governance DNA archetype for Norm - measurable constraint predicates (DNA 'N'). Standalone first-class GSM class with independent lifecycle, typed by NormArchetype. Fields: structure, guard, predicate, toleranceMode, temporalWindow, temporalAggregation, sustainedThreshold.",
+    "description": "Schema for Norm Ascriptions — measurable constraint predicates (DNA 'N'). Defines the governance grammar: structure, qualifier, guard, predicate, toleranceMode, and mode-dependent temporal fields. DM validates CEL expressions against their profiles. Sealed — tenant-defined archetypes MUST NOT extend Norm. DM input = DM output (1:1).",
     "$gsm:sealed": true,
-    "$gsm:gsmClass": "Norm",
+    "type": "object",
+    "examples": [
+        {
+            "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+            "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
+            "guard": "DeploymentProperties.environment == \"production\"",
+            "predicate": "PerformanceProperties.p99Latency < 500",
+            "toleranceMode": "AGGREGATED",
+            "temporalWindow": "PT5M",
+            "temporalAggregation": "P99"
+        },
+        {
+            "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+            "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
+            "predicate": "SecurityProperties.tlsEnabled == true",
+            "toleranceMode": "INSTANTANEOUS"
+        }
+    ],
+    "required": [
+        "structure",
+        "qualifier",
+        "predicate",
+        "toleranceMode"
+    ],
     "allOf": [
         {
             "if": {
@@ -57,42 +80,29 @@
             }
         }
     ],
-    "type": "object",
-    "required": [
-        "structure",
-        "predicate",
-        "toleranceMode"
-    ],
-    "examples": [
-        {
-            "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-            "guard": "DeploymentProperties.environment == \"production\"",
-            "predicate": "PerformanceProperties.p99Latency < 500",
-            "toleranceMode": "AGGREGATED",
-            "temporalWindow": "PT5M",
-            "temporalAggregation": "P99"
-        },
-        {
-            "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-            "predicate": "SecurityProperties.tlsEnabled == true",
-            "toleranceMode": "INSTANTANEOUS"
-        }
-    ],
     "properties": {
         "structure": {
             "type": "string",
-            "minLength": 1,
-            "description": "Reference to the authoring Structure. May differ from the Directive's authoring Structure."
+            "format": "uuid",
+            "$gsm:identityBound": true,
+            "description": "ID reference to the authoring Structure."
+        },
+        "qualifier": {
+            "type": "string",
+            "format": "uuid",
+            "$gsm:identityBound": true,
+            "description": "ID reference to the Archetype that the predicate constrains — mirrors Directive.qualifier. Enables governance chain validation and direct queryability ('all Norms targeting SecurityProperties') without CEL parsing."
         },
         "guard": {
             "type": "string",
             "default": "true",
-            "description": "CEL expression conforming to the applicability-guard CEL profile - activation condition. Predicate is only evaluated when guard evaluates to true. Default: 'true' (unconditional activation)."
+            "description": "CEL expression conforming to the applicability-guard CEL profile — activation condition. Predicate is only evaluated when guard is true. Default: 'true' (unconditional)."
         },
         "predicate": {
             "type": "string",
             "minLength": 1,
-            "description": "CEL expression conforming to the property-assertion CEL profile, returning boolean. The constraint. References exactly one Archetype by name as root identifier, then navigates its JSON Schema fields. Example: SecurityProperties.encryptionLevel >= 'AES-128'."
+            "$gsm:identityBound": true,
+            "description": "CEL expression conforming to the property-assertion CEL profile → bool. References exactly one Archetype by name as root identifier, then navigates its JSON Schema fields."
         },
         "toleranceMode": {
             "type": "string",
@@ -101,12 +111,12 @@
                 "AGGREGATED",
                 "SUSTAINED"
             ],
-            "description": "How violations are measured over time."
+            "description": "How violations are measured over time. Discriminates which temporal fields are required."
         },
         "temporalWindow": {
             "type": "string",
             "pattern": "^P",
-            "description": "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is time-based (AGGREGATED, SUSTAINED)."
+            "description": "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is AGGREGATED or SUSTAINED."
         },
         "temporalAggregation": {
             "type": "string",
@@ -121,13 +131,13 @@
                 "P95",
                 "P99"
             ],
-            "description": "Aggregation function applied to values within the temporalWindow."
+            "description": "Aggregation function applied within the temporalWindow. Required when toleranceMode is AGGREGATED or SUSTAINED."
         },
         "sustainedThreshold": {
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "description": "Ratio [0,1] - fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
+            "description": "Ratio [0,1] — fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
         }
     },
     "additionalProperties": false

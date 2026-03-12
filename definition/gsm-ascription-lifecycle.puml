@@ -66,6 +66,38 @@ note as Legend
 end note
 
 note as Rules
+  **Definition Identity Invariant**
+
+  Certain `statement` fields are **identity-bound** — they
+  constitute what the Definition fundamentally IS and MUST NOT
+  change across Ascriptions of the same Definition. The
+  definition-manager MUST reject any Ascription whose
+  identity-bound fields differ from the Definition's first
+  Ascription. To change an identity-bound field, author a new
+  Definition.
+
+  Identity-bound fields are declared via `$gsm:identityBound: true`
+  annotations on properties in Archetype schemas. DM introspects
+  schemas to enforce the invariant. The identity-bound set itself
+  is immutable per Archetype Definition — changing which properties
+  are identity-bound requires a new Archetype Definition.
+
+  GSM base schema identity-bound fields (summary):
+
+  | SubjectType | Identity-bound fields |
+  |---|---|
+  | Structure | `purpose` |
+  | Mechanism | `structure`, `function` |
+  | Effector | `mechanism`, `archetype` (data) |
+  | Receptor | `mechanism`, `archetype` (data) |
+  | Interaction | `effector`, `receptor` |
+  | Interface | `structure` |
+  | Directive | `structure`, `qualifier`, `purpose` |
+  | Norm | `structure`, `qualifier`, `predicate` |
+  | Archetype | `schema.title` (DM-enforced) |
+
+  ====
+
   **Transition Rules**
 
   A Referee is an Ascription whose statement
@@ -95,6 +127,11 @@ note as Rules
   | Interface    | Structure    |
   | Interface    | Effector     |
   | Interface    | Receptor     |
+  | Directive    | Structure (definedBy)  |
+  | Directive    | Archetype (qualifier)  |
+  | Directive    | Structure (purpose)    |
+  | Norm         | Structure (definedBy)  |
+  | Norm         | Archetype (qualifier)  |
   |--------------+--------------|
   | Not Referee  | No Reference |
   |--------------+--------------|
@@ -175,6 +212,8 @@ note as Rules
   - **Aggregation**:
     - Structure.`X->Y` -> Mechanism.`X->Y`
     - Structure.`X->Y` -> Interface.`X->Y`
+    - Structure.`X->Y` -> Directive.`X->Y`
+    - Structure.`X->Y` -> Norm.`X->Y`
     - **Scope**: all `X->Y`.
     - **Invariant**: none (lagging permitted).
     - **On failure**: no-op for that target.
@@ -408,6 +447,80 @@ note as Scenarios
 
   ====
 
+  **§6b — Multi-reference: Directive (Str + Arch + Str)**
+
+  Directive references: Structure (definedBy), Archetype
+  (qualifier), Structure (purpose). All three MUST satisfy
+  the precondition for every transition.
+
+  SC-54 — Structure(DRAFT, definedBy), Archetype(DRAFT,
+  qualifier), Structure(DRAFT, purpose).
+  Create Directive `[*]->DRAFT`.
+  **PASS**: all 3 ∈ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-55 — Structure(PROPOSED, definedBy),
+  Archetype(PROPOSED, qualifier),
+  Structure(PROPOSED, purpose). Directive(DRAFT).
+  Directive `DRAFT->PROPOSED`.
+  **PASS**: all 3 ∈ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-56 — Structure(ACTIVE, definedBy),
+  Archetype(DRAFT, qualifier),
+  Structure(ACTIVE, purpose). Directive(DRAFT).
+  Directive `DRAFT->PROPOSED`.
+  **BLOCKED**: Archetype DRAFT ∉ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-57 — Structure(ACTIVE, definedBy),
+  Archetype(ACTIVE, qualifier),
+  Structure(ACTIVE, purpose). Directive(APPROVED).
+  Directive `APPROVED->ACTIVE`.
+  **PASS**: all 3 ∈ {ACTIVE}.
+
+  SC-58 — Structure(ACTIVE, definedBy),
+  Archetype(RETIRED, qualifier),
+  Structure(ACTIVE, purpose). Directive(ACTIVE).
+  Directive `ACTIVE->SUSPENDED`.
+  **BLOCKED**: Archetype RETIRED ∉
+  {ACTIVE,SUSPENDED,DEPRECATED}.
+
+  SC-59 — Structure(ACTIVE, definedBy),
+  Archetype(DEPRECATED, qualifier),
+  Structure(ACTIVE, purpose). Directive(DEPRECATED).
+  Directive `DEPRECATED->RETIRED`.
+  **PASS**: all 3 ∈ {ACTIVE,SUSPENDED,DEPRECATED,RETIRED}.
+
+  **§6c — Multi-reference: Norm (Str + Arch)**
+
+  Norm references: Structure (definedBy), Archetype
+  (qualifier). Both MUST satisfy the precondition.
+
+  SC-54n — Structure(DRAFT, definedBy),
+  Archetype(DRAFT, qualifier).
+  Create Norm `[*]->DRAFT`.
+  **PASS**: both ∈ {DRAFT,PROPOSED,APPROVED,ACTIVE}.
+
+  SC-55n — Structure(PROPOSED, definedBy),
+  Archetype(PROPOSED, qualifier). Norm(DRAFT).
+  Norm `DRAFT->PROPOSED`.
+  **PASS**: both ∈ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-56n — Structure(ACTIVE, definedBy),
+  Archetype(DRAFT, qualifier). Norm(DRAFT).
+  Norm `DRAFT->PROPOSED`.
+  **BLOCKED**: Archetype DRAFT ∉ {PROPOSED,APPROVED,ACTIVE}.
+
+  SC-57n — Structure(ACTIVE, definedBy),
+  Archetype(ACTIVE, qualifier). Norm(APPROVED).
+  Norm `APPROVED->ACTIVE`.
+  **PASS**: both ∈ {ACTIVE}.
+
+  SC-58n — Structure(ACTIVE, definedBy),
+  Archetype(APPROVED, qualifier). Norm(APPROVED).
+  Norm `APPROVED->ACTIVE`.
+  **BLOCKED**: Archetype APPROVED ∉ {ACTIVE}.
+
+  ====
+
   **§7 — Composition cascade (strict)**
 
   SC-60 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
@@ -498,6 +611,34 @@ note as Scenarios
   **NO-OP**: Mechanism stays DRAFT.
   **CASCADE**: Interface `PROPOSED->REJECTED`.
 
+  SC-77 — Structure(ACTIVE), Mechanism(ACTIVE),
+  Interface(ACTIVE), Directive(ACTIVE), Norm(ACTIVE).
+  Structure `ACTIVE->DEPRECATED`.
+  **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
+  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
+  **CASCADE**: Directive `ACTIVE->DEPRECATED`
+  (step 2 OK: Directive references Structure(definedBy) +
+  Archetype(qualifier) + Structure(purpose) — all must be
+  ∈ {ACTIVE,SUSPENDED,DEPRECATED}; qualifier Archetype
+  is independent, assumed ACTIVE).
+  **CASCADE**: Norm `ACTIVE->DEPRECATED`
+  (step 2 OK: qualifier Archetype assumed ACTIVE).
+
+  SC-78 — Structure(DRAFT), Mechanism(DRAFT),
+  Directive(DRAFT), Norm(DRAFT).
+  Structure `DRAFT->ABANDONED`.
+  **CASCADE**: Mechanism `DRAFT->ABANDONED`.
+  **CASCADE**: Directive `DRAFT->ABANDONED`.
+  **CASCADE**: Norm `DRAFT->ABANDONED`.
+
+  SC-79 — Structure(ACTIVE), Directive(ACTIVE).
+  Directive.qualifier Archetype(RETIRED).
+  Structure `ACTIVE->DEPRECATED`.
+  Directive cascade step 2: qualifier Archetype RETIRED ∉
+  {ACTIVE,SUSPENDED,DEPRECATED} → fails.
+  **NO-OP**: Directive stays ACTIVE (aggregation — on
+  failure: no-op). Structure transition succeeds.
+
   ====
 
   **§9 — Reference cascade**
@@ -575,12 +716,14 @@ note as Scenarios
 
   SC-91 — Structure(ACTIVE), Mechanism(ACTIVE),
   Effector(ACTIVE), Receptor(ACTIVE), Interaction(ACTIVE),
-  Interface(ACTIVE).
+  Interface(ACTIVE), Directive(ACTIVE), Norm(ACTIVE).
   Structure `ACTIVE->DEPRECATED`.
-  Chain: Structure→(agg)Mechanism,Interface
+  Chain: Structure→(agg)Mechanism,Interface,Directive,Norm
   →(comp)Effector,Receptor→(ref)Interaction,Interface.
   **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
   **CASCADE**: Interface `ACTIVE->DEPRECATED` (via agg).
+  **CASCADE**: Directive `ACTIVE->DEPRECATED` (via agg).
+  **CASCADE**: Norm `ACTIVE->DEPRECATED` (via agg).
   **CASCADE**: Effector `ACTIVE->DEPRECATED`.
   **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
   **CASCADE**: Interaction `ACTIVE->DEPRECATED` (via ref
@@ -590,9 +733,9 @@ note as Scenarios
 
   SC-92 — Structure(DRAFT), Mechanism(DRAFT),
   Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT),
-  Interface(DRAFT).
+  Interface(DRAFT), Directive(DRAFT), Norm(DRAFT).
   Structure `DRAFT->ABANDONED`.
-  Chain: Structure→(agg)Mechanism,Interface
+  Chain: Structure→(agg)Mechanism,Interface,Directive,Norm
   →(comp)Effector,Receptor→(ref)Interaction,Interface.
   **CASCADE**: all elements `DRAFT->ABANDONED` (terminal
   is in both aggregation, composition, and reference scope).

@@ -1,18 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "sie://schemas/gsm/v1/Directive.schema.json",
+  "$id": "gsm://archetypes/Directive/v1",
   "title": "Directive",
-  "description": "Governance DNA archetype for Directive — identity-level normative constraints (DNA 'D'). Standalone first-class GSM class with independent lifecycle, typed by DirectiveArchetype. Fields: structure, purpose, modal, verb, qualifier.",
+  "description": "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). Defines the governance grammar: structure, modal, verb, qualifier, purpose. Sealed — tenant-defined archetypes MUST NOT extend Directive. DM input = DM output (1:1).",
   "$gsm:sealed": true,
-  "$gsm:gsmClass": "Directive",
   "type": "object",
-  "required": [
-    "structure",
-    "modal",
-    "verb",
-    "qualifier",
-    "purpose"
-  ],
   "examples": [
     {
       "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
@@ -22,10 +14,18 @@
       "purpose": "019cc49a-dc5a-7003-98e1-c214032f0420"
     }
   ],
+  "required": [
+    "structure",
+    "modal",
+    "verb",
+    "qualifier",
+    "purpose"
+  ],
   "properties": {
     "structure": {
       "type": "string",
-      "minLength": 1,
+      "format": "uuid",
+      "$gsm:identityBound": true,
       "description": "ID reference to the authoring Structure that issues the Directive."
     },
     "modal": {
@@ -37,7 +37,7 @@
         "SHOULD_NOT",
         "MAY"
       ],
-      "description": "Deontic obligation strength. MUST = obligatory (violation = non-compliance). MUST_NOT = forbidden (violation = non-compliance). SHOULD = recommended (violation = warning). SHOULD_NOT = discouraged (violation = warning). MAY = permitted (informational)."
+      "description": "Deontic obligation strength. MUST/MUST_NOT = hard constraint (violations = errors). SHOULD/SHOULD_NOT = soft constraint (violations = warnings). MAY = permitted (informational)."
     },
     "verb": {
       "type": "string",
@@ -51,17 +51,19 @@
         "MONITOR",
         "ENABLE"
       ],
-      "description": "Governance action expressing what the governance intent does to the quality dimension."
+      "description": "Governance action expressing the governance direction on the qualifier Archetype's viability dimension."
     },
     "qualifier": {
       "type": "string",
-      "minLength": 1,
-      "description": "ID reference to the Archetype that defines the viability dimension being governed. The Archetype's schema defines the measurable properties; Norms operationalizing this Directive MUST reference this same Archetype in their guard/predicate CEL expressions."
+      "format": "uuid",
+      "$gsm:identityBound": true,
+      "description": "ID reference to the Archetype that defines the viability dimension being governed. Norms operationalizing this Directive MUST reference this same Archetype (or a descendant) in their guard/predicate CEL expressions."
     },
     "purpose": {
       "type": "string",
-      "minLength": 1,
-      "description": "ID reference to the purposed Structure."
+      "format": "uuid",
+      "$gsm:identityBound": true,
+      "description": "ID reference to the purposed Structure whose purpose is governed by this Directive."
     }
   },
   "additionalProperties": false

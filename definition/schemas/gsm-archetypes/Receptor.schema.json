@@ -1,51 +1,33 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "sie://schemas/gsm/v1/Receptor.schema.json",
+    "$id": "gsm://archetypes/Receptor/v1",
     "title": "Receptor",
-    "description": "Base ascription schema for Receptor Ascriptions. A Receptor is an input port of a Mechanism, derived by the definition-manager from the Mechanism rule's AST (e.g., on(\"Archetype\") triggers and response expectations). It references the owning Mechanism and the Archetype that types the received data. Tenant-defined archetypes MUST NOT extend Receptor.",
+    "description": "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. Interface exposure is owned by the Interface itself (via join tables), not by the Receptor. DM input = DM output (1:1). Tenant-defined archetypes extending Receptor MUST reference this schema via allOf.",
     "$gsm:sealed": true,
-    "$gsm:gsmClass": "Receptor",
-    "$gsm:internal": true,
     "type": "object",
+    "examples": [
+        {
+            "mechanism": "019cc49a-dc5a-799b-8f0b-3d951621a86f",
+            "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62"
+        }
+    ],
     "required": [
         "mechanism",
         "archetype"
     ],
-    "examples": [
-        {
-            "mechanism": "019cc49a-dc5a-799b-8f0b-3d951621a86f",
-            "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62",
-            "interface": "019cc49a-dc5a-77df-b1d4-11d16d6e319a"
-        },
-        {
-            "mechanism": "019cc49a-dc5a-732d-be73-ccd173616a7c",
-            "archetype": "019cc49a-dc5a-7069-ab42-c742d270b108",
-            "interface": null
-        }
-    ],
     "properties": {
         "mechanism": {
             "type": "string",
-            "minLength": 1,
-            "description": "ID reference to the owning Mechanism."
+            "format": "uuid",
+            "$gsm:identityBound": true,
+            "description": "ID reference to the owning Mechanism. A Receptor cannot exist without a Mechanism."
         },
         "archetype": {
             "type": "string",
-            "minLength": 1,
-            "description": "ID reference to the Archetype that types the Receptor's input payload."
-        },
-        "interface": {
-            "anyOf": [
-                {
-                    "type": "string",
-                    "minLength": 1
-                },
-                {
-                    "type": "null"
-                }
-            ],
-            "description": "Optional ID reference to the Interface that exposes this Receptor for inter-Structure coupling. Null means the port is private to the Structure."
+            "format": "uuid",
+            "$gsm:identityBound": true,
+            "description": "ID reference to the data Archetype that types the Receptor's input payload. To change the data type, author a new Definition."
         }
     },
-    "additionalProperties": false
+    "unevaluatedProperties": false
 }
