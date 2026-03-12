@@ -9,8 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
-import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 import com.sif.sie.definitionmanager.repository.ArchetypeRepository;
+import com.sif.sie.definitionmanager.type.AscriptionStatusType;
 
 @Service
 public class OpenApiService {

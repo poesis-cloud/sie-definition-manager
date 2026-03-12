@@ -562,7 +562,8 @@ public class AscriptionService {
     }
 
     /**
-     * Derives DefinitionSubjectType from the archetype's {@code statement.schema.title}.
+     * Derives DefinitionSubjectType from the archetype's
+     * {@code statement.schema.title}.
      */
     private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
         JsonNode stmt = archetype.getStatement();

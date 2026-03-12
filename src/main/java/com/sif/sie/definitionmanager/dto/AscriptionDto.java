@@ -3,9 +3,9 @@ package com.sif.sie.definitionmanager.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.springframework.hateoas.server.core.Relation;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Unified response for any GSM ascription.
@@ -17,12 +17,12 @@ import org.springframework.hateoas.server.core.Relation;
  */
 @Relation(collectionRelation = "ascriptionResponseList")
 public record AscriptionDto(
-                UUID id,
-                UUID definitionId,
-                UUID archetypeId,
-                String subjectType,
-                JsonNode statement,
-                int version,
-                String status,
-                Instant timestamp) {
+        UUID id,
+        UUID definitionId,
+        UUID archetypeId,
+        String subjectType,
+        JsonNode statement,
+        int version,
+        String status,
+        Instant timestamp) {
 }
