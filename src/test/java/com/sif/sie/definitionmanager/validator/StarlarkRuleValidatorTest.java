@@ -1,6 +1,8 @@
 package com.sif.sie.definitionmanager.validator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -134,26 +136,23 @@ class StarlarkRuleValidatorTest {
 
         @Test
         void nullRule_rejected() {
-            assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate(null));
+            assertThrows(IllegalArgumentException.class, () -> validator.validate(null));
         }
 
         @Test
         void emptyRule_rejected() {
-            assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate(""));
+            assertThrows(IllegalArgumentException.class, () -> validator.validate(""));
         }
 
         @Test
         void blankRule_rejected() {
-            assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("   "));
+            assertThrows(IllegalArgumentException.class, () -> validator.validate("   "));
         }
 
         @Test
         void invalidSyntax_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("def foo(:::"));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> validator.validate("def foo(:::"));
             assertTrue(ex.getMessage().contains("syntax error"));
         }
     }
@@ -167,50 +166,46 @@ class StarlarkRuleValidatorTest {
 
         @Test
         void missingOnTrigger_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("sys.emit(\"X\", {})"));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> validator.validate("sys.emit(\"X\", {})"));
             assertTrue(ex.getMessage().contains("on("));
         }
 
         @Test
         void onWithNoArgs_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on()
-                            sys.emit("X", {})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on()
+                    sys.emit("X", {})
+                    """));
             assertTrue(ex.getMessage().contains("string literal"));
         }
 
         @Test
         void onWithVariableArg_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            name = "Foo"
-                            on(name)
-                            sys.emit("X", {})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    name = "Foo"
+                    on(name)
+                    sys.emit("X", {})
+                    """));
             // First statement is not on()
             assertTrue(ex.getMessage().contains("on(") || ex.getMessage().contains("first"));
         }
 
         @Test
         void onWithEmptyString_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("")
-                            sys.emit("X", {})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("")
+                    sys.emit("X", {})
+                    """));
             assertTrue(ex.getMessage().contains("empty"));
         }
 
         @Test
         void multipleOnCalls_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("First")
-                            on("Second")
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("First")
+                    on("Second")
+                    """));
             assertTrue(ex.getMessage().contains("exactly one on()"));
         }
     }
@@ -224,12 +219,11 @@ class StarlarkRuleValidatorTest {
 
         @Test
         void loadStatement_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            load("module.bzl", "helper")
-                            on("X")
-                            sys.emit("Y", {})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    load("module.bzl", "helper")
+                    on("X")
+                    sys.emit("Y", {})
+                    """));
             assertTrue(ex.getMessage().contains("load()"));
         }
     }
@@ -243,33 +237,30 @@ class StarlarkRuleValidatorTest {
 
         @Test
         void sysEmitWithVariableArchetype_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("Input")
-                            archetype = "DynamicType"
-                            sys.emit(archetype, {})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("Input")
+                    archetype = "DynamicType"
+                    sys.emit(archetype, {})
+                    """));
             assertTrue(ex.getMessage().contains("string literal"));
         }
 
         @Test
         void sysCreateWithVariableArchetype_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("Input")
-                            name = "SomeType"
-                            sys.create(name, {})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("Input")
+                    name = "SomeType"
+                    sys.create(name, {})
+                    """));
             assertTrue(ex.getMessage().contains("string literal"));
         }
 
         @Test
         void sysEmitWithNoArgs_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("Input")
-                            sys.emit()
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("Input")
+                    sys.emit()
+                    """));
             assertTrue(ex.getMessage().contains("requires at least one"));
         }
     }
@@ -283,23 +274,21 @@ class StarlarkRuleValidatorTest {
 
         @Test
         void unknownGlobal_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("Input")
-                            result = unknown_func()
-                            sys.emit("Output", {"r": result})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("Input")
+                    result = unknown_func()
+                    sys.emit("Output", {"r": result})
+                    """));
             assertTrue(ex.getMessage().contains("unknown global"));
             assertTrue(ex.getMessage().contains("unknown_func"));
         }
 
         @Test
         void unknownVariable_rejected() {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                    validator.validate("""
-                            on("Input")
-                            sys.emit("Output", {"val": external_var})
-                            """));
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> validator.validate("""
+                    on("Input")
+                    sys.emit("Output", {"val": external_var})
+                    """));
             assertTrue(ex.getMessage().contains("unknown global"));
         }
     }

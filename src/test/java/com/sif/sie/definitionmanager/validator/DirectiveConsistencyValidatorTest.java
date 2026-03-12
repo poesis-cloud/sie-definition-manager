@@ -1,7 +1,11 @@
 package com.sif.sie.definitionmanager.validator;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.UUID;
@@ -186,7 +190,10 @@ class DirectiveConsistencyValidatorTest {
     // Helpers
     // ========================================================================
 
-    /** Creates a stubbed DirectiveEntity with unique Definition IDs for qualifier/purpose. */
+    /**
+     * Creates a stubbed DirectiveEntity with unique Definition IDs for
+     * qualifier/purpose.
+     */
     private DirectiveEntity stubDirective(String verb, String modal) {
         return stubDirectiveWithDefId(verb, modal, UUID.randomUUID());
     }

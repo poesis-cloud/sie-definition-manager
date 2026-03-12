@@ -1,7 +1,11 @@
 package com.sif.sie.definitionmanager.validator;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
@@ -346,8 +350,7 @@ class GsmAnnotationValidatorTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("ownerId", refId.toString());
 
-            assertDoesNotThrow(() ->
-                    validator.enforceOnAscription(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> validator.enforceOnAscription(statement, archetype, UUID.randomUUID()));
         }
 
         @Test
@@ -420,8 +423,7 @@ class GsmAnnotationValidatorTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("oldField", "value");
 
-            assertDoesNotThrow(() ->
-                    validator.enforceOnAscription(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> validator.enforceOnAscription(statement, archetype, UUID.randomUUID()));
         }
     }
 
