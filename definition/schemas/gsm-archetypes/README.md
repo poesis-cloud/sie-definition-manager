@@ -8,9 +8,7 @@ These are the **governance contract** between DM and tenants. Each schema types 
 
 All base schemas use the URI convention:
 
-```
-gsm://archetypes/{schema.title}/v{version}
-```
+`gsm://archetypes/{schema.title}/v{version}`
 
 `schema.title` is the Archetype's identity (DM-enforced identity-bound). `version` is the Ascription version number. DM assigns `$id` deterministically — clients can construct URIs from known values.
 
@@ -63,6 +61,7 @@ Property-level. Value MUST NOT change across Ascriptions of the same Definition.
 Property-level. DM provisions a PostgreSQL expression index on the JSONB path (B-tree for scalars, GIN for arrays/objects). Enables efficient `GET /ascriptions?archetype=X&statement.prop=value` queries.
 
 Constraints:
+
 - Property type MUST be indexable: string, number, integer, boolean, or array of scalars.
 - Max queryable properties per Archetype: DM-configurable cap (default: 8).
 - Index auto-provisioned when Archetype transitions to ACTIVE; dropped when no in-effect Ascription references it.
@@ -70,6 +69,7 @@ Constraints:
 ### `$gsm:referential: { "subjectType": "<DefinitionSubjectType>" }`
 
 Property-level. Marks a property as a foreign reference to a Definition `id`. DM validates at authoring time:
+
 - Referenced Definition exists.
 - If `subjectType` specified, it matches.
 - Optionally, referenced Definition has an in-effect Ascription.
@@ -85,6 +85,7 @@ DM provisions: `CREATE UNIQUE INDEX ON ascription ((statement->>'prop')) WHERE a
 ### `$gsm:sensitive: true`
 
 Property-level. DM behavior:
+
 - Masks value in audit logs and `statusTransitions` context.
 - Encrypts at rest (envelope encryption for JSONB path or column-level encryption).
 - Redacts in API responses unless caller has explicit scope/role.

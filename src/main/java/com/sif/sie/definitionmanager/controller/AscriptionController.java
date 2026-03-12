@@ -62,7 +62,7 @@ public class AscriptionController extends Controller {
     @PostMapping
     public ResponseEntity<EntityModel<AscriptionDto>> create(
             @Valid @RequestBody AscriptionRequestDto request) {
-        AscriptionEntity entity = service.create(request.archetypeId(), request.compilation(), request.definitionId());
+        AscriptionEntity entity = service.create(request.archetypeId(), request.statement(), request.definitionId());
         AscriptionDto response = toAscriptionDto(entity);
         EntityModel<AscriptionDto> model = wrapWithLinks(response);
         URI location = selfLinkFor(response).toUri();
@@ -159,7 +159,6 @@ public class AscriptionController extends Controller {
                 .slash("history")
                 .toUriComponentsBuilder()
                 .queryParam("definitionId", Objects.requireNonNull(response.definitionId()))
-                .queryParam("type", Objects.requireNonNull(response.subjectType()))
                 .toUriString();
         return Link.of(href, "history");
     }

@@ -41,12 +41,12 @@ import com.sif.sie.definitionmanager.client.SchemaRegistryClient;
 /**
  * Integration tests for the Ascription REST API against a real PostgreSQL
  * instance
- * (Testcontainers). Flyway runs V1-V5 migrations, seeding 9 base archetypes.
+ * (Testcontainers). Flyway runs V1 migration, seeding 9 base archetypes.
  *
  * <p>
- * API shape: subjectType is derived from archetype's schema URI; FK references
+ * API shape: subjectType is derived from archetype's schema title; FK references
  * live in the
- * compilation payload; ascription history is queried via
+ * statement payload; ascription history is queried via
  * {@code /history?definitionId=X&type=Y}.
  */
 @SpringBootTest
@@ -107,14 +107,14 @@ class AscriptionApiIT {
         JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
         JsonNode items = body.at("/_embedded/ascriptionResponseList");
         for (JsonNode item : items) {
-            String stmtStr = item.get("compilation").toString();
-            if (stmtStr.contains("Archetype.schema.json")) {
+            String stmtStr = item.get("statement").toString();
+            if (stmtStr.contains("\"title\":\"Archetype\"")) {
                 seedArchetypeId = UUID.fromString(item.get("id").asText());
             }
-            if (stmtStr.contains("Structure.schema.json")) {
+            if (stmtStr.contains("\"title\":\"StructureArchetype\"")) {
                 structureArchetypeId = UUID.fromString(item.get("id").asText());
             }
-            if (stmtStr.contains("Mechanism.schema.json")) {
+            if (stmtStr.contains("\"title\":\"MechanismArchetype\"")) {
                 mechanismArchetypeId = UUID.fromString(item.get("id").asText());
             }
         }
@@ -148,7 +148,7 @@ class AscriptionApiIT {
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", seedArchetypeId.toString());
-        request.set("compilation", compilation);
+        request.set("statement", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -186,7 +186,7 @@ class AscriptionApiIT {
         ObjectNode request = mapper.createObjectNode();
         request.put("definitionId", createdArchetypeDefinitionId.toString());
         request.put("archetypeId", seedArchetypeId.toString());
-        request.set("compilation", compilation);
+        request.set("statement", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -326,7 +326,7 @@ class AscriptionApiIT {
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", structureArchetypeId.toString());
-        request.set("compilation", compilation);
+        request.set("statement", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -349,11 +349,11 @@ class AscriptionApiIT {
         compilation.put(
                 "rule", "on(\"PaymentRequest\")\nresult = sys.emit(\"PaymentResult\", {\"ok\": True})");
         compilation.put("ruleLanguage", "STARLARK");
-        compilation.put("structureId", createdStructureId.toString());
+        compilation.put("structure", createdStructureId.toString());
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", mechanismArchetypeId.toString());
-        request.set("compilation", compilation);
+        request.set("statement", compilation);
 
         MvcResult result = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -374,11 +374,11 @@ class AscriptionApiIT {
         compilation.put("function", "Orphan");
         compilation.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
         compilation.put("ruleLanguage", "STARLARK");
-        // structureId intentionally omitted from compilation
+        // structure intentionally omitted from statement
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", mechanismArchetypeId.toString());
-        request.set("compilation", compilation);
+        request.set("statement", compilation);
 
         mvc.perform(
                 post("/api/v1/ascriptions")
@@ -394,11 +394,11 @@ class AscriptionApiIT {
         compilation.put("function", "Orphan");
         compilation.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
         compilation.put("ruleLanguage", "STARLARK");
-        compilation.put("structureId", UUID.randomUUID().toString());
+        compilation.put("structure", UUID.randomUUID().toString());
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", mechanismArchetypeId.toString());
-        request.set("compilation", compilation);
+        request.set("statement", compilation);
 
         mvc.perform(
                 post("/api/v1/ascriptions")
@@ -435,7 +435,7 @@ class AscriptionApiIT {
         ObjectNode stmt = mapper.createObjectNode().put("purpose", "cascade-test");
         ObjectNode req = mapper.createObjectNode();
         req.put("archetypeId", structureArchetypeId.toString());
-        req.set("compilation", stmt);
+        req.set("statement", stmt);
 
         MvcResult r1 = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -456,7 +456,7 @@ class AscriptionApiIT {
         ObjectNode req2 = mapper.createObjectNode();
         req2.put("definitionId", defId.toString());
         req2.put("archetypeId", structureArchetypeId.toString());
-        req2.set("compilation", stmt2);
+        req2.set("statement", stmt2);
 
         MvcResult r2 = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -489,7 +489,7 @@ class AscriptionApiIT {
         stmt.set("schema", mapper.createObjectNode().put("type", "object"));
         ObjectNode req = mapper.createObjectNode();
         req.put("archetypeId", seedArchetypeId.toString());
-        req.set("compilation", stmt);
+        req.set("statement", stmt);
 
         MvcResult r = mvc.perform(
                 post("/api/v1/ascriptions")
@@ -537,19 +537,19 @@ class AscriptionApiIT {
                 .andExpect(jsonPath("$.components.schemas.AscriptionResponse").exists())
                 .andExpect(jsonPath("$.components.schemas.TransitionRequest").exists())
                 .andExpect(jsonPath("$.components.schemas.TransitionResponse").exists())
-                // Dynamic archetype-derived definition schemas
-                .andExpect(jsonPath("$.components.schemas.StructureDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.MechanismDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.EffectorDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.ReceptorDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.InteractionDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.InterfaceDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.DirectiveDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.NormDefinition").exists())
-                .andExpect(jsonPath("$.components.schemas.ArchetypeDefinition").exists())
-                // CompilationPayload oneOf references
-                .andExpect(jsonPath("$.components.schemas.CompilationPayload.oneOf").isArray())
-                .andExpect(jsonPath("$.components.schemas.CompilationPayload.oneOf", hasSize(9)))
+                // Dynamic archetype-derived statement schemas
+                .andExpect(jsonPath("$.components.schemas.StructureArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.MechanismArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.EffectorArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.ReceptorArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.InteractionArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.InterfaceArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.DirectiveArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.NormArchetypeStatement").exists())
+                .andExpect(jsonPath("$.components.schemas.ArchetypeStatement").exists())
+                // StatementPayload oneOf references
+                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf").isArray())
+                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf", hasSize(9)))
                 .andReturn();
 
         // Verify a concrete archetype schema has the expected properties
@@ -566,11 +566,11 @@ class AscriptionApiIT {
                 "/ascriptions/{id}/transitions");
         assert actualPaths.equals(expectedPaths) : "Unexpected core paths: " + actualPaths;
 
-        JsonNode mechSchema = spec.at("/components/schemas/MechanismDefinition");
-        assert mechSchema.has("properties") : "MechanismDefinition should have properties";
-        assert mechSchema.get("properties").has("structureId")
-                : "MechanismDefinition should have structureId";
-        assert mechSchema.get("properties").has("rule") : "MechanismDefinition should have rule";
+        JsonNode mechSchema = spec.at("/components/schemas/MechanismArchetypeStatement");
+        assert mechSchema.has("properties") : "MechanismArchetypeStatement should have properties";
+        assert mechSchema.get("properties").has("structure")
+                : "MechanismArchetypeStatement should have structure";
+        assert mechSchema.get("properties").has("rule") : "MechanismArchetypeStatement should have rule";
     }
 
     // ================================================================

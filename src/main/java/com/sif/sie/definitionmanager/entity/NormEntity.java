@@ -21,6 +21,10 @@ public class NormEntity extends AscriptionEntity {
     @JoinColumn(name = "structure_id", nullable = false, updatable = false)
     private StructureEntity structure;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "qualifier_id", nullable = false, updatable = false)
+    private ArchetypeEntity qualifier;
+
     protected NormEntity() {
     }
 
@@ -28,13 +32,20 @@ public class NormEntity extends AscriptionEntity {
             DefinitionEntity definition,
             ArchetypeEntity archetype,
             JsonNode compilation,
-            StructureEntity structure) {
+            StructureEntity structure,
+            ArchetypeEntity qualifier) {
         super(definition, archetype, compilation);
         this.structure = Objects.requireNonNull(structure, "structure");
+        this.qualifier = Objects.requireNonNull(qualifier, "qualifier");
     }
 
     @NonNull
     public StructureEntity getStructure() {
         return structure;
+    }
+
+    @NonNull
+    public ArchetypeEntity getQualifier() {
+        return qualifier;
     }
 }

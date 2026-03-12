@@ -1,1130 +1,982 @@
 -- ============================================================
--- V1__gsm_init.sql
--- GSM (Generative System Model) — core schema
+-- V1__gsm_init.sql  –  GSM canonical schema (merged V1-V10)
 --
--- Design: 9 autonomous class tables, each self-contained.
--- No shared base table. FKs target revision_id (PK) of the
--- referenced class table — definitions reference definitions.
--- Non-FK attributes live in definition JSONB.
--- id is a non-unique grouper for revision lineage, lifecycle
--- enforcement, and human/API addressing.
--- Per-entity uniqueness: at most 1 ACTIVE and at most 1 APPROVED
--- revision per id. DEPRECATED/SUSPENDED/etc. are unbounded.
---
--- Source: gsm.puml, gsm-ascription-lifecycle-v1.puml
+-- Fixes applied during merge:
+--   1. Column name kept as 'statement' (entity truth; V10's
+--      rename to 'compilation' was stale).
+--   2. norm.qualifier_id added (NormEntity FK, was missing).
+--   3. archetype.schema_uri removed (entity dropped it).
+--   4. Version CHECK fixed: >= 0 (V5 set DEFAULT 0 but kept > 0).
+--   5. subject_type dropped from transition table (V6 change).
+--   6. Effector/Receptor columns: output/input_archetype_id (V9).
+--   7. interface_effector/interface_receptor join tables (V8).
+--   8. directive.purpose_id NOT NULL (V7).
 -- ============================================================
 begin;
 -- ============================================================
--- UUIDv7 FUNCTION
+-- §1  Extensions + UUIDv7
 -- ============================================================
 create extension if not exists pgcrypto;
-create or replace function uuid_v7() returns uuid language plpgsql volatile as $$
-declare unix_ts_ms bigint;
-ts_hex text;
-rand_bytes bytea;
-rand_hex text;
-variant_hex text;
-begin unix_ts_ms := floor(
+create or replace function uuid_v7() returns uuid as $$
+declare v_time bigint := (
     extract(
-        epoch
-        from clock_timestamp()
+      epoch
+      from clock_timestamp()
     ) * 1000
-)::bigint;
-ts_hex := lpad(to_hex(unix_ts_ms), 12, '0');
-rand_bytes := gen_random_bytes(10);
-rand_hex := encode(rand_bytes, 'hex');
-variant_hex := substr('89ab', (get_byte(rand_bytes, 9) % 4) + 1, 1);
-return (
-    substr(ts_hex, 1, 8) || '-' || substr(ts_hex, 9, 4) || '-' || '7' || substr(rand_hex, 1, 3) || '-' || variant_hex || substr(rand_hex, 4, 3) || '-' || substr(rand_hex, 7, 12)
-)::uuid;
+  )::bigint;
+v_bytes bytea;
+begin -- 48 bits timestamp (ms) + 80 bits random = 128 bits
+v_bytes := substring(
+  int8send(v_time)
+  from 3 for 6
+) || gen_random_bytes(10);
+-- Version 7 (bits 48-51 = 0111): byte index 6, high nibble
+v_bytes := set_byte(v_bytes, 6, (get_byte(v_bytes, 6) & 15) | 112);
+-- Variant 10 (bits 64-65): byte index 8, high 2 bits
+v_bytes := set_byte(v_bytes, 8, (get_byte(v_bytes, 8) & 63) | 128);
+return encode(v_bytes, 'hex')::uuid;
 end;
-$$;
+$$ language plpgsql volatile;
 -- ============================================================
--- SHARED ENUM
+-- §2  PostgreSQL enum types
 -- ============================================================
-create type ascription_status as enum (
-    'DRAFT',
-    'PROPOSED',
-    'APPROVED',
-    'ACTIVE',
-    'SUSPENDED',
-    'DEPRECATED',
-    'RETIRED',
-    'ABANDONED',
-    'REJECTED'
+do $$ begin create type ascription_status as enum (
+  'DRAFT',
+  'PROPOSED',
+  'APPROVED',
+  'ACTIVE',
+  'SUSPENDED',
+  'DEPRECATED',
+  'RETIRED',
+  'ABANDONED',
+  'REJECTED'
 );
--- ============================================================
--- ARCHETYPE
--- ============================================================
-create table archetype (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null,
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    constraint archetype_pk primary key (revision_id),
-    constraint archetype_typed_by_fk foreign key (archetype_id) references archetype (revision_id),
-    constraint archetype_version_positive check (
-        version is null
-        or version > 0
-    )
+exception
+when duplicate_object then null;
+end $$;
+do $$ begin create type definition_subject_type as enum (
+  'ARCHETYPE',
+  'STRUCTURE',
+  'MECHANISM',
+  'INTERFACE',
+  'EFFECTOR',
+  'RECEPTOR',
+  'INTERACTION',
+  'DIRECTIVE',
+  'NORM'
 );
-create index idx_archetype_id on archetype (id);
-create index idx_archetype_status on archetype (status);
-create index idx_archetype_def on archetype using gin (definition jsonb_path_ops);
-create unique index uq_archetype_active on archetype (id)
-where status = 'ACTIVE';
-create unique index uq_archetype_approved on archetype (id)
-where status = 'APPROVED';
+exception
+when duplicate_object then null;
+end $$;
 -- ============================================================
--- STRUCTURE
+-- §3  Tables
 -- ============================================================
-create table structure (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    constraint structure_pk primary key (revision_id),
-    constraint structure_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3a. definition --------------------------------------------------
+create table if not exists definition (
+  id uuid not null default uuid_v7(),
+  subject_type definition_subject_type not null,
+  constraint definition_pk primary key (id)
 );
-create index idx_structure_id on structure (id);
-create index idx_structure_status on structure (status);
-create index idx_structure_def on structure using gin (definition jsonb_path_ops);
-create unique index uq_structure_active on structure (id)
-where status = 'ACTIVE';
-create unique index uq_structure_approved on structure (id)
-where status = 'APPROVED';
--- ============================================================
--- MECHANISM
--- ============================================================
-create table mechanism (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FK: owning Structure definition
-    structure_id uuid not null references structure (revision_id),
-    constraint mechanism_pk primary key (revision_id),
-    constraint mechanism_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3b. archetype (self-ref FK: archetype_id → own table) ----------
+create table if not exists archetype (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null,
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  constraint archetype_pk primary key (id),
+  constraint archetype_version_check check (version >= 0),
+  constraint archetype_typed_by_fk foreign key (archetype_id) references archetype(id)
 );
-create index idx_mechanism_id on mechanism (id);
-create index idx_mechanism_status on mechanism (status);
-create index idx_mechanism_structure on mechanism (structure_id);
-create index idx_mechanism_def on mechanism using gin (definition jsonb_path_ops);
-create unique index uq_mechanism_active on mechanism (id)
-where status = 'ACTIVE';
-create unique index uq_mechanism_approved on mechanism (id)
-where status = 'APPROVED';
--- ============================================================
--- INTERFACE
--- ============================================================
-create table interface (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FK: owning Structure definition
-    structure_id uuid not null references structure (revision_id),
-    constraint interface_pk primary key (revision_id),
-    constraint interface_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3c. structure ---------------------------------------------------
+create table if not exists structure (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  constraint structure_pk primary key (id),
+  constraint structure_version_check check (version >= 0)
 );
-create index idx_interface_id on interface (id);
-create index idx_interface_status on interface (status);
-create index idx_interface_structure on interface (structure_id);
-create index idx_interface_def on interface using gin (definition jsonb_path_ops);
-create unique index uq_interface_active on interface (id)
-where status = 'ACTIVE';
-create unique index uq_interface_approved on interface (id)
-where status = 'APPROVED';
--- ============================================================
--- EFFECTOR
--- ============================================================
-create table effector (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FKs
-    mechanism_id uuid not null references mechanism (revision_id),
-    port_archetype_id uuid not null references archetype (revision_id),
-    interface_id uuid references interface (revision_id),
-    constraint effector_pk primary key (revision_id),
-    constraint effector_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3d. mechanism ---------------------------------------------------
+create table if not exists mechanism (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  structure_id uuid not null references structure(id),
+  constraint mechanism_pk primary key (id),
+  constraint mechanism_version_check check (version >= 0)
 );
-create index idx_effector_id on effector (id);
-create index idx_effector_status on effector (status);
-create index idx_effector_mechanism on effector (mechanism_id);
-create index idx_effector_port_arch on effector (port_archetype_id);
-create index idx_effector_interface on effector (interface_id)
-where interface_id is not null;
-create index idx_effector_def on effector using gin (definition jsonb_path_ops);
-create unique index uq_effector_active on effector (id)
-where status = 'ACTIVE';
-create unique index uq_effector_approved on effector (id)
-where status = 'APPROVED';
--- ============================================================
--- RECEPTOR
--- ============================================================
-create table receptor (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FKs
-    mechanism_id uuid not null references mechanism (revision_id),
-    port_archetype_id uuid not null references archetype (revision_id),
-    interface_id uuid references interface (revision_id),
-    constraint receptor_pk primary key (revision_id),
-    constraint receptor_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3e. interface ---------------------------------------------------
+create table if not exists interface (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  structure_id uuid not null references structure(id),
+  constraint interface_pk primary key (id),
+  constraint interface_version_check check (version >= 0)
 );
-create index idx_receptor_id on receptor (id);
-create index idx_receptor_status on receptor (status);
-create index idx_receptor_mechanism on receptor (mechanism_id);
-create index idx_receptor_port_arch on receptor (port_archetype_id);
-create index idx_receptor_interface on receptor (interface_id)
-where interface_id is not null;
-create index idx_receptor_def on receptor using gin (definition jsonb_path_ops);
-create unique index uq_receptor_active on receptor (id)
-where status = 'ACTIVE';
-create unique index uq_receptor_approved on receptor (id)
-where status = 'APPROVED';
--- ============================================================
--- INTERACTION
--- ============================================================
-create table interaction (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FKs: causal coupling between definitions
-    effector_id uuid not null references effector (revision_id),
-    receptor_id uuid not null references receptor (revision_id),
-    constraint interaction_pk primary key (revision_id),
-    constraint interaction_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3f. effector ----------------------------------------------------
+create table if not exists effector (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  mechanism_id uuid not null references mechanism(id),
+  output_archetype_id uuid not null references archetype(id),
+  constraint effector_pk primary key (id),
+  constraint effector_version_check check (version >= 0)
 );
-create index idx_interaction_id on interaction (id);
-create index idx_interaction_status on interaction (status);
-create index idx_interaction_effector on interaction (effector_id);
-create index idx_interaction_receptor on interaction (receptor_id);
-create index idx_interaction_def on interaction using gin (definition jsonb_path_ops);
-create unique index uq_interaction_active on interaction (id)
-where status = 'ACTIVE';
-create unique index uq_interaction_approved on interaction (id)
-where status = 'APPROVED';
--- ============================================================
--- DIRECTIVE
--- ============================================================
-create table directive (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FKs
-    structure_id uuid not null references structure (revision_id),
-    qualifier_id uuid not null references archetype (revision_id),
-    purpose_id uuid references structure (revision_id),
-    constraint directive_pk primary key (revision_id),
-    constraint directive_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3g. receptor ----------------------------------------------------
+create table if not exists receptor (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  mechanism_id uuid not null references mechanism(id),
+  input_archetype_id uuid not null references archetype(id),
+  constraint receptor_pk primary key (id),
+  constraint receptor_version_check check (version >= 0)
 );
-create index idx_directive_id on directive (id);
-create index idx_directive_status on directive (status);
-create index idx_directive_structure on directive (structure_id);
-create index idx_directive_qualifier on directive (qualifier_id);
-create index idx_directive_purpose on directive (purpose_id)
-where purpose_id is not null;
-create index idx_directive_def on directive using gin (definition jsonb_path_ops);
-create unique index uq_directive_active on directive (id)
-where status = 'ACTIVE';
-create unique index uq_directive_approved on directive (id)
-where status = 'APPROVED';
--- ============================================================
--- NORM
--- ============================================================
-create table norm (
-    id uuid not null,
-    revision_id uuid not null,
-    revision_timestamp timestamptz not null default clock_timestamp(),
-    archetype_id uuid not null references archetype (revision_id),
-    definition jsonb not null default '{}'::jsonb,
-    version integer,
-    status ascription_status not null default 'DRAFT',
-    -- Structural FK: authoring Structure definition
-    structure_id uuid not null references structure (revision_id),
-    constraint norm_pk primary key (revision_id),
-    constraint norm_version_positive check (
-        version is null
-        or version > 0
-    )
+-- 3h. interaction -------------------------------------------------
+create table if not exists interaction (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  effector_id uuid not null references effector(id),
+  receptor_id uuid not null references receptor(id),
+  constraint interaction_pk primary key (id),
+  constraint interaction_version_check check (version >= 0)
 );
-create index idx_norm_id on norm (id);
-create index idx_norm_status on norm (status);
-create index idx_norm_structure on norm (structure_id);
-create index idx_norm_def on norm using gin (definition jsonb_path_ops);
-create unique index uq_norm_active on norm (id)
-where status = 'ACTIVE';
-create unique index uq_norm_approved on norm (id)
-where status = 'APPROVED';
--- ============================================================
--- STATUS TRANSITION TABLE (shared, no FK — application-enforced integrity)
---
--- GSM §AscriptionStatusTransition: immutable audit record of lifecycle
--- state changes.  One table for all 9 class tables; gsm_type discriminator
--- identifies the owning class table.  Referential integrity between
--- revision_id and the owning class table is enforced by the application
--- (definition-manager) within the same transaction.
--- ============================================================
+-- 3i. directive ---------------------------------------------------
+create table if not exists directive (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  structure_id uuid not null references structure(id),
+  qualifier_id uuid not null references archetype(id),
+  purpose_id uuid not null references structure(id),
+  constraint directive_pk primary key (id),
+  constraint directive_version_check check (version >= 0)
+);
+-- 3j. norm --------------------------------------------------------
+create table if not exists norm (
+  id uuid not null default uuid_v7(),
+  definition_id uuid not null references definition(id),
+  archetype_id uuid not null references archetype(id),
+  statement jsonb not null default '{}'::jsonb,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  status ascription_status not null default 'DRAFT',
+  version integer not null default 0,
+  structure_id uuid not null references structure(id),
+  qualifier_id uuid not null references archetype(id),
+  constraint norm_pk primary key (id),
+  constraint norm_version_check check (version >= 0)
+);
+-- 3k. ascription_status_transition --------------------------------
 create table if not exists ascription_status_transition (
-    id uuid not null default uuid_v7(),
-    gsm_type text not null,
-    revision_id uuid not null,
-    pre_status ascription_status,
-    -- null for initial DRAFT
-    post_status ascription_status not null,
-    timestamp timestamptz not null default clock_timestamp(),
-    constraint ast_pk primary key (id),
-    constraint ast_pre_post_distinct check (
-        pre_status is distinct
-        from post_status
-    ),
-    constraint ast_gsm_type_check check (
-        gsm_type in (
-            'archetype',
-            'structure',
-            'mechanism',
-            'interface',
-            'effector',
-            'receptor',
-            'interaction',
-            'directive',
-            'norm'
-        )
-    )
+  id uuid not null default uuid_v7(),
+  ascription_id uuid not null,
+  pre_status ascription_status,
+  post_status ascription_status not null,
+  "timestamp" timestamptz not null default clock_timestamp(),
+  constraint ast_pk primary key (id),
+  constraint ast_no_noop_transition check (
+    pre_status is distinct
+    from post_status
+  )
 );
-create index idx_ast_revision on ascription_status_transition (revision_id);
-create index idx_ast_type_revision on ascription_status_transition (gsm_type, revision_id);
-create index idx_ast_latest_lookup on ascription_status_transition (gsm_type, revision_id, timestamp desc, id desc);
-create unique index uq_ast_initial on ascription_status_transition (gsm_type, revision_id)
+-- 3l. interface_effector (join) -----------------------------------
+create table if not exists interface_effector (
+  interface_id uuid not null references interface(id),
+  effector_id uuid not null references effector(id),
+  constraint interface_effector_pk primary key (interface_id, effector_id)
+);
+-- 3m. interface_receptor (join) -----------------------------------
+create table if not exists interface_receptor (
+  interface_id uuid not null references interface(id),
+  receptor_id uuid not null references receptor(id),
+  constraint interface_receptor_pk primary key (interface_id, receptor_id)
+);
+-- ============================================================
+-- §4  Indexes
+-- ============================================================
+-- 4a. definition --------------------------------------------------
+create index if not exists idx_definition_subject_type on definition (subject_type);
+-- 4b. Per-class-table common indexes (definition_id, status, GIN) -
+-- archetype
+create index if not exists idx_archetype_definition on archetype (definition_id);
+create index if not exists idx_archetype_status on archetype (status);
+create index if not exists gin_archetype_stmt on archetype using gin (statement);
+-- structure
+create index if not exists idx_structure_definition on structure (definition_id);
+create index if not exists idx_structure_status on structure (status);
+create index if not exists gin_structure_stmt on structure using gin (statement);
+-- mechanism
+create index if not exists idx_mechanism_definition on mechanism (definition_id);
+create index if not exists idx_mechanism_status on mechanism (status);
+create index if not exists idx_mechanism_structure on mechanism (structure_id);
+create index if not exists gin_mechanism_stmt on mechanism using gin (statement);
+-- interface
+create index if not exists idx_interface_definition on interface (definition_id);
+create index if not exists idx_interface_status on interface (status);
+create index if not exists idx_interface_structure on interface (structure_id);
+create index if not exists gin_interface_stmt on interface using gin (statement);
+-- effector
+create index if not exists idx_effector_definition on effector (definition_id);
+create index if not exists idx_effector_status on effector (status);
+create index if not exists idx_effector_mechanism on effector (mechanism_id);
+create index if not exists idx_effector_output_arch on effector (output_archetype_id);
+create index if not exists gin_effector_stmt on effector using gin (statement);
+-- receptor
+create index if not exists idx_receptor_definition on receptor (definition_id);
+create index if not exists idx_receptor_status on receptor (status);
+create index if not exists idx_receptor_mechanism on receptor (mechanism_id);
+create index if not exists idx_receptor_input_arch on receptor (input_archetype_id);
+create index if not exists gin_receptor_stmt on receptor using gin (statement);
+-- interaction
+create index if not exists idx_interaction_definition on interaction (definition_id);
+create index if not exists idx_interaction_status on interaction (status);
+create index if not exists idx_interaction_effector on interaction (effector_id);
+create index if not exists idx_interaction_receptor on interaction (receptor_id);
+create index if not exists gin_interaction_stmt on interaction using gin (statement);
+-- directive
+create index if not exists idx_directive_definition on directive (definition_id);
+create index if not exists idx_directive_status on directive (status);
+create index if not exists idx_directive_structure on directive (structure_id);
+create index if not exists idx_directive_qualifier on directive (qualifier_id);
+create index if not exists idx_directive_purpose on directive (purpose_id);
+create index if not exists gin_directive_stmt on directive using gin (statement);
+-- norm
+create index if not exists idx_norm_definition on norm (definition_id);
+create index if not exists idx_norm_status on norm (status);
+create index if not exists idx_norm_structure on norm (structure_id);
+create index if not exists idx_norm_qualifier on norm (qualifier_id);
+create index if not exists gin_norm_stmt on norm using gin (statement);
+-- 4c. Transition table indexes ------------------------------------
+create index if not exists idx_ast_ascription on ascription_status_transition (ascription_id);
+create unique index if not exists uq_ast_initial on ascription_status_transition (ascription_id)
 where pre_status is null;
-create index idx_ast_edge on ascription_status_transition (
-    gsm_type,
-    revision_id,
-    pre_status,
-    post_status
-);
+create index if not exists idx_ast_latest_lookup on ascription_status_transition (ascription_id, "timestamp" desc, id desc);
+create index if not exists idx_ast_edge on ascription_status_transition (ascription_id, pre_status, post_status);
+-- 4d. Lifecycle uniqueness (at most one ACTIVE / APPROVED per def) -
+create unique index if not exists uq_archetype_active on archetype (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_archetype_approved on archetype (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_structure_active on structure (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_structure_approved on structure (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_mechanism_active on mechanism (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_mechanism_approved on mechanism (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_interface_active on interface (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_interface_approved on interface (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_effector_active on effector (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_effector_approved on effector (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_receptor_active on receptor (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_receptor_approved on receptor (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_interaction_active on interaction (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_interaction_approved on interaction (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_directive_active on directive (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_directive_approved on directive (definition_id)
+where status = 'APPROVED';
+create unique index if not exists uq_norm_active on norm (definition_id)
+where status = 'ACTIVE';
+create unique index if not exists uq_norm_approved on norm (definition_id)
+where status = 'APPROVED';
+-- 4e. Expression indexes — GSM §9 identity uniqueness -------------
+-- Structure.purpose globally unique among in-effect
+create unique index if not exists uq_structure_purpose on structure ((statement->>'purpose'))
+where status in ('ACTIVE', 'DEPRECATED');
+-- Mechanism.function unique within owning Structure among in-effect
+create unique index if not exists uq_mechanism_function on mechanism (structure_id, (statement->>'function'))
+where status in ('ACTIVE', 'DEPRECATED');
+-- Archetype.schema.title globally unique among in-effect
+create unique index if not exists uq_archetype_schema_title on archetype ((statement->'schema'->>'title'))
+where status in ('ACTIVE', 'DEPRECATED');
 -- ============================================================
--- CONVENIENCE VIEW: all ascriptions (cross-type queries)
--- ============================================================
-create or replace view ascription_all as
-select 'archetype'::text as gsm_type,
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from archetype
-union all
-select 'structure',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from structure
-union all
-select 'mechanism',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from mechanism
-union all
-select 'effector',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from effector
-union all
-select 'receptor',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from receptor
-union all
-select 'interaction',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from interaction
-union all
-select 'interface',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from interface
-union all
-select 'directive',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from directive
-union all
-select 'norm',
-    id,
-    revision_id,
-    revision_timestamp,
-    archetype_id,
-    definition,
-    version,
-    status
-from norm;
-comment on view ascription_all is 'Union of all GSM class tables for cross-type queries (e.g. approval inbox, global search). Not a base table.';
--- ============================================================
--- SEED: GSM base archetypes
---
--- 9 bootstrap archetypes: the seed Archetype (self-typing root)
--- plus one base archetype per GSM structural and governance
--- class. All stored in the archetype table.
---
--- Bootstrap UUIDs are generated at population time via uuid_v7().
--- Deterministic reference to base archetypes is by schemaUri.
--- FKs reference revision_id directly: child archetypes point to
--- the seed Archetype's revision_id.
+-- §5  Seed data — GSM base archetypes
+--     Placed BEFORE triggers so seed inserts run unimpeded.
 -- ============================================================
 do $$
-declare seed_schema_uri constant text := 'urn:sie:gsm:v1:Archetype.schema.json';
-seed_id uuid;
-seed_rev uuid;
-curr_rev uuid;
-begin -- 1. Seed Archetype (self-typing: archetype_id = own revision_id)
-select a.id,
-    a.revision_id into seed_id,
-    seed_rev
-from archetype a
-where a.definition->>'schemaUri' = seed_schema_uri
-order by a.version desc nulls last,
-    a.revision_id desc
-limit 1;
-if seed_rev is null then seed_id := uuid_v7();
-seed_rev := uuid_v7();
+declare -- Meta-archetype (self-typed root)
+  meta_def uuid := uuid_v7();
+meta_asc uuid := uuid_v7();
+-- Structural archetypes
+str_def uuid := uuid_v7();
+str_asc uuid := uuid_v7();
+mech_def uuid := uuid_v7();
+mech_asc uuid := uuid_v7();
+eff_def uuid := uuid_v7();
+eff_asc uuid := uuid_v7();
+rec_def uuid := uuid_v7();
+rec_asc uuid := uuid_v7();
+int_def uuid := uuid_v7();
+int_asc uuid := uuid_v7();
+ifc_def uuid := uuid_v7();
+ifc_asc uuid := uuid_v7();
+-- Governance DNA archetypes
+dir_def uuid := uuid_v7();
+dir_asc uuid := uuid_v7();
+nrm_def uuid := uuid_v7();
+nrm_asc uuid := uuid_v7();
+begin -- ---- Definitions (all are ARCHETYPE subject type) ----
+insert into definition (id, subject_type)
+values (meta_def, 'ARCHETYPE'),
+  (str_def, 'ARCHETYPE'),
+  (mech_def, 'ARCHETYPE'),
+  (eff_def, 'ARCHETYPE'),
+  (rec_def, 'ARCHETYPE'),
+  (int_def, 'ARCHETYPE'),
+  (ifc_def, 'ARCHETYPE'),
+  (dir_def, 'ARCHETYPE'),
+  (nrm_def, 'ARCHETYPE');
+-- ---- Archetype ascriptions ----
+-- Meta-archetype (self-typed: archetype_id = own id)
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        seed_id,
-        seed_rev,
-        seed_rev,
-        jsonb_build_object('schemaUri', seed_schema_uri),
-        1,
-        'ACTIVE'
-    );
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', seed_rev, null, 'DRAFT'),
-    ('archetype', seed_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', seed_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', seed_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 2. StructureArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Structure.schema.json'
-) then
+    meta_asc,
+    meta_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/Archetype/v1","title":"Archetype","$gsm:sealed":true,"type":"object","properties":{"schema":{"type":"object","description":"JSON Schema document (draft 2020-12+)."}},"required":["schema"],"additionalProperties":true}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- StructureArchetype
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Structure.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 3. MechanismArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Mechanism.schema.json'
-) then
+    str_asc,
+    str_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/StructureArchetype/v1","title":"StructureArchetype","type":"object","properties":{"purpose":{"type":"string","minLength":1,"$gsm:identityBound":true,"description":"Globally unique identity of the Structure."}},"required":["purpose"],"additionalProperties":true}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- MechanismArchetype
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Mechanism.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 4. EffectorArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Effector.schema.json'
-) then
+    mech_asc,
+    mech_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/MechanismArchetype/v1","title":"MechanismArchetype","type":"object","properties":{"structure":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"STRUCTURE"}},"function":{"type":"string","minLength":1,"$gsm:identityBound":true},"rule":{"type":"string","description":"Starlark source (Generative mode)."}},"required":["structure","function"],"additionalProperties":true}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- EffectorArchetype (sealed)
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Effector.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 5. ReceptorArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Receptor.schema.json'
-) then
+    eff_asc,
+    eff_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/EffectorArchetype/v1","title":"EffectorArchetype","$gsm:sealed":true,"type":"object","properties":{"mechanism":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"MECHANISM"}},"archetype":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"ARCHETYPE"}}},"required":["mechanism","archetype"],"additionalProperties":false}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- ReceptorArchetype (sealed)
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Receptor.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 6. InteractionArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Interaction.schema.json'
-) then
+    rec_asc,
+    rec_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/ReceptorArchetype/v1","title":"ReceptorArchetype","$gsm:sealed":true,"type":"object","properties":{"mechanism":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"MECHANISM"}},"archetype":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"ARCHETYPE"}}},"required":["mechanism","archetype"],"additionalProperties":false}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- InteractionArchetype
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Interaction.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 7. InterfaceArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Interface.schema.json'
-) then
+    int_asc,
+    int_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/InteractionArchetype/v1","title":"InteractionArchetype","type":"object","properties":{"effector":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"EFFECTOR"}},"receptor":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"RECEPTOR"}}},"required":["effector","receptor"],"additionalProperties":true}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- InterfaceArchetype
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Interface.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 8. DirectiveArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Directive.schema.json'
-) then
+    ifc_asc,
+    ifc_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/InterfaceArchetype/v1","title":"InterfaceArchetype","type":"object","properties":{"structure":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"STRUCTURE"}},"effectorIds":{"type":"array","items":{"type":"string","format":"uuid"}},"receptorIds":{"type":"array","items":{"type":"string","format":"uuid"}}},"required":["structure"],"additionalProperties":true}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- DirectiveArchetype (sealed)
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Directive.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
--- 9. NormArchetype
-if not exists (
-    select 1
-    from archetype
-    where definition->>'schemaUri' = 'urn:sie:gsm:v1:Norm.schema.json'
-) then
+    dir_asc,
+    dir_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/DirectiveArchetype/v1","title":"DirectiveArchetype","$gsm:sealed":true,"type":"object","properties":{"structure":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"STRUCTURE"}},"modal":{"type":"string","enum":["MUST","MUST_NOT","SHOULD","SHOULD_NOT","MAY"]},"verb":{"type":"string","enum":["ENSURE","PREVENT","MAINTAIN","OPTIMIZE","MINIMIZE","MAXIMIZE","MONITOR","ENABLE"]},"qualifier":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"ARCHETYPE"}},"purpose":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"STRUCTURE"}}},"required":["structure","modal","verb","qualifier","purpose"],"additionalProperties":false}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- NormArchetype (sealed)
 insert into archetype (
-        id,
-        revision_id,
-        archetype_id,
-        definition,
-        version,
-        status
-    )
+    id,
+    definition_id,
+    archetype_id,
+    statement,
+    version,
+    status
+  )
 values (
-        uuid_v7(),
-        uuid_v7(),
-        seed_rev,
-        jsonb_build_object(
-            'schemaUri',
-            'urn:sie:gsm:v1:Norm.schema.json'
-        ),
-        1,
-        'ACTIVE'
-    )
-returning revision_id into curr_rev;
-insert into ascription_status_transition (
-        gsm_type,
-        revision_id,
-        pre_status,
-        post_status
-    )
-values ('archetype', curr_rev, null, 'DRAFT'),
-    ('archetype', curr_rev, 'DRAFT', 'PROPOSED'),
-    ('archetype', curr_rev, 'PROPOSED', 'APPROVED'),
-    ('archetype', curr_rev, 'APPROVED', 'ACTIVE');
-end if;
-end;
-$$;
+    nrm_asc,
+    nrm_def,
+    meta_asc,
+    '{"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"gsm://archetypes/NormArchetype/v1","title":"NormArchetype","$gsm:sealed":true,"type":"object","properties":{"structure":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"STRUCTURE"}},"qualifier":{"type":"string","format":"uuid","$gsm:identityBound":true,"$gsm:referential":{"subjectType":"ARCHETYPE"}},"guard":{"type":"string","default":"true"},"predicate":{"type":"string","$gsm:identityBound":true},"toleranceMode":{"type":"string","enum":["INSTANTANEOUS","AGGREGATED","SUSTAINED"]},"temporalWindow":{"type":"string","description":"ISO 8601 duration."},"temporalAggregation":{"type":"string","enum":["SUM","AVG","MIN","MAX","COUNT","P50","P90","P95","P99"]},"sustainedThreshold":{"type":"number","minimum":0,"maximum":1}},"required":["structure","qualifier","predicate","toleranceMode"],"additionalProperties":false}}'::jsonb,
+    1,
+    'ACTIVE'
+  );
+-- ---- Audit trail (4 lifecycle transitions per archetype) ----
+insert into ascription_status_transition (id, ascription_id, pre_status, post_status)
+values -- Archetype meta
+  (uuid_v7(), meta_asc, null, 'DRAFT'),
+  (uuid_v7(), meta_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), meta_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), meta_asc, 'APPROVED', 'ACTIVE'),
+  -- StructureArchetype
+  (uuid_v7(), str_asc, null, 'DRAFT'),
+  (uuid_v7(), str_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), str_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), str_asc, 'APPROVED', 'ACTIVE'),
+  -- MechanismArchetype
+  (uuid_v7(), mech_asc, null, 'DRAFT'),
+  (uuid_v7(), mech_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), mech_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), mech_asc, 'APPROVED', 'ACTIVE'),
+  -- EffectorArchetype
+  (uuid_v7(), eff_asc, null, 'DRAFT'),
+  (uuid_v7(), eff_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), eff_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), eff_asc, 'APPROVED', 'ACTIVE'),
+  -- ReceptorArchetype
+  (uuid_v7(), rec_asc, null, 'DRAFT'),
+  (uuid_v7(), rec_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), rec_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), rec_asc, 'APPROVED', 'ACTIVE'),
+  -- InteractionArchetype
+  (uuid_v7(), int_asc, null, 'DRAFT'),
+  (uuid_v7(), int_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), int_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), int_asc, 'APPROVED', 'ACTIVE'),
+  -- InterfaceArchetype
+  (uuid_v7(), ifc_asc, null, 'DRAFT'),
+  (uuid_v7(), ifc_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), ifc_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), ifc_asc, 'APPROVED', 'ACTIVE'),
+  -- DirectiveArchetype
+  (uuid_v7(), dir_asc, null, 'DRAFT'),
+  (uuid_v7(), dir_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), dir_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), dir_asc, 'APPROVED', 'ACTIVE'),
+  -- NormArchetype
+  (uuid_v7(), nrm_asc, null, 'DRAFT'),
+  (uuid_v7(), nrm_asc, 'DRAFT', 'PROPOSED'),
+  (uuid_v7(), nrm_asc, 'PROPOSED', 'APPROVED'),
+  (uuid_v7(), nrm_asc, 'APPROVED', 'ACTIVE');
+end $$;
 -- ============================================================
--- TRIGGER: DB-enforced ID generation
---
--- revision_id: ALWAYS overwritten — the DB is the sole authority.
---   The caller must never control revision identity.
--- id: generated only when NULL (new entity). When provided
---   (new revision of existing entity), the caller's value is
---   kept to preserve lineage grouping.
---
--- Placed after seed block: seed inserts run without triggers
--- (infrastructure bootstrap may legitimately set both columns).
--- NOT NULL constraints are evaluated after the trigger fires,
--- so the trigger populates values in time.
+-- §6  Trigger functions
 -- ============================================================
-create or replace function tgf_assign_ids() returns trigger language plpgsql as $$ begin if NEW.id is null then NEW.id := uuid_v7();
+-- 6a. Assign id (if null) and always set timestamp ----------------
+create or replace function tgf_assign_ids() returns trigger as $$ begin if NEW.id is null then NEW.id := uuid_v7();
 end if;
-NEW.revision_id := uuid_v7();
-NEW.revision_timestamp := clock_timestamp();
+NEW."timestamp" := clock_timestamp();
 return NEW;
 end;
-$$;
-create trigger trg_archetype_assign_ids before
-insert on archetype for each row execute function tgf_assign_ids();
-create trigger trg_structure_assign_ids before
-insert on structure for each row execute function tgf_assign_ids();
-create trigger trg_mechanism_assign_ids before
-insert on mechanism for each row execute function tgf_assign_ids();
-create trigger trg_interface_assign_ids before
-insert on interface for each row execute function tgf_assign_ids();
-create trigger trg_effector_assign_ids before
-insert on effector for each row execute function tgf_assign_ids();
-create trigger trg_receptor_assign_ids before
-insert on receptor for each row execute function tgf_assign_ids();
-create trigger trg_interaction_assign_ids before
-insert on interaction for each row execute function tgf_assign_ids();
-create trigger trg_directive_assign_ids before
-insert on directive for each row execute function tgf_assign_ids();
-create trigger trg_norm_assign_ids before
-insert on norm for each row execute function tgf_assign_ids();
--- ============================================================
--- TRIGGERS: transition-table integrity for autonomous class tables
---
--- This is the strongest DB-side approximation of envelope-table RI
--- available without introducing a shared parent table:
--- - each transition must belong to exactly one existing owner row
--- - gsm_type must match that owner table
--- - owner status is synchronized from the latest transition
--- - owner rows must have at least one transition whose latest post_status
---   matches the denormalized owner status
--- - transition rows are immutable once written
--- - owner rows cannot be deleted while transitions exist
--- - revision_id is immutable on owner rows
---
--- The transition table's `timestamp` column provides authoritative ordering
--- for transitions. UUIDv7 embeds millisecond time but uses random bits
--- for the sub-millisecond part, so `id` alone is insufficient for ordering
--- within the same millisecond. "Latest" status is derived by ordering on
--- `timestamp` desc, `id` desc.
--- ============================================================
-create or replace function tgf_assert_transition_owner_exists() returns trigger language plpgsql as $$
-declare owner_count integer;
-type_matches boolean;
+$$ language plpgsql;
+-- 6b. Validate transition.ascription_id references an ascription --
+create or replace function tgf_assert_transition_owner_exists() returns trigger as $$
+declare found boolean;
 begin
-select count(*) into owner_count
+select exists(
+    select 1
+    from archetype
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from structure
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from mechanism
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from interface
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from effector
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from receptor
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from interaction
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from directive
+    where id = NEW.ascription_id
+    union all
+    select 1
+    from norm
+    where id = NEW.ascription_id
+  ) into found;
+if not found then raise exception 'ascription_status_transition.ascription_id = % references no ascription row',
+NEW.ascription_id using errcode = 'foreign_key_violation';
+end if;
+return NEW;
+end;
+$$ language plpgsql;
+-- 6c. Sync owner status (+ version on APPROVED) from transition ---
+create or replace function tgf_sync_owner_status_from_transition() returns trigger as $$
+declare owner_table text;
+begin -- Identify the owning class table
+select tbl into owner_table
 from (
-        select 'archetype'::text as gsm_type
-        from archetype
-        where revision_id = NEW.revision_id
-        union all
-        select 'structure'::text
-        from structure
-        where revision_id = NEW.revision_id
-        union all
-        select 'mechanism'::text
-        from mechanism
-        where revision_id = NEW.revision_id
-        union all
-        select 'interface'::text
-        from interface
-        where revision_id = NEW.revision_id
-        union all
-        select 'effector'::text
-        from effector
-        where revision_id = NEW.revision_id
-        union all
-        select 'receptor'::text
-        from receptor
-        where revision_id = NEW.revision_id
-        union all
-        select 'interaction'::text
-        from interaction
-        where revision_id = NEW.revision_id
-        union all
-        select 'directive'::text
-        from directive
-        where revision_id = NEW.revision_id
-        union all
-        select 'norm'::text
-        from norm
-        where revision_id = NEW.revision_id
-    ) owners;
-if owner_count <> 1 then raise exception 'ascription_status_transition.revision_id % must belong to exactly one owner row across GSM class tables; found %',
-NEW.revision_id,
-owner_count;
-end if;
-select exists (
-        select 1
-        from (
-                select 'archetype'::text as gsm_type
-                from archetype
-                where revision_id = NEW.revision_id
-                union all
-                select 'structure'::text
-                from structure
-                where revision_id = NEW.revision_id
-                union all
-                select 'mechanism'::text
-                from mechanism
-                where revision_id = NEW.revision_id
-                union all
-                select 'interface'::text
-                from interface
-                where revision_id = NEW.revision_id
-                union all
-                select 'effector'::text
-                from effector
-                where revision_id = NEW.revision_id
-                union all
-                select 'receptor'::text
-                from receptor
-                where revision_id = NEW.revision_id
-                union all
-                select 'interaction'::text
-                from interaction
-                where revision_id = NEW.revision_id
-                union all
-                select 'directive'::text
-                from directive
-                where revision_id = NEW.revision_id
-                union all
-                select 'norm'::text
-                from norm
-                where revision_id = NEW.revision_id
-            ) owners
-        where owners.gsm_type = NEW.gsm_type
-    ) into type_matches;
-if not type_matches then raise exception 'ascription_status_transition.gsm_type % does not match owner type for revision_id %',
-NEW.gsm_type,
-NEW.revision_id;
-end if;
-return NEW;
-end;
-$$;
-create constraint trigger trg_ast_owner_exists
-after
-insert
-    or
-update on ascription_status_transition deferrable initially deferred for each row execute function tgf_assert_transition_owner_exists();
-create or replace function tgf_sync_owner_status_from_transition() returns trigger language plpgsql as $$ begin perform set_config('sif.status_sync', 'on', true);
-execute format(
-    'update %I set status = $1 where revision_id = $2',
-    NEW.gsm_type
-) using NEW.post_status,
-NEW.revision_id;
-perform set_config('sif.status_sync', 'off', true);
-return NEW;
-end;
-$$;
-create trigger trg_ast_sync_owner_status
-after
-insert on ascription_status_transition for each row execute function tgf_sync_owner_status_from_transition();
-create or replace function tgf_assert_owner_status_matches_history() returns trigger language plpgsql as $$
-declare latest_post_status ascription_status;
-begin
-select ast.post_status into latest_post_status
-from ascription_status_transition ast
-where ast.gsm_type = TG_TABLE_NAME
-    and ast.revision_id = NEW.revision_id
-order by ast.timestamp desc,
-    ast.id desc
+    select 'archetype'::text as tbl
+    from archetype
+    where id = NEW.ascription_id
+    union all
+    select 'structure'
+    from structure
+    where id = NEW.ascription_id
+    union all
+    select 'mechanism'
+    from mechanism
+    where id = NEW.ascription_id
+    union all
+    select 'interface'
+    from interface
+    where id = NEW.ascription_id
+    union all
+    select 'effector'
+    from effector
+    where id = NEW.ascription_id
+    union all
+    select 'receptor'
+    from receptor
+    where id = NEW.ascription_id
+    union all
+    select 'interaction'
+    from interaction
+    where id = NEW.ascription_id
+    union all
+    select 'directive'
+    from directive
+    where id = NEW.ascription_id
+    union all
+    select 'norm'
+    from norm
+    where id = NEW.ascription_id
+  ) sub
 limit 1;
-if latest_post_status is null then raise exception 'owner %.% must have at least one status transition',
+if owner_table is null then raise exception 'tgf_sync: no ascription row found for id = %',
+NEW.ascription_id using errcode = 'foreign_key_violation';
+end if;
+if NEW.post_status = 'APPROVED' then execute format(
+  'update %I set status = $1, version = version + 1 where id = $2',
+  owner_table
+) using NEW.post_status::ascription_status,
+NEW.ascription_id;
+else execute format(
+  'update %I set status = $1 where id = $2',
+  owner_table
+) using NEW.post_status::ascription_status,
+NEW.ascription_id;
+end if;
+return NEW;
+end;
+$$ language plpgsql;
+-- 6d. Verify owner status matches latest transition ---------------
+create or replace function tgf_assert_owner_status_matches_history() returns trigger as $$
+declare expected ascription_status;
+begin
+select t.post_status into expected
+from ascription_status_transition t
+where t.ascription_id = NEW.id
+order by t."timestamp" desc,
+  t.id desc
+limit 1;
+if expected is null then -- No transitions yet: initial insert — only DRAFT is acceptable
+if NEW.status <> 'DRAFT' then raise exception '% id=%: status=% but no transition history (expected DRAFT)',
 TG_TABLE_NAME,
-NEW.revision_id;
+NEW.id,
+NEW.status using errcode = 'check_violation';
 end if;
-if NEW.status is distinct
-from latest_post_status then raise exception 'owner %.% status % does not match latest transition status %',
-    TG_TABLE_NAME,
-    NEW.revision_id,
-    NEW.status,
-    latest_post_status;
-end if;
-return NEW;
-end;
-$$;
-create constraint trigger trg_archetype_status_matches_history
-after
-insert
-    or
-update of status on archetype deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_structure_status_matches_history
-after
-insert
-    or
-update of status on structure deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_mechanism_status_matches_history
-after
-insert
-    or
-update of status on mechanism deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_interface_status_matches_history
-after
-insert
-    or
-update of status on interface deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_effector_status_matches_history
-after
-insert
-    or
-update of status on effector deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_receptor_status_matches_history
-after
-insert
-    or
-update of status on receptor deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_interaction_status_matches_history
-after
-insert
-    or
-update of status on interaction deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_directive_status_matches_history
-after
-insert
-    or
-update of status on directive deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create constraint trigger trg_norm_status_matches_history
-after
-insert
-    or
-update of status on norm deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
-create or replace function tgf_reject_transition_mutation() returns trigger language plpgsql as $$ begin raise exception 'ascription_status_transition rows are immutable; % is not allowed for id %',
-    TG_OP,
-    coalesce(OLD.id, NEW.id);
-end;
-$$;
-create trigger trg_ast_no_update before
-update on ascription_status_transition for each row execute function tgf_reject_transition_mutation();
-create trigger trg_ast_no_delete before delete on ascription_status_transition for each row execute function tgf_reject_transition_mutation();
-create or replace function tgf_reject_status_update() returns trigger language plpgsql as $$ begin if current_setting('sif.status_sync', true) = 'on' then return NEW;
-end if;
-if NEW.status is distinct
-from OLD.status then raise exception 'status is derived from the latest status transition on table %: old %, new %',
-    TG_TABLE_NAME,
-    OLD.status,
-    NEW.status;
+elsif NEW.status <> expected then raise exception '% id=%: status=% but latest transition says %',
+TG_TABLE_NAME,
+NEW.id,
+NEW.status,
+expected using errcode = 'check_violation';
 end if;
 return NEW;
 end;
-$$;
-create trigger trg_archetype_status_immutable before
-update of status on archetype for each row execute function tgf_reject_status_update();
-create trigger trg_structure_status_immutable before
-update of status on structure for each row execute function tgf_reject_status_update();
-create trigger trg_mechanism_status_immutable before
-update of status on mechanism for each row execute function tgf_reject_status_update();
-create trigger trg_interface_status_immutable before
-update of status on interface for each row execute function tgf_reject_status_update();
-create trigger trg_effector_status_immutable before
-update of status on effector for each row execute function tgf_reject_status_update();
-create trigger trg_receptor_status_immutable before
-update of status on receptor for each row execute function tgf_reject_status_update();
-create trigger trg_interaction_status_immutable before
-update of status on interaction for each row execute function tgf_reject_status_update();
-create trigger trg_directive_status_immutable before
-update of status on directive for each row execute function tgf_reject_status_update();
-create trigger trg_norm_status_immutable before
-update of status on norm for each row execute function tgf_reject_status_update();
-create or replace function tgf_reject_revision_id_update() returns trigger language plpgsql as $$ begin if NEW.revision_id is distinct
-from OLD.revision_id then raise exception 'revision_id is immutable on table %: old %, new %',
-    TG_TABLE_NAME,
-    OLD.revision_id,
-    NEW.revision_id;
+$$ language plpgsql;
+-- 6e. Transition rows are immutable -------------------------------
+create or replace function tgf_reject_transition_mutation() returns trigger as $$ begin raise exception 'ascription_status_transition rows are immutable (attempted %)',
+  TG_OP using errcode = 'restrict_violation';
+end;
+$$ language plpgsql;
+-- 6f. Block direct status column updates --------------------------
+create or replace function tgf_reject_status_update() returns trigger as $$ begin -- Allow trigger-cascaded updates (sync trigger operates at depth >= 2)
+  if pg_trigger_depth() >= 2 then return NEW;
+end if;
+if OLD.status is distinct
+from NEW.status then raise exception '% id=%: direct status update forbidden; insert into ascription_status_transition instead',
+  TG_TABLE_NAME,
+  NEW.id using errcode = 'restrict_violation';
 end if;
 return NEW;
 end;
-$$;
-create trigger trg_archetype_revision_immutable before
-update of revision_id on archetype for each row execute function tgf_reject_revision_id_update();
-create trigger trg_structure_revision_immutable before
-update of revision_id on structure for each row execute function tgf_reject_revision_id_update();
-create trigger trg_mechanism_revision_immutable before
-update of revision_id on mechanism for each row execute function tgf_reject_revision_id_update();
-create trigger trg_interface_revision_immutable before
-update of revision_id on interface for each row execute function tgf_reject_revision_id_update();
-create trigger trg_effector_revision_immutable before
-update of revision_id on effector for each row execute function tgf_reject_revision_id_update();
-create trigger trg_receptor_revision_immutable before
-update of revision_id on receptor for each row execute function tgf_reject_revision_id_update();
-create trigger trg_interaction_revision_immutable before
-update of revision_id on interaction for each row execute function tgf_reject_revision_id_update();
-create trigger trg_directive_revision_immutable before
-update of revision_id on directive for each row execute function tgf_reject_revision_id_update();
-create trigger trg_norm_revision_immutable before
-update of revision_id on norm for each row execute function tgf_reject_revision_id_update();
-create or replace function tgf_restrict_owner_delete_when_transitions_exist() returns trigger language plpgsql as $$ begin if exists (
-        select 1
-        from ascription_status_transition ast
-        where ast.gsm_type = TG_TABLE_NAME
-            and ast.revision_id = OLD.revision_id
-    ) then raise exception 'cannot delete %.% while status transitions exist',
-    TG_TABLE_NAME,
-    OLD.revision_id;
+$$ language plpgsql;
+-- 6g. Block PK (id) changes --------------------------------------
+create or replace function tgf_reject_id_update() returns trigger as $$ begin if OLD.id is distinct
+from NEW.id then raise exception '% id=%: primary key (id) is immutable',
+  TG_TABLE_NAME,
+  OLD.id using errcode = 'restrict_violation';
+end if;
+return NEW;
+end;
+$$ language plpgsql;
+-- 6h. Prevent delete when transitions exist -----------------------
+create or replace function tgf_restrict_owner_delete_when_transitions_exist() returns trigger as $$
+declare cnt bigint;
+begin
+select count(*) into cnt
+from ascription_status_transition
+where ascription_id = OLD.id;
+if cnt > 0 then raise exception '% id=%: cannot delete; % transition(s) exist',
+TG_TABLE_NAME,
+OLD.id,
+cnt using errcode = 'restrict_violation';
 end if;
 return OLD;
 end;
-$$;
-create trigger trg_archetype_delete_restrict before delete on archetype for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_structure_delete_restrict before delete on structure for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_mechanism_delete_restrict before delete on mechanism for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_interface_delete_restrict before delete on interface for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_effector_delete_restrict before delete on effector for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_receptor_delete_restrict before delete on receptor for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_interaction_delete_restrict before delete on interaction for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_directive_delete_restrict before delete on directive for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
-create trigger trg_norm_delete_restrict before delete on norm for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+$$ language plpgsql;
+-- ============================================================
+-- §7  Trigger attachments
+-- ============================================================
+-- Helper: attach the standard 5-trigger set to each class table.
+-- PostgreSQL requires one CREATE TRIGGER per trigger, so we
+-- enumerate all 9 tables × 5 triggers.
+-- ---- archetype ----
+create trigger trg_archetype_assign_ids before
+insert on archetype for each row execute function tgf_assign_ids();
+create trigger trg_archetype_reject_status_update before
+update of status on archetype for each row execute function tgf_reject_status_update();
+create trigger trg_archetype_reject_id_update before
+update of id on archetype for each row execute function tgf_reject_id_update();
+create trigger trg_archetype_restrict_delete before delete on archetype for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_archetype_status_matches_history
+after
+insert
+  or
+update on archetype deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- structure ----
+create trigger trg_structure_assign_ids before
+insert on structure for each row execute function tgf_assign_ids();
+create trigger trg_structure_reject_status_update before
+update of status on structure for each row execute function tgf_reject_status_update();
+create trigger trg_structure_reject_id_update before
+update of id on structure for each row execute function tgf_reject_id_update();
+create trigger trg_structure_restrict_delete before delete on structure for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_structure_status_matches_history
+after
+insert
+  or
+update on structure deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- mechanism ----
+create trigger trg_mechanism_assign_ids before
+insert on mechanism for each row execute function tgf_assign_ids();
+create trigger trg_mechanism_reject_status_update before
+update of status on mechanism for each row execute function tgf_reject_status_update();
+create trigger trg_mechanism_reject_id_update before
+update of id on mechanism for each row execute function tgf_reject_id_update();
+create trigger trg_mechanism_restrict_delete before delete on mechanism for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_mechanism_status_matches_history
+after
+insert
+  or
+update on mechanism deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- interface ----
+create trigger trg_interface_assign_ids before
+insert on interface for each row execute function tgf_assign_ids();
+create trigger trg_interface_reject_status_update before
+update of status on interface for each row execute function tgf_reject_status_update();
+create trigger trg_interface_reject_id_update before
+update of id on interface for each row execute function tgf_reject_id_update();
+create trigger trg_interface_restrict_delete before delete on interface for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_interface_status_matches_history
+after
+insert
+  or
+update on interface deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- effector ----
+create trigger trg_effector_assign_ids before
+insert on effector for each row execute function tgf_assign_ids();
+create trigger trg_effector_reject_status_update before
+update of status on effector for each row execute function tgf_reject_status_update();
+create trigger trg_effector_reject_id_update before
+update of id on effector for each row execute function tgf_reject_id_update();
+create trigger trg_effector_restrict_delete before delete on effector for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_effector_status_matches_history
+after
+insert
+  or
+update on effector deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- receptor ----
+create trigger trg_receptor_assign_ids before
+insert on receptor for each row execute function tgf_assign_ids();
+create trigger trg_receptor_reject_status_update before
+update of status on receptor for each row execute function tgf_reject_status_update();
+create trigger trg_receptor_reject_id_update before
+update of id on receptor for each row execute function tgf_reject_id_update();
+create trigger trg_receptor_restrict_delete before delete on receptor for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_receptor_status_matches_history
+after
+insert
+  or
+update on receptor deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- interaction ----
+create trigger trg_interaction_assign_ids before
+insert on interaction for each row execute function tgf_assign_ids();
+create trigger trg_interaction_reject_status_update before
+update of status on interaction for each row execute function tgf_reject_status_update();
+create trigger trg_interaction_reject_id_update before
+update of id on interaction for each row execute function tgf_reject_id_update();
+create trigger trg_interaction_restrict_delete before delete on interaction for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_interaction_status_matches_history
+after
+insert
+  or
+update on interaction deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- directive ----
+create trigger trg_directive_assign_ids before
+insert on directive for each row execute function tgf_assign_ids();
+create trigger trg_directive_reject_status_update before
+update of status on directive for each row execute function tgf_reject_status_update();
+create trigger trg_directive_reject_id_update before
+update of id on directive for each row execute function tgf_reject_id_update();
+create trigger trg_directive_restrict_delete before delete on directive for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_directive_status_matches_history
+after
+insert
+  or
+update on directive deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- norm ----
+create trigger trg_norm_assign_ids before
+insert on norm for each row execute function tgf_assign_ids();
+create trigger trg_norm_reject_status_update before
+update of status on norm for each row execute function tgf_reject_status_update();
+create trigger trg_norm_reject_id_update before
+update of id on norm for each row execute function tgf_reject_id_update();
+create trigger trg_norm_restrict_delete before delete on norm for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create constraint trigger trg_norm_status_matches_history
+after
+insert
+  or
+update on norm deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+-- ---- ascription_status_transition ----
+create trigger trg_ast_assert_owner_exists before
+insert on ascription_status_transition for each row execute function tgf_assert_transition_owner_exists();
+create trigger trg_ast_sync_owner_status
+after
+insert on ascription_status_transition for each row execute function tgf_sync_owner_status_from_transition();
+create trigger trg_ast_reject_mutation before
+update
+  or delete on ascription_status_transition for each row execute function tgf_reject_transition_mutation();
+-- ============================================================
+-- §8  View — cross-type query convenience
+-- ============================================================
+create or replace view ascription_all as
+select 'ARCHETYPE'::definition_subject_type as subject_type,
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from archetype
+union all
+select 'STRUCTURE',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from structure
+union all
+select 'MECHANISM',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from mechanism
+union all
+select 'INTERFACE',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from interface
+union all
+select 'EFFECTOR',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from effector
+union all
+select 'RECEPTOR',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from receptor
+union all
+select 'INTERACTION',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from interaction
+union all
+select 'DIRECTIVE',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from directive
+union all
+select 'NORM',
+  definition_id,
+  id,
+  "timestamp",
+  archetype_id,
+  statement,
+  version,
+  status
+from norm;
 commit;

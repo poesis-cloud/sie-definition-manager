@@ -19,7 +19,7 @@ import jakarta.validation.constraints.NotNull;
  */
 public record AscriptionRequestDto(
         @NotNull UUID archetypeId,
-        @NotNull JsonNode compilation,
+        @NotNull JsonNode statement,
         UUID definitionId) // optional: for new ascription of existing definition
 {
 }

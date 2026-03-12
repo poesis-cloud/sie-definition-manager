@@ -5,22 +5,24 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.springframework.hateoas.server.core.Relation;
+
 /**
  * Unified response for any GSM ascription.
  *
  * <p>
- * FK references are part of the {@code compilation} payload — not flattened at
+ * FK references are part of the {@code statement} payload — not flattened at
  * the envelope level. {@code subjectType} is derived server-side from the
- * archetype's schema URI.
+ * archetype's schema title.
  */
+@Relation(collectionRelation = "ascriptionResponseList")
 public record AscriptionDto(
-        String subjectType,
-        UUID id,
-        UUID definitionId,
-        UUID archetypeId,
-        JsonNode compilation,
-        int version,
-        String status,
-        String schemaUri,
-        Instant timestamp) {
+                UUID id,
+                UUID definitionId,
+                UUID archetypeId,
+                String subjectType,
+                JsonNode statement,
+                int version,
+                String status,
+                Instant timestamp) {
 }

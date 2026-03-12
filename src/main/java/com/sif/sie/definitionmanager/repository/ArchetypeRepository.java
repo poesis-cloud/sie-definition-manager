@@ -21,8 +21,6 @@ public interface ArchetypeRepository extends JpaRepository<ArchetypeEntity, UUID
 
     List<ArchetypeEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
-    Optional<ArchetypeEntity> findBySchemaUri(String schemaUri);
-
     List<ArchetypeEntity> findAllByDefinition_IdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 }

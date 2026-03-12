@@ -305,8 +305,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Domain semantics are expressed through **Archetypes** — each Archetype
     carries a `schema` (JSON Schema document, persisted as-is) whose
     `title` serves as the Archetype's identity (globally unique, used as
-    root identifier in Norm CEL predicates; DM-enforced identity-bound
-    rule). DM input = DM output (1:1). There is one Archetype kind; no
+    root identifier in Norm CEL guard expressions; DM-enforced
+    identity-bound rule). DM input = DM output (1:1). There is one Archetype kind; no
     separate "domain" or "metadata" typing layers.
 
     **Archetype** is the general-purpose typed deliverable in the definition
@@ -613,8 +613,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `"this.minReplicas <= this.maxReplicas"`
     - `"this.budget > 0.0 || this.budgetExempt == true"`
     Expressions MUST be deterministic and side-effect-free (same
-    restrictions as Norm property-assertion profile, minus the
-    Archetype root-identifier convention — here `this` is the root).
+    restrictions as Norm property-assertion profile; both use
+    `this`/`self` as root — no Archetype name in the expression).
 
     `$gsm:deprecated: true` (property-level)
     Marks a property as deprecated. DM emits a warning (not an error)
@@ -1114,9 +1114,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       profile** (default: `"true"`). Activation condition — predicate
       is only evaluated when guard evaluates to true.
     - `predicate`: CEL expression conforming to the **property-assertion
-      profile** → bool. The constraint. References exactly one Archetype
-      by name as root identifier, then navigates its JSON Schema fields.
-      Example: `SecurityProperties.encryptionLevel >= "AES-128"`.
+      profile** → bool. The constraint. Property paths are resolved
+      against the qualifier Archetype's JSON Schema; `self` is the
+      implicit root. Example: `self.encryptionLevel >= "AES-128"`.
     - `toleranceMode`: how violations are measured over time.
     - `temporalWindow`: ISO 8601 duration for time-based modes.
     - `temporalAggregation`: aggregation function for the window.
@@ -1134,10 +1134,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       profile** (see CEL Profiles above).
     - `statement.predicate` MUST conform to the **property-assertion
       CEL profile** (see CEL Profiles above).
-    - `statement.predicate` root Archetype MUST be in-scope for the
-      governing Structure.
-    - `statement.predicate` root Archetype MUST match `statement.qualifier`
-      (or be a descendant of it).
     - `statement.predicate` is **identity-bound**: MUST NOT change across
       Ascriptions of the same Definition (see Ascription identity invariant).
     - `statement.toleranceMode` MUST NOT be null.
@@ -1168,8 +1164,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Derivation Rules**:
 
-    - `structure` → statement.structure
-    - `getQualifier()` → `statement.qualifier` → resolves Archetype
+    - `getStructure()` → column `structure_id` → resolves Structure
+    - `getQualifier()` → column `qualifier_id` → resolves Archetype
     - `getGuard()` → `statement.guard`
     - `getPredicate()` → `statement.predicate`
     - `getToleranceMode()` → `statement.toleranceMode`
@@ -1292,11 +1288,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     logic, cross-property comparisons, and aggregation-compatible
     functions.
 
-    Structure — **boolean expression over Archetype properties**:
-    The predicate MUST evaluate to `bool`. The root identifier MUST
-    be exactly one Archetype name (the Norm's target Archetype for
-    evaluation). The Archetype name is the entry point into its JSON
-    Schema fields.
+    Structure — **boolean expression over qualifier properties**:
+    The predicate MUST evaluate to `bool`. Property paths are resolved
+    against the qualifier Archetype's JSON Schema. The implicit root
+    is `self` — bound to the Norm's `qualifier` FK at evaluation time.
+    No explicit Archetype name appears in the expression.
 
     Allowed constructs:
     - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`.
@@ -1305,7 +1301,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Set membership**: `in`, `!(... in ...)`.
     - **Arithmetic**: `+`, `-`, `*`, `/`, `%` on numeric values
       (for computed thresholds, e.g.,
-      `Perf.p99Latency < Perf.budget * 1.1`).
+      `self.p99Latency < self.budget * 1.1`).
     - **String functions**: `matches(regex)`,
       `startsWith(prefix)`, `endsWith(suffix)`,
       `contains(substring)`.
@@ -1317,7 +1313,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Type conversions**: `int()`, `uint()`, `double()`,
       `string()`.
     - **Cross-property comparisons**: allowed
-      (e.g., `Perf.actual < Perf.target`).
+      (e.g., `self.actual < self.target`).
     - **Ternary**: `cond ? a : b` for conditional expressions.
 
     Forbidden constructs:
@@ -1327,83 +1323,83 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Imperative constructs**: no variable declarations, no
       assignments, no loops.
     - **Side effects**: no mutation, no I/O.
-    - **Multiple root Archetypes**: the predicate MUST reference
-      exactly one Archetype as root identifier.
 
     Why this restriction:
     The property-assertion profile enables **static analysis** for
-    governance coverage computation (which Archetype fields are
-    constrained and which are governance gaps) and deterministic
-    re-evaluation over time (for tolerance-mode semantics).
+    governance coverage computation (which qualifier Archetype fields
+    are constrained and which are governance gaps) and deterministic
+    re-evaluation over time (for tolerance-mode semantics). Using
+    `self` (bound to qualifier) instead of an explicit Archetype name
+    eliminates redundancy with the `qualifier` FK and removes a class
+    of inconsistency errors.
 
     Examples (property-assertion profile):
     ```
     // Simple threshold:
-    SecurityProperties.encryptionLevel >= "AES-128"
+    self.encryptionLevel >= "AES-128"
 
     // Boolean AND / OR:
-    SecurityProperties.tlsEnabled == true
-      && SecurityProperties.tlsVersion >= "1.2"
+    self.tlsEnabled == true
+      && self.tlsVersion >= "1.2"
 
     // Disjunction (OR allowed in predicate):
-    SecurityProperties.authMethod == "mTLS"
-      || SecurityProperties.authMethod == "OAuth2"
+    self.authMethod == "mTLS"
+      || self.authMethod == "OAuth2"
 
     // Negation:
-    !SecurityProperties.allowsAnonymousAccess
+    !self.allowsAnonymousAccess
 
     // Cross-property comparison:
-    PerformanceProperties.p99Latency < PerformanceProperties.budget
+    self.p99Latency < self.budget
 
     // Arithmetic threshold:
-    PerformanceProperties.p99Latency < PerformanceProperties.budget * 1.1
+    self.p99Latency < self.budget * 1.1
 
     // Set membership:
-    SecurityProperties.cipherSuite in
+    self.cipherSuite in
       ["TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"]
 
     // String functions:
-    DataProperties.schema.matches("^https://.*")
-      && !DataProperties.owner.endsWith("-deprecated")
+    self.schema.matches("^https://.*")
+      && !self.owner.endsWith("-deprecated")
 
     // Collection macro — all items satisfy:
-    NetworkProperties.ports.all(p, p >= 1024)
+    self.ports.all(p, p >= 1024)
 
     // Collection macro — at least one item satisfies:
-    ComplianceProperties.certifications.exists(c,
+    self.certifications.exists(c,
       c == "SOC2" || c == "ISO27001")
 
     // Field presence check:
-    has(DataProperties.retentionPolicy)
+    has(self.retentionPolicy)
 
     // Size check:
-    DataProperties.tags.size() >= 1
+    self.tags.size() >= 1
 
     // Temporal comparison:
-    DataProperties.retentionPeriod >= duration("720h")
+    self.retentionPeriod >= duration("720h")
 
     // Ternary (conditional threshold):
-    (PerformanceProperties.tier == "critical"
-      ? PerformanceProperties.p99Latency < 100
-      : PerformanceProperties.p99Latency < 500)
+    (self.tier == "critical"
+      ? self.p99Latency < 100
+      : self.p99Latency < 500)
 
     // Type conversion:
-    double(CostProperties.monthlyBudget) > 0.0
+    double(self.monthlyBudget) > 0.0
     ```
     Invalid (rejected by the definition-manager):
     ```
     // Non-deterministic function:
-    AuditProperties.lastReview > now() - duration("8760h")
+    self.lastReview > now() - duration("8760h")
     // → now() varies across evaluations
 
-    // Multiple root Archetypes:
+    // Explicit Archetype name (use self instead):
     SecurityProperties.tlsEnabled
-      && PerformanceProperties.p99Latency < 500
-    // → must reference exactly one Archetype
+    // → self is the implicit root, not ArchetypeName
 
     // Variable declaration (imperative):
     var threshold = 500;
-    PerformanceProperties.p99Latency < threshold
+    self.p99Latency < threshold
     ```
   end note
 
@@ -1439,7 +1435,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       is collected over temporalWindow, aggregated using
       temporalAggregation, then compared against the threshold
       from the predicate. Predicate MUST be in metric-comparison
-      form (`ArchetypeName.property ComparisonOp Literal`).
+      form (`self.property ComparisonOp Literal`).
       Requires temporalWindow and temporalAggregation.
       sustainedThreshold is forbidden.
       *E.g., P99 latency < 100ms over 5 minutes.*
@@ -1997,7 +1993,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `getPurpose()` → `statement.purpose`
     - `getMechanisms()` → reverse lookup (Mechanisms
-      whose `structure` = this.id)
+      whose `structure_id` = this Definition id)
     - `getInterfaces()` → derived (Interfaces whose effectors/receptors belong
       to this Structure's Mechanisms)
   end note
@@ -2558,8 +2554,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       identity is carried by `schema.title` inside the JSON Schema
       document — not by a separate `name` property. This avoids
       redundancy (JSON Schema already has `title` for naming).
-      `schema.title` is the root identifier in Norm CEL guard/predicate
-      expressions (e.g., `SecurityProperties.encryptionLevel`).
+      `schema.title` is the root identifier in Norm CEL guard
+      expressions (e.g., `SecurityProperties.environment`).
+      Norm predicates use `self` instead — bound to the qualifier FK.
       DM enforces `schema.title` as identity-bound by built-in rule
       (not via `$gsm:identityBound` annotation, since `title` is a
       property inside the nested `schema` object, not a top-level
@@ -2586,7 +2583,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - `schema.title`: **DM-enforced identity-bound**. The Archetype's
         human-readable identity — what the Archetype IS. Globally unique
         among in-effect Archetypes. Used as the root identifier in Norm
-        CEL guard/predicate expressions. MUST NOT change across
+        CEL guard expressions. Norm predicates use `self` (bound to
+        qualifier FK). MUST NOT change across
         Ascriptions of the same Definition. Naming convention:
         PascalCase domain concept (e.g., `SecurityProperties`,
         `DeploymentProperties`).
@@ -2625,7 +2623,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       be a valid DefinitionSubjectType enum value.
       `$gsm:validationCEL` — each expression MUST be parseable CEL,
       deterministic, and side-effect-free (same restrictions as Norm
-      property-assertion profile minus root-identifier convention).
+      property-assertion profile; both use implicit root).
       `$gsm:identityBound` — the set of annotated properties MUST
       NOT differ from the first Ascription's schema for this
       Definition (immutable set — see §5 and §8).

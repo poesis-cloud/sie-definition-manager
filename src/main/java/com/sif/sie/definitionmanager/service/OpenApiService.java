@@ -157,9 +157,9 @@ public class OpenApiService {
         req.put("type", "object");
         ObjectNode reqProps = req.putObject("properties");
         uuidProp(reqProps, "archetypeId", "Reference to the typing Archetype ID");
-        reqProps.putObject("compilation").put("$ref", "#/components/schemas/CompilationPayload");
+        reqProps.putObject("statement").put("$ref", "#/components/schemas/StatementPayload");
         uuidProp(reqProps, "definitionId", "Optional: set for new ascription of existing definition");
-        req.putArray("required").add("archetypeId").add("compilation");
+        req.putArray("required").add("archetypeId").add("statement");
 
         ObjectNode resp = schemas.putObject("AscriptionResponse");
         resp.put("type", "object");
@@ -170,18 +170,14 @@ public class OpenApiService {
         respProps.putObject("timestamp").put("type", "string").put("format", "date-time");
         uuidProp(respProps, "archetypeId", "Typing archetype ID");
         respProps
-                .putObject("compilation")
+                .putObject("statement")
                 .put("type", "object")
-                .put("description", "Compilation payload (schema depends on archetype)");
+                .put("description", "Statement payload (schema depends on archetype)");
         respProps
                 .putObject("version")
                 .put("type", "integer")
                 .put("description", "Governance version (assigned at APPROVED)");
         respProps.putObject("status").put("type", "string");
-        respProps
-                .putObject("schemaUri")
-                .put("type", "string")
-                .put("description", "Schema URI (archetypes only)");
 
         ObjectNode tReq = schemas.putObject("TransitionRequest");
         tReq.put("type", "object");
@@ -228,51 +224,38 @@ public class OpenApiService {
         ArrayNode oneOf = mapper.createArrayNode();
 
         for (ArchetypeEntity archetype : archetypes) {
-            JsonNode definition = archetype.getCompilation();
-            if (definition == null || !definition.has("schema")) {
+            JsonNode stmt = archetype.getStatement();
+            if (stmt == null || !stmt.has("schema")) {
                 continue;
             }
 
-            String schemaUri = archetype.getSchemaUri();
-            if (schemaUri == null) {
+            JsonNode schemaNode = stmt.get("schema");
+            if (!schemaNode.has("title")) {
                 continue;
             }
 
-            String name = deriveSchemaName(schemaUri);
-            if (name == null) {
-                continue;
-            }
+            String name = schemaNode.get("title").asText();
 
-            ObjectNode archetypeSchema = definition.get("schema").deepCopy();
+            ObjectNode archetypeSchema = schemaNode.deepCopy();
             archetypeSchema.remove("$schema");
             archetypeSchema.remove("$id");
             archetypeSchema.remove("$gsm:sealed");
-            archetypeSchema.put("title", name + " compilation");
-            schemas.set(name + "Compilation", archetypeSchema);
+            archetypeSchema.put("title", name + " statement");
+            schemas.set(name + "Statement", archetypeSchema);
 
-            oneOf.addObject().put("$ref", "#/components/schemas/" + name + "Compilation");
+            oneOf.addObject().put("$ref", "#/components/schemas/" + name + "Statement");
         }
 
-        ObjectNode payload = schemas.putObject("CompilationPayload");
+        ObjectNode payload = schemas.putObject("StatementPayload");
         payload.put(
                 "description",
-                "Compilation payload. The applicable schema depends on the archetypeId "
+                "Statement payload. The applicable schema depends on the archetypeId "
                         + "used in the request. See per-archetype schemas below.");
         if (oneOf.isEmpty()) {
             payload.put("type", "object");
         } else {
             payload.set("oneOf", oneOf);
         }
-    }
-
-    private String deriveSchemaName(String schemaUri) {
-        int lastColon = schemaUri.lastIndexOf(':');
-        if (lastColon < 0) {
-            return null;
-        }
-        String suffix = schemaUri.substring(lastColon + 1);
-        int dot = suffix.indexOf('.');
-        return dot > 0 ? suffix.substring(0, dot) : suffix;
     }
 
     private void queryParam(

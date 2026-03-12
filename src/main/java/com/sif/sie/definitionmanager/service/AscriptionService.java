@@ -63,17 +63,17 @@ import jakarta.persistence.EntityManager;
 @Transactional("transactionManager")
 public class AscriptionService {
 
-    /** Maps schema URI suffix to DefinitionSubjectType for base archetypes. */
-    private static final Map<String, DefinitionSubjectType> SCHEMA_URI_TO_SUBJECT_TYPE = Map.of(
-            "Archetype.schema.json", DefinitionSubjectType.ARCHETYPE,
-            "Structure.schema.json", DefinitionSubjectType.STRUCTURE,
-            "Mechanism.schema.json", DefinitionSubjectType.MECHANISM,
-            "Interface.schema.json", DefinitionSubjectType.INTERFACE,
-            "Effector.schema.json", DefinitionSubjectType.EFFECTOR,
-            "Receptor.schema.json", DefinitionSubjectType.RECEPTOR,
-            "Interaction.schema.json", DefinitionSubjectType.INTERACTION,
-            "Directive.schema.json", DefinitionSubjectType.DIRECTIVE,
-            "Norm.schema.json", DefinitionSubjectType.NORM);
+    /** Maps schema title to DefinitionSubjectType for base archetypes. */
+    private static final Map<String, DefinitionSubjectType> SCHEMA_TITLE_TO_SUBJECT_TYPE = Map.of(
+            "Archetype", DefinitionSubjectType.ARCHETYPE,
+            "StructureArchetype", DefinitionSubjectType.STRUCTURE,
+            "MechanismArchetype", DefinitionSubjectType.MECHANISM,
+            "InterfaceArchetype", DefinitionSubjectType.INTERFACE,
+            "EffectorArchetype", DefinitionSubjectType.EFFECTOR,
+            "ReceptorArchetype", DefinitionSubjectType.RECEPTOR,
+            "InteractionArchetype", DefinitionSubjectType.INTERACTION,
+            "DirectiveArchetype", DefinitionSubjectType.DIRECTIVE,
+            "NormArchetype", DefinitionSubjectType.NORM);
 
     private final ArchetypeRepository archetypeRepo;
     private final StructureRepository structureRepo;
@@ -348,9 +348,8 @@ public class AscriptionService {
             case ARCHETYPE -> {
                 JsonNode schema = compilation.get("schema");
                 String subject = "gsm_archetype_definition_" + definition.getId();
-                int schemaId = schemaRegistryClient.registerSchema(subject, schema);
-                String schemaUri = schemaRegistryClient.buildSchemaUri(schemaId);
-                yield new ArchetypeEntity(definition, archetypeRef, compilation, schemaUri);
+                schemaRegistryClient.registerSchema(subject, schema);
+                yield new ArchetypeEntity(definition, archetypeRef, compilation);
             }
             case STRUCTURE -> new StructureEntity(definition, archetypeRef, compilation);
             case MECHANISM ->
@@ -359,14 +358,14 @@ public class AscriptionService {
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                structureRepo, compilation, "structureId", "structureId"));
+                                structureRepo, compilation, "structure", "structure"));
             case INTERFACE ->
                 new InterfaceEntity(
                         definition,
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                structureRepo, compilation, "structureId", "structureId"),
+                                structureRepo, compilation, "structure", "structure"),
                         resolveRefListFromCompilation(
                                 effectorRepo, compilation, "effectorIds"),
                         resolveRefListFromCompilation(
@@ -377,45 +376,47 @@ public class AscriptionService {
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                mechanismRepo, compilation, "mechanismId", "mechanismId"),
+                                mechanismRepo, compilation, "mechanism", "mechanism"),
                         requireRefFromCompilation(
-                                archetypeRepo, compilation, "outputArchetypeId", "outputArchetypeId"));
+                                archetypeRepo, compilation, "archetype", "archetype"));
             case RECEPTOR ->
                 new ReceptorEntity(
                         definition,
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                mechanismRepo, compilation, "mechanismId", "mechanismId"),
+                                mechanismRepo, compilation, "mechanism", "mechanism"),
                         requireRefFromCompilation(
-                                archetypeRepo, compilation, "inputArchetypeId", "inputArchetypeId"));
+                                archetypeRepo, compilation, "archetype", "archetype"));
             case INTERACTION ->
                 new InteractionEntity(
                         definition,
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                effectorRepo, compilation, "effectorId", "effectorId"),
+                                effectorRepo, compilation, "effector", "effector"),
                         requireRefFromCompilation(
-                                receptorRepo, compilation, "receptorId", "receptorId"));
+                                receptorRepo, compilation, "receptor", "receptor"));
             case DIRECTIVE ->
                 new DirectiveEntity(
                         definition,
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                structureRepo, compilation, "structureId", "structureId"),
+                                structureRepo, compilation, "structure", "structure"),
                         requireRefFromCompilation(
-                                archetypeRepo, compilation, "qualifierId", "qualifierId"),
+                                archetypeRepo, compilation, "qualifier", "qualifier"),
                         requireRefFromCompilation(
-                                structureRepo, compilation, "purposeId", "purposeId"));
+                                structureRepo, compilation, "purpose", "purpose"));
             case NORM ->
                 new NormEntity(
                         definition,
                         archetypeRef,
                         compilation,
                         requireRefFromCompilation(
-                                structureRepo, compilation, "structureId", "structureId"));
+                                structureRepo, compilation, "structure", "structure"),
+                        requireRefFromCompilation(
+                                archetypeRepo, compilation, "qualifier", "qualifier"));
         };
     }
 
@@ -561,31 +562,24 @@ public class AscriptionService {
     }
 
     /**
-     * Derives DefinitionSubjectType from the archetype's schema URI.
-     *
-     * <p>
-     * Base archetypes have URIs like {@code urn:sie:gsm:v1:Structure.schema.json}.
-     * The suffix
-     * after the last ':' is matched against the lookup map.
+     * Derives DefinitionSubjectType from the archetype's {@code statement.schema.title}.
      */
     private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
-        String schemaUri = archetype.getSchemaUri();
-        if (schemaUri == null) {
-            JsonNode stmt = archetype.getCompilation();
-            if (stmt != null && stmt.has("schemaUri")) {
-                schemaUri = stmt.get("schemaUri").asText();
-            }
-        }
-        if (schemaUri == null) {
+        JsonNode stmt = archetype.getStatement();
+        if (stmt == null || !stmt.has("schema")) {
             throw new IllegalArgumentException(
-                    "Cannot derive subject type: archetype has no schema URI: " + archetype.getId());
+                    "Cannot derive subject type: archetype has no schema: " + archetype.getId());
         }
-        int lastColon = schemaUri.lastIndexOf(':');
-        String suffix = (lastColon >= 0) ? schemaUri.substring(lastColon + 1) : schemaUri;
-        DefinitionSubjectType type = SCHEMA_URI_TO_SUBJECT_TYPE.get(suffix);
+        JsonNode schema = stmt.get("schema");
+        if (!schema.has("title")) {
+            throw new IllegalArgumentException(
+                    "Cannot derive subject type: archetype schema has no title: " + archetype.getId());
+        }
+        String title = schema.get("title").asText();
+        DefinitionSubjectType type = SCHEMA_TITLE_TO_SUBJECT_TYPE.get(title);
         if (type == null) {
             throw new IllegalArgumentException(
-                    "Cannot derive subject type from schema URI: " + schemaUri);
+                    "Cannot derive subject type from schema title: " + title);
         }
         return type;
     }

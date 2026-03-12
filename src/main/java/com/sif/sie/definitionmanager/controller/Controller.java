@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.sif.sie.definitionmanager.dto.AscriptionDto;
 import com.sif.sie.definitionmanager.dto.AscriptionStatusTransitionDto;
-import com.sif.sie.definitionmanager.entity.ArchetypeEntity;
 import com.sif.sie.definitionmanager.entity.AscriptionEntity;
 import com.sif.sie.definitionmanager.entity.AscriptionStatusTransitionEntity;
 import com.sif.sie.definitionmanager.type.DefinitionSubjectType;
@@ -24,19 +23,14 @@ public abstract class Controller {
     // ========================================================================
 
     protected AscriptionDto toAscriptionDto(DefinitionSubjectType type, AscriptionEntity entity) {
-        String schemaUri = null;
-        if (type == DefinitionSubjectType.ARCHETYPE) {
-            schemaUri = ((ArchetypeEntity) entity).getSchemaUri();
-        }
         return new AscriptionDto(
-                type.getValue(),
                 entity.getId(),
                 entity.getDefinition().getId(),
                 entity.getArchetype().getId(),
-                entity.getCompilation(),
+                type.getValue(),
+                entity.getStatement(),
                 entity.getVersion(),
                 entity.getStatus() != null ? entity.getStatus().name() : "DRAFT",
-                schemaUri,
                 entity.getTimestamp());
     }
 
