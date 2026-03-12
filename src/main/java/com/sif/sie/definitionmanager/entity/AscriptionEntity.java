@@ -33,7 +33,7 @@ import jakarta.persistence.PrePersist;
  *
  * <p>
  * Immutable-after-creation fields ({@code definition}, {@code archetype},
- * {@code compilation}) are set via constructor. All other fields
+ * {@code statement}) are set via constructor. All other fields
  * ({@code timestamp}, {@code status}, {@code version}) are DB
  * trigger-managed — no setters exposed.
  *

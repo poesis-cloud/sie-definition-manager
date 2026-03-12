@@ -20,4 +20,11 @@ public interface ReceptorRepository extends JpaRepository<ReceptorEntity, UUID> 
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<ReceptorEntity> findAllByMechanism_Id(UUID mechanismId, Pageable pageable);
+
+    List<ReceptorEntity> findAllByMechanism_Id(UUID mechanismId);
+
+    List<ReceptorEntity> findAllByMechanism_Definition_Id(UUID mechanismDefinitionId);
+
+    List<ReceptorEntity> findAllByMechanism_Definition_IdAndStatusIn(
+            UUID mechanismDefinitionId, Collection<AscriptionStatusType> statuses);
 }

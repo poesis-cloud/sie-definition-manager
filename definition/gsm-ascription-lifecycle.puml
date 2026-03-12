@@ -201,15 +201,21 @@ note as Rules
   2. IF Target's preconditions for `X->Y` fail: **failure**.
   3. ELSE: Target transitions from `X` to `Y`.
 
-  - **Composition**:
+  - **Constitutive** (lifecycle-coupled parts):
     - Mechanism.`X->Y` -> Effector.`X->Y`
     - Mechanism.`X->Y` -> Receptor.`X->Y`
     - **Scope**: all `X->Y`.
     - **Invariant**: Target.status = Source.status
       (always — ports and Mechanism share status).
     - **On failure**: Source transition MUST be rejected.
+    - **Rationale**: Effectors and Receptors are
+      constitutive parts of the Mechanism — the Mechanism
+      is semantically incomplete without them (existential
+      dependency, lifecycle coupling). If the Mechanism
+      cannot co-transition its constitutive parts, the
+      Mechanism itself is incoherent.
 
-  - **Aggregation**:
+  - **Governing** (governance scope):
     - Structure.`X->Y` -> Mechanism.`X->Y`
     - Structure.`X->Y` -> Interface.`X->Y`
     - Structure.`X->Y` -> Directive.`X->Y`
@@ -217,8 +223,13 @@ note as Rules
     - **Scope**: all `X->Y`.
     - **Invariant**: none (lagging permitted).
     - **On failure**: no-op for that target.
+    - **Rationale**: the Structure governs these elements
+      via DNA. Non-blocking because governed elements have
+      independent identity and their own referee
+      preconditions (e.g. a Directive's qualifier Archetype
+      is outside the Structure's governance scope).
 
-  - **Reference**:
+  - **Dependent** (downstream consumers):
     - Effector.`X->Y` -> Interaction.`X->Y`
     - Effector.`X->Y` -> Interface.`X->Y`
     - Receptor.`X->Y` -> Interaction.`X->Y`
@@ -232,6 +243,11 @@ note as Rules
       their own governance.
     - **Invariant**: none (lagging permitted).
     - **On failure**: no-op for that target.
+    - **Rationale**: Interactions and Interfaces depend on
+      Effectors/Receptors. When a port degrades, its
+      dependents should degrade too (integrity). Progress
+      does not cascade because dependents advance through
+      their own governance timeline.
 end note
 
 note as AuditRules
@@ -521,7 +537,7 @@ note as Scenarios
 
   ====
 
-  **§7 — Composition cascade (strict)**
+  **§7 — Constitutive cascade (strict)**
 
   SC-60 — Mechanism(DRAFT), Effector(DRAFT), Receptor(DRAFT).
   Effector.Archetype(PROPOSED), Receptor.Archetype(PROPOSED).
@@ -536,7 +552,7 @@ note as Scenarios
   Effector cascade step 2 fails: Archetype DRAFT ∉
   {PROPOSED,APPROVED,ACTIVE}.
   **BLOCKED**: Mechanism transition MUST be rejected
-  (composition — on failure: reject source).
+  (constitutive — on failure: reject source).
 
   SC-62 — Mechanism(ACTIVE), Effector(ACTIVE),
   Receptor(ACTIVE). Effector.Archetype(ACTIVE),
@@ -568,7 +584,7 @@ note as Scenarios
 
   ====
 
-  **§8 — Aggregation cascade (lagging)**
+  **§8 — Governing cascade (lagging)**
 
   SC-70 — Structure(DRAFT), Mechanism(DRAFT),
   Interface(DRAFT). Structure `DRAFT->PROPOSED`.
@@ -580,7 +596,7 @@ note as Scenarios
   Mechanism cascade step 1 fails: DRAFT ≠ PROPOSED.
   **NO-OP**: Mechanism stays DRAFT.
   **CASCADE**: Interface `PROPOSED->APPROVED`.
-  Structure transition succeeds (aggregation — on failure:
+  Structure transition succeeds (governing — on failure:
   no-op).
 
   SC-72 — Structure(APPROVED), Mechanism(DRAFT),
@@ -636,16 +652,16 @@ note as Scenarios
   Structure `ACTIVE->DEPRECATED`.
   Directive cascade step 2: qualifier Archetype RETIRED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
-  **NO-OP**: Directive stays ACTIVE (aggregation — on
+  **NO-OP**: Directive stays ACTIVE (governing — on
   failure: no-op). Structure transition succeeds.
 
   ====
 
-  **§9 — Reference cascade**
+  **§9 — Dependent cascade**
 
   SC-80 — Effector(ACTIVE), Interaction(ACTIVE).
-  Effector `ACTIVE->SUSPENDED` (via composition from
-  Mechanism). Reference cascade fires.
+  Effector `ACTIVE->SUSPENDED` (via constitutive from
+  Mechanism). Dependent cascade fires.
   **CASCADE**: Interaction `ACTIVE->SUSPENDED`.
 
   SC-81 — Effector(ACTIVE), Interaction(PROPOSED).
@@ -655,48 +671,48 @@ note as Scenarios
 
   SC-82 — Receptor(ACTIVE), Interface(ACTIVE).
   Receptor `ACTIVE->DEPRECATED`.
-  Reference cascade fires.
+  Dependent cascade fires.
   **CASCADE**: Interface `ACTIVE->DEPRECATED`.
 
   SC-83 — Effector(DRAFT), Interaction(DRAFT).
   Effector `DRAFT->PROPOSED`.
-  **NO CASCADE**: `DRAFT->PROPOSED` ∉ reference scope
+  **NO CASCADE**: `DRAFT->PROPOSED` ∉ dependent scope
   (progress — not in degradation/terminal set).
   Interaction stays DRAFT.
 
   SC-84 — Receptor(PROPOSED), Interaction(PROPOSED).
   Receptor `PROPOSED->APPROVED`.
-  **NO CASCADE**: `PROPOSED->APPROVED` ∉ reference scope.
+  **NO CASCADE**: `PROPOSED->APPROVED` ∉ dependent scope.
   Interaction stays PROPOSED.
 
   SC-85 — Effector(DRAFT), Interaction(DRAFT).
   Effector `DRAFT->ABANDONED`.
-  Reference cascade fires (`DRAFT->ABANDONED` ∈ scope).
+  Dependent cascade fires (`DRAFT->ABANDONED` ∈ scope).
   **CASCADE**: Interaction `DRAFT->ABANDONED`.
 
   SC-86 — Receptor(PROPOSED), Interaction(PROPOSED).
   Receptor `PROPOSED->REJECTED`.
-  Reference cascade fires (`PROPOSED->REJECTED` ∈ scope).
+  Dependent cascade fires (`PROPOSED->REJECTED` ∈ scope).
   **CASCADE**: Interaction `PROPOSED->REJECTED`.
 
   SC-87 — Effector(ACTIVE), Interface(ACTIVE).
   Effector `ACTIVE->DEPRECATED`.
-  Reference cascade fires.
+  Dependent cascade fires.
   **CASCADE**: Interface `ACTIVE->DEPRECATED`.
 
   SC-88 — Effector(DEPRECATED), Interaction(DEPRECATED).
   Effector `DEPRECATED->RETIRED`.
-  Reference cascade fires (`DEPRECATED->RETIRED` ∈ scope).
+  Dependent cascade fires (`DEPRECATED->RETIRED` ∈ scope).
   **CASCADE**: Interaction `DEPRECATED->RETIRED`.
 
   SC-89 — Receptor(DEPRECATED), Interaction(DEPRECATED).
   Receptor `DEPRECATED->SUSPENDED`.
-  Reference cascade fires (`DEPRECATED->SUSPENDED` ∈ scope).
+  Dependent cascade fires (`DEPRECATED->SUSPENDED` ∈ scope).
   **CASCADE**: Interaction `DEPRECATED->SUSPENDED`.
 
   SC-89b — Effector(SUSPENDED), Interaction(SUSPENDED).
   Effector `SUSPENDED->DEPRECATED`.
-  Reference cascade fires (`SUSPENDED->DEPRECATED` ∈ scope).
+  Dependent cascade fires (`SUSPENDED->DEPRECATED` ∈ scope).
   **CASCADE**: Interaction `SUSPENDED->DEPRECATED`.
 
   ====
@@ -711,34 +727,34 @@ note as Scenarios
   **CASCADE**: Mechanism `DRAFT->PROPOSED`.
   **CASCADE**: Effector `DRAFT->PROPOSED`.
   **CASCADE**: Receptor `DRAFT->PROPOSED`.
-  No reference cascade (progress not in scope).
+  No dependent cascade (progress not in scope).
   Interaction stays DRAFT.
 
   SC-91 — Structure(ACTIVE), Mechanism(ACTIVE),
   Effector(ACTIVE), Receptor(ACTIVE), Interaction(ACTIVE),
   Interface(ACTIVE), Directive(ACTIVE), Norm(ACTIVE).
   Structure `ACTIVE->DEPRECATED`.
-  Chain: Structure→(agg)Mechanism,Interface,Directive,Norm
-  →(comp)Effector,Receptor→(ref)Interaction,Interface.
+  Chain: Structure→(gov)Mechanism,Interface,Directive,Norm
+  →(con)Effector,Receptor→(dep)Interaction,Interface.
   **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
-  **CASCADE**: Interface `ACTIVE->DEPRECATED` (via agg).
-  **CASCADE**: Directive `ACTIVE->DEPRECATED` (via agg).
-  **CASCADE**: Norm `ACTIVE->DEPRECATED` (via agg).
+  **CASCADE**: Interface `ACTIVE->DEPRECATED` (via gov).
+  **CASCADE**: Directive `ACTIVE->DEPRECATED` (via gov).
+  **CASCADE**: Norm `ACTIVE->DEPRECATED` (via gov).
   **CASCADE**: Effector `ACTIVE->DEPRECATED`.
   **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
-  **CASCADE**: Interaction `ACTIVE->DEPRECATED` (via ref
+  **CASCADE**: Interaction `ACTIVE->DEPRECATED` (via dep
   from Effector and/or Receptor).
-  Interface also targeted by ref cascade (idempotent —
-  already transitioned via aggregation).
+  Interface also targeted by dep cascade (idempotent —
+  already transitioned via governing).
 
   SC-92 — Structure(DRAFT), Mechanism(DRAFT),
   Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT),
   Interface(DRAFT), Directive(DRAFT), Norm(DRAFT).
   Structure `DRAFT->ABANDONED`.
-  Chain: Structure→(agg)Mechanism,Interface,Directive,Norm
-  →(comp)Effector,Receptor→(ref)Interaction,Interface.
+  Chain: Structure→(gov)Mechanism,Interface,Directive,Norm
+  →(con)Effector,Receptor→(dep)Interaction,Interface.
   **CASCADE**: all elements `DRAFT->ABANDONED` (terminal
-  is in both aggregation, composition, and reference scope).
+  is in governing, constitutive, and dependent scope).
 
   SC-93 — Structure(ACTIVE), Mechanism(ACTIVE),
   Effector(ACTIVE), Receptor(ACTIVE), Interaction(ACTIVE).
@@ -747,14 +763,14 @@ note as Scenarios
   Mechanism(ACTIVE): **CASCADE** `ACTIVE->SUSPENDED`.
   Effector(ACTIVE): **CASCADE** `ACTIVE->SUSPENDED`.
   Receptor(ACTIVE): **CASCADE** `ACTIVE->SUSPENDED`.
-  Interaction: **CASCADE** `ACTIVE->SUSPENDED` (via ref).
+  Interaction: **CASCADE** `ACTIVE->SUSPENDED` (via dep).
   Mechanism2(DRAFT): step 1 DRAFT ≠ ACTIVE → **NO-OP**.
   Effector2(DRAFT): **NO-OP** (Mechanism2 not cascaded).
   Receptor2(DRAFT): **NO-OP** (Mechanism2 not cascaded).
 
   ====
 
-  **§11 — Composition cascade failure blocks source**
+  **§11 — Constitutive cascade failure blocks source**
 
   SC-95 — Mechanism(ACTIVE), Effector(ACTIVE),
   Receptor(ACTIVE). Effector.Archetype(RETIRED),
@@ -763,7 +779,7 @@ note as Scenarios
   Effector cascade step 2: Archetype RETIRED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
   **BLOCKED**: Mechanism `ACTIVE->SUSPENDED` MUST be
-  rejected (composition — on failure: reject source).
+  rejected (constitutive — on failure: reject source).
 
   SC-96 — Mechanism(ACTIVE), Effector(ACTIVE),
   Receptor(ACTIVE). Effector.Archetype(ACTIVE),
@@ -772,7 +788,7 @@ note as Scenarios
   Receptor cascade step 2: Archetype ABANDONED ∉
   {ACTIVE,SUSPENDED,DEPRECATED} → fails.
   **BLOCKED**: Mechanism `ACTIVE->DEPRECATED` MUST be
-  rejected (composition — on failure: reject source).
+  rejected (constitutive — on failure: reject source).
 
   ====
 
@@ -794,10 +810,10 @@ note as Scenarios
   Effector(SUSPENDED), Receptor(SUSPENDED).
   Effector.Archetype(ACTIVE), Receptor.Archetype(ACTIVE).
   Mechanism `SUSPENDED->ACTIVE`.
-  **CASCADE** (composition): Effector `SUSPENDED->ACTIVE`
+  **CASCADE** (constitutive): Effector `SUSPENDED->ACTIVE`
   (step 2 OK: Archetype ACTIVE ∈ {ACTIVE,DEPRECATED}),
   Receptor `SUSPENDED->ACTIVE` (same).
-  No reference cascade (restoration not in scope).
+  No dependent cascade (restoration not in scope).
 end note
 
 state "Qualification" as Qualification {

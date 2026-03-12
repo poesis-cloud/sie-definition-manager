@@ -20,4 +20,10 @@ public interface DirectiveRepository extends JpaRepository<DirectiveEntity, UUID
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<DirectiveEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+
+    List<DirectiveEntity> findAllByStructure_Id(UUID structureId);
+
+    List<DirectiveEntity> findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+            UUID qualifierDefinitionId, UUID purposeDefinitionId,
+            Collection<AscriptionStatusType> statuses);
 }

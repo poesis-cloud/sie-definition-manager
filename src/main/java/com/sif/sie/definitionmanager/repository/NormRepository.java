@@ -20,4 +20,6 @@ public interface NormRepository extends JpaRepository<NormEntity, UUID> {
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<NormEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+
+    List<NormEntity> findAllByStructure_Id(UUID structureId);
 }

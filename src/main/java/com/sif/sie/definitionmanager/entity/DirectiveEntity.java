@@ -35,11 +35,11 @@ public class DirectiveEntity extends AscriptionEntity {
     public DirectiveEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode compilation,
+            JsonNode statement,
             StructureEntity structure,
             ArchetypeEntity qualifier,
             StructureEntity purpose) {
-        super(definition, archetype, compilation);
+        super(definition, archetype, statement);
         this.structure = Objects.requireNonNull(structure, "structure");
         this.qualifier = Objects.requireNonNull(qualifier, "qualifier");
         this.purpose = Objects.requireNonNull(purpose, "purpose");

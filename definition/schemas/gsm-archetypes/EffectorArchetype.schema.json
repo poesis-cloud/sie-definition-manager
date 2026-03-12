@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gsm://archetypes/EffectorArchetype/v1",
+  "title": "EffectorArchetype",
+  "description": "Schema for Effector Ascriptions — output endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the output payload. Interface exposure is owned by the Interface itself (via join tables), not by the Effector. DM input = DM output (1:1). Tenant-defined archetypes extending Effector MUST reference this schema via allOf.",
+  "$gsm:sealed": true,
+  "type": "object",
+  "examples": [
+    {
+      "mechanism": "019cc49a-dc5a-76fd-94c7-8099ff821b3b",
+      "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62"
+    }
+  ],
+  "required": [
+    "mechanism",
+    "archetype"
+  ],
+  "properties": {
+    "mechanism": {
+      "type": "string",
+      "format": "uuid",
+      "$gsm:identityBound": true,
+      "description": "ID reference to the owning Mechanism. An Effector cannot exist without a Mechanism."
+    },
+    "archetype": {
+      "type": "string",
+      "format": "uuid",
+      "$gsm:identityBound": true,
+      "description": "ID reference to the data Archetype that types the Effector's output payload. To change the data type, author a new Definition."
+    }
+  },
+  "unevaluatedProperties": false
+}

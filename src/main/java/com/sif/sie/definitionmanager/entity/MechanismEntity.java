@@ -27,9 +27,9 @@ public class MechanismEntity extends AscriptionEntity {
     public MechanismEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode compilation,
+            JsonNode statement,
             StructureEntity structure) {
-        super(definition, archetype, compilation);
+        super(definition, archetype, statement);
         this.structure = Objects.requireNonNull(structure, "structure");
     }
 

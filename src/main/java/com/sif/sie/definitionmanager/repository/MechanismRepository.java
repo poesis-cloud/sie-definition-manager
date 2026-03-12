@@ -22,4 +22,9 @@ public interface MechanismRepository extends JpaRepository<MechanismEntity, UUID
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<MechanismEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+
+    List<MechanismEntity> findAllByStructure_Id(UUID structureId);
+
+    List<MechanismEntity> findAllByStructure_Definition_IdAndStatusIn(
+            UUID structureDefinitionId, Collection<AscriptionStatusType> statuses);
 }

@@ -31,10 +31,10 @@ public class InteractionEntity extends AscriptionEntity {
     public InteractionEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode compilation,
+            JsonNode statement,
             EffectorEntity effector,
             ReceptorEntity receptor) {
-        super(definition, archetype, compilation);
+        super(definition, archetype, statement);
         this.effector = Objects.requireNonNull(effector, "effector");
         this.receptor = Objects.requireNonNull(receptor, "receptor");
     }

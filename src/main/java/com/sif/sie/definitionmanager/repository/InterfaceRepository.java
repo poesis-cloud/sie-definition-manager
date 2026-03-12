@@ -22,4 +22,10 @@ public interface InterfaceRepository extends JpaRepository<InterfaceEntity, UUID
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     Page<InterfaceEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+
+    List<InterfaceEntity> findAllByStructure_Id(UUID structureId);
+
+    List<InterfaceEntity> findAllByEffectors_Id(UUID effectorId);
+
+    List<InterfaceEntity> findAllByReceptors_Id(UUID receptorId);
 }

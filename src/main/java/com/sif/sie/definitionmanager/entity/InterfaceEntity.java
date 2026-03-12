@@ -41,11 +41,11 @@ public class InterfaceEntity extends AscriptionEntity {
     public InterfaceEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode compilation,
+            JsonNode statement,
             StructureEntity structure,
             @Nullable List<EffectorEntity> effectors,
             @Nullable List<ReceptorEntity> receptors) {
-        super(definition, archetype, compilation);
+        super(definition, archetype, statement);
         this.structure = Objects.requireNonNull(structure, "structure");
         this.effectors = effectors != null ? new ArrayList<>(effectors) : new ArrayList<>();
         this.receptors = receptors != null ? new ArrayList<>(receptors) : new ArrayList<>();

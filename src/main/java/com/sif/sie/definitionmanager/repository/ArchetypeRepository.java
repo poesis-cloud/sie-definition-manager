@@ -18,6 +18,8 @@ public interface ArchetypeRepository extends JpaRepository<ArchetypeEntity, UUID
 
     Page<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
 
+    List<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses);
+
     List<ArchetypeEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
 
     List<ArchetypeEntity> findAllByDefinition_IdAndStatusIn(

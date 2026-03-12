@@ -31,10 +31,10 @@ public class EffectorEntity extends AscriptionEntity {
     public EffectorEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
-            JsonNode compilation,
+            JsonNode statement,
             MechanismEntity mechanism,
             ArchetypeEntity outputArchetype) {
-        super(definition, archetype, compilation);
+        super(definition, archetype, statement);
         this.mechanism = Objects.requireNonNull(mechanism, "mechanism");
         this.outputArchetype = Objects.requireNonNull(outputArchetype, "outputArchetype");
     }

@@ -21,7 +21,7 @@ public class ArchetypeEntity extends AscriptionEntity {
     }
 
     public ArchetypeEntity(
-            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode compilation) {
-        super(definition, archetype, compilation);
+            DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
+        super(definition, archetype, statement);
     }
 }

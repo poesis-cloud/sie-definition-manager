@@ -423,9 +423,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Channels**: governance Norms on Interactions.
 
-    **Composition**: governance constraint pattern (exclusivity,
-    existential scoping, lifecycle coupling). GSM is
-    **nominalist** about composition. Components have independent identity.
+    **Composition**: eliminated as a structural category. GSM is
+    **nominalist** about composition — components have independent
+    identity. The lifecycle behaviors formerly attributed to
+    "composition" are decomposed into three named cascade types:
+    **Constitutive** (existential dependency, lifecycle coupling —
+    Mechanism ↔ Effector/Receptor), **Governing** (governance scope —
+    Structure → its Elements), and **Dependent** (downstream consumer
+    integrity — Effector/Receptor → Interaction/Interface). See
+    `gsm-ascription-lifecycle` for the full cascade semantics.
 
     **Layers** (Constitution/Organization/Infrastructure/...):
     relative representations, not absolute. Navigation by layer is a UX concern.
@@ -937,6 +943,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+    - **Referee**: References Structure (definedBy), Archetype
+      (qualifier), and Structure (purpose). On every transition,
+      ALL three MUST satisfy the lifecycle referential integrity
+      precondition for the target status.
+    - **Governing cascade target**: receives cascades from its
+      owning Structure (no-op on failure).
 
     **Persistence Rules**:
 
@@ -1151,6 +1163,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+    - **Referee**: References Structure (definedBy) and Archetype
+      (qualifier). On every transition, BOTH MUST satisfy the
+      lifecycle referential integrity precondition for the target
+      status.
+    - **Governing cascade target**: receives cascades from its
+      owning Structure (no-op on failure).
 
     **Persistence Rules**:
 
@@ -1980,6 +1998,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       and audit-log invariants.
     - The definition-manager MUST reject activation of a Structure whose purpose
       duplicates an already in-effect Structure's purpose.
+    - **Governing cascade source**: Structure lifecycle transitions
+      cascade to Mechanisms, Interfaces, Directives, and Norms belonging
+      to this Structure (all transitions, no-op on failure — governed
+      elements have independent identity and their own referee
+      preconditions).
+    - **Not a referee**: Structure has no References; its transitions
+      have no referee preconditions.
 
     **Persistence Rules**:
 
@@ -2022,10 +2047,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Composite of processing logic (`MechanismArchetype.rule`) and its
       I/O Effectors and Receptors.
     - Effectors and Receptors do not exist independently — destroying a
-      Mechanism destroys its Effectors and Receptors. This IS internal
-      composition (lifecycle coupling, existential dependency) — distinct
-      from the inter-structure "composition" that GSM eliminates. An Effector
-      or Receptor without a Mechanism has no causal autonomy.
+      Mechanism destroys its Effectors and Receptors. This is a
+      **constitutive** relationship (lifecycle coupling, existential
+      dependency): the Mechanism is semantically incomplete without its
+      ports. An Effector or Receptor without a Mechanism has no causal
+      autonomy. See `gsm-ascription-lifecycle` for constitutive cascade
+      semantics.
     - When `MechanismArchetype.rule` targets the owning Structure's
       Elements, it is reflexive. Reflexive Mechanisms produce governance DNA
       (Directives, Norms), making the Structure a *System*.
@@ -2097,6 +2124,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - The definition-manager MUST reject activation of a Mechanism whose
       function duplicates an already in-effect sibling Mechanism within the same
       Structure.
+    - **Referee**: References Structure. On every transition, the
+      referenced Structure MUST satisfy the lifecycle referential
+      integrity precondition for the target status.
+    - **Constitutive cascade source**: Mechanism lifecycle transitions
+      cascade to its Effectors and Receptors (all transitions, blocks
+      source on failure — ports are constitutive parts).
+    - **Governing cascade target**: receives cascades from its owning
+      Structure (no-op on failure).
 
     **Persistence Rules**:
 
@@ -2263,6 +2298,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+    - **Referee**: References Archetype (data archetype). On every
+      transition, the referenced Archetype MUST satisfy the lifecycle
+      referential integrity precondition for the target status.
+    - **Constitutive cascade target**: receives cascades from its
+      owning Mechanism (blocks Mechanism on failure).
+    - **Dependent cascade source**: Effector degradation/terminal
+      transitions cascade to Interactions and Interfaces that
+      reference this Effector (no-op on failure).
 
     **Persistence Rules**:
 
@@ -2336,6 +2379,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+    - **Referee**: References Archetype (data archetype). On every
+      transition, the referenced Archetype MUST satisfy the lifecycle
+      referential integrity precondition for the target status.
+    - **Constitutive cascade target**: receives cascades from its
+      owning Mechanism (blocks Mechanism on failure).
+    - **Dependent cascade source**: Receptor degradation/terminal
+      transitions cascade to Interactions and Interfaces that
+      reference this Receptor (no-op on failure).
 
     **Persistence Rules**:
 
@@ -2407,6 +2458,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+    - **Referee**: References Effector and Receptor. On every
+      transition, BOTH referenced Effector and Receptor MUST
+      satisfy the lifecycle referential integrity precondition
+      for the target status.
+    - **Dependent cascade target**: receives cascades from its
+      referenced Effector and Receptor on degradation/terminal
+      transitions (no-op on failure).
 
     **Persistence Rules**:
 
@@ -2480,6 +2538,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
+    - **Referee**: References Structure, Effectors, and Receptors.
+      On every transition, ALL referenced elements MUST satisfy
+      the lifecycle referential integrity precondition for the
+      target status.
+    - **Governing cascade target**: receives cascades from its
+      owning Structure (no-op on failure).
+    - **Dependent cascade target**: receives cascades from its
+      referenced Effectors and Receptors on degradation/terminal
+      transitions (no-op on failure).
 
     **Persistence Rules**:
 

@@ -18,4 +18,8 @@ public interface InteractionRepository extends JpaRepository<InteractionEntity, 
 
     List<InteractionEntity> findAllByDefinition_IdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
+
+    List<InteractionEntity> findAllByEffector_Id(UUID effectorId);
+
+    List<InteractionEntity> findAllByReceptor_Id(UUID receptorId);
 }
