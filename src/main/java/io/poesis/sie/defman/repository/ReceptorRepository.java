@@ -1,0 +1,30 @@
+package io.poesis.sie.defman.repository;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import io.poesis.sie.defman.entity.ReceptorEntity;
+import io.poesis.sie.defman.type.AscriptionStatusType;
+
+public interface ReceptorRepository extends JpaRepository<ReceptorEntity, UUID> {
+    Page<ReceptorEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
+
+    List<ReceptorEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+
+    List<ReceptorEntity> findAllByDefinition_IdAndStatusIn(
+            UUID definitionId, Collection<AscriptionStatusType> statuses);
+
+    Page<ReceptorEntity> findAllByMechanism_Id(UUID mechanismId, Pageable pageable);
+
+    List<ReceptorEntity> findAllByMechanism_Id(UUID mechanismId);
+
+    List<ReceptorEntity> findAllByMechanism_Definition_Id(UUID mechanismDefinitionId);
+
+    List<ReceptorEntity> findAllByMechanism_Definition_IdAndStatusIn(
+            UUID mechanismDefinitionId, Collection<AscriptionStatusType> statuses);
+}
