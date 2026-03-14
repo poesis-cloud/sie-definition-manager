@@ -5,19 +5,17 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 import org.springframework.lang.NonNull;
 
 import io.poesis.sie.defman.type.DefinitionSubjectType;
-import io.poesis.sie.defman.util.UuidV7GeneratorUtil;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 /**
@@ -32,7 +30,7 @@ import jakarta.persistence.Table;
  * <p>
  * Maps to the {@code definition} table. Both fields ({@code id},
  * {@code subjectType}) are immutable after creation — assigned via constructor,
-         * no setters exposed.
+ * no setters exposed.
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
@@ -40,6 +38,7 @@ import jakarta.persistence.Table;
 public class DefinitionEntity {
 
     @Id
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
@@ -57,13 +56,6 @@ public class DefinitionEntity {
 
     public DefinitionEntity(DefinitionSubjectType subjectType) {
         this.subjectType = Objects.requireNonNull(subjectType, "subjectType");
-    }
-
-    @PrePersist
-    void ensureId() {
-        if (id == null) {
-            id = UuidV7GeneratorUtil.generate();
-        }
     }
 
     // ---- accessors (read-only) ----

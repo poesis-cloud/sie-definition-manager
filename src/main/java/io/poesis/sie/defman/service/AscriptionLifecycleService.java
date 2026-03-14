@@ -14,10 +14,9 @@ import org.springframework.stereotype.Service;
 import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import io.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
-import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.DefinitionSubjectType;
-
 import jakarta.persistence.EntityManager;
 
 /**
@@ -63,11 +62,6 @@ public class AscriptionLifecycleService {
     // ======================================================================
     // Referee precondition: allowed reference statuses per transition
     // ======================================================================
-
-    private static final Set<AscriptionStatusType> NON_TERMINAL = EnumSet.of(
-            AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED,
-            AscriptionStatusType.APPROVED, AscriptionStatusType.ACTIVE,
-            AscriptionStatusType.SUSPENDED, AscriptionStatusType.DEPRECATED);
 
     private static final Set<AscriptionStatusType> IN_EFFECT = EnumSet.of(
             AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);

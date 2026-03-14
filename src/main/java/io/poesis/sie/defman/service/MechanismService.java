@@ -1,5 +1,6 @@
 package io.poesis.sie.defman.service;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -7,16 +8,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.poesis.sie.defman.entity.ArchetypeEntity;
 import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.DefinitionEntity;
+import io.poesis.sie.defman.entity.EffectorEntity;
 import io.poesis.sie.defman.entity.MechanismEntity;
+import io.poesis.sie.defman.entity.ReceptorEntity;
 import io.poesis.sie.defman.entity.StructureEntity;
 import io.poesis.sie.defman.repository.EffectorRepository;
 import io.poesis.sie.defman.repository.MechanismRepository;
@@ -62,21 +69,32 @@ public class MechanismService extends AbstractAscriptionService {
     private static final Set<String> SYS_METHODS = Set.of(
             "emit", "create", "modify", "delete", "acquire");
 
+    /** Valid read-only properties on the sys namespace object. */
+    private static final Set<String> SYS_PROPERTIES = Set.of("id");
+
+    /** GSM §Mechanism V14: maximum number of top-level statements allowed in a Mechanism rule. */
+    static final int MAX_RULE_STATEMENTS = 200;
+
+    private static final Logger LOG = LoggerFactory.getLogger(MechanismService.class);
+
     private static final Collection<AscriptionStatusType> MODE_IN_EFFECT = List.of(AscriptionStatusType.ACTIVE,
             AscriptionStatusType.DEPRECATED);
 
     private final MechanismRepository mechanismRepo;
     private final StructureService structureService;
+    private final ArchetypeService archetypeService;
     private final EffectorRepository effectorRepo;
     private final ReceptorRepository receptorRepo;
 
     public MechanismService(
             MechanismRepository mechanismRepo,
             StructureService structureService,
+            ArchetypeService archetypeService,
             EffectorRepository effectorRepo,
             ReceptorRepository receptorRepo) {
         this.mechanismRepo = mechanismRepo;
         this.structureService = structureService;
+        this.archetypeService = archetypeService;
         this.effectorRepo = effectorRepo;
         this.receptorRepo = receptorRepo;
     }
@@ -219,6 +237,14 @@ public class MechanismService extends AbstractAscriptionService {
 
         StarlarkFile file = parseStarlark(rule);
 
+        // GSM §Mechanism V14: execution budget — reject rules exceeding statement limit
+        int stmtCount = countStatements(file);
+        if (stmtCount > MAX_RULE_STATEMENTS) {
+            throw new IllegalArgumentException(
+                    "Mechanism rule exceeds execution budget: " + stmtCount
+                            + " statements (max " + MAX_RULE_STATEMENTS + ")");
+        }
+
         for (Statement stmt : file.getStatements()) {
             if (stmt instanceof LoadStatement) {
                 throw new IllegalArgumentException("load() statements are not allowed in Mechanism rules");
@@ -239,18 +265,36 @@ public class MechanismService extends AbstractAscriptionService {
                             + ". Allowed: " + ALLOWED_GLOBALS + " + Starlark built-ins");
         }
 
+        // Collect all archetype names referenced in sys.* calls
+        Set<String> referencedArchetypes = new HashSet<>();
+        referencedArchetypes.add(triggerArchetype);
+
         for (Statement stmt : file.getStatements()) {
-            if (stmt instanceof ExpressionStatement es) {
-                validateSysCallsInExpr(es.getExpression());
-            } else if (stmt instanceof AssignmentStatement as) {
-                validateSysCallsInExpr(as.getRHS());
-            } else if (stmt instanceof ForStatement fs) {
+            validateSysCallsInStatement(stmt);
+            collectSysArchetypeNames(stmt, referencedArchetypes);
+            if (stmt instanceof ForStatement fs) {
                 for (Statement body : fs.getBody()) {
-                    if (body instanceof ExpressionStatement es) {
-                        validateSysCallsInExpr(es.getExpression());
-                    } else if (body instanceof AssignmentStatement as2) {
-                        validateSysCallsInExpr(as2.getRHS());
-                    }
+                    validateSysCallsInStatement(body);
+                    collectSysArchetypeNames(body, referencedArchetypes);
+                }
+            }
+        }
+
+        // GSM §Mechanism V10: validate archetype names resolve to declared Archetypes
+        for (String archetypeName : referencedArchetypes) {
+            ArchetypeEntity resolved = archetypeService.findInEffectBySchemaTitle(archetypeName);
+            if (resolved == null) {
+                LOG.warn("Mechanism rule references undeclared Archetype: '{}'. "
+                        + "The Archetype must be in-effect before Mechanism activation.", archetypeName);
+            }
+        }
+
+        // GSM §Mechanism V11: best-effort dict literal schema conformance
+        for (Statement stmt : file.getStatements()) {
+            validateDictLiteralConformance(stmt);
+            if (stmt instanceof ForStatement fs) {
+                for (Statement body : fs.getBody()) {
+                    validateDictLiteralConformance(body);
                 }
             }
         }
@@ -412,6 +456,16 @@ public class MechanismService extends AbstractAscriptionService {
             }
         } else if (expr instanceof DotExpression dot) {
             collectUnknownGlobalsInExpr(dot.getObject(), locals, unknowns);
+            // GSM §Mechanism U2: validate sys.* property accesses (non-call)
+            if (dot.getObject() instanceof Identifier obj && "sys".equals(obj.getName())) {
+                String field = dot.getField().getName();
+                if (!SYS_METHODS.contains(field) && !SYS_PROPERTIES.contains(field)) {
+                    throw new IllegalArgumentException(
+                            "Unknown sys property: sys." + field
+                                    + ". Allowed methods: " + SYS_METHODS
+                                    + ", allowed properties: " + SYS_PROPERTIES);
+                }
+            }
         } else if (expr instanceof ListExpression list) {
             for (Expression elem : list.getElements()) {
                 collectUnknownGlobalsInExpr(elem, locals, unknowns);
@@ -420,6 +474,121 @@ public class MechanismService extends AbstractAscriptionService {
             for (DictExpression.Entry entry : dict.getEntries()) {
                 collectUnknownGlobalsInExpr(entry.getKey(), locals, unknowns);
                 collectUnknownGlobalsInExpr(entry.getValue(), locals, unknowns);
+            }
+        }
+    }
+
+    // ======================================================================
+    // Execution budget (V14)
+    // ======================================================================
+
+    private int countStatements(StarlarkFile file) {
+        int count = 0;
+        for (Statement stmt : file.getStatements()) {
+            count++;
+            if (stmt instanceof ForStatement fs) {
+                count += fs.getBody().size();
+            }
+        }
+        return count;
+    }
+
+    // ======================================================================
+    // sys.* archetype name collection (V10)
+    // ======================================================================
+
+    private void collectSysArchetypeNames(Statement stmt, Set<String> names) {
+        if (stmt instanceof ExpressionStatement es) {
+            collectSysArchetypeNamesInExpr(es.getExpression(), names);
+        } else if (stmt instanceof AssignmentStatement as) {
+            collectSysArchetypeNamesInExpr(as.getRHS(), names);
+        }
+    }
+
+    private void collectSysArchetypeNamesInExpr(Expression expr, Set<String> names) {
+        if (!(expr instanceof CallExpression call))
+            return;
+
+        if (call.getFunction() instanceof DotExpression dot
+                && dot.getObject() instanceof Identifier obj
+                && "sys".equals(obj.getName())) {
+            String method = dot.getField().getName();
+            if (SYS_METHODS.contains(method)) {
+                List<Argument> args = call.getArguments();
+                if (!args.isEmpty()) {
+                    Expression firstArg = args.get(0).getValue();
+                    if (firstArg instanceof StringLiteral sl) {
+                        names.add(sl.getValue());
+                    }
+                }
+                // Check for response= keyword arg (sys.emit with response archetype)
+                for (Argument arg : args) {
+                    if (arg instanceof Argument.Keyword kw && "response".equals(kw.getName())) {
+                        if (kw.getValue() instanceof StringLiteral sl) {
+                            names.add(sl.getValue());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ======================================================================
+    // Dict literal schema conformance (V11 — best-effort)
+    // ======================================================================
+
+    private void validateDictLiteralConformance(Statement stmt) {
+        if (stmt instanceof ExpressionStatement es) {
+            validateDictLiteralInSysCall(es.getExpression());
+        } else if (stmt instanceof AssignmentStatement as) {
+            validateDictLiteralInSysCall(as.getRHS());
+        }
+    }
+
+    private void validateDictLiteralInSysCall(Expression expr) {
+        if (!(expr instanceof CallExpression call))
+            return;
+
+        if (call.getFunction() instanceof DotExpression dot
+                && dot.getObject() instanceof Identifier obj
+                && "sys".equals(obj.getName())) {
+            String method = dot.getField().getName();
+            if (SYS_METHODS.contains(method)) {
+                List<Argument> args = call.getArguments();
+                if (args.size() < 2)
+                    return;
+
+                // First arg = archetype name; second arg = data dict (for emit/create/modify)
+                Expression firstArg = args.get(0).getValue();
+                if (!(firstArg instanceof StringLiteral sl))
+                    return;
+                String archetypeName = sl.getValue();
+
+                Expression secondArg = args.get(1).getValue();
+                if (!(secondArg instanceof DictExpression dict))
+                    return;
+
+                ArchetypeEntity archetype = archetypeService.findInEffectBySchemaTitle(archetypeName);
+                if (archetype == null)
+                    return; // Archetype not yet in-effect; can't validate
+
+                JsonNode schema = archetype.getStatement().get("schema");
+                if (schema == null || !schema.has("properties"))
+                    return;
+
+                JsonNode properties = schema.get("properties");
+                Set<String> schemaKeys = new HashSet<>();
+                properties.fieldNames().forEachRemaining(schemaKeys::add);
+
+                for (DictExpression.Entry entry : dict.getEntries()) {
+                    if (entry.getKey() instanceof StringLiteral keyLit) {
+                        String key = keyLit.getValue();
+                        if (!schemaKeys.contains(key)) {
+                            LOG.warn("sys.{}(\"{}\", ...): dict key '{}' not in Archetype schema properties {}",
+                                    method, archetypeName, key, schemaKeys);
+                        }
+                    }
+                }
             }
         }
     }
@@ -474,5 +643,223 @@ public class MechanismService extends AbstractAscriptionService {
         JsonNode stmt = entity.getStatement();
         return stmt != null && stmt.has("rule") && !stmt.get("rule").isNull()
                 && !stmt.get("rule").asText().isBlank();
+    }
+
+    // ======================================================================
+    // Port auto-derivation (U3/U4 + U12)
+    // ======================================================================
+
+    /**
+     * A derived port signature from Starlark AST analysis.
+     * direction: "effector" or "receptor"
+     * archetypeName: the data archetype schema.title
+     */
+    record PortSignature(String direction, String archetypeName) {
+    }
+
+    @Override
+    protected void afterCreate(AscriptionEntity saved) {
+        MechanismEntity mechanism = (MechanismEntity) saved;
+        if (!hasRule(mechanism)) {
+            return; // Declarative mode — no auto-derivation
+        }
+
+        String rule = mechanism.getStatement().get("rule").asText();
+        StarlarkFile file = parseStarlark(rule);
+        List<PortSignature> signatures = collectPortSignatures(file);
+        if (signatures.isEmpty()) {
+            return;
+        }
+
+        derivePortEntities(mechanism, signatures);
+    }
+
+    /**
+     * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
+     * <ul>
+     *   <li>on("X") → Receptor for X (trigger)</li>
+     *   <li>sys.emit/create/modify/delete/acquire("Y") unassigned → Effector for Y</li>
+     *   <li>var = sys.emit/create/modify/delete/acquire("Y") assigned → Effector for Y + Receptor for Y (closed-loop)</li>
+     *   <li>sys.emit("Y", data, response="R") → Effector for Y + Receptor for R</li>
+     * </ul>
+     */
+    List<PortSignature> collectPortSignatures(StarlarkFile file) {
+        List<PortSignature> signatures = new ArrayList<>();
+
+        for (Statement stmt : file.getStatements()) {
+            // on("X") → Receptor
+            if (stmt instanceof ExpressionStatement es && es.getExpression() instanceof CallExpression call) {
+                if (isGlobalCall(call, "on")) {
+                    String name = extractFirstStringArg(call);
+                    if (name != null) {
+                        signatures.add(new PortSignature("receptor", name));
+                    }
+                }
+            }
+            if (stmt instanceof AssignmentStatement as && as.getRHS() instanceof CallExpression call) {
+                if (isGlobalCall(call, "on")) {
+                    String name = extractFirstStringArg(call);
+                    if (name != null) {
+                        signatures.add(new PortSignature("receptor", name));
+                    }
+                }
+            }
+
+            collectPortSignaturesFromStatement(stmt, signatures);
+            if (stmt instanceof ForStatement fs) {
+                for (Statement body : fs.getBody()) {
+                    collectPortSignaturesFromStatement(body, signatures);
+                }
+            }
+        }
+
+        return signatures;
+    }
+
+    private void collectPortSignaturesFromStatement(Statement stmt, List<PortSignature> signatures) {
+        boolean assigned = false;
+        Expression expr = null;
+
+        if (stmt instanceof ExpressionStatement es) {
+            expr = es.getExpression();
+            assigned = false;
+        } else if (stmt instanceof AssignmentStatement as) {
+            expr = as.getRHS();
+            assigned = true;
+        }
+
+        if (expr == null) return;
+
+        if (expr instanceof CallExpression call
+                && call.getFunction() instanceof DotExpression dot
+                && dot.getObject() instanceof Identifier obj
+                && "sys".equals(obj.getName())) {
+            String method = dot.getField().getName();
+            if (!SYS_METHODS.contains(method)) return;
+
+            String archetypeName = extractFirstStringArg(call);
+            if (archetypeName == null) return;
+
+            // Effector for the output
+            signatures.add(new PortSignature("effector", archetypeName));
+
+            // U4 closed-loop: assigned → Receptor feedback
+            if (assigned) {
+                signatures.add(new PortSignature("receptor", archetypeName));
+            }
+
+            // U3/U4: response= keyword → Receptor for response archetype
+            for (Argument arg : call.getArguments()) {
+                if (arg instanceof Argument.Keyword kw && "response".equals(kw.getName())) {
+                    if (kw.getValue() instanceof StringLiteral sl) {
+                        signatures.add(new PortSignature("receptor", sl.getValue()));
+                    }
+                }
+            }
+        }
+    }
+
+    private String extractFirstStringArg(CallExpression call) {
+        List<Argument> args = call.getArguments();
+        if (args.isEmpty()) return null;
+        Expression first = args.get(0).getValue();
+        return (first instanceof StringLiteral sl) ? sl.getValue() : null;
+    }
+
+    /**
+     * GSM §Mechanism U12: derive port entities with Definition reuse.
+     * Match existing Definitions by (Mechanism Definition, data Archetype, direction).
+     */
+    private void derivePortEntities(MechanismEntity mechanism, List<PortSignature> signatures) {
+        // Resolve base typing archetypes
+        ArchetypeEntity effectorArchetype = archetypeService.findInEffectBySchemaTitle("EffectorArchetype");
+        ArchetypeEntity receptorArchetype = archetypeService.findInEffectBySchemaTitle("ReceptorArchetype");
+        if (effectorArchetype == null || receptorArchetype == null) {
+            LOG.warn("Base EffectorArchetype/ReceptorArchetype not in-effect; skipping auto-derivation");
+            return;
+        }
+
+        UUID mechanismDefId = mechanism.getDefinition().getId();
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Deduplicate signatures
+        Set<PortSignature> unique = new HashSet<>(signatures);
+
+        for (PortSignature sig : unique) {
+            ArchetypeEntity dataArchetype = archetypeService.findInEffectBySchemaTitle(sig.archetypeName());
+            if (dataArchetype == null) {
+                LOG.warn("Auto-derivation: data Archetype '{}' not in-effect; skipping port", sig.archetypeName());
+                continue;
+            }
+
+            if ("effector".equals(sig.direction())) {
+                deriveEffector(mechanism, mechanismDefId, effectorArchetype, dataArchetype, mapper);
+            } else {
+                deriveReceptor(mechanism, mechanismDefId, receptorArchetype, dataArchetype, mapper);
+            }
+        }
+    }
+
+    private void deriveEffector(MechanismEntity mechanism, UUID mechanismDefId,
+            ArchetypeEntity effectorArchetype, ArchetypeEntity dataArchetype, ObjectMapper mapper) {
+        // U12: reuse existing Definition by matching (mechanism def, data archetype, direction)
+        DefinitionEntity definition = findOrCreatePortDefinition(
+                mechanismDefId, dataArchetype.getDefinition().getId(),
+                effectorRepo.findAllByMechanism_Definition_Id(mechanismDefId),
+                e -> ((EffectorEntity) e).getOutputArchetype().getDefinition().getId().equals(
+                        dataArchetype.getDefinition().getId()),
+                DefinitionSubjectType.EFFECTOR);
+
+        ObjectNode statement = mapper.createObjectNode();
+        statement.put("mechanism", mechanismDefId.toString());
+        statement.put("archetype", dataArchetype.getDefinition().getId().toString());
+
+        EffectorEntity effector = new EffectorEntity(
+                definition, effectorArchetype, statement, mechanism, dataArchetype);
+        EffectorEntity saved = effectorRepo.save(effector);
+        getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
+        getEntityManager().refresh(saved);
+        LOG.debug("Auto-derived Effector {} for data archetype {}", saved.getId(),
+                dataArchetype.getStatement().get("schema").get("title").asText());
+    }
+
+    private void deriveReceptor(MechanismEntity mechanism, UUID mechanismDefId,
+            ArchetypeEntity receptorArchetype, ArchetypeEntity dataArchetype, ObjectMapper mapper) {
+        // U12: reuse existing Definition by matching (mechanism def, data archetype, direction)
+        DefinitionEntity definition = findOrCreatePortDefinition(
+                mechanismDefId, dataArchetype.getDefinition().getId(),
+                receptorRepo.findAllByMechanism_Definition_Id(mechanismDefId),
+                e -> ((ReceptorEntity) e).getInputArchetype().getDefinition().getId().equals(
+                        dataArchetype.getDefinition().getId()),
+                DefinitionSubjectType.RECEPTOR);
+
+        ObjectNode statement = mapper.createObjectNode();
+        statement.put("mechanism", mechanismDefId.toString());
+        statement.put("archetype", dataArchetype.getDefinition().getId().toString());
+
+        ReceptorEntity receptor = new ReceptorEntity(
+                definition, receptorArchetype, statement, mechanism, dataArchetype);
+        ReceptorEntity saved = receptorRepo.save(receptor);
+        getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
+        getEntityManager().refresh(saved);
+        LOG.debug("Auto-derived Receptor {} for data archetype {}", saved.getId(),
+                dataArchetype.getStatement().get("schema").get("title").asText());
+    }
+
+    /**
+     * GSM §Mechanism U12: find existing port Definition matching (mechanism def, data archetype),
+     * or create a new one.
+     */
+    private DefinitionEntity findOrCreatePortDefinition(
+            UUID mechanismDefId, UUID dataArchetypeDefId,
+            List<? extends AscriptionEntity> existingPorts,
+            java.util.function.Predicate<AscriptionEntity> matcher,
+            DefinitionSubjectType portType) {
+        for (AscriptionEntity existing : existingPorts) {
+            if (matcher.test(existing)) {
+                return existing.getDefinition();
+            }
+        }
+        return getDefinitionService().create(portType);
     }
 }

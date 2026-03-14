@@ -6,20 +6,18 @@ import java.util.UUID;
 
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 import io.poesis.sie.defman.type.AscriptionStatusType;
-import io.poesis.sie.defman.util.UuidV7GeneratorUtil;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 /**
@@ -37,6 +35,7 @@ import jakarta.persistence.Table;
 public class AscriptionStatusTransitionEntity {
 
     @Id
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
@@ -66,13 +65,6 @@ public class AscriptionStatusTransitionEntity {
         this.ascription = Objects.requireNonNull(ascription, "ascription");
         this.preStatus = preStatus;
         this.postStatus = Objects.requireNonNull(postStatus, "postStatus");
-    }
-
-    @PrePersist
-    void ensureId() {
-        if (id == null) {
-            id = UuidV7GeneratorUtil.generate();
-        }
     }
 
     // ---- accessors (read-only) ----

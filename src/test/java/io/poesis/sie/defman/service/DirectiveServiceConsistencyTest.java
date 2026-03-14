@@ -194,6 +194,79 @@ class DirectiveServiceConsistencyTest {
     }
 
     // ========================================================================
+    // Modal precedence: different tiers on same verb — LOG.warn, no exception
+    // (GSM §DirectiveModal C2)
+    // ========================================================================
+
+    @Nested
+    class ModalPrecedence {
+
+        @Test
+        void mustOverridesShould_noException() {
+            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+            DirectiveEntity sibling = stubDirective("ENSURE", "SHOULD");
+
+            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                    any(), any(), any()))
+                    .thenReturn(List.of(sibling));
+
+            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+        }
+
+        @Test
+        void shouldOverridesMay_noException() {
+            DirectiveEntity directive = stubDirective("MAXIMIZE", "SHOULD");
+            DirectiveEntity sibling = stubDirective("MAXIMIZE", "MAY");
+
+            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                    any(), any(), any()))
+                    .thenReturn(List.of(sibling));
+
+            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+        }
+
+        @Test
+        void mustNotOverridesShouldNot_noException() {
+            DirectiveEntity directive = stubDirective("MAINTAIN", "MUST_NOT");
+            DirectiveEntity sibling = stubDirective("MAINTAIN", "SHOULD_NOT");
+
+            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                    any(), any(), any()))
+                    .thenReturn(List.of(sibling));
+
+            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+        }
+
+        @Test
+        void sameTierDifferentModal_noException() {
+            // MUST vs MUST_NOT at same tier would be a modal contradiction
+            // (tested above). SHOULD vs SHOULD_NOT would also be a contradiction.
+            // Same tier, same polarity = same modal → no conflict (already tested).
+            // So test: MAY vs MAY (same modal, same tier) — no conflict
+            DirectiveEntity directive = stubDirective("OPTIMIZE", "MAY");
+            DirectiveEntity sibling = stubDirective("OPTIMIZE", "MAY");
+
+            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                    any(), any(), any()))
+                    .thenReturn(List.of(sibling));
+
+            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+        }
+
+        @Test
+        void differentVerbsDifferentTiers_noConflict() {
+            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+            DirectiveEntity sibling = stubDirective("OPTIMIZE", "MAY");
+
+            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                    any(), any(), any()))
+                    .thenReturn(List.of(sibling));
+
+            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+        }
+    }
+
+    // ========================================================================
     // Helpers
     // ========================================================================
 

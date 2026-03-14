@@ -32,10 +32,9 @@ import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import io.poesis.sie.defman.entity.DefinitionEntity;
 import io.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
-import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.DefinitionSubjectType;
-
 import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -160,14 +159,12 @@ class AscriptionLifecycleServiceTest {
         class RefereePreconditions {
 
                 @Test
-                void refereeSatisfied_allowed() {
+                void approvedToActive_refActive_allowed() {
                         UUID id = UUID.randomUUID();
                         AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
                                         AscriptionStatusType.APPROVED);
                         when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
 
-                        // The mechanism references a Structure that is ACTIVE → allowed for
-                        // APPROVED→ACTIVE
                         AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
                                         DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE);
                         when(mechanismSubtype.getRefereeReferences(entity))
@@ -179,13 +176,12 @@ class AscriptionLifecycleServiceTest {
                 }
 
                 @Test
-                void refereeViolated_blocked() {
+                void approvedToActive_refDraft_blocked() {
                         UUID id = UUID.randomUUID();
                         AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
                                         AscriptionStatusType.APPROVED);
                         when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
 
-                        // Reference is DRAFT → not allowed for APPROVED→ACTIVE (must be ACTIVE)
                         AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
                                         DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
                         when(mechanismSubtype.getRefereeReferences(entity))
@@ -195,6 +191,229 @@ class AscriptionLifecycleServiceTest {
                                         () -> service.transition(id, "ACTIVE"));
                         assertTrue(ex.getMessage().contains("Referee precondition failed"));
                         assertTrue(ex.getMessage().contains("structure"));
+                }
+
+                @Test
+                void draftToProposed_refProposed_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.DRAFT);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.PROPOSED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "PROPOSED"));
+                }
+
+                @Test
+                void draftToProposed_refDraft_blocked() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.DRAFT);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.transition(id, "PROPOSED"));
+                        assertTrue(ex.getMessage().contains("Referee precondition failed"));
+                }
+
+                @Test
+                void proposedToApproved_refApproved_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.PROPOSED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.APPROVED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "APPROVED"));
+                }
+
+                @Test
+                void proposedToApproved_refProposed_blocked() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.PROPOSED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.PROPOSED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.transition(id, "APPROVED"));
+                        assertTrue(ex.getMessage().contains("Referee precondition failed"));
+                }
+
+                @Test
+                void activeToSuspended_refSuspended_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.SUSPENDED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "SUSPENDED"));
+                }
+
+                @Test
+                void activeToSuspended_refRetired_blocked() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.transition(id, "SUSPENDED"));
+                        assertTrue(ex.getMessage().contains("Referee precondition failed"));
+                }
+
+                @Test
+                void suspendedToActive_refActive_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.SUSPENDED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "ACTIVE"));
+                }
+
+                @Test
+                void suspendedToActive_refSuspended_blocked() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.SUSPENDED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.SUSPENDED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.transition(id, "ACTIVE"));
+                        assertTrue(ex.getMessage().contains("Referee precondition failed"));
+                }
+
+                @Test
+                void deprecatedToRetired_refRetired_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.DEPRECATED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "RETIRED"));
+                }
+
+                @Test
+                void deprecatedToRetired_refAbandoned_blocked() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.DEPRECATED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ABANDONED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.transition(id, "RETIRED"));
+                        assertTrue(ex.getMessage().contains("Referee precondition failed"));
+                }
+
+                @Test
+                void proposedToRejected_refDraft_blocked() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.PROPOSED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        // SC-23: DRAFT referee blocks PROPOSED→REJECTED
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.transition(id, "REJECTED"));
+                        assertTrue(ex.getMessage().contains("Referee precondition failed"));
+                }
+
+                @Test
+                void proposedToRejected_refRetired_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.PROPOSED);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "REJECTED"));
+                }
+
+                @Test
+                void draftToAbandoned_anyRefStatus_allowed() {
+                        UUID id = UUID.randomUUID();
+                        AscriptionEntity entity = stubEntity(id, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.DRAFT);
+                        when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
+
+                        // DRAFT→ABANDONED allows ANY referee status
+                        AscriptionEntity structureRef = stubEntity(UUID.randomUUID(),
+                                        DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
+                        when(mechanismSubtype.getRefereeReferences(entity))
+                                        .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+
+                        stubTransitionSave();
+
+                        assertDoesNotThrow(() -> service.transition(id, "ABANDONED"));
                 }
         }
 
@@ -355,6 +574,225 @@ class AscriptionLifecycleServiceTest {
 
                         // Only 1 transition (no cascade — status mismatch, no-op for GOVERNING)
                         verify(transitionService, times(1)).recordTransition(any(), any(), any());
+                }
+        }
+
+        // ========================================================================
+        // Dependent cascade scope
+        // ========================================================================
+
+        @Nested
+        class DependentCascadeScope {
+
+                private AbstractAscriptionService effectorSubtype;
+                private AscriptionLifecycleService serviceWithDependent;
+
+                @BeforeEach
+                void setUpDependentCascade() {
+                        // Set up Mechanism as source + Effector as CONSTITUTIVE dependent
+                        AbstractAscriptionService mechSvc = mock(AbstractAscriptionService.class);
+                        when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
+                        when(mechSvc.getCascadeTargetRoles()).thenReturn(
+                                        Map.of(DefinitionSubjectType.STRUCTURE,
+                                                        AscriptionStatusTransitionCascadeType.GOVERNING));
+
+                        effectorSubtype = mock(AbstractAscriptionService.class);
+                        when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
+                        when(effectorSubtype.getCascadeTargetRoles()).thenReturn(
+                                        Map.of(DefinitionSubjectType.MECHANISM,
+                                                        AscriptionStatusTransitionCascadeType.DEPENDENT));
+
+                        AbstractAscriptionService structSvc = mock(AbstractAscriptionService.class);
+                        when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+                        when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
+
+                        serviceWithDependent = new AscriptionLifecycleService(
+                                        List.of(structSvc, mechSvc, effectorSubtype),
+                                        transitionService, entityManager);
+                }
+
+                @Test
+                void activeToDeprecated_dependentCascadeFires() {
+                        UUID mechId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.ACTIVE);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        serviceWithDependent.transition(mechId, "DEPRECATED");
+
+                        // 2 transitions: main + cascaded effector
+                        verify(transitionService, atLeast(2)).recordTransition(any(), any(), any());
+                }
+
+                @Test
+                void activeToSuspended_dependentCascadeFires() {
+                        UUID mechId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.ACTIVE);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        serviceWithDependent.transition(mechId, "SUSPENDED");
+
+                        verify(transitionService, atLeast(2)).recordTransition(any(), any(), any());
+                }
+
+                @Test
+                void proposedToApproved_dependentCascadeDoesNotFire() {
+                        UUID mechId = UUID.randomUUID();
+                        UUID defId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.PROPOSED, defId);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        // Even if effectors exist, dependent cascade should NOT fire on positive
+                        // transitions
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.PROPOSED);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        // Need to mock findAllByDefinitionId for governance convergence
+                        AbstractAscriptionService mechSvcFromList = null;
+                        // Just transition — no convergence siblings needed for this assertion
+                        serviceWithDependent.transition(mechId, "APPROVED");
+
+                        // Only 1 transition (main) — dependent cascade not applicable
+                        verify(transitionService, times(1)).recordTransition(any(), any(), any());
+                }
+
+                @Test
+                void draftToAbandoned_dependentCascadeFires() {
+                        UUID mechId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.DRAFT);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.DRAFT);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        serviceWithDependent.transition(mechId, "ABANDONED");
+
+                        verify(transitionService, atLeast(2)).recordTransition(any(), any(), any());
+                }
+
+                @Test
+                void dependentCascade_statusMismatch_noOp() {
+                        UUID mechId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        // Effector is DRAFT, not ACTIVE → status mismatch → no-op for DEPENDENT
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.DRAFT);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        serviceWithDependent.transition(mechId, "DEPRECATED");
+
+                        // Only 1 transition (main) — effector status mismatch → no-op
+                        verify(transitionService, times(1)).recordTransition(any(), any(), any());
+                }
+        }
+
+        // ========================================================================
+        // Constitutive cascade
+        // ========================================================================
+
+        @Nested
+        class ConstitutiveCascade {
+
+                private AbstractAscriptionService effectorSubtype;
+                private AscriptionLifecycleService serviceWithConstitutive;
+
+                @BeforeEach
+                void setUpConstitutiveCascade() {
+                        AbstractAscriptionService mechSvc = mock(AbstractAscriptionService.class);
+                        when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
+                        when(mechSvc.getCascadeTargetRoles()).thenReturn(Map.of());
+
+                        // Effector → CONSTITUTIVE from Mechanism
+                        effectorSubtype = mock(AbstractAscriptionService.class);
+                        when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
+                        when(effectorSubtype.getCascadeTargetRoles()).thenReturn(
+                                        Map.of(DefinitionSubjectType.MECHANISM,
+                                                        AscriptionStatusTransitionCascadeType.CONSTITUTIVE));
+
+                        AbstractAscriptionService structSvc = mock(AbstractAscriptionService.class);
+                        when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+                        when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
+
+                        serviceWithConstitutive = new AscriptionLifecycleService(
+                                        List.of(structSvc, mechSvc, effectorSubtype),
+                                        transitionService, entityManager);
+                }
+
+                @Test
+                void constitutiveCascade_statusMismatch_throws() {
+                        UUID mechId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        // Effector is DRAFT, not ACTIVE → constitutive cascade MUST fail
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.DRAFT);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                                        () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
+                        assertTrue(ex.getMessage().contains("Constitutive cascade failed"));
+                }
+
+                @Test
+                void constitutiveCascade_statusMatch_propagates() {
+                        UUID mechId = UUID.randomUUID();
+                        AscriptionEntity mechanism = stubEntity(mechId, DefinitionSubjectType.MECHANISM,
+                                        AscriptionStatusType.ACTIVE);
+                        when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+                        stubTransitionSave();
+
+                        UUID effId = UUID.randomUUID();
+                        AscriptionEntity effector = stubEntity(effId, DefinitionSubjectType.EFFECTOR,
+                                        AscriptionStatusType.ACTIVE);
+                        doReturn(List.of(effector))
+                                        .when(effectorSubtype)
+                                        .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+                        serviceWithConstitutive.transition(mechId, "DEPRECATED");
+
+                        verify(transitionService, atLeast(2)).recordTransition(any(), any(), any());
                 }
         }
 

@@ -20,6 +20,11 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import dev.cel.common.CelValidationException;
+import dev.cel.common.CelValidationResult;
+import dev.cel.common.types.SimpleType;
+import dev.cel.compiler.CelCompiler;
+import dev.cel.compiler.CelCompilerFactory;
 import io.poesis.sie.defman.client.SchemaRegistryClient;
 import io.poesis.sie.defman.entity.ArchetypeEntity;
 import io.poesis.sie.defman.entity.AscriptionEntity;
@@ -83,6 +88,12 @@ public class ArchetypeService extends AbstractAscriptionService {
     private final SchemaRegistryClient schemaRegistryClient;
     private final JdbcTemplate jdbcTemplate;
 
+    /**
+     * CEL compiler for $gsm:validationCEL expression validation. Uses 'this' as
+     * root variable.
+     */
+    private final CelCompiler validationCelCompiler;
+
     public ArchetypeService(
             ArchetypeRepository archetypeRepo,
             SchemaRegistryClient schemaRegistryClient,
@@ -90,6 +101,9 @@ public class ArchetypeService extends AbstractAscriptionService {
         this.archetypeRepo = archetypeRepo;
         this.schemaRegistryClient = schemaRegistryClient;
         this.jdbcTemplate = jdbcTemplate;
+        this.validationCelCompiler = CelCompilerFactory.standardCelCompilerBuilder()
+                .addVar("this", SimpleType.DYN)
+                .build();
     }
 
     @Override
@@ -156,6 +170,24 @@ public class ArchetypeService extends AbstractAscriptionService {
     public ArchetypeEntity findEntityById(UUID id) {
         return archetypeRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Archetype not found: " + id));
+    }
+
+    /**
+     * Find an in-effect Archetype by its schema.title.
+     * Returns null if no matching in-effect Archetype exists.
+     */
+    public ArchetypeEntity findInEffectBySchemaTitle(String title) {
+        List<ArchetypeEntity> inEffect = archetypeRepo.findAllByStatusIn(IN_EFFECT);
+        for (ArchetypeEntity a : inEffect) {
+            JsonNode stmt = a.getStatement();
+            if (stmt != null && stmt.has("schema")) {
+                JsonNode schema = stmt.get("schema");
+                if (schema.has("title") && title.equals(schema.get("title").asText())) {
+                    return a;
+                }
+            }
+        }
+        return null;
     }
 
     private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
@@ -298,9 +330,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         String sanitizedTitle = sanitizeIdentifier(schemaTitle);
         String archetypeIdLiteral = "'" + archetypeDefId + "'";
 
-        Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
+        for (Map.Entry<String, JsonNode> entry : properties.properties()) {
             String propName = entry.getKey();
             JsonNode propSchema = entry.getValue();
             String sanitizedProp = sanitizeIdentifier(propName);
@@ -488,9 +518,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         int queryableCount = 0;
         Set<String> identityBoundFields = new HashSet<>();
 
-        Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
+        for (Map.Entry<String, JsonNode> entry : properties.properties()) {
             String propName = entry.getKey();
             JsonNode propSchema = entry.getValue();
 
@@ -523,6 +551,12 @@ public class ArchetypeService extends AbstractAscriptionService {
         }
 
         validateIdentityBoundSetImmutability(definitionId, identityBoundFields);
+
+        // GSM §8: $gsm:validationCEL — validate each expression is parseable,
+        // deterministic CEL
+        if (schema.has("$gsm:validationCEL")) {
+            validateValidationCelExpressions(schema.get("$gsm:validationCEL"));
+        }
     }
 
     private void validateTopLevelAnnotations(JsonNode schema) {
@@ -627,13 +661,47 @@ public class ArchetypeService extends AbstractAscriptionService {
         if (properties == null || !properties.isObject()) {
             return result;
         }
-        Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
+        for (Map.Entry<String, JsonNode> entry : properties.properties()) {
             if (hasAnnotation(entry.getValue(), "$gsm:identityBound")) {
                 result.add(entry.getKey());
             }
         }
         return result;
+    }
+
+    // ========================================================================
+    // $gsm:validationCEL expression validation (Archetype authoring time)
+    // ========================================================================
+
+    void validateValidationCelExpressions(JsonNode validationCelNode) {
+        if (!validationCelNode.isArray()) {
+            throw new IllegalArgumentException(
+                    "$gsm:validationCEL must be an array of CEL expression strings");
+        }
+        if (validationCelNode.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < validationCelNode.size(); i++) {
+            JsonNode exprNode = validationCelNode.get(i);
+            if (!exprNode.isTextual()) {
+                throw new IllegalArgumentException(
+                        "$gsm:validationCEL[" + i + "] must be a string, got " + exprNode.getNodeType());
+            }
+            String expr = exprNode.asText();
+            if (expr.isBlank()) {
+                throw new IllegalArgumentException("$gsm:validationCEL[" + i + "] must not be blank");
+            }
+            CelValidationResult result = validationCelCompiler.parse(expr);
+            if (result.hasError()) {
+                throw new IllegalArgumentException(
+                        "$gsm:validationCEL[" + i + "] CEL parse error: " + result.getErrorString());
+            }
+            try {
+                result.getAst();
+            } catch (CelValidationException e) {
+                throw new IllegalArgumentException(
+                        "$gsm:validationCEL[" + i + "] CEL validation error: " + e.getMessage(), e);
+            }
+        }
     }
 }

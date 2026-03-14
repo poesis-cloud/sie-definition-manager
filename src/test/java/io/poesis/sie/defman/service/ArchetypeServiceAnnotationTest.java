@@ -375,6 +375,109 @@ class ArchetypeServiceAnnotationTest {
     }
 
     // ========================================================================
+    // $gsm:validationCEL expression validation (V13)
+    // ========================================================================
+
+    @Nested
+    class ValidationCelAnnotation {
+
+        @Test
+        void validCelExpressions_accepted() {
+            ObjectNode schema = schemaWithProperty("budget", prop("number"));
+            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+                    .add("this.budget > 0.0"));
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void multipleCelExpressions_accepted() {
+            ObjectNode schema = MAPPER.createObjectNode();
+            schema.put("title", "TestSchema");
+            ObjectNode props = schema.putObject("properties");
+            props.set("min", prop("number"));
+            props.set("max", prop("number"));
+            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+                    .add("this.min <= this.max")
+                    .add("this.min > 0"));
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void invalidCelSyntax_rejected() {
+            ObjectNode schema = schemaWithProperty("x", prop("number"));
+            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+                    .add("this.x >>>> 0"));
+
+            UUID defId = UUID.randomUUID();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("CEL parse error")
+                    || ex.getMessage().contains("CEL validation error"));
+        }
+
+        @Test
+        void notAnArray_rejected() {
+            ObjectNode schema = schemaWithProperty("x", prop("number"));
+            schema.put("$gsm:validationCEL", "this.x > 0");
+
+            UUID defId = UUID.randomUUID();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+            assertTrue(ex.getMessage().contains("must be an array"));
+        }
+
+        @Test
+        void nonStringElement_rejected() {
+            ObjectNode schema = schemaWithProperty("x", prop("number"));
+            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+                    .add(42));
+
+            UUID defId = UUID.randomUUID();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("must be a string"));
+        }
+
+        @Test
+        void blankExpression_rejected() {
+            ObjectNode schema = schemaWithProperty("x", prop("number"));
+            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+                    .add("  "));
+
+            UUID defId = UUID.randomUUID();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("must not be blank"));
+        }
+
+        @Test
+        void emptyArray_accepted() {
+            ObjectNode schema = schemaWithProperty("x", prop("number"));
+            schema.set("$gsm:validationCEL", MAPPER.createArrayNode());
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+    }
+
+    // ========================================================================
     // Helpers
     // ========================================================================
 

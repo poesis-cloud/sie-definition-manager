@@ -3,7 +3,6 @@ package io.poesis.sie.defman.service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,15 +19,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 
+import dev.cel.common.CelAbstractSyntaxTree;
+import dev.cel.common.CelValidationResult;
+import dev.cel.common.types.SimpleType;
+import dev.cel.compiler.CelCompiler;
+import dev.cel.compiler.CelCompilerFactory;
+import dev.cel.runtime.CelRuntime;
+import dev.cel.runtime.CelRuntimeFactory;
 import io.poesis.sie.defman.entity.ArchetypeEntity;
 import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.DefinitionEntity;
+import io.poesis.sie.defman.repository.AscriptionRepository;
 import io.poesis.sie.defman.repository.DefinitionRepository;
 import io.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import io.poesis.sie.defman.type.AscriptionStatusType;
@@ -54,6 +62,13 @@ public abstract class AbstractAscriptionService {
 
     private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
+    /** CEL compiler + runtime for $gsm:validationCEL enforcement at Ascription authoring. */
+    private final CelCompiler celCompiler = CelCompilerFactory.standardCelCompilerBuilder()
+            .addVar("this", SimpleType.DYN)
+            .build();
+    private final CelRuntime celRuntime = CelRuntimeFactory.standardCelRuntimeBuilder().build();
+    private final ObjectMapper celMapper = new ObjectMapper();
+
     // Shared dependencies — field-injected to avoid constructor bloat across 9
     // subclasses
     @Autowired
@@ -63,12 +78,18 @@ public abstract class AbstractAscriptionService {
     @Autowired
     private DefinitionRepository definitionRepository;
     @Autowired
+    private AscriptionRepository ascriptionRepository;
+    @Autowired
     private EntityManager entityManager;
 
     // Referee precondition for [*]→DRAFT creation
     private static final Set<AscriptionStatusType> CREATION_REFEREE_ALLOWED = EnumSet.of(
             AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED,
             AscriptionStatusType.APPROVED, AscriptionStatusType.ACTIVE);
+
+    // In-effect statuses for $gsm:unique enforcement
+    private static final List<AscriptionStatusType> GSM_IN_EFFECT = List.of(
+            AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
 
     // ======================================================================
     // Subtype identity
@@ -140,6 +161,9 @@ public abstract class AbstractAscriptionService {
         // 9. Refresh to pick up DB-trigger-assigned fields (status, timestamp)
         entityManager.refresh(saved);
 
+        // 10. Post-creation hook (e.g., auto-derivation of ports)
+        afterCreate(saved);
+
         return saved;
     }
 
@@ -201,6 +225,28 @@ public abstract class AbstractAscriptionService {
         // Default: no-op
     }
 
+    /**
+     * Hook called after an entity is created and persisted.
+     * Override in concrete services for subtype-specific post-creation logic
+     * (e.g., auto-derivation of Effectors/Receptors for generative Mechanisms).
+     */
+    protected void afterCreate(AscriptionEntity saved) {
+        // Default: no-op
+    }
+
+    // Protected service accessors for subtype post-creation logic
+    protected DefinitionService getDefinitionService() {
+        return definitionService;
+    }
+
+    protected AscriptionStatusTransitionService getTransitionService() {
+        return transitionService;
+    }
+
+    protected EntityManager getEntityManager() {
+        return entityManager;
+    }
+
     // ======================================================================
     // Statement JSON extraction utilities (protected)
     // ======================================================================
@@ -240,7 +286,7 @@ public abstract class AbstractAscriptionService {
     // Identity-bound validation (private — called from create())
     // ======================================================================
 
-    private void validateIdentityBound(AscriptionEntity entity) {
+    void validateIdentityBound(AscriptionEntity entity) {
         Map<String, Object> newValues = getIdentityBoundValues(entity);
         if (newValues.isEmpty()) {
             return;
@@ -273,7 +319,7 @@ public abstract class AbstractAscriptionService {
     // Creation referee preconditions (private — called from create())
     // ======================================================================
 
-    private void validateCreationPreconditions(AscriptionEntity entity) {
+    void validateCreationPreconditions(AscriptionEntity entity) {
         List<RefereeReference> refs = getRefereeReferences(entity);
         if (refs.isEmpty()) {
             return;
@@ -295,7 +341,7 @@ public abstract class AbstractAscriptionService {
     // Statement validation (inlined from StatementValidator)
     // ======================================================================
 
-    private void validateStatement(JsonNode statement, ArchetypeEntity archetype) {
+    void validateStatement(JsonNode statement, ArchetypeEntity archetype) {
         JsonNode archetypeStatement = archetype.getStatement();
         JsonNode schemaNode = archetypeStatement.get("schema");
 
@@ -316,9 +362,6 @@ public abstract class AbstractAscriptionService {
     // GsmAnnotationValidator)
     // ======================================================================
 
-    private static final Collection<AscriptionStatusType> GSM_IN_EFFECT = List.of(AscriptionStatusType.ACTIVE,
-            AscriptionStatusType.DEPRECATED);
-
     void enforceGsmAnnotations(JsonNode statement, ArchetypeEntity archetype, UUID definitionId) {
         JsonNode archetypeSchema = archetype.getStatement().get("schema");
         if (archetypeSchema == null) {
@@ -332,9 +375,7 @@ public abstract class AbstractAscriptionService {
 
         List<String> warnings = new ArrayList<>();
 
-        Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
+        for (Map.Entry<String, JsonNode> entry : properties.properties()) {
             String propName = entry.getKey();
             JsonNode propSchema = entry.getValue();
 
@@ -349,10 +390,7 @@ public abstract class AbstractAscriptionService {
             }
 
             if (hasGsmAnnotation(propSchema, "$gsm:unique")) {
-                LOG.debug("$gsm:unique check for property '{}' value '{}' on archetype definition {}",
-                        propName,
-                        value.isTextual() ? value.asText() : value.toString(),
-                        archetype.getDefinition().getId());
+                enforceUnique(propName, value, archetype, definitionId);
             }
 
             if (hasGsmAnnotation(propSchema, "$gsm:deprecated")) {
@@ -362,6 +400,11 @@ public abstract class AbstractAscriptionService {
 
         for (String warning : warnings) {
             LOG.warn("$gsm:deprecated: {}", warning);
+        }
+
+        // GSM §8: $gsm:validationCEL — evaluate top-level CEL constraints against statement
+        if (archetypeSchema.has("$gsm:validationCEL")) {
+            evaluateValidationCel(archetypeSchema.get("$gsm:validationCEL"), statement);
         }
     }
 
@@ -397,7 +440,76 @@ public abstract class AbstractAscriptionService {
         }
     }
 
+    private void enforceUnique(String propName, JsonNode value, ArchetypeEntity archetype,
+            UUID definitionId) {
+        List<AscriptionEntity> inEffect = ascriptionRepository
+                .findAllByArchetype_IdAndStatusInAndDefinition_IdNot(
+                        archetype.getId(), GSM_IN_EFFECT, definitionId);
+
+        String valueStr = value.isTextual() ? value.asText() : value.toString();
+        for (AscriptionEntity existing : inEffect) {
+            JsonNode existingStmt = existing.getStatement();
+            if (existingStmt.has(propName)) {
+                JsonNode existingVal = existingStmt.get(propName);
+                String existingStr = existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
+                if (valueStr.equals(existingStr)) {
+                    throw new IllegalArgumentException(
+                            "$gsm:unique: property '" + propName + "' value '" + valueStr
+                                    + "' is already in use by in-effect Ascription " + existing.getId()
+                                    + " (definition " + existing.getDefinition().getId() + ")");
+                }
+            }
+        }
+    }
+
     private static boolean hasGsmAnnotation(JsonNode node, String annotation) {
         return node.has(annotation) && node.get(annotation).asBoolean(false);
+    }
+
+    // ======================================================================
+    // $gsm:validationCEL evaluation at Ascription authoring
+    // ======================================================================
+
+    @SuppressWarnings("unchecked")
+    void evaluateValidationCel(JsonNode validationCelNode, JsonNode statement) {
+        if (!validationCelNode.isArray() || validationCelNode.isEmpty()) {
+            return;
+        }
+
+        Map<String, Object> statementMap = celMapper.convertValue(statement, Map.class);
+
+        for (int i = 0; i < validationCelNode.size(); i++) {
+            JsonNode exprNode = validationCelNode.get(i);
+            if (!exprNode.isTextual()) {
+                continue;
+            }
+            String expr = exprNode.asText();
+            if (expr.isBlank()) {
+                continue;
+            }
+
+            try {
+                CelValidationResult compileResult = celCompiler.compile(expr);
+                if (compileResult.hasError()) {
+                    throw new IllegalArgumentException(
+                            "$gsm:validationCEL[" + i + "] CEL parse error: " + compileResult.getErrorString());
+                }
+                CelAbstractSyntaxTree ast = compileResult.getAst();
+                CelRuntime.Program program = celRuntime.createProgram(ast);
+                Object result = program.eval(Map.of("this", statementMap));
+
+                if (!(result instanceof Boolean b) || !b) {
+                    throw new IllegalArgumentException(
+                            "$gsm:validationCEL[" + i + "] constraint failed: expression '"
+                                    + expr + "' evaluated to " + result);
+                }
+            } catch (IllegalArgumentException e) {
+                throw e; // re-throw our own exceptions
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        "$gsm:validationCEL[" + i + "] evaluation error for expression '"
+                                + expr + "': " + e.getMessage(), e);
+            }
+        }
     }
 }

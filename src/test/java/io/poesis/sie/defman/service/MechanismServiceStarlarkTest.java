@@ -22,6 +22,7 @@ class MechanismServiceStarlarkTest {
         service = new MechanismService(
                 mock(MechanismRepository.class),
                 mock(StructureService.class),
+                mock(ArchetypeService.class),
                 mock(EffectorRepository.class),
                 mock(ReceptorRepository.class));
     }
@@ -308,6 +309,88 @@ class MechanismServiceStarlarkTest {
                             sys.emit("Output", {"val": external_var})
                             """));
             assertTrue(ex.getMessage().contains("Unknown globals"));
+        }
+    }
+
+    // ========================================================================
+    // sys.id read-only property (GSM §Mechanism U2)
+    // ========================================================================
+
+    @Nested
+    class SysIdProperty {
+
+        @Test
+        void sysId_valid() {
+            String rule = """
+                    on("Input")
+                    sys.emit("Output", {"mechanismId": sys.id})
+                    """;
+            assertEquals("Input", service.validateStarlarkRule(rule));
+        }
+
+        @Test
+        void sysUnknownProperty_rejected() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateStarlarkRule("""
+                            on("Input")
+                            sys.emit("Output", {"name": sys.name})
+                            """));
+            assertTrue(ex.getMessage().contains("Unknown sys property"));
+            assertTrue(ex.getMessage().contains("sys.name"));
+        }
+
+        @Test
+        void sysUnknownProperty_version_rejected() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateStarlarkRule("""
+                            on("Input")
+                            sys.emit("Output", {"v": sys.version})
+                            """));
+            assertTrue(ex.getMessage().contains("Unknown sys property"));
+        }
+    }
+
+    // ========================================================================
+    // Execution budget (GSM §Mechanism V14)
+    // ========================================================================
+
+    @Nested
+    class ExecutionBudget {
+
+        @Test
+        void withinBudget_valid() {
+            // MAX_RULE_STATEMENTS is 200; build a rule with exactly that
+            StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
+            // on() is statement 1, so add 199 more
+            for (int i = 0; i < 199; i++) {
+                sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+            }
+            assertEquals("Trigger", service.validateStarlarkRule(sb.toString()));
+        }
+
+        @Test
+        void exceedsBudget_rejected() {
+            // Build a rule with MAX_RULE_STATEMENTS + 1 statements
+            StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
+            for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
+                sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+            }
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateStarlarkRule(sb.toString()));
+            assertTrue(ex.getMessage().contains("execution budget"));
+            assertTrue(ex.getMessage().contains(String.valueOf(MechanismService.MAX_RULE_STATEMENTS)));
+        }
+
+        @Test
+        void forLoopBody_countsTowardBudget() {
+            // Build: on() + for-loop with 200 body statements = 202 total (on + for + 200 body)
+            StringBuilder sb = new StringBuilder("on(\"Trigger\")\nfor x in range(1):\n");
+            for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
+                sb.append("    sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+            }
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateStarlarkRule(sb.toString()));
+            assertTrue(ex.getMessage().contains("execution budget"));
         }
     }
 }

@@ -1,5 +1,7 @@
 package io.poesis.sie.defman.controller;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
@@ -7,6 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.poesis.sie.defman.dto.AscriptionDto;
 import io.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
@@ -17,21 +23,77 @@ import io.poesis.sie.defman.type.DefinitionSubjectType;
 public abstract class AbstractController {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractController.class);
+    private static final String REDACTED = "[REDACTED]";
 
     // ========================================================================
     // MAPPING
     // ========================================================================
 
     protected AscriptionDto toAscriptionDto(DefinitionSubjectType type, AscriptionEntity entity) {
+        JsonNode statement = redactSensitiveFields(entity);
         return new AscriptionDto(
                 entity.getId(),
                 entity.getDefinition().getId(),
                 entity.getArchetype().getId(),
                 type.getValue(),
-                entity.getStatement(),
+                statement,
                 entity.getVersion(),
                 entity.getStatus() != null ? entity.getStatus().name() : "DRAFT",
                 entity.getTimestamp());
+    }
+
+    /**
+     * GSM §8: $gsm:sensitive — redact sensitive properties from statement
+     * before including in API responses.
+     */
+    private JsonNode redactSensitiveFields(AscriptionEntity entity) {
+        JsonNode statement = entity.getStatement();
+        if (statement == null || !statement.isObject()) {
+            return statement;
+        }
+
+        JsonNode archetypeStatement = entity.getArchetype().getStatement();
+        if (archetypeStatement == null) {
+            return statement;
+        }
+        JsonNode schema = archetypeStatement.get("schema");
+        if (schema == null) {
+            return statement;
+        }
+        JsonNode properties = schema.get("properties");
+        if (properties == null || !properties.isObject()) {
+            return statement;
+        }
+
+        // Find sensitive properties
+        boolean hasSensitive = false;
+        Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            JsonNode propSchema = entry.getValue();
+            if (propSchema.has("$gsm:sensitive") && propSchema.get("$gsm:sensitive").asBoolean(false)) {
+                if (statement.has(entry.getKey())) {
+                    hasSensitive = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasSensitive) {
+            return statement;
+        }
+
+        // Deep-copy and redact
+        ObjectNode redacted = statement.deepCopy();
+        for (Map.Entry<String, JsonNode> entry : properties.properties()) {
+            JsonNode propSchema = entry.getValue();
+            if (propSchema.has("$gsm:sensitive") && propSchema.get("$gsm:sensitive").asBoolean(false)) {
+                if (redacted.has(entry.getKey())) {
+                    redacted.set(entry.getKey(), TextNode.valueOf(REDACTED));
+                }
+            }
+        }
+        return redacted;
     }
 
     protected AscriptionStatusTransitionDto toTransitionDto(AscriptionStatusTransitionEntity t) {

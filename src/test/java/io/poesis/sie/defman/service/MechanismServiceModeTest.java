@@ -50,6 +50,7 @@ class MechanismServiceModeTest {
         service = new MechanismService(
                 mock(MechanismRepository.class),
                 mock(StructureService.class),
+                mock(ArchetypeService.class),
                 effectorRepo,
                 receptorRepo);
     }

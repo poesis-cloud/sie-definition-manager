@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,11 +27,21 @@ import io.poesis.sie.defman.type.DefinitionSubjectType;
 @Service
 public class DirectiveService extends AbstractAscriptionService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DirectiveService.class);
+
     private static final Collection<AscriptionStatusType> CONSISTENCY_IN_EFFECT = List.of(AscriptionStatusType.ACTIVE,
             AscriptionStatusType.DEPRECATED);
 
     private static final Set<Set<String>> CONTRADICTORY_VERB_PAIRS = Set.of(
             Set.of("ENSURE", "PREVENT"));
+
+    /** Modal precedence tiers: higher value = higher precedence. */
+    static final Map<String, Integer> MODAL_PRECEDENCE = Map.of(
+            "MUST", 3,
+            "MUST_NOT", 3,
+            "SHOULD", 2,
+            "SHOULD_NOT", 2,
+            "MAY", 1);
 
     private final DirectiveRepository directiveRepo;
     private final StructureService structureService;
@@ -174,6 +186,21 @@ public class DirectiveService extends AbstractAscriptionService {
                                 + " on same qualifier (definition " + qualifierDefId
                                 + ") and purpose (definition " + purposeDefId
                                 + "). Conflicting directive: " + sibling.getId());
+            }
+
+            // GSM §DirectiveModal: modal precedence — higher tier overrides lower tier
+            if (verb.equals(sibVerb) && !modal.equals(sibModal)) {
+                int thisTier = MODAL_PRECEDENCE.getOrDefault(modal, 0);
+                int sibTier = MODAL_PRECEDENCE.getOrDefault(sibModal, 0);
+                if (thisTier != sibTier) {
+                    String winner = thisTier > sibTier ? modal : sibModal;
+                    String loser = thisTier > sibTier ? sibModal : modal;
+                    LOG.warn("Directive modal precedence: {} {} overrides {} {} on verb {} "
+                            + "for qualifier (definition {}) and purpose (definition {}). "
+                            + "Overridden directive: {}",
+                            winner, verb, loser, verb, verb,
+                            qualifierDefId, purposeDefId, sibling.getId());
+                }
             }
         }
     }
