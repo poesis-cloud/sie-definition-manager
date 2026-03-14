@@ -1,7 +1,6 @@
 package io.poesis.sie.defman.controller;
 
 import java.util.Iterator;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
@@ -67,12 +66,12 @@ public abstract class AbstractController {
 
         // Find sensitive properties
         boolean hasSensitive = false;
-        Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
-            JsonNode propSchema = entry.getValue();
+        Iterator<String> fieldNames = properties.fieldNames();
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
+            JsonNode propSchema = properties.get(fieldName);
             if (propSchema.has("$gsm:sensitive") && propSchema.get("$gsm:sensitive").asBoolean(false)) {
-                if (statement.has(entry.getKey())) {
+                if (statement.has(fieldName)) {
                     hasSensitive = true;
                     break;
                 }
@@ -85,11 +84,13 @@ public abstract class AbstractController {
 
         // Deep-copy and redact
         ObjectNode redacted = statement.deepCopy();
-        for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-            JsonNode propSchema = entry.getValue();
+        Iterator<String> redactFieldNames = properties.fieldNames();
+        while (redactFieldNames.hasNext()) {
+            String fieldName = redactFieldNames.next();
+            JsonNode propSchema = properties.get(fieldName);
             if (propSchema.has("$gsm:sensitive") && propSchema.get("$gsm:sensitive").asBoolean(false)) {
-                if (redacted.has(entry.getKey())) {
-                    redacted.set(entry.getKey(), TextNode.valueOf(REDACTED));
+                if (redacted.has(fieldName)) {
+                    redacted.set(fieldName, TextNode.valueOf(REDACTED));
                 }
             }
         }
