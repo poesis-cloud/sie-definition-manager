@@ -30,7 +30,8 @@ class AbstractControllerRedactionTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** Minimal concrete subclass exposing the protected method. */
-    private final AbstractController controller = new AbstractController() {};
+    private final AbstractController controller = new AbstractController() {
+    };
 
     // ========================================================================
     // $gsm:sensitive redaction (GSM §8 V8)

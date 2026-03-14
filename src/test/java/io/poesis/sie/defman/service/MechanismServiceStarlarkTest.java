@@ -383,7 +383,8 @@ class MechanismServiceStarlarkTest {
 
         @Test
         void forLoopBody_countsTowardBudget() {
-            // Build: on() + for-loop with 200 body statements = 202 total (on + for + 200 body)
+            // Build: on() + for-loop with 200 body statements = 202 total (on + for + 200
+            // body)
             StringBuilder sb = new StringBuilder("on(\"Trigger\")\nfor x in range(1):\n");
             for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
                 sb.append("    sys.emit(\"E\", {\"i\": ").append(i).append("})\n");

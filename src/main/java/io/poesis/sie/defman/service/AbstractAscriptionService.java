@@ -62,7 +62,10 @@ public abstract class AbstractAscriptionService {
 
     private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
-    /** CEL compiler + runtime for $gsm:validationCEL enforcement at Ascription authoring. */
+    /**
+     * CEL compiler + runtime for $gsm:validationCEL enforcement at Ascription
+     * authoring.
+     */
     private final CelCompiler celCompiler = CelCompilerFactory.standardCelCompilerBuilder()
             .addVar("this", SimpleType.DYN)
             .build();
@@ -402,7 +405,8 @@ public abstract class AbstractAscriptionService {
             LOG.warn("$gsm:deprecated: {}", warning);
         }
 
-        // GSM §8: $gsm:validationCEL — evaluate top-level CEL constraints against statement
+        // GSM §8: $gsm:validationCEL — evaluate top-level CEL constraints against
+        // statement
         if (archetypeSchema.has("$gsm:validationCEL")) {
             evaluateValidationCel(archetypeSchema.get("$gsm:validationCEL"), statement);
         }
@@ -508,7 +512,8 @@ public abstract class AbstractAscriptionService {
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "$gsm:validationCEL[" + i + "] evaluation error for expression '"
-                                + expr + "': " + e.getMessage(), e);
+                                + expr + "': " + e.getMessage(),
+                        e);
             }
         }
     }

@@ -32,276 +32,276 @@ import io.poesis.sie.defman.repository.DirectiveRepository;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DirectiveServiceConsistencyTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+        private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @Mock
-    private DirectiveRepository directiveRepo;
+        @Mock
+        private DirectiveRepository directiveRepo;
 
-    private DirectiveService service;
+        private DirectiveService service;
 
-    @BeforeEach
-    void setUp() {
-        service = new DirectiveService(
-                directiveRepo,
-                mock(StructureService.class),
-                mock(ArchetypeService.class));
-    }
-
-    // ========================================================================
-    // No conflict: no siblings
-    // ========================================================================
-
-    @Test
-    void noSiblings_noConflict() {
-        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                any(), any(), any()))
-                .thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-    }
-
-    // ========================================================================
-    // No conflict: different verbs (non-contradictory)
-    // ========================================================================
-
-    @Test
-    void differentNonContradictoryVerbs_noConflict() {
-        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-        DirectiveEntity sibling = stubDirective("MAXIMIZE", "SHOULD");
-
-        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                any(), any(), any()))
-                .thenReturn(List.of(sibling));
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-    }
-
-    // ========================================================================
-    // Verb contradiction: ENSURE + PREVENT
-    // ========================================================================
-
-    @Nested
-    class VerbContradiction {
-
-        @Test
-        void ensureAndPrevent_contradiction() {
-            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-            DirectiveEntity sibling = stubDirective("PREVENT", "MUST");
-
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.validateActivationUniqueness(directive));
-            assertTrue(ex.getMessage().contains("contradiction"));
-            assertTrue(ex.getMessage().contains("ENSURE"));
-            assertTrue(ex.getMessage().contains("PREVENT"));
+        @BeforeEach
+        void setUp() {
+                service = new DirectiveService(
+                                directiveRepo,
+                                mock(StructureService.class),
+                                mock(ArchetypeService.class));
         }
 
-        @Test
-        void preventAndEnsure_contradiction() {
-            DirectiveEntity directive = stubDirective("PREVENT", "SHOULD");
-            DirectiveEntity sibling = stubDirective("ENSURE", "MAY");
-
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.validateActivationUniqueness(directive));
-            assertTrue(ex.getMessage().contains("contradiction"));
-        }
-    }
-
-    // ========================================================================
-    // Modal contradiction: MUST + MUST_NOT on same verb
-    // ========================================================================
-
-    @Nested
-    class ModalContradiction {
+        // ========================================================================
+        // No conflict: no siblings
+        // ========================================================================
 
         @Test
-        void mustAndMustNot_contradiction() {
-            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-            DirectiveEntity sibling = stubDirective("ENSURE", "MUST_NOT");
+        void noSiblings_noConflict() {
+                DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                any(), any(), any()))
+                                .thenReturn(List.of());
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.validateActivationUniqueness(directive));
-            assertTrue(ex.getMessage().contains("modal contradiction"));
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
         }
+
+        // ========================================================================
+        // No conflict: different verbs (non-contradictory)
+        // ========================================================================
 
         @Test
-        void shouldAndShouldNot_contradiction() {
-            DirectiveEntity directive = stubDirective("MAXIMIZE", "SHOULD");
-            DirectiveEntity sibling = stubDirective("MAXIMIZE", "SHOULD_NOT");
+        void differentNonContradictoryVerbs_noConflict() {
+                DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                DirectiveEntity sibling = stubDirective("MAXIMIZE", "SHOULD");
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
+                when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                any(), any(), any()))
+                                .thenReturn(List.of(sibling));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.validateActivationUniqueness(directive));
-            assertTrue(ex.getMessage().contains("modal contradiction"));
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
         }
+
+        // ========================================================================
+        // Verb contradiction: ENSURE + PREVENT
+        // ========================================================================
+
+        @Nested
+        class VerbContradiction {
+
+                @Test
+                void ensureAndPrevent_contradiction() {
+                        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                        DirectiveEntity sibling = stubDirective("PREVENT", "MUST");
+
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.validateActivationUniqueness(directive));
+                        assertTrue(ex.getMessage().contains("contradiction"));
+                        assertTrue(ex.getMessage().contains("ENSURE"));
+                        assertTrue(ex.getMessage().contains("PREVENT"));
+                }
+
+                @Test
+                void preventAndEnsure_contradiction() {
+                        DirectiveEntity directive = stubDirective("PREVENT", "SHOULD");
+                        DirectiveEntity sibling = stubDirective("ENSURE", "MAY");
+
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.validateActivationUniqueness(directive));
+                        assertTrue(ex.getMessage().contains("contradiction"));
+                }
+        }
+
+        // ========================================================================
+        // Modal contradiction: MUST + MUST_NOT on same verb
+        // ========================================================================
+
+        @Nested
+        class ModalContradiction {
+
+                @Test
+                void mustAndMustNot_contradiction() {
+                        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                        DirectiveEntity sibling = stubDirective("ENSURE", "MUST_NOT");
+
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.validateActivationUniqueness(directive));
+                        assertTrue(ex.getMessage().contains("modal contradiction"));
+                }
+
+                @Test
+                void shouldAndShouldNot_contradiction() {
+                        DirectiveEntity directive = stubDirective("MAXIMIZE", "SHOULD");
+                        DirectiveEntity sibling = stubDirective("MAXIMIZE", "SHOULD_NOT");
+
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
+
+                        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                                        () -> service.validateActivationUniqueness(directive));
+                        assertTrue(ex.getMessage().contains("modal contradiction"));
+                }
+
+                @Test
+                void mustNotAndMust_contradiction() {
+                        DirectiveEntity directive = stubDirective("MAINTAIN", "MUST_NOT");
+                        DirectiveEntity sibling = stubDirective("MAINTAIN", "MUST");
+
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
+
+                        assertThrows(IllegalArgumentException.class,
+                                        () -> service.validateActivationUniqueness(directive));
+                }
+
+                @Test
+                void sameModalSameVerb_noConflict() {
+                        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                        DirectiveEntity sibling = stubDirective("ENSURE", "MUST");
+
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
+
+                        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                }
+        }
+
+        // ========================================================================
+        // Same Definition ID (self) — skipped
+        // ========================================================================
 
         @Test
-        void mustNotAndMust_contradiction() {
-            DirectiveEntity directive = stubDirective("MAINTAIN", "MUST_NOT");
-            DirectiveEntity sibling = stubDirective("MAINTAIN", "MUST");
+        void sameDefinition_skipped() {
+                UUID sharedDefId = UUID.randomUUID();
+                DirectiveEntity directive = stubDirectiveWithDefId("ENSURE", "MUST", sharedDefId);
+                DirectiveEntity sibling = stubDirectiveWithDefId("PREVENT", "MUST", sharedDefId);
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
+                when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                any(), any(), any()))
+                                .thenReturn(List.of(sibling));
 
-            assertThrows(IllegalArgumentException.class,
-                    () -> service.validateActivationUniqueness(directive));
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
         }
 
-        @Test
-        void sameModalSameVerb_noConflict() {
-            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-            DirectiveEntity sibling = stubDirective("ENSURE", "MUST");
+        // ========================================================================
+        // Modal precedence: different tiers on same verb — LOG.warn, no exception
+        // (GSM §DirectiveModal C2)
+        // ========================================================================
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
+        @Nested
+        class ModalPrecedence {
 
-            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-        }
-    }
+                @Test
+                void mustOverridesShould_noException() {
+                        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                        DirectiveEntity sibling = stubDirective("ENSURE", "SHOULD");
 
-    // ========================================================================
-    // Same Definition ID (self) — skipped
-    // ========================================================================
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
 
-    @Test
-    void sameDefinition_skipped() {
-        UUID sharedDefId = UUID.randomUUID();
-        DirectiveEntity directive = stubDirectiveWithDefId("ENSURE", "MUST", sharedDefId);
-        DirectiveEntity sibling = stubDirectiveWithDefId("PREVENT", "MUST", sharedDefId);
+                        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                }
 
-        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                any(), any(), any()))
-                .thenReturn(List.of(sibling));
+                @Test
+                void shouldOverridesMay_noException() {
+                        DirectiveEntity directive = stubDirective("MAXIMIZE", "SHOULD");
+                        DirectiveEntity sibling = stubDirective("MAXIMIZE", "MAY");
 
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-    }
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
 
-    // ========================================================================
-    // Modal precedence: different tiers on same verb — LOG.warn, no exception
-    // (GSM §DirectiveModal C2)
-    // ========================================================================
+                        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                }
 
-    @Nested
-    class ModalPrecedence {
+                @Test
+                void mustNotOverridesShouldNot_noException() {
+                        DirectiveEntity directive = stubDirective("MAINTAIN", "MUST_NOT");
+                        DirectiveEntity sibling = stubDirective("MAINTAIN", "SHOULD_NOT");
 
-        @Test
-        void mustOverridesShould_noException() {
-            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-            DirectiveEntity sibling = stubDirective("ENSURE", "SHOULD");
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
+                        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                }
 
-            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-        }
+                @Test
+                void sameTierDifferentModal_noException() {
+                        // MUST vs MUST_NOT at same tier would be a modal contradiction
+                        // (tested above). SHOULD vs SHOULD_NOT would also be a contradiction.
+                        // Same tier, same polarity = same modal → no conflict (already tested).
+                        // So test: MAY vs MAY (same modal, same tier) — no conflict
+                        DirectiveEntity directive = stubDirective("OPTIMIZE", "MAY");
+                        DirectiveEntity sibling = stubDirective("OPTIMIZE", "MAY");
 
-        @Test
-        void shouldOverridesMay_noException() {
-            DirectiveEntity directive = stubDirective("MAXIMIZE", "SHOULD");
-            DirectiveEntity sibling = stubDirective("MAXIMIZE", "MAY");
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
+                        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                }
 
-            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-        }
+                @Test
+                void differentVerbsDifferentTiers_noConflict() {
+                        DirectiveEntity directive = stubDirective("ENSURE", "MUST");
+                        DirectiveEntity sibling = stubDirective("OPTIMIZE", "MAY");
 
-        @Test
-        void mustNotOverridesShouldNot_noException() {
-            DirectiveEntity directive = stubDirective("MAINTAIN", "MUST_NOT");
-            DirectiveEntity sibling = stubDirective("MAINTAIN", "SHOULD_NOT");
+                        when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                                        any(), any(), any()))
+                                        .thenReturn(List.of(sibling));
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
-
-            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
-        }
-
-        @Test
-        void sameTierDifferentModal_noException() {
-            // MUST vs MUST_NOT at same tier would be a modal contradiction
-            // (tested above). SHOULD vs SHOULD_NOT would also be a contradiction.
-            // Same tier, same polarity = same modal → no conflict (already tested).
-            // So test: MAY vs MAY (same modal, same tier) — no conflict
-            DirectiveEntity directive = stubDirective("OPTIMIZE", "MAY");
-            DirectiveEntity sibling = stubDirective("OPTIMIZE", "MAY");
-
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
-
-            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                        assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+                }
         }
 
-        @Test
-        void differentVerbsDifferentTiers_noConflict() {
-            DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-            DirectiveEntity sibling = stubDirective("OPTIMIZE", "MAY");
+        // ========================================================================
+        // Helpers
+        // ========================================================================
 
-            when(directiveRepo.findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
-                    any(), any(), any()))
-                    .thenReturn(List.of(sibling));
-
-            assertDoesNotThrow(() -> service.validateActivationUniqueness(directive));
+        private DirectiveEntity stubDirective(String verb, String modal) {
+                return stubDirectiveWithDefId(verb, modal, UUID.randomUUID());
         }
-    }
 
-    // ========================================================================
-    // Helpers
-    // ========================================================================
+        private DirectiveEntity stubDirectiveWithDefId(String verb, String modal, UUID definitionId) {
+                UUID qualifierDefId = UUID.randomUUID();
+                UUID purposeDefId = UUID.randomUUID();
 
-    private DirectiveEntity stubDirective(String verb, String modal) {
-        return stubDirectiveWithDefId(verb, modal, UUID.randomUUID());
-    }
+                DefinitionEntity defEntity = mock(DefinitionEntity.class);
+                when(defEntity.getId()).thenReturn(definitionId);
 
-    private DirectiveEntity stubDirectiveWithDefId(String verb, String modal, UUID definitionId) {
-        UUID qualifierDefId = UUID.randomUUID();
-        UUID purposeDefId = UUID.randomUUID();
+                DefinitionEntity qualifierDef = mock(DefinitionEntity.class);
+                when(qualifierDef.getId()).thenReturn(qualifierDefId);
+                ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
+                when(qualifier.getDefinition()).thenReturn(qualifierDef);
 
-        DefinitionEntity defEntity = mock(DefinitionEntity.class);
-        when(defEntity.getId()).thenReturn(definitionId);
+                DefinitionEntity purposeDef = mock(DefinitionEntity.class);
+                when(purposeDef.getId()).thenReturn(purposeDefId);
+                StructureEntity purpose = mock(StructureEntity.class);
+                when(purpose.getDefinition()).thenReturn(purposeDef);
 
-        DefinitionEntity qualifierDef = mock(DefinitionEntity.class);
-        when(qualifierDef.getId()).thenReturn(qualifierDefId);
-        ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
-        when(qualifier.getDefinition()).thenReturn(qualifierDef);
+                ObjectNode stmt = MAPPER.createObjectNode()
+                                .put("verb", verb)
+                                .put("modal", modal);
 
-        DefinitionEntity purposeDef = mock(DefinitionEntity.class);
-        when(purposeDef.getId()).thenReturn(purposeDefId);
-        StructureEntity purpose = mock(StructureEntity.class);
-        when(purpose.getDefinition()).thenReturn(purposeDef);
+                DirectiveEntity directive = mock(DirectiveEntity.class);
+                when(directive.getDefinition()).thenReturn(defEntity);
+                when(directive.getQualifier()).thenReturn(qualifier);
+                when(directive.getPurpose()).thenReturn(purpose);
+                when(directive.getStatement()).thenReturn(stmt);
+                when(directive.getId()).thenReturn(UUID.randomUUID());
 
-        ObjectNode stmt = MAPPER.createObjectNode()
-                .put("verb", verb)
-                .put("modal", modal);
-
-        DirectiveEntity directive = mock(DirectiveEntity.class);
-        when(directive.getDefinition()).thenReturn(defEntity);
-        when(directive.getQualifier()).thenReturn(qualifier);
-        when(directive.getPurpose()).thenReturn(purpose);
-        when(directive.getStatement()).thenReturn(stmt);
-        when(directive.getId()).thenReturn(UUID.randomUUID());
-
-        return directive;
-    }
+                return directive;
+        }
 }
