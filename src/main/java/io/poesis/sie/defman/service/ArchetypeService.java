@@ -143,14 +143,14 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return archetypeRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return archetypeRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ======================================================================
@@ -635,7 +635,7 @@ public class ArchetypeService extends AbstractAscriptionService {
             return;
         }
 
-        List<ArchetypeEntity> existing = archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        List<ArchetypeEntity> existing = archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
         if (existing.isEmpty()) {
             return;
         }

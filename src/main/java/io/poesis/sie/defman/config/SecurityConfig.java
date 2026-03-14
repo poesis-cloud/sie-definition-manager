@@ -23,17 +23,16 @@ public class SecurityConfig {
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(
-                        auth ->
-                                auth.requestMatchers("/actuator/health", "/actuator/info")
-                                        .permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/api/v1/openapi")
-                                        .permitAll()
-                                        .requestMatchers("/api/v1/ascriptions/**")
-                                        .permitAll()
-                                        .requestMatchers("/api/v1/definitions/**")
-                                        .permitAll()
-                                        .anyRequest()
-                                        .authenticated())
+                        auth -> auth.requestMatchers("/actuator/health", "/actuator/info")
+                                .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/openapi")
+                                .permitAll()
+                                .requestMatchers("/api/v1/ascriptions/**")
+                                .permitAll()
+                                .requestMatchers("/api/v1/definitions/**")
+                                .permitAll()
+                                .anyRequest()
+                                .authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         if (oauth2LoginEnabled) {

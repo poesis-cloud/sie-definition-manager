@@ -18,8 +18,8 @@ public interface StructureRepository extends JpaRepository<StructureEntity, UUID
 
     List<StructureEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses);
 
-    List<StructureEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<StructureEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<StructureEntity> findAllByDefinition_IdAndStatusIn(
+    List<StructureEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 }

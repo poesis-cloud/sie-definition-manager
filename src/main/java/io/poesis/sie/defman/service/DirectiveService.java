@@ -98,14 +98,14 @@ public class DirectiveService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return directiveRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return directiveRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return directiveRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return directiveRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----
@@ -128,7 +128,7 @@ public class DirectiveService extends AbstractAscriptionService {
     public List<? extends AscriptionEntity> findCascadeTargetsFrom(
             DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
         if (sourceType == DefinitionSubjectType.STRUCTURE) {
-            return directiveRepo.findAllByStructure_Id(sourceAscriptionId);
+            return directiveRepo.findAllByStructureId(sourceAscriptionId);
         }
         return List.of();
     }
@@ -160,7 +160,7 @@ public class DirectiveService extends AbstractAscriptionService {
         String modal = directive.getStatement().get("modal").asText();
 
         List<DirectiveEntity> siblings = directiveRepo
-                .findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+                .findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
                         qualifierDefId, purposeDefId, CONSISTENCY_IN_EFFECT);
 
         for (DirectiveEntity sibling : siblings) {

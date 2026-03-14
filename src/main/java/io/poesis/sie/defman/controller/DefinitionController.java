@@ -49,7 +49,7 @@ public class DefinitionController extends AbstractController {
 
         DefinitionDto response = new DefinitionDto(
                 entity.getId(), entity.getSubjectType().getValue(), ascriptions);
-                
+
         return EntityModel.of(
                 Objects.requireNonNull(response),
                 linkTo(DefinitionController.class).slash(id).withSelfRel());

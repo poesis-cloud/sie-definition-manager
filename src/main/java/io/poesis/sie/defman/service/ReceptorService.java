@@ -10,14 +10,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.poesis.sie.defman.entity.ArchetypeEntity;
 import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.DefinitionEntity;
 import io.poesis.sie.defman.entity.MechanismEntity;
 import io.poesis.sie.defman.entity.ReceptorEntity;
 import io.poesis.sie.defman.repository.ReceptorRepository;
-import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.DefinitionSubjectType;
 
 @Service
@@ -79,14 +80,14 @@ public class ReceptorService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return receptorRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return receptorRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return receptorRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return receptorRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----
@@ -106,7 +107,7 @@ public class ReceptorService extends AbstractAscriptionService {
     public List<? extends AscriptionEntity> findCascadeTargetsFrom(
             DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
         if (sourceType == DefinitionSubjectType.MECHANISM) {
-            return receptorRepo.findAllByMechanism_Id(sourceAscriptionId);
+            return receptorRepo.findAllByMechanismId(sourceAscriptionId);
         }
         return List.of();
     }

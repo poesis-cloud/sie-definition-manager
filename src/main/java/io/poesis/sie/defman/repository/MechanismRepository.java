@@ -16,15 +16,15 @@ public interface MechanismRepository extends JpaRepository<MechanismEntity, UUID
 
     Page<MechanismEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
 
-    List<MechanismEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<MechanismEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<MechanismEntity> findAllByDefinition_IdAndStatusIn(
+    List<MechanismEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
-    Page<MechanismEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+    Page<MechanismEntity> findAllByStructureId(UUID structureId, Pageable pageable);
 
-    List<MechanismEntity> findAllByStructure_Id(UUID structureId);
+    List<MechanismEntity> findAllByStructureId(UUID structureId);
 
-    List<MechanismEntity> findAllByStructure_Definition_IdAndStatusIn(
+    List<MechanismEntity> findAllByStructureDefinitionIdAndStatusIn(
             UUID structureDefinitionId, Collection<AscriptionStatusType> statuses);
 }

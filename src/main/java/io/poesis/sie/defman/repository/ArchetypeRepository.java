@@ -20,8 +20,8 @@ public interface ArchetypeRepository extends JpaRepository<ArchetypeEntity, UUID
 
     List<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses);
 
-    List<ArchetypeEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<ArchetypeEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<ArchetypeEntity> findAllByDefinition_IdAndStatusIn(
+    List<ArchetypeEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 }

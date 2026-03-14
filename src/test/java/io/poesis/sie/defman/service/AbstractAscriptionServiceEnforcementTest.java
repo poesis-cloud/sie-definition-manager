@@ -209,7 +209,7 @@ class AbstractAscriptionServiceEnforcementTest {
             ObjectNode statement = MAPPER.createObjectNode().put("code", "ALPHA");
 
             // No in-effect ascriptions with same archetype
-            when(ascriptionRepo.findAllByArchetype_IdAndStatusInAndDefinition_IdNot(
+            when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, defId));
@@ -234,7 +234,7 @@ class AbstractAscriptionServiceEnforcementTest {
             when(existing.getStatement()).thenReturn(
                     MAPPER.createObjectNode().put("code", "ALPHA"));
 
-            when(ascriptionRepo.findAllByArchetype_IdAndStatusInAndDefinition_IdNot(
+            when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of(existing));
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -258,7 +258,7 @@ class AbstractAscriptionServiceEnforcementTest {
             when(existing.getStatement()).thenReturn(
                     MAPPER.createObjectNode().put("code", "BETA"));
 
-            when(ascriptionRepo.findAllByArchetype_IdAndStatusInAndDefinition_IdNot(
+            when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of(existing));
 
             assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, defId));

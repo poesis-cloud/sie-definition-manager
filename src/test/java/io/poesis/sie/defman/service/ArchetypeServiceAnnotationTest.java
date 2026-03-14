@@ -61,7 +61,7 @@ class ArchetypeServiceAnnotationTest {
             schema.put("$gsm:bogus", true);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertThrows(IllegalArgumentException.class,
                     () -> service.validateArchetypeAnnotations(schema, defId));
@@ -74,7 +74,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode schema = schemaWithProperty("x", propNode);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateArchetypeAnnotations(schema, defId));
@@ -109,7 +109,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode schema = schemaWithProperty("env", propNode);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -150,7 +150,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode schema = schemaWithProperty("tags", propNode);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -218,7 +218,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode schema = schemaWithProperty("password", propNode);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -239,7 +239,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode schema = schemaWithProperty("ownerId", propNode);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -285,7 +285,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode schema = schemaWithProperty("purpose", propNode);
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -298,7 +298,7 @@ class ArchetypeServiceAnnotationTest {
             existingProp.put("$gsm:identityBound", true);
             ObjectNode existingSchema = schemaWithProperty("purpose", existingProp);
             ArchetypeEntity existing = stubArchetypeWithSchema(existingSchema);
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of(existing));
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of(existing));
 
             ObjectNode newProp = prop("string");
             newProp.put("$gsm:identityBound", true);
@@ -315,7 +315,7 @@ class ArchetypeServiceAnnotationTest {
             existingProp.put("$gsm:identityBound", true);
             ObjectNode existingSchema = schemaWithProperty("purpose", existingProp);
             ArchetypeEntity existing = stubArchetypeWithSchema(existingSchema);
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of(existing));
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of(existing));
 
             ObjectNode newProp = prop("string");
             newProp.put("$gsm:identityBound", true);
@@ -369,7 +369,7 @@ class ArchetypeServiceAnnotationTest {
         ObjectNode schema = schemaWithProperty("env", prop("string"));
 
         UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
     }
@@ -388,7 +388,7 @@ class ArchetypeServiceAnnotationTest {
                     .add("this.budget > 0.0"));
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -405,7 +405,7 @@ class ArchetypeServiceAnnotationTest {
                     .add("this.min > 0"));
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }
@@ -471,7 +471,7 @@ class ArchetypeServiceAnnotationTest {
             schema.set("$gsm:validationCEL", MAPPER.createArrayNode());
 
             UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinition_IdOrderByTimestampDesc(defId)).thenReturn(List.of());
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
         }

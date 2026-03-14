@@ -11,6 +11,6 @@ import io.poesis.sie.defman.type.AscriptionStatusType;
 
 public interface AscriptionRepository extends JpaRepository<AscriptionEntity, UUID> {
 
-    List<AscriptionEntity> findAllByArchetype_IdAndStatusInAndDefinition_IdNot(
+    List<AscriptionEntity> findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
             UUID archetypeId, Collection<AscriptionStatusType> statuses, UUID excludeDefinitionId);
 }

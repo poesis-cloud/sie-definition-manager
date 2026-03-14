@@ -14,17 +14,17 @@ import io.poesis.sie.defman.type.AscriptionStatusType;
 public interface ReceptorRepository extends JpaRepository<ReceptorEntity, UUID> {
     Page<ReceptorEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    List<ReceptorEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<ReceptorEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<ReceptorEntity> findAllByDefinition_IdAndStatusIn(
+    List<ReceptorEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
-    Page<ReceptorEntity> findAllByMechanism_Id(UUID mechanismId, Pageable pageable);
+    Page<ReceptorEntity> findAllByMechanismId(UUID mechanismId, Pageable pageable);
 
-    List<ReceptorEntity> findAllByMechanism_Id(UUID mechanismId);
+    List<ReceptorEntity> findAllByMechanismId(UUID mechanismId);
 
-    List<ReceptorEntity> findAllByMechanism_Definition_Id(UUID mechanismDefinitionId);
+    List<ReceptorEntity> findAllByMechanismDefinitionId(UUID mechanismDefinitionId);
 
-    List<ReceptorEntity> findAllByMechanism_Definition_IdAndStatusIn(
+    List<ReceptorEntity> findAllByMechanismDefinitionIdAndStatusIn(
             UUID mechanismDefinitionId, Collection<AscriptionStatusType> statuses);
 }

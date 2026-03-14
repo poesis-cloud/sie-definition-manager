@@ -11,7 +11,6 @@ import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import io.poesis.sie.defman.repository.AscriptionStatusTransitionRepository;
 import io.poesis.sie.defman.type.AscriptionStatusType;
-
 import jakarta.persistence.EntityManager;
 
 /**
@@ -47,6 +46,6 @@ public class AscriptionStatusTransitionService {
 
     @Transactional(value = "transactionManager", readOnly = true)
     public List<AscriptionStatusTransitionEntity> findByAscriptionId(UUID ascriptionId) {
-        return transitionRepo.findAllByAscription_IdOrderByTimestampAsc(ascriptionId);
+        return transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId);
     }
 }

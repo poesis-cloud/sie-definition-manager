@@ -447,7 +447,7 @@ public abstract class AbstractAscriptionService {
     private void enforceUnique(String propName, JsonNode value, ArchetypeEntity archetype,
             UUID definitionId) {
         List<AscriptionEntity> inEffect = ascriptionRepository
-                .findAllByArchetype_IdAndStatusInAndDefinition_IdNot(
+                .findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                         archetype.getId(), GSM_IN_EFFECT, definitionId);
 
         String valueStr = value.isTextual() ? value.asText() : value.toString();

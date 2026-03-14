@@ -93,8 +93,8 @@ class MechanismServiceModeTest {
             MechanismEntity mechanism = stubMechanism("on(\"X\")\nsys.emit(\"Y\", {})");
             UUID defId = mechanism.getDefinition().getId();
 
-            when(effectorRepo.findAllByMechanism_Definition_Id(defId)).thenReturn(List.of());
-            when(receptorRepo.findAllByMechanism_Definition_Id(defId)).thenReturn(List.of());
+            when(effectorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of());
+            when(receptorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateModeCreation(mechanism));
         }
@@ -105,7 +105,7 @@ class MechanismServiceModeTest {
             UUID defId = mechanism.getDefinition().getId();
 
             EffectorEntity existing = mock(EffectorEntity.class);
-            when(effectorRepo.findAllByMechanism_Definition_Id(defId)).thenReturn(List.of(existing));
+            when(effectorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of(existing));
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateModeCreation(mechanism));
@@ -118,9 +118,9 @@ class MechanismServiceModeTest {
             MechanismEntity mechanism = stubMechanism("on(\"X\")\nsys.emit(\"Y\", {})");
             UUID defId = mechanism.getDefinition().getId();
 
-            when(effectorRepo.findAllByMechanism_Definition_Id(defId)).thenReturn(List.of());
+            when(effectorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of());
             ReceptorEntity existing = mock(ReceptorEntity.class);
-            when(receptorRepo.findAllByMechanism_Definition_Id(defId)).thenReturn(List.of(existing));
+            when(receptorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of(existing));
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateModeCreation(mechanism));
@@ -157,9 +157,9 @@ class MechanismServiceModeTest {
 
             EffectorEntity eff = mock(EffectorEntity.class);
             ReceptorEntity rec = mock(ReceptorEntity.class);
-            when(effectorRepo.findAllByMechanism_Definition_IdAndStatusIn(eq(defId), anyCollection()))
+            when(effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
                     .thenReturn(List.of(eff));
-            when(receptorRepo.findAllByMechanism_Definition_IdAndStatusIn(eq(defId), anyCollection()))
+            when(receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
                     .thenReturn(List.of(rec));
 
             assertDoesNotThrow(() -> service.validateModeActivation(mechanism));
@@ -170,7 +170,7 @@ class MechanismServiceModeTest {
             MechanismEntity mechanism = stubMechanism(null);
             UUID defId = mechanism.getDefinition().getId();
 
-            when(effectorRepo.findAllByMechanism_Definition_IdAndStatusIn(eq(defId), anyCollection()))
+            when(effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
                     .thenReturn(List.of());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -185,9 +185,9 @@ class MechanismServiceModeTest {
             UUID defId = mechanism.getDefinition().getId();
 
             EffectorEntity eff = mock(EffectorEntity.class);
-            when(effectorRepo.findAllByMechanism_Definition_IdAndStatusIn(eq(defId), anyCollection()))
+            when(effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
                     .thenReturn(List.of(eff));
-            when(receptorRepo.findAllByMechanism_Definition_IdAndStatusIn(eq(defId), anyCollection()))
+            when(receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
                     .thenReturn(List.of());
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,

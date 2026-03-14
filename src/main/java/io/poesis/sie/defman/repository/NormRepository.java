@@ -14,12 +14,12 @@ import io.poesis.sie.defman.type.AscriptionStatusType;
 public interface NormRepository extends JpaRepository<NormEntity, UUID> {
     Page<NormEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    List<NormEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<NormEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<NormEntity> findAllByDefinition_IdAndStatusIn(
+    List<NormEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
-    Page<NormEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+    Page<NormEntity> findAllByStructureId(UUID structureId, Pageable pageable);
 
-    List<NormEntity> findAllByStructure_Id(UUID structureId);
+    List<NormEntity> findAllByStructureId(UUID structureId);
 }

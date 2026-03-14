@@ -14,12 +14,12 @@ import io.poesis.sie.defman.type.AscriptionStatusType;
 public interface InteractionRepository extends JpaRepository<InteractionEntity, UUID> {
     Page<InteractionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    List<InteractionEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<InteractionEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<InteractionEntity> findAllByDefinition_IdAndStatusIn(
+    List<InteractionEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
-    List<InteractionEntity> findAllByEffector_Id(UUID effectorId);
+    List<InteractionEntity> findAllByEffectorId(UUID effectorId);
 
-    List<InteractionEntity> findAllByReceptor_Id(UUID receptorId);
+    List<InteractionEntity> findAllByReceptorId(UUID receptorId);
 }

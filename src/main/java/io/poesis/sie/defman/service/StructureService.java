@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.poesis.sie.defman.entity.ArchetypeEntity;
 import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.DefinitionEntity;
@@ -59,14 +60,14 @@ public class StructureService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return structureRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return structureRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return structureRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return structureRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     @Override

@@ -14,16 +14,16 @@ import io.poesis.sie.defman.type.AscriptionStatusType;
 public interface DirectiveRepository extends JpaRepository<DirectiveEntity, UUID> {
     Page<DirectiveEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
-    List<DirectiveEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<DirectiveEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<DirectiveEntity> findAllByDefinition_IdAndStatusIn(
+    List<DirectiveEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
-    Page<DirectiveEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+    Page<DirectiveEntity> findAllByStructureId(UUID structureId, Pageable pageable);
 
-    List<DirectiveEntity> findAllByStructure_Id(UUID structureId);
+    List<DirectiveEntity> findAllByStructureId(UUID structureId);
 
-    List<DirectiveEntity> findAllByQualifier_Definition_IdAndPurpose_Definition_IdAndStatusIn(
+    List<DirectiveEntity> findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
             UUID qualifierDefinitionId, UUID purposeDefinitionId,
             Collection<AscriptionStatusType> statuses);
 }

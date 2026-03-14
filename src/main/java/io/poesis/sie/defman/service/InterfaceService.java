@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.poesis.sie.defman.entity.ArchetypeEntity;
 import io.poesis.sie.defman.entity.AscriptionEntity;
 import io.poesis.sie.defman.entity.DefinitionEntity;
@@ -19,8 +20,8 @@ import io.poesis.sie.defman.entity.InterfaceEntity;
 import io.poesis.sie.defman.entity.ReceptorEntity;
 import io.poesis.sie.defman.entity.StructureEntity;
 import io.poesis.sie.defman.repository.InterfaceRepository;
-import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import io.poesis.sie.defman.type.AscriptionStatusType;
 import io.poesis.sie.defman.type.DefinitionSubjectType;
 
 @Service
@@ -110,14 +111,14 @@ public class InterfaceService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return interfaceRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return interfaceRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return interfaceRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return interfaceRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----
@@ -148,9 +149,9 @@ public class InterfaceService extends AbstractAscriptionService {
     public List<? extends AscriptionEntity> findCascadeTargetsFrom(
             DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
         return switch (sourceType) {
-            case STRUCTURE -> interfaceRepo.findAllByStructure_Id(sourceAscriptionId);
-            case EFFECTOR -> interfaceRepo.findAllByEffectors_Id(sourceAscriptionId);
-            case RECEPTOR -> interfaceRepo.findAllByReceptors_Id(sourceAscriptionId);
+            case STRUCTURE -> interfaceRepo.findAllByStructureId(sourceAscriptionId);
+            case EFFECTOR -> interfaceRepo.findAllByEffectorsId(sourceAscriptionId);
+            case RECEPTOR -> interfaceRepo.findAllByReceptorsId(sourceAscriptionId);
             default -> List.of();
         };
     }

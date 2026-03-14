@@ -81,7 +81,7 @@ class MechanismServiceActivationTest {
             // Generative mode — stub effector/receptor repos for mode check
             stubGenerativeModeValid(thisDefId);
 
-            when(mechanismRepo.findAllByStructure_Definition_IdAndStatusIn(
+            when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
                     structureDefId,
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of());
@@ -100,7 +100,7 @@ class MechanismServiceActivationTest {
 
             stubGenerativeModeValid(thisDefId);
 
-            when(mechanismRepo.findAllByStructure_Definition_IdAndStatusIn(
+            when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
                     structureDefId,
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of(existing));
@@ -121,7 +121,7 @@ class MechanismServiceActivationTest {
 
             stubGenerativeModeValid(defId);
 
-            when(mechanismRepo.findAllByStructure_Definition_IdAndStatusIn(
+            when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
                     structureDefId,
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of(existing));
@@ -153,7 +153,7 @@ class MechanismServiceActivationTest {
 
             stubGenerativeModeValid(thisDefId);
 
-            when(mechanismRepo.findAllByStructure_Definition_IdAndStatusIn(
+            when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
                     structureDefId,
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of(existing));
@@ -171,7 +171,7 @@ class MechanismServiceActivationTest {
             stubGenerativeModeValid(thisDefId);
 
             // No siblings in the same structure
-            when(mechanismRepo.findAllByStructure_Definition_IdAndStatusIn(
+            when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
                     structureDefId1,
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of());

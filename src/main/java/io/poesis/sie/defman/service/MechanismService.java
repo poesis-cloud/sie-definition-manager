@@ -72,7 +72,10 @@ public class MechanismService extends AbstractAscriptionService {
     /** Valid read-only properties on the sys namespace object. */
     private static final Set<String> SYS_PROPERTIES = Set.of("id");
 
-    /** GSM §Mechanism V14: maximum number of top-level statements allowed in a Mechanism rule. */
+    /**
+     * GSM §Mechanism V14: maximum number of top-level statements allowed in a
+     * Mechanism rule.
+     */
     static final int MAX_RULE_STATEMENTS = 200;
 
     private static final Logger LOG = LoggerFactory.getLogger(MechanismService.class);
@@ -151,14 +154,14 @@ public class MechanismService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return mechanismRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return mechanismRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return mechanismRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return mechanismRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----
@@ -178,7 +181,7 @@ public class MechanismService extends AbstractAscriptionService {
     public List<? extends AscriptionEntity> findCascadeTargetsFrom(
             DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
         if (sourceType == DefinitionSubjectType.STRUCTURE) {
-            return mechanismRepo.findAllByStructure_Id(sourceAscriptionId);
+            return mechanismRepo.findAllByStructureId(sourceAscriptionId);
         }
         return List.of();
     }
@@ -204,7 +207,7 @@ public class MechanismService extends AbstractAscriptionService {
         }
         UUID structureDefId = m.getStructure().getDefinition().getId();
         UUID thisDefId = m.getDefinition().getId();
-        List<MechanismEntity> inEffect = mechanismRepo.findAllByStructure_Definition_IdAndStatusIn(
+        List<MechanismEntity> inEffect = mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
                 structureDefId,
                 List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
         for (MechanismEntity sibling : inEffect) {
@@ -602,13 +605,13 @@ public class MechanismService extends AbstractAscriptionService {
         UUID mechanismDefId = entity.getDefinition().getId();
 
         if (hasRule) {
-            boolean hasEffectors = !effectorRepo.findAllByMechanism_Definition_Id(mechanismDefId).isEmpty();
+            boolean hasEffectors = !effectorRepo.findAllByMechanismDefinitionId(mechanismDefId).isEmpty();
             if (hasEffectors) {
                 throw new IllegalArgumentException(
                         "Generative mode conflict: explicitly authored Effector Ascriptions exist "
                                 + "for Mechanism definition " + mechanismDefId);
             }
-            boolean hasReceptors = !receptorRepo.findAllByMechanism_Definition_Id(mechanismDefId).isEmpty();
+            boolean hasReceptors = !receptorRepo.findAllByMechanismDefinitionId(mechanismDefId).isEmpty();
             if (hasReceptors) {
                 throw new IllegalArgumentException(
                         "Generative mode conflict: explicitly authored Receptor Ascriptions exist "
@@ -623,14 +626,14 @@ public class MechanismService extends AbstractAscriptionService {
             return;
 
         UUID mechanismDefId = entity.getDefinition().getId();
-        boolean hasEffectors = !effectorRepo.findAllByMechanism_Definition_IdAndStatusIn(
+        boolean hasEffectors = !effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(
                 mechanismDefId, MODE_IN_EFFECT).isEmpty();
         if (!hasEffectors) {
             throw new IllegalArgumentException(
                     "Declarative mode: at least 1 in-effect Effector required "
                             + "for Mechanism definition " + mechanismDefId);
         }
-        boolean hasReceptors = !receptorRepo.findAllByMechanism_Definition_IdAndStatusIn(
+        boolean hasReceptors = !receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(
                 mechanismDefId, MODE_IN_EFFECT).isEmpty();
         if (!hasReceptors) {
             throw new IllegalArgumentException(
@@ -677,10 +680,12 @@ public class MechanismService extends AbstractAscriptionService {
     /**
      * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
      * <ul>
-     *   <li>on("X") → Receptor for X (trigger)</li>
-     *   <li>sys.emit/create/modify/delete/acquire("Y") unassigned → Effector for Y</li>
-     *   <li>var = sys.emit/create/modify/delete/acquire("Y") assigned → Effector for Y + Receptor for Y (closed-loop)</li>
-     *   <li>sys.emit("Y", data, response="R") → Effector for Y + Receptor for R</li>
+     * <li>on("X") → Receptor for X (trigger)</li>
+     * <li>sys.emit/create/modify/delete/acquire("Y") unassigned → Effector for
+     * Y</li>
+     * <li>var = sys.emit/create/modify/delete/acquire("Y") assigned → Effector for
+     * Y + Receptor for Y (closed-loop)</li>
+     * <li>sys.emit("Y", data, response="R") → Effector for Y + Receptor for R</li>
      * </ul>
      */
     List<PortSignature> collectPortSignatures(StarlarkFile file) {
@@ -728,17 +733,20 @@ public class MechanismService extends AbstractAscriptionService {
             assigned = true;
         }
 
-        if (expr == null) return;
+        if (expr == null)
+            return;
 
         if (expr instanceof CallExpression call
                 && call.getFunction() instanceof DotExpression dot
                 && dot.getObject() instanceof Identifier obj
                 && "sys".equals(obj.getName())) {
             String method = dot.getField().getName();
-            if (!SYS_METHODS.contains(method)) return;
+            if (!SYS_METHODS.contains(method))
+                return;
 
             String archetypeName = extractFirstStringArg(call);
-            if (archetypeName == null) return;
+            if (archetypeName == null)
+                return;
 
             // Effector for the output
             signatures.add(new PortSignature("effector", archetypeName));
@@ -761,14 +769,16 @@ public class MechanismService extends AbstractAscriptionService {
 
     private String extractFirstStringArg(CallExpression call) {
         List<Argument> args = call.getArguments();
-        if (args.isEmpty()) return null;
+        if (args.isEmpty())
+            return null;
         Expression first = args.get(0).getValue();
         return (first instanceof StringLiteral sl) ? sl.getValue() : null;
     }
 
     /**
      * GSM §Mechanism U12: derive port entities with Definition reuse.
-     * Match existing Definitions by (Mechanism Definition, data Archetype, direction).
+     * Match existing Definitions by (Mechanism Definition, data Archetype,
+     * direction).
      */
     private void derivePortEntities(MechanismEntity mechanism, List<PortSignature> signatures) {
         // Resolve base typing archetypes
@@ -802,10 +812,11 @@ public class MechanismService extends AbstractAscriptionService {
 
     private void deriveEffector(MechanismEntity mechanism, UUID mechanismDefId,
             ArchetypeEntity effectorArchetype, ArchetypeEntity dataArchetype, ObjectMapper mapper) {
-        // U12: reuse existing Definition by matching (mechanism def, data archetype, direction)
+        // U12: reuse existing Definition by matching (mechanism def, data archetype,
+        // direction)
         DefinitionEntity definition = findOrCreatePortDefinition(
                 mechanismDefId, dataArchetype.getDefinition().getId(),
-                effectorRepo.findAllByMechanism_Definition_Id(mechanismDefId),
+                effectorRepo.findAllByMechanismDefinitionId(mechanismDefId),
                 e -> ((EffectorEntity) e).getOutputArchetype().getDefinition().getId().equals(
                         dataArchetype.getDefinition().getId()),
                 DefinitionSubjectType.EFFECTOR);
@@ -825,10 +836,11 @@ public class MechanismService extends AbstractAscriptionService {
 
     private void deriveReceptor(MechanismEntity mechanism, UUID mechanismDefId,
             ArchetypeEntity receptorArchetype, ArchetypeEntity dataArchetype, ObjectMapper mapper) {
-        // U12: reuse existing Definition by matching (mechanism def, data archetype, direction)
+        // U12: reuse existing Definition by matching (mechanism def, data archetype,
+        // direction)
         DefinitionEntity definition = findOrCreatePortDefinition(
                 mechanismDefId, dataArchetype.getDefinition().getId(),
-                receptorRepo.findAllByMechanism_Definition_Id(mechanismDefId),
+                receptorRepo.findAllByMechanismDefinitionId(mechanismDefId),
                 e -> ((ReceptorEntity) e).getInputArchetype().getDefinition().getId().equals(
                         dataArchetype.getDefinition().getId()),
                 DefinitionSubjectType.RECEPTOR);
@@ -847,7 +859,8 @@ public class MechanismService extends AbstractAscriptionService {
     }
 
     /**
-     * GSM §Mechanism U12: find existing port Definition matching (mechanism def, data archetype),
+     * GSM §Mechanism U12: find existing port Definition matching (mechanism def,
+     * data archetype),
      * or create a new one.
      */
     private DefinitionEntity findOrCreatePortDefinition(

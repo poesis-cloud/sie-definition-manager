@@ -16,16 +16,16 @@ public interface InterfaceRepository extends JpaRepository<InterfaceEntity, UUID
 
     Page<InterfaceEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
 
-    List<InterfaceEntity> findAllByDefinition_IdOrderByTimestampDesc(UUID definitionId);
+    List<InterfaceEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
-    List<InterfaceEntity> findAllByDefinition_IdAndStatusIn(
+    List<InterfaceEntity> findAllByDefinitionIdAndStatusIn(
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
-    Page<InterfaceEntity> findAllByStructure_Id(UUID structureId, Pageable pageable);
+    Page<InterfaceEntity> findAllByStructureId(UUID structureId, Pageable pageable);
 
-    List<InterfaceEntity> findAllByStructure_Id(UUID structureId);
+    List<InterfaceEntity> findAllByStructureId(UUID structureId);
 
-    List<InterfaceEntity> findAllByEffectors_Id(UUID effectorId);
+    List<InterfaceEntity> findAllByEffectorsId(UUID effectorId);
 
-    List<InterfaceEntity> findAllByReceptors_Id(UUID receptorId);
+    List<InterfaceEntity> findAllByReceptorsId(UUID receptorId);
 }

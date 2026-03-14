@@ -112,14 +112,14 @@ public class NormService extends AbstractAscriptionService {
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return normRepo.findAllByDefinition_IdOrderByTimestampDesc(definitionId);
+        return normRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     }
 
     @Override
     public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
             UUID definitionId,
             Collection<AscriptionStatusType> statuses) {
-        return normRepo.findAllByDefinition_IdAndStatusIn(definitionId, statuses);
+        return normRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----
@@ -141,7 +141,7 @@ public class NormService extends AbstractAscriptionService {
     public List<? extends AscriptionEntity> findCascadeTargetsFrom(
             DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
         if (sourceType == DefinitionSubjectType.STRUCTURE) {
-            return normRepo.findAllByStructure_Id(sourceAscriptionId);
+            return normRepo.findAllByStructureId(sourceAscriptionId);
         }
         return List.of();
     }

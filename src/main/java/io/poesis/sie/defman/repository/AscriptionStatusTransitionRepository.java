@@ -9,6 +9,6 @@ import io.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 
 public interface AscriptionStatusTransitionRepository
         extends JpaRepository<AscriptionStatusTransitionEntity, UUID> {
-    List<AscriptionStatusTransitionEntity> findAllByAscription_IdOrderByTimestampAsc(
+    List<AscriptionStatusTransitionEntity> findAllByAscriptionIdOrderByTimestampAsc(
             UUID ascriptionId);
 }
