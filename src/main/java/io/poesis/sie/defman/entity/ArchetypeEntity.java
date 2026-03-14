@@ -12,6 +12,10 @@ import jakarta.persistence.Table;
  * No materialized columns from {@code statement} — the schema is a JSON
  * document inside the JSONB payload. Identity uniqueness ({@code schema.title})
  * is enforced via a partial expression index, not a dedicated column.
+ *
+ * <p>
+ * Carries the standard 6-trigger set on the {@code archetype} table
+ * (see {@link AscriptionEntity} for details).
  */
 @Entity
 @Table(name = "archetype")

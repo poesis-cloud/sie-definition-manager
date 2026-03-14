@@ -23,10 +23,9 @@ public class AscriptionServiceConfig {
     public Map<DefinitionSubjectType, AbstractAscriptionService> ascriptionServiceRegistry(
             List<AbstractAscriptionService> services) {
         Map<DefinitionSubjectType, AbstractAscriptionService> map = new EnumMap<>(DefinitionSubjectType.class);
-        for (AbstractAscriptionService svc : services) {
-            AbstractAscriptionService prev = map.put(svc.getSubjectType(), svc);
-            if (prev != null) {
-                throw new IllegalStateException("Duplicate service for " + svc.getSubjectType());
+        for (AbstractAscriptionService service : services) {
+            if (null != map.put(service.getSubjectType(), service)) {
+                throw new IllegalStateException("Duplicate service for " + service.getSubjectType());
             }
         }
         for (DefinitionSubjectType type : DefinitionSubjectType.values()) {

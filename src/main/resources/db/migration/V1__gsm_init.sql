@@ -341,151 +341,137 @@ where status in ('ACTIVE', 'DEPRECATED');
 -- ============================================================
 -- §6  Trigger functions
 -- ============================================================
--- 6a. Assign id (if null) and always set timestamp ----------------
-create or replace function tgf_assign_ids() returns trigger as $$ begin if NEW.id is null then NEW.id := uuid_v7();
+-- 6a. Assign PK id if null ----------------------------------------
+create or replace function tgf_assign_id() returns trigger as $$ begin if NEW.id is null then NEW.id := uuid_v7();
 end if;
-NEW."timestamp" := clock_timestamp();
 return NEW;
 end;
 $$ language plpgsql;
--- 6b. Validate transition.ascription_id references an ascription --
-create or replace function tgf_assert_transition_owner_exists() returns trigger as $$
-declare found boolean;
+-- 6b. Assign authoritative creation timestamp ---------------------
+create or replace function tgf_assign_timestamp() returns trigger as $$ begin NEW."timestamp" := clock_timestamp();
+return NEW;
+end;
+$$ language plpgsql;
+-- 6c. Helper: resolve ascription class table from id --------------
+create or replace function gsm_find_ascription_table(p_id uuid) returns text as $$
+declare tbl text;
 begin
-select exists(
-    select 1
-    from archetype
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from structure
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from mechanism
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from interface
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from effector
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from receptor
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from interaction
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from directive
-    where id = NEW.ascription_id
-    union all
-    select 1
-    from norm
-    where id = NEW.ascription_id
-  ) into found;
-if not found then raise exception 'ascription_status_transition.ascription_id = % references no ascription row',
-NEW.ascription_id using errcode = 'foreign_key_violation';
-end if;
-return NEW;
-end;
-$$ language plpgsql;
--- 6c. Sync owner status (+ version on APPROVED) from transition ---
-create or replace function tgf_sync_owner_status_from_transition() returns trigger as $$
-declare owner_table text;
-begin -- Identify the owning class table
-select tbl into owner_table
+select sub.tbl into tbl
 from (
     select 'archetype'::text as tbl
     from archetype
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'structure'
     from structure
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'mechanism'
     from mechanism
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'interface'
     from interface
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'effector'
     from effector
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'receptor'
     from receptor
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'interaction'
     from interaction
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'directive'
     from directive
-    where id = NEW.ascription_id
+    where id = p_id
     union all
     select 'norm'
     from norm
-    where id = NEW.ascription_id
+    where id = p_id
   ) sub
 limit 1;
-if owner_table is null then raise exception 'tgf_sync: no ascription row found for id = %',
-NEW.ascription_id using errcode = 'foreign_key_violation';
-end if;
-if NEW.post_status = 'APPROVED' then execute format(
-  'update %I set status = $1, version = version + 1 where id = $2',
-  owner_table
-) using NEW.post_status::ascription_status,
-NEW.ascription_id;
-else execute format(
-  'update %I set status = $1 where id = $2',
-  owner_table
-) using NEW.post_status::ascription_status,
-NEW.ascription_id;
+return tbl;
+end;
+$$ language plpgsql stable;
+-- 6d. Validate transition.ascription_id references an ascription --
+create or replace function tgf_assert_transition_ascription_exists() returns trigger as $$ begin if gsm_find_ascription_table(NEW.ascription_id) is null then raise exception 'ascription_status_transition.ascription_id = % references no ascription row',
+  NEW.ascription_id using errcode = 'foreign_key_violation';
 end if;
 return NEW;
 end;
 $$ language plpgsql;
--- 6d. Verify owner status matches latest transition ---------------
-create or replace function tgf_assert_owner_status_matches_history() returns trigger as $$
-declare expected ascription_status;
-begin
+-- 6e. Sync ascription status from transition ----------------------
+create or replace function tgf_sync_ascription_status() returns trigger as $$
+declare tbl text;
+begin tbl := gsm_find_ascription_table(NEW.ascription_id);
+if tbl is null then raise exception 'tgf_sync_ascription_status: no ascription row for id = %',
+NEW.ascription_id using errcode = 'foreign_key_violation';
+end if;
+execute format('update %I set status = $1 where id = $2', tbl) using NEW.post_status::ascription_status,
+NEW.ascription_id;
+return NEW;
+end;
+$$ language plpgsql;
+-- 6f. Assign governance version on APPROVED transition ------------
+create or replace function tgf_assign_ascription_version() returns trigger as $$
+declare tbl text;
+begin if NEW.post_status <> 'APPROVED' then return NEW;
+end if;
+tbl := gsm_find_ascription_table(NEW.ascription_id);
+if tbl is null then raise exception 'tgf_assign_ascription_version: no ascription row for id = %',
+NEW.ascription_id using errcode = 'foreign_key_violation';
+end if;
+execute format(
+  'update %I set version = version + 1 where id = $1',
+  tbl
+) using NEW.ascription_id;
+return NEW;
+end;
+$$ language plpgsql;
+-- 6g. Verify ascription status matches latest transition ----------
+-- Re-reads current row status instead of relying on NEW, so that
+-- deferred evaluation after multiple cascaded updates (from split
+-- status-sync and version-assign triggers) sees the final state.
+create or replace function tgf_assert_ascription_status_matches_history() returns trigger as $$
+declare current_status ascription_status;
+expected ascription_status;
+begin execute format(
+  'select status from %I where id = $1',
+  TG_TABLE_NAME
+) into current_status using NEW.id;
+if current_status is null then return NEW;
+end if;
 select t.post_status into expected
 from ascription_status_transition t
 where t.ascription_id = NEW.id
 order by t."timestamp" desc,
   t.id desc
 limit 1;
-if expected is null then -- No transitions yet: initial insert — only DRAFT is acceptable
-if NEW.status <> 'DRAFT' then raise exception '% id=%: status=% but no transition history (expected DRAFT)',
+if expected is null then if current_status <> 'DRAFT' then raise exception '% id=%: status=% but no transition history (expected DRAFT)',
 TG_TABLE_NAME,
 NEW.id,
-NEW.status using errcode = 'check_violation';
+current_status using errcode = 'check_violation';
 end if;
-elsif NEW.status <> expected then raise exception '% id=%: status=% but latest transition says %',
+elsif current_status <> expected then raise exception '% id=%: status=% but latest transition says %',
 TG_TABLE_NAME,
 NEW.id,
-NEW.status,
+current_status,
 expected using errcode = 'check_violation';
 end if;
 return NEW;
 end;
 $$ language plpgsql;
--- 6e. Transition rows are immutable -------------------------------
+-- 6h. Transition rows are immutable -------------------------------
 create or replace function tgf_reject_transition_mutation() returns trigger as $$ begin raise exception 'ascription_status_transition rows are immutable (attempted %)',
   TG_OP using errcode = 'restrict_violation';
 end;
 $$ language plpgsql;
--- 6f. Block direct status column updates --------------------------
+-- 6i. Block direct status column updates --------------------------
 create or replace function tgf_reject_status_update() returns trigger as $$ begin -- Allow trigger-cascaded updates (sync trigger operates at depth >= 2)
   if pg_trigger_depth() >= 2 then return NEW;
 end if;
@@ -497,7 +483,7 @@ end if;
 return NEW;
 end;
 $$ language plpgsql;
--- 6g. Block PK (id) changes --------------------------------------
+-- 6j. Block PK (id) changes --------------------------------------
 create or replace function tgf_reject_id_update() returns trigger as $$ begin if OLD.id is distinct
 from NEW.id then raise exception '% id=%: primary key (id) is immutable',
   TG_TABLE_NAME,
@@ -506,8 +492,8 @@ end if;
 return NEW;
 end;
 $$ language plpgsql;
--- 6h. Prevent delete when transitions exist -----------------------
-create or replace function tgf_restrict_owner_delete_when_transitions_exist() returns trigger as $$
+-- 6k. Prevent ascription delete when transitions exist ------------
+create or replace function tgf_restrict_ascription_delete_when_transitions_exist() returns trigger as $$
 declare cnt bigint;
 begin
 select count(*) into cnt
@@ -524,132 +510,153 @@ $$ language plpgsql;
 -- ============================================================
 -- §7  Trigger attachments
 -- ============================================================
--- Helper: attach the standard 5-trigger set to each class table.
+-- Attach the standard 6-trigger set to each ascription class table.
 -- PostgreSQL requires one CREATE TRIGGER per trigger, so we
--- enumerate all 9 tables × 5 triggers.
+-- enumerate all 9 tables × 6 triggers.
 -- ---- archetype ----
-create trigger trg_archetype_assign_ids before
-insert on archetype for each row execute function tgf_assign_ids();
+create trigger trg_archetype_assign_id before
+insert on archetype for each row execute function tgf_assign_id();
+create trigger trg_archetype_assign_timestamp before
+insert on archetype for each row execute function tgf_assign_timestamp();
 create trigger trg_archetype_reject_status_update before
 update of status on archetype for each row execute function tgf_reject_status_update();
 create trigger trg_archetype_reject_id_update before
 update of id on archetype for each row execute function tgf_reject_id_update();
-create trigger trg_archetype_restrict_delete before delete on archetype for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_archetype_restrict_delete before delete on archetype for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_archetype_status_matches_history
 after
 insert
   or
-update on archetype deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on archetype deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- structure ----
-create trigger trg_structure_assign_ids before
-insert on structure for each row execute function tgf_assign_ids();
+create trigger trg_structure_assign_id before
+insert on structure for each row execute function tgf_assign_id();
+create trigger trg_structure_assign_timestamp before
+insert on structure for each row execute function tgf_assign_timestamp();
 create trigger trg_structure_reject_status_update before
 update of status on structure for each row execute function tgf_reject_status_update();
 create trigger trg_structure_reject_id_update before
 update of id on structure for each row execute function tgf_reject_id_update();
-create trigger trg_structure_restrict_delete before delete on structure for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_structure_restrict_delete before delete on structure for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_structure_status_matches_history
 after
 insert
   or
-update on structure deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on structure deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- mechanism ----
-create trigger trg_mechanism_assign_ids before
-insert on mechanism for each row execute function tgf_assign_ids();
+create trigger trg_mechanism_assign_id before
+insert on mechanism for each row execute function tgf_assign_id();
+create trigger trg_mechanism_assign_timestamp before
+insert on mechanism for each row execute function tgf_assign_timestamp();
 create trigger trg_mechanism_reject_status_update before
 update of status on mechanism for each row execute function tgf_reject_status_update();
 create trigger trg_mechanism_reject_id_update before
 update of id on mechanism for each row execute function tgf_reject_id_update();
-create trigger trg_mechanism_restrict_delete before delete on mechanism for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_mechanism_restrict_delete before delete on mechanism for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_mechanism_status_matches_history
 after
 insert
   or
-update on mechanism deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on mechanism deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- interface ----
-create trigger trg_interface_assign_ids before
-insert on interface for each row execute function tgf_assign_ids();
+create trigger trg_interface_assign_id before
+insert on interface for each row execute function tgf_assign_id();
+create trigger trg_interface_assign_timestamp before
+insert on interface for each row execute function tgf_assign_timestamp();
 create trigger trg_interface_reject_status_update before
 update of status on interface for each row execute function tgf_reject_status_update();
 create trigger trg_interface_reject_id_update before
 update of id on interface for each row execute function tgf_reject_id_update();
-create trigger trg_interface_restrict_delete before delete on interface for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_interface_restrict_delete before delete on interface for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_interface_status_matches_history
 after
 insert
   or
-update on interface deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on interface deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- effector ----
-create trigger trg_effector_assign_ids before
-insert on effector for each row execute function tgf_assign_ids();
+create trigger trg_effector_assign_id before
+insert on effector for each row execute function tgf_assign_id();
+create trigger trg_effector_assign_timestamp before
+insert on effector for each row execute function tgf_assign_timestamp();
 create trigger trg_effector_reject_status_update before
 update of status on effector for each row execute function tgf_reject_status_update();
 create trigger trg_effector_reject_id_update before
 update of id on effector for each row execute function tgf_reject_id_update();
-create trigger trg_effector_restrict_delete before delete on effector for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_effector_restrict_delete before delete on effector for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_effector_status_matches_history
 after
 insert
   or
-update on effector deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on effector deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- receptor ----
-create trigger trg_receptor_assign_ids before
-insert on receptor for each row execute function tgf_assign_ids();
+create trigger trg_receptor_assign_id before
+insert on receptor for each row execute function tgf_assign_id();
+create trigger trg_receptor_assign_timestamp before
+insert on receptor for each row execute function tgf_assign_timestamp();
 create trigger trg_receptor_reject_status_update before
 update of status on receptor for each row execute function tgf_reject_status_update();
 create trigger trg_receptor_reject_id_update before
 update of id on receptor for each row execute function tgf_reject_id_update();
-create trigger trg_receptor_restrict_delete before delete on receptor for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_receptor_restrict_delete before delete on receptor for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_receptor_status_matches_history
 after
 insert
   or
-update on receptor deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on receptor deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- interaction ----
-create trigger trg_interaction_assign_ids before
-insert on interaction for each row execute function tgf_assign_ids();
+create trigger trg_interaction_assign_id before
+insert on interaction for each row execute function tgf_assign_id();
+create trigger trg_interaction_assign_timestamp before
+insert on interaction for each row execute function tgf_assign_timestamp();
 create trigger trg_interaction_reject_status_update before
 update of status on interaction for each row execute function tgf_reject_status_update();
 create trigger trg_interaction_reject_id_update before
 update of id on interaction for each row execute function tgf_reject_id_update();
-create trigger trg_interaction_restrict_delete before delete on interaction for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_interaction_restrict_delete before delete on interaction for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_interaction_status_matches_history
 after
 insert
   or
-update on interaction deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on interaction deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- directive ----
-create trigger trg_directive_assign_ids before
-insert on directive for each row execute function tgf_assign_ids();
+create trigger trg_directive_assign_id before
+insert on directive for each row execute function tgf_assign_id();
+create trigger trg_directive_assign_timestamp before
+insert on directive for each row execute function tgf_assign_timestamp();
 create trigger trg_directive_reject_status_update before
 update of status on directive for each row execute function tgf_reject_status_update();
 create trigger trg_directive_reject_id_update before
 update of id on directive for each row execute function tgf_reject_id_update();
-create trigger trg_directive_restrict_delete before delete on directive for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_directive_restrict_delete before delete on directive for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_directive_status_matches_history
 after
 insert
   or
-update on directive deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on directive deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- norm ----
-create trigger trg_norm_assign_ids before
-insert on norm for each row execute function tgf_assign_ids();
+create trigger trg_norm_assign_id before
+insert on norm for each row execute function tgf_assign_id();
+create trigger trg_norm_assign_timestamp before
+insert on norm for each row execute function tgf_assign_timestamp();
 create trigger trg_norm_reject_status_update before
 update of status on norm for each row execute function tgf_reject_status_update();
 create trigger trg_norm_reject_id_update before
 update of id on norm for each row execute function tgf_reject_id_update();
-create trigger trg_norm_restrict_delete before delete on norm for each row execute function tgf_restrict_owner_delete_when_transitions_exist();
+create trigger trg_norm_restrict_delete before delete on norm for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
 create constraint trigger trg_norm_status_matches_history
 after
 insert
   or
-update on norm deferrable initially deferred for each row execute function tgf_assert_owner_status_matches_history();
+update on norm deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- ascription_status_transition ----
-create trigger trg_ast_assert_owner_exists before
-insert on ascription_status_transition for each row execute function tgf_assert_transition_owner_exists();
-create trigger trg_ast_sync_owner_status
+create trigger trg_ast_assert_ascription_exists before
+insert on ascription_status_transition for each row execute function tgf_assert_transition_ascription_exists();
+create trigger trg_ast_assign_ascription_version
 after
-insert on ascription_status_transition for each row execute function tgf_sync_owner_status_from_transition();
+insert on ascription_status_transition for each row execute function tgf_assign_ascription_version();
+create trigger trg_ast_sync_ascription_status
+after
+insert on ascription_status_transition for each row execute function tgf_sync_ascription_status();
 create trigger trg_ast_reject_mutation before
 update
   or delete on ascription_status_transition for each row execute function tgf_reject_transition_mutation();

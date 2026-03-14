@@ -13,6 +13,13 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
+/**
+ * Structure — the foundational aggregate. Extends AscriptionEntity.
+ *
+ * <p>
+ * Carries the standard 6-trigger set on the {@code structure} table
+ * (see {@link AscriptionEntity} for details).
+ */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "structure")

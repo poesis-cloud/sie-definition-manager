@@ -12,6 +12,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Directive — identity-level normative constraint. Extends AscriptionEntity.
+ *
+ * <p>
+ * Carries the standard 6-trigger set on the {@code directive} table
+ * (see {@link AscriptionEntity} for details).
+ */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "directive")

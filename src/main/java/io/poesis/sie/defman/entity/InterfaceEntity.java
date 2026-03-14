@@ -18,6 +18,13 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Interface — exposed boundary of a Structure. Extends AscriptionEntity.
+ *
+ * <p>
+ * Carries the standard 6-trigger set on the {@code interface} table
+ * (see {@link AscriptionEntity} for details).
+ */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "interface")

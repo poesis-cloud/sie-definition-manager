@@ -12,6 +12,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Interaction — causal coupling between Mechanisms. Extends AscriptionEntity.
+ *
+ * <p>
+ * Carries the standard 6-trigger set on the {@code interaction} table
+ * (see {@link AscriptionEntity} for details).
+ */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "interaction")

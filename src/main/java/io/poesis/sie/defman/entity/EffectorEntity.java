@@ -12,6 +12,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Effector — output endpoint of a Mechanism. Extends AscriptionEntity.
+ *
+ * <p>
+ * Carries the standard 6-trigger set on the {@code effector} table
+ * (see {@link AscriptionEntity} for details).
+ */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "effector")

@@ -26,7 +26,24 @@ import jakarta.persistence.Table;
  *
  * <p>
  * All fields are immutable after creation — assigned via constructor, no
- * setters exposed.
+ * setters exposed. {@code id} and {@code timestamp} are DB-generated via
+ * column defaults ({@code uuid_v7()} and {@code clock_timestamp()}).
+ *
+ * <p>
+ * DB triggers on this table:
+ *
+ * <ul>
+ * <li>{@code tgf_assert_transition_ascription_exists} — BEFORE INSERT:
+ * validates that {@code ascription_id} references an existing ascription
+ * row across all 9 class tables
+ * <li>{@code tgf_sync_ascription_status} — AFTER INSERT: cascades
+ * {@code post_status} to the referenced ascription's {@code status}
+ * <li>{@code tgf_assign_ascription_version} — AFTER INSERT: increments the
+ * referenced ascription's {@code version} when
+ * {@code post_status = 'APPROVED'}
+ * <li>{@code tgf_reject_transition_mutation} — BEFORE UPDATE/DELETE: blocks
+ * any mutation (rows are append-only)
+ * </ul>
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
