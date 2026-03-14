@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 import org.springframework.lang.NonNull;
 
@@ -13,6 +12,7 @@ import io.poesis.sie.defman.type.DefinitionSubjectType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
@@ -38,8 +38,8 @@ import jakarta.persistence.Table;
 public class DefinitionEntity {
 
     @Id
-    @UuidGenerator(style = UuidGenerator.Style.TIME)
-    @Column(name = "id", nullable = false, updatable = false)
+    @GeneratedValue()
+    @Column(name = "id", nullable = false, updatable = false, insertable = false)
     private UUID id;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
