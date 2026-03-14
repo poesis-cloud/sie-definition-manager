@@ -670,8 +670,6 @@ class AscriptionLifecycleServiceTest {
                     .when(effectorSubtype)
                     .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-            // Need to mock findAllByDefinitionId for governance convergence
-            AbstractAscriptionService mechSvcFromList = null;
             // Just transition — no convergence siblings needed for this assertion
             serviceWithDependent.transition(mechId, "APPROVED");
 
