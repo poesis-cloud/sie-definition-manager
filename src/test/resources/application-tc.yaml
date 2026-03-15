@@ -11,7 +11,7 @@ spring:
   kafka:
     bootstrap-servers: localhost:0
     properties:
-      schema.registry.url: http://localhost:0
+      "[schema.registry.url]": http://localhost:0
   security:
     oauth2:
       resourceserver:
