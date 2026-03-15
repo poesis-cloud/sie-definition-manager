@@ -57,7 +57,5 @@ dm:
         archetype-schema-pattern: ${DM_ARCHETYPE_SCHEMA_PATTERN:classpath:schemas/gsm-archetypes/*.schema.json}
     messaging:
         reliability-mode: ${DM_RELIABILITY_MODE:alo-idempotent}
-    schema-registry:
-        auto-register: ${DM_SCHEMA_AUTO_REGISTER:false}
     security:
         oauth2-login-enabled: ${DM_OAUTH2_LOGIN_ENABLED:false}
