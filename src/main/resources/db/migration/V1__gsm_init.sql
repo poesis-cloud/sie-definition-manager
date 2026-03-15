@@ -334,7 +334,7 @@ create unique index if not exists uq_archetype_schema_title on archetype ((state
 where status in ('ACTIVE', 'DEPRECATED');
 -- ============================================================
 -- §5  Seed data — GSM base archetypes
---     Now loaded at application startup by GsmBootstrapRunner
+--     Now loaded at application startup by ArchetypeSeedRunner
 --     from classpath:schemas/gsm-archetypes/*.schema.json.
 --     Single source of truth: definition/schemas/gsm-archetypes/
 -- ============================================================
