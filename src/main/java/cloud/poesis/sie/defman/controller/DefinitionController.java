@@ -19,6 +19,8 @@ import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.DefinitionDto;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.service.DefinitionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * REST controller for GSM Definitions.
@@ -31,6 +33,7 @@ import cloud.poesis.sie.defman.service.DefinitionService;
 @RestController
 @RequestMapping(value = "/api/v1/definitions", produces = { MediaTypes.HAL_JSON_VALUE,
         MediaType.APPLICATION_JSON_VALUE })
+@Tag(name = "Definitions", description = "Stable identity layer for governed subjects")
 public class DefinitionController extends AbstractController {
 
     private final DefinitionService service;
@@ -40,6 +43,7 @@ public class DefinitionController extends AbstractController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get definition by ID", description = "Returns the definition with its full ascription history.")
     public EntityModel<DefinitionDto> getById(@PathVariable @NonNull UUID id) {
         DefinitionEntity entity = service.getById(id);
 

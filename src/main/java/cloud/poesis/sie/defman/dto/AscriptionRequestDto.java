@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -15,9 +16,9 @@ import jakarta.validation.constraints.NotNull;
  * of the {@code statement} payload and validated against the archetype's
  * JSON Schema.
  */
+@Schema(description = "Creation request for a GSM ascription")
 public record AscriptionRequestDto(
-                @NotNull UUID archetypeId,
-                @NotNull JsonNode statement,
-                UUID definitionId) // optional: for new ascription of existing definition
-{
+        @NotNull UUID archetypeId,
+        @Schema(description = "JSON payload conforming to the Archetype's schema. Query the Archetype ascription to discover the expected structure.", implementation = Object.class) @NotNull JsonNode statement,
+        @Schema(description = "Optional: set for new ascription of existing definition") UUID definitionId) {
 }

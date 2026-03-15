@@ -32,13 +32,14 @@ import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionRequestDto;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
+import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.AscriptionLifecycleService;
 import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 /**
@@ -51,6 +52,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping(value = "/api/v1/ascriptions", produces = { MediaTypes.HAL_JSON_VALUE,
         MediaType.APPLICATION_JSON_VALUE })
+@Tag(name = "Ascriptions", description = "CRUD and lifecycle transitions for GSM ascriptions")
 public class AscriptionController extends AbstractController {
 
     private final Map<DefinitionSubjectType, AbstractAscriptionService> serviceRegistry;
@@ -74,6 +76,7 @@ public class AscriptionController extends AbstractController {
     // ========================================================================
 
     @PostMapping
+    @Operation(summary = "Create an ascription", description = "Creates a new ascription. The archetypeId determines the GSM type; statement must conform to the archetype's JSON Schema.")
     public ResponseEntity<EntityModel<AscriptionDto>> create(
             @Valid @RequestBody AscriptionRequestDto request) {
         var resolution = archetypeService.resolveForCreation(request.archetypeId());
@@ -91,12 +94,14 @@ public class AscriptionController extends AbstractController {
     // ========================================================================
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get ascription by ID")
     public EntityModel<AscriptionDto> getById(@PathVariable UUID id) {
         AscriptionEntity entity = ascriptionService.getById(id);
         return wrapWithLinks(toAscriptionDto(entity));
     }
 
     @GetMapping
+    @Operation(summary = "List ascriptions (paginated)", description = "Filter by subject type and optionally by status.")
     public PagedModel<EntityModel<AscriptionDto>> list(
             @RequestParam String type,
             @RequestParam(required = false) String status,
@@ -112,6 +117,7 @@ public class AscriptionController extends AbstractController {
     }
 
     @GetMapping("/history")
+    @Operation(summary = "Get ascription history for a definition")
     public List<EntityModel<AscriptionDto>> getAscriptionHistory(
             @RequestParam UUID definitionId, @RequestParam String type) {
         DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);
@@ -122,6 +128,7 @@ public class AscriptionController extends AbstractController {
     }
 
     @GetMapping("/{id}/transitions")
+    @Operation(summary = "Get transition audit trail")
     public List<AscriptionStatusTransitionDto> getTransitions(@PathVariable UUID id) {
         return lifecycleService.getTransitions(id).stream()
                 .map(this::toTransitionDto)
@@ -133,6 +140,7 @@ public class AscriptionController extends AbstractController {
     // ========================================================================
 
     @PostMapping("/{id}/transitions")
+    @Operation(summary = "Transition ascription to a new status")
     public ResponseEntity<AscriptionStatusTransitionDto> transition(
             @PathVariable UUID id, @Valid @RequestBody AscriptionStatusTransitionRequestDto request) {
         AscriptionStatusTransitionEntity saved = lifecycleService.transition(id, request.targetStatus());
