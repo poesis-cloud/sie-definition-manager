@@ -11,11 +11,6 @@
       "description": "Kafka messaging reliability mode (alo-idempotent, eo, amo)."
     },
     {
-      "name": "dm.schema-registry.auto-register",
-      "type": "java.lang.Boolean",
-      "description": "Whether to auto-register Avro/JSON schemas with the schema registry."
-    },
-    {
       "name": "dm.security.oauth2-login-enabled",
       "type": "java.lang.Boolean",
       "description": "Enable OAuth2 social login (GitHub, Google, Microsoft)."

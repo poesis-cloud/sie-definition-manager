@@ -28,7 +28,6 @@ spring:
             "[acks]": all
             "[max.in.flight.requests.per.connection]": 5
             "[delivery.timeout.ms]": 120000
-            "[schema.registry.url]": ${SCHEMA_REGISTRY_URL:http://localhost:8081}
         producer:
             transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:dm-tx-}
         listener:

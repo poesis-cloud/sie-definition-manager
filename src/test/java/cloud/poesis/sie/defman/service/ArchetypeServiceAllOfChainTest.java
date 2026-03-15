@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import cloud.poesis.sie.defman.client.SchemaRegistryClient;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 
@@ -44,7 +43,6 @@ class ArchetypeServiceAllOfChainTest {
     void setUp() {
         service = new ArchetypeService(
                 archetypeRepo,
-                mock(SchemaRegistryClient.class),
                 mock(JdbcTemplate.class));
     }
 

@@ -1,31 +1,27 @@
 spring:
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 0
-  kafka:
-    bootstrap-servers: localhost:0
-    properties:
-      "[schema.registry.url]": http://localhost:0
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:9999/does-not-exist
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        open-in-view: false
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+        baseline-on-migrate: true
+        baseline-version: 0
+    kafka:
+        bootstrap-servers: localhost:0
+    security:
+        oauth2:
+            resourceserver:
+                jwt:
+                    issuer-uri: http://localhost:9999/does-not-exist
 
 management:
-  tracing:
-    enabled: false
+    tracing:
+        enabled: false
 
 dm:
-  messaging:
-    reliability-mode: alo-idempotent
-  schema-registry:
-    auto-register: false
-  security:
-    oauth2-login-enabled: false
+    messaging:
+        reliability-mode: alo-idempotent
+    security:
+        oauth2-login-enabled: false

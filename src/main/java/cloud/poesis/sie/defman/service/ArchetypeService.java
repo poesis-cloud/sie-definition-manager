@@ -20,18 +20,17 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import dev.cel.common.CelValidationException;
-import dev.cel.common.CelValidationResult;
-import dev.cel.common.types.SimpleType;
-import dev.cel.compiler.CelCompiler;
-import dev.cel.compiler.CelCompilerFactory;
-import cloud.poesis.sie.defman.client.SchemaRegistryClient;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import dev.cel.common.CelValidationException;
+import dev.cel.common.CelValidationResult;
+import dev.cel.common.types.SimpleType;
+import dev.cel.compiler.CelCompiler;
+import dev.cel.compiler.CelCompilerFactory;
 
 @Service
 public class ArchetypeService extends AbstractAscriptionService {
@@ -85,7 +84,6 @@ public class ArchetypeService extends AbstractAscriptionService {
     private static final Logger LOG = LoggerFactory.getLogger(ArchetypeService.class);
 
     private final ArchetypeRepository archetypeRepo;
-    private final SchemaRegistryClient schemaRegistryClient;
     private final JdbcTemplate jdbcTemplate;
 
     /**
@@ -96,10 +94,8 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     public ArchetypeService(
             ArchetypeRepository archetypeRepo,
-            SchemaRegistryClient schemaRegistryClient,
             JdbcTemplate jdbcTemplate) {
         this.archetypeRepo = archetypeRepo;
-        this.schemaRegistryClient = schemaRegistryClient;
         this.jdbcTemplate = jdbcTemplate;
         this.validationCelCompiler = CelCompilerFactory.standardCelCompilerBuilder()
                 .addVar("this", SimpleType.DYN)
@@ -121,8 +117,6 @@ public class ArchetypeService extends AbstractAscriptionService {
         // GSM §8: $gsm:* annotation well-formedness
         validateArchetypeAnnotations(schema, definition.getId());
 
-        String subject = "gsm_archetype_definition_" + definition.getId();
-        schemaRegistryClient.registerSchema(subject, schema);
         return new ArchetypeEntity(definition, archetypeRef, statement);
     }
 
