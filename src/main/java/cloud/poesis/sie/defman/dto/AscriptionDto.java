@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * Unified response for any GSM ascription.
  */
-@Relation(collectionRelation = "ascriptionResponseList")
+@Relation(collectionRelation = "ascriptionListResponse")
 @Schema(description = "Governed normative snapshot of a Definition")
 public record AscriptionDto(
         UUID id,

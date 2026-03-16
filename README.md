@@ -200,7 +200,7 @@ Schema defines: `encryptionLevel`, `authenticationProtocol`, `dataClassification
 }
 ```
 
-> *Reads: "platform-governance MUST ENSURE SecurityProperties OF order-processing."*
+> Reads: "platform-governance MUST ENSURE SecurityProperties OF order-processing."
 
 **Norms** operationalizing this Directive:
 
@@ -228,7 +228,7 @@ Schema defines: `framework`, `validationCoverage`, `lastAuditDate`, …
 }
 ```
 
-> *Reads: "compliance-board MUST ENSURE ComplianceProperties OF payment-validation."*
+> Reads: "compliance-board MUST ENSURE ComplianceProperties OF payment-validation."
 
 **Norms**:
 
@@ -256,7 +256,7 @@ Schema defines: `exposure`, `tlsVersion`, `rateLimitRps`, `corsPolicy`, …
 }
 ```
 
-> *Reads: "security-team MUST ENSURE APISecurityProperties OF customer-portal."*
+> Reads: "security-team MUST ENSURE APISecurityProperties OF customer-portal."
 
 **Norms**:
 
@@ -285,7 +285,7 @@ Schema defines: `encryptionInTransit`, `maxPayloadBytes`, `retryPolicy`, …
 }
 ```
 
-> *Reads: "infrastructure-team MUST ENSURE InteractionReliabilityProperties OF payment-notification-flow."*
+> Reads: "infrastructure-team MUST ENSURE InteractionReliabilityProperties OF payment-notification-flow."
 
 **Norms**:
 
@@ -314,7 +314,7 @@ Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `er
 }
 ```
 
-> *Reads: "platform-governance SHOULD OPTIMIZE LatencyMetrics OF checkout-service."*
+> Reads: "platform-governance SHOULD OPTIMIZE LatencyMetrics OF checkout-service."
 
 **Norms**:
 

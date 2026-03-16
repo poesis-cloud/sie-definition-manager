@@ -29,9 +29,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import cloud.poesis.sie.defman.dto.AscriptionDto;
-import cloud.poesis.sie.defman.dto.AscriptionRequestDto;
+import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
-import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionRequestDto;
+import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionCreationDto;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
@@ -100,7 +100,7 @@ public class AscriptionController extends AbstractController {
     @PostMapping
     @Operation(summary = "Create an ascription", description = "Creates a new ascription. The archetypeId determines the GSM type; statement must conform to the archetype's JSON Schema.")
     public ResponseEntity<RepresentationModel<?>> create(
-            @Valid @RequestBody AscriptionRequestDto request) {
+            @Valid @RequestBody AscriptionCreationDto request) {
         var resolution = archetypeService.resolveForCreation(request.archetypeId());
         AbstractAscriptionService subtypeService = requireService(resolution.subjectType());
         AscriptionEntity entity = subtypeService.create(
@@ -161,7 +161,7 @@ public class AscriptionController extends AbstractController {
     @PostMapping("/{id}/transitions")
     @Operation(summary = "Transition ascription to a new status")
     public ResponseEntity<AscriptionStatusTransitionDto> transition(
-            @PathVariable UUID id, @Valid @RequestBody AscriptionStatusTransitionRequestDto request) {
+            @PathVariable UUID id, @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
         AscriptionStatusTransitionEntity saved = lifecycleService.transition(id, request.targetStatus());
         return ResponseEntity.ok(toTransitionDto(saved));
     }
@@ -191,9 +191,9 @@ public class AscriptionController extends AbstractController {
         AscriptionDto dto = toAscriptionDto(entity);
         String subjectType = entity.getDefinition().getSubjectType().getValue();
 
-        var defProj = EntityModel.of(toDefinitionProjection(entity),
+        var defProj = EntityModel.of(toEmbeddedDefinition(entity),
                 linkTo(DefinitionController.class).slash(dto.definitionId()).withSelfRel());
-        var archProj = EntityModel.of(toArchetypeProjection(entity),
+        var archProj = EntityModel.of(toEmbeddedArchetype(entity),
                 linkTo(AscriptionController.class).slash(dto.archetypeId()).withSelfRel());
 
         return HalModelBuilder.halModelOf(dto)

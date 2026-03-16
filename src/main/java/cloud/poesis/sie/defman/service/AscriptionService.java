@@ -2,7 +2,6 @@ package cloud.poesis.sie.defman.service;
 
 import java.util.UUID;
 
-import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +25,8 @@ public class AscriptionService {
 
     @Transactional(value = "transactionManager", readOnly = true)
     public AscriptionEntity getById(UUID ascriptionId) {
-        AscriptionEntity entity = ascriptionRepository.findById(ascriptionId)
+        return ascriptionRepository.findById(ascriptionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No ascription found for id: " + ascriptionId));
-        Hibernate.initialize(entity.getDefinition());
-        Hibernate.initialize(entity.getArchetype());
-        return entity;
     }
 }

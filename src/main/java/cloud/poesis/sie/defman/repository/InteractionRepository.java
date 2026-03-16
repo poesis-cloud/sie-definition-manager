@@ -6,14 +6,17 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 
 public interface InteractionRepository extends JpaRepository<InteractionEntity, UUID> {
+    @EntityGraph("ascription-with-refs")
     Page<InteractionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
 
+    @EntityGraph("ascription-with-refs")
     List<InteractionEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
 
     List<InteractionEntity> findAllByDefinitionIdAndStatusIn(

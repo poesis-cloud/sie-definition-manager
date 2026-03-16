@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import cloud.poesis.sie.defman.dto.ArchetypeProjectionDto;
+import cloud.poesis.sie.defman.dto.EmbeddedArchetypeDto;
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
-import cloud.poesis.sie.defman.dto.DefinitionProjectionDto;
+import cloud.poesis.sie.defman.dto.EmbeddedDefinitionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
@@ -41,13 +41,13 @@ public abstract class AbstractController {
                 entity.getStatus().name());
     }
 
-    protected DefinitionProjectionDto toDefinitionProjection(AscriptionEntity entity) {
-        return new DefinitionProjectionDto(
+    protected EmbeddedDefinitionDto toEmbeddedDefinition(AscriptionEntity entity) {
+        return new EmbeddedDefinitionDto(
                 entity.getDefinition().getId(),
                 entity.getDefinition().getSubjectType().getValue());
     }
 
-    protected ArchetypeProjectionDto toArchetypeProjection(AscriptionEntity entity) {
+    protected EmbeddedArchetypeDto toEmbeddedArchetype(AscriptionEntity entity) {
         ArchetypeEntity arch = entity.getArchetype();
         JsonNode archStatement = arch.getStatement();
         String title = null;
@@ -57,7 +57,7 @@ public abstract class AbstractController {
             log.warn("Archetype {} has no title in statement — possible seed/migration issue",
                     arch.getId());
         }
-        return new ArchetypeProjectionDto(
+        return new EmbeddedArchetypeDto(
                 arch.getId(),
                 arch.getDefinition().getId(),
                 title);

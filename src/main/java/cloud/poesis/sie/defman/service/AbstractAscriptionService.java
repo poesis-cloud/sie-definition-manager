@@ -114,17 +114,12 @@ public abstract class AbstractAscriptionService {
             UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     /**
-     * Returns Ascription history for a Definition, with lazy
-     * properties initialized for DTO mapping outside the persistence context.
+     * Returns Ascription history for a Definition, with definition and archetype
+     * eagerly fetched via {@code @EntityGraph} on the repository method.
      */
     @Transactional(value = "transactionManager", readOnly = true)
     public List<? extends AscriptionEntity> getHistory(UUID definitionId) {
-        List<? extends AscriptionEntity> entities = findAllByDefinitionId(definitionId);
-        entities.forEach(e -> {
-            Hibernate.initialize(e.getDefinition());
-            Hibernate.initialize(e.getArchetype());
-        });
-        return entities;
+        return findAllByDefinitionId(definitionId);
     }
 
     // ======================================================================

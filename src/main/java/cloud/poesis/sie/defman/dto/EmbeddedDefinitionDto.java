@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Relation(value = "definition", collectionRelation = "definitions")
 @Schema(description = "Embedded projection of the governing Definition (stable identity)")
-public record DefinitionProjectionDto(
+public record EmbeddedDefinitionDto(
         UUID id,
         String subjectType) {
 }
