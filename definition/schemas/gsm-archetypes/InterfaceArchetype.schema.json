@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/InterfaceArchetype/v1",
   "title": "InterfaceArchetype",
   "description": "Schema for Interface Ascriptions — declarative exposure manifest of a Structure's boundary. Defines the owning Structure and the Effector/Receptor ports exposed for inter-Structure coupling. Interface has no behavior — all behavior lives in Mechanisms. DM input = DM output (1:1). Tenant-defined archetypes extending Interface MUST reference this schema via allOf.",

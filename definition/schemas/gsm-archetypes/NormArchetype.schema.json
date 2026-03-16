@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/NormArchetype/v1",
   "title": "NormArchetype",
   "description": "Schema for Norm Ascriptions — measurable constraint predicates (DNA 'N'). Defines the governance grammar: structure, qualifier, guard, predicate, toleranceMode, and mode-dependent temporal fields. DM validates CEL expressions against their profiles. Sealed — tenant-defined archetypes MUST NOT extend Norm. DM input = DM output (1:1).",

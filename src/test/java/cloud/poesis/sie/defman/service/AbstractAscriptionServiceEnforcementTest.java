@@ -1,6 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -11,7 +12,6 @@ import static org.mockito.Mockito.when;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -113,85 +113,6 @@ class AbstractAscriptionServiceEnforcementTest {
     }
 
     // ========================================================================
-    // $gsm:referential enforcement
-    // ========================================================================
-
-    @Nested
-    class EnforceReferential {
-
-        @Test
-        void referentialPropertyExists_valid() {
-            UUID refId = UUID.randomUUID();
-            DefinitionEntity refDef = mock(DefinitionEntity.class);
-            when(refDef.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
-            when(definitionRepo.findById(refId)).thenReturn(Optional.of(refDef));
-
-            ObjectNode ann = MAPPER.createObjectNode().put("subjectType", "STRUCTURE");
-            ObjectNode propNode = prop("string");
-            propNode.set("$gsm:referential", ann);
-            ObjectNode archetypeSchema = schemaWithProperty("ownerId", propNode);
-
-            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
-            ObjectNode statement = MAPPER.createObjectNode().put("ownerId", refId.toString());
-
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-        }
-
-        @Test
-        void referentialPropertyMissing_rejected() {
-            UUID refId = UUID.randomUUID();
-            when(definitionRepo.findById(refId)).thenReturn(Optional.empty());
-
-            ObjectNode ann = MAPPER.createObjectNode();
-            ObjectNode propNode = prop("string");
-            propNode.set("$gsm:referential", ann);
-            ObjectNode archetypeSchema = schemaWithProperty("ownerId", propNode);
-
-            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
-            ObjectNode statement = MAPPER.createObjectNode().put("ownerId", refId.toString());
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertTrue(ex.getMessage().contains("does not exist"));
-        }
-
-        @Test
-        void referentialPropertyWrongSubjectType_rejected() {
-            UUID refId = UUID.randomUUID();
-            DefinitionEntity refDef = mock(DefinitionEntity.class);
-            when(refDef.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
-            when(definitionRepo.findById(refId)).thenReturn(Optional.of(refDef));
-
-            ObjectNode ann = MAPPER.createObjectNode().put("subjectType", "STRUCTURE");
-            ObjectNode propNode = prop("string");
-            propNode.set("$gsm:referential", ann);
-            ObjectNode archetypeSchema = schemaWithProperty("ownerId", propNode);
-
-            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
-            ObjectNode statement = MAPPER.createObjectNode().put("ownerId", refId.toString());
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertTrue(ex.getMessage().contains("subjectType"));
-        }
-
-        @Test
-        void referentialPropertyNotUuid_rejected() {
-            ObjectNode ann = MAPPER.createObjectNode();
-            ObjectNode propNode = prop("string");
-            propNode.set("$gsm:referential", ann);
-            ObjectNode archetypeSchema = schemaWithProperty("ref", propNode);
-
-            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
-            ObjectNode statement = MAPPER.createObjectNode().put("ref", "not-a-uuid");
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertTrue(ex.getMessage().contains("not a valid UUID"));
-        }
-    }
-
-    // ========================================================================
     // $gsm:unique enforcement
     // ========================================================================
 
@@ -262,26 +183,6 @@ class AbstractAscriptionServiceEnforcementTest {
                     any(), any(), eq(defId))).thenReturn(List.of(existing));
 
             assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, defId));
-        }
-    }
-
-    // ========================================================================
-    // $gsm:deprecated enforcement (warning, not error)
-    // ========================================================================
-
-    @Nested
-    class EnforceDeprecated {
-
-        @Test
-        void deprecatedProperty_noError() {
-            ObjectNode propNode = prop("string");
-            propNode.put("$gsm:deprecated", true);
-            ObjectNode archetypeSchema = schemaWithProperty("oldField", propNode);
-
-            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
-            ObjectNode statement = MAPPER.createObjectNode().put("oldField", "value");
-
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
         }
     }
 
@@ -586,11 +487,11 @@ class AbstractAscriptionServiceEnforcementTest {
     }
 
     // ========================================================================
-    // $gsm:validationCEL evaluation at Ascription authoring (V6)
+    // $gsm:validation evaluation at Ascription authoring
     // ========================================================================
 
     @Nested
-    class EnforceValidationCel {
+    class EnforceValidation {
 
         @Test
         void celExpressionTrue_passes() {
@@ -598,7 +499,7 @@ class AbstractAscriptionServiceEnforcementTest {
             schema.put("title", "TestSchema");
             ObjectNode props = schema.putObject("properties");
             props.set("budget", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.budget > 0.0"));
 
             ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
@@ -613,7 +514,7 @@ class AbstractAscriptionServiceEnforcementTest {
             schema.put("title", "TestSchema");
             ObjectNode props = schema.putObject("properties");
             props.set("budget", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.budget > 0.0"));
 
             ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
@@ -621,7 +522,7 @@ class AbstractAscriptionServiceEnforcementTest {
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("constraint failed"));
         }
 
@@ -632,7 +533,7 @@ class AbstractAscriptionServiceEnforcementTest {
             ObjectNode props = schema.putObject("properties");
             props.set("min", prop("number"));
             props.set("max", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.min > 0.0")
                     .add("this.min <= this.max"));
 
@@ -643,7 +544,7 @@ class AbstractAscriptionServiceEnforcementTest {
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertTrue(ex.getMessage().contains("$gsm:validationCEL"));
+            assertTrue(ex.getMessage().contains("$gsm:validation"));
             assertTrue(ex.getMessage().contains("constraint failed"));
         }
 
@@ -654,7 +555,7 @@ class AbstractAscriptionServiceEnforcementTest {
             ObjectNode props = schema.putObject("properties");
             props.set("min", prop("number"));
             props.set("max", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.min > 0.0")
                     .add("this.min <= this.max"));
 
@@ -678,6 +579,164 @@ class AbstractAscriptionServiceEnforcementTest {
     }
 
     // ========================================================================
+    // $gsm:dataProtection atRest enforcement
+    // ========================================================================
+
+    @Nested
+    class EnforceDataProtectionAtRest {
+
+        @Test
+        void hashAtRest_replacesValueWithHash() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            atRest.putObject("hash").put("algorithm", "SHA-256");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("ssn", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("ssn", "123-45-6789");
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+
+            // Value should be replaced with a hex hash (64 chars for SHA-256)
+            String hashed = statement.get("ssn").asText();
+            assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex hash, got: " + hashed);
+        }
+
+        @Test
+        void maskAtRest_masksValue() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            ObjectNode mask = atRest.putObject("mask");
+            mask.put("from", "RIGHT");
+            ObjectNode with = mask.putObject("with");
+            with.put("character", "*");
+            with.put("occurrence", 4);
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("phone", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("phone", "555-1234");
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+
+            // RIGHT direction = keep last 4 visible
+            String masked = statement.get("phone").asText();
+            assertTrue(masked.endsWith("1234"), "Expected last 4 chars visible, got: " + masked);
+            assertTrue(masked.contains("*"), "Expected masking characters, got: " + masked);
+        }
+
+        @Test
+        void maskAtRest_leftDirection_masksCorrectly() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            ObjectNode mask = atRest.putObject("mask");
+            mask.put("from", "LEFT");
+            ObjectNode with = mask.putObject("with");
+            with.put("character", "#");
+            with.put("occurrence", 3);
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("card", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("card", "4111222233334444");
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+
+            // LEFT = keep first 3 visible, mask the rest
+            String masked = statement.get("card").asText();
+            assertEquals("411#############", masked);
+        }
+
+        @Test
+        void maskAtRest_shortValue_masksEntirely() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            ObjectNode mask = atRest.putObject("mask");
+            mask.put("from", "RIGHT");
+            ObjectNode with = mask.putObject("with");
+            with.put("occurrence", 4);
+            // character omitted — defaults to '*'
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("pin", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("pin", "12");
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+
+            // Value length (2) <= occurrence (4) → mask entirely
+            String masked = statement.get("pin").asText();
+            assertEquals("**", masked);
+        }
+
+        @Test
+        void suppressionAtRest_removesField() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            atRest.put("suppression", true);
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("secret", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("secret", "top-secret-value");
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+
+            assertTrue(!statement.has("secret") || statement.get("secret").isNull(),
+                    "Expected field to be removed or null");
+        }
+
+        @Test
+        void encryptionAtRest_throwsUnsupported() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            atRest.putObject("encryption").put("algorithm", "AES-256-GCM");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("card", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("card", "4111-1111-1111-1111");
+
+            assertThrows(UnsupportedOperationException.class,
+                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+        }
+
+        @Test
+        void noDataProtection_unchanged() {
+            ObjectNode archetypeSchema = schemaWithProperty("name", prop("string"));
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode().put("name", "Alice");
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertTrue(statement.get("name").asText().equals("Alice"));
+        }
+
+        @Test
+        void missingFieldInStatement_skipped() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            atRest.putObject("hash").put("algorithm", "SHA-256");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode archetypeSchema = schemaWithProperty("ssn", propNode);
+
+            ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+            ObjectNode statement = MAPPER.createObjectNode(); // ssn not present
+
+            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertTrue(!statement.has("ssn"));
+        }
+    }
+
+    // ========================================================================
     // Helpers
     // ========================================================================
 
@@ -694,11 +753,8 @@ class AbstractAscriptionServiceEnforcementTest {
     }
 
     private ArchetypeEntity stubArchetypeWithSchema(ObjectNode schema) {
-        ObjectNode statement = MAPPER.createObjectNode();
-        statement.set("schema", schema);
-
         ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-        when(archetype.getStatement()).thenReturn(statement);
+        when(archetype.getStatement()).thenReturn(schema);
 
         DefinitionEntity def = mock(DefinitionEntity.class);
         when(def.getId()).thenReturn(UUID.randomUUID());

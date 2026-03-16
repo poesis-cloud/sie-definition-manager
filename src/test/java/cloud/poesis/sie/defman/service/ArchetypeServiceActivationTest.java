@@ -28,7 +28,7 @@ import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 
 /**
- * Tests Archetype activation uniqueness (schema.title uniqueness).
+ * Tests Archetype activation uniqueness (title uniqueness).
  * Complements ArchetypeServiceAllOfChainTest and
  * ArchetypeServiceAnnotationTest.
  */
@@ -51,7 +51,7 @@ class ArchetypeServiceActivationTest {
     }
 
     // ========================================================================
-    // Activation uniqueness: schema.title (GSM Archetype validation rules)
+    // Activation uniqueness: title (GSM Archetype validation rules)
     // ========================================================================
 
     @Nested
@@ -145,12 +145,12 @@ class ArchetypeServiceActivationTest {
     class IdentityBound {
 
         @Test
-        void schemaTitleExtracted() {
+        void titleExtracted() {
             ArchetypeEntity entity = stubArchetype("SecurityProperties", UUID.randomUUID());
             var values = service.getIdentityBoundValues(entity);
 
-            assertTrue(values.containsKey("schema.title"));
-            assertTrue(values.get("schema.title").equals("SecurityProperties"));
+            assertTrue(values.containsKey("title"));
+            assertTrue(values.get("title").equals("SecurityProperties"));
         }
 
         @Test
@@ -170,10 +170,8 @@ class ArchetypeServiceActivationTest {
         DefinitionEntity def = mock(DefinitionEntity.class);
         when(def.getId()).thenReturn(defId);
 
-        ObjectNode schema = MAPPER.createObjectNode();
-        schema.put("title", title);
         ObjectNode stmt = MAPPER.createObjectNode();
-        stmt.set("schema", schema);
+        stmt.put("title", title);
 
         ArchetypeEntity entity = mock(ArchetypeEntity.class);
         when(entity.getId()).thenReturn(UUID.randomUUID());

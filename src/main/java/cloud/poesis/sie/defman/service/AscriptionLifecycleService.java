@@ -207,7 +207,7 @@ public class AscriptionLifecycleService {
         validateRefereePreconditions(entity, type, currentStatus, targetStatusType);
 
         // 3. Activation uniqueness (Structure purpose, Mechanism function, Archetype
-        // schema.title)
+        // title)
         if (targetStatusType == AscriptionStatusType.ACTIVE) {
             validateActivationUniqueness(entity, type);
         }

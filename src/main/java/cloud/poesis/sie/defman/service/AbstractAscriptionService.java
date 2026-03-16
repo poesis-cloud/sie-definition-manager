@@ -20,19 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 
-import dev.cel.common.CelAbstractSyntaxTree;
-import dev.cel.common.CelValidationResult;
-import dev.cel.common.types.SimpleType;
-import dev.cel.compiler.CelCompiler;
-import dev.cel.compiler.CelCompilerFactory;
-import dev.cel.runtime.CelRuntime;
-import dev.cel.runtime.CelRuntimeFactory;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -41,6 +35,13 @@ import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import dev.cel.common.CelAbstractSyntaxTree;
+import dev.cel.common.CelValidationResult;
+import dev.cel.common.types.SimpleType;
+import dev.cel.compiler.CelCompiler;
+import dev.cel.compiler.CelCompilerFactory;
+import dev.cel.runtime.CelRuntime;
+import dev.cel.runtime.CelRuntimeFactory;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -63,7 +64,7 @@ public abstract class AbstractAscriptionService {
     private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
     /**
-     * CEL compiler + runtime for $gsm:validationCEL enforcement at Ascription
+     * CEL compiler + runtime for $gsm:validation enforcement at Ascription
      * authoring.
      */
     private final CelCompiler celCompiler = CelCompilerFactory.standardCelCompilerBuilder()
@@ -346,10 +347,9 @@ public abstract class AbstractAscriptionService {
 
     void validateStatement(JsonNode statement, ArchetypeEntity archetype) {
         JsonNode archetypeStatement = archetype.getStatement();
-        JsonNode schemaNode = archetypeStatement.get("schema");
 
         SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
-        JsonSchema schema = schemaFactory.getSchema(schemaNode, config);
+        JsonSchema schema = schemaFactory.getSchema(archetypeStatement, config);
         Set<ValidationMessage> errors = schema.validate(statement);
 
         if (!errors.isEmpty()) {
@@ -366,17 +366,15 @@ public abstract class AbstractAscriptionService {
     // ======================================================================
 
     void enforceGsmAnnotations(JsonNode statement, ArchetypeEntity archetype, UUID definitionId) {
-        JsonNode archetypeSchema = archetype.getStatement().get("schema");
-        if (archetypeSchema == null) {
+        JsonNode archetypeStmt = archetype.getStatement();
+        if (archetypeStmt == null) {
             return;
         }
 
-        JsonNode properties = archetypeSchema.get("properties");
+        JsonNode properties = archetypeStmt.get("properties");
         if (properties == null || !properties.isObject()) {
             return;
         }
-
-        List<String> warnings = new ArrayList<>();
 
         for (Map.Entry<String, JsonNode> entry : properties.properties()) {
             String propName = entry.getKey();
@@ -388,59 +386,20 @@ public abstract class AbstractAscriptionService {
 
             JsonNode value = statement.get(propName);
 
-            if (propSchema.has("$gsm:referential")) {
-                enforceReferential(propSchema.get("$gsm:referential"), propName, value);
-            }
-
             if (hasGsmAnnotation(propSchema, "$gsm:unique")) {
                 enforceUnique(propName, value, archetype, definitionId);
             }
 
-            if (hasGsmAnnotation(propSchema, "$gsm:deprecated")) {
-                warnings.add("Property '" + propName + "' is deprecated");
+            if (propSchema.has("$gsm:dataProtection")) {
+                applyDataProtectionAtRest(propSchema.get("$gsm:dataProtection"),
+                        propName, (ObjectNode) statement);
             }
         }
 
-        for (String warning : warnings) {
-            LOG.warn("$gsm:deprecated: {}", warning);
-        }
-
-        // GSM §8: $gsm:validationCEL — evaluate top-level CEL constraints against
+        // GSM §8: $gsm:validation — evaluate top-level CEL constraints against
         // statement
-        if (archetypeSchema.has("$gsm:validationCEL")) {
-            evaluateValidationCel(archetypeSchema.get("$gsm:validationCEL"), statement);
-        }
-    }
-
-    private void enforceReferential(JsonNode annotation, String propName, JsonNode value) {
-        if (!value.isTextual()) {
-            return;
-        }
-
-        UUID refId;
-        try {
-            refId = UUID.fromString(value.asText());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "$gsm:referential: property '" + propName + "' value '"
-                            + value.asText() + "' is not a valid UUID");
-        }
-
-        DefinitionEntity refDef = definitionRepository.findById(refId).orElse(null);
-        if (refDef == null) {
-            throw new IllegalArgumentException(
-                    "$gsm:referential: property '" + propName + "' references Definition "
-                            + refId + " which does not exist");
-        }
-
-        if (annotation.has("subjectType")) {
-            String expectedType = annotation.get("subjectType").asText();
-            if (!expectedType.equals(refDef.getSubjectType().name())) {
-                throw new IllegalArgumentException(
-                        "$gsm:referential: property '" + propName + "' references Definition "
-                                + refId + " with subjectType " + refDef.getSubjectType()
-                                + " but expected " + expectedType);
-            }
+        if (archetypeStmt.has("$gsm:validation")) {
+            evaluateValidation(archetypeStmt.get("$gsm:validation"), statement);
         }
     }
 
@@ -471,19 +430,104 @@ public abstract class AbstractAscriptionService {
     }
 
     // ======================================================================
-    // $gsm:validationCEL evaluation at Ascription authoring
+    // $gsm:dataProtection atRest enforcement at Ascription authoring
+    // ======================================================================
+
+    static void applyDataProtectionAtRest(JsonNode dpNode, String propName, ObjectNode statement) {
+        if (dpNode == null || !dpNode.has("atRest")) {
+            return;
+        }
+
+        JsonNode atRest = dpNode.get("atRest");
+        JsonNode value = statement.get(propName);
+        if (value == null || value.isNull()) {
+            return;
+        }
+        String textValue = value.isTextual() ? value.asText() : value.toString();
+
+        if (atRest.has("encryption")) {
+            throw new UnsupportedOperationException(
+                    "$gsm:dataProtection atRest.encryption is not yet supported");
+        }
+
+        if (atRest.has("hash")) {
+            String algorithm = "SHA-256";
+            if (atRest.get("hash").has("algorithm")) {
+                algorithm = atRest.get("hash").get("algorithm").asText();
+            }
+            String hashed = computeHash(textValue, algorithm);
+            statement.put(propName, hashed);
+        }
+
+        if (atRest.has("mask")) {
+            JsonNode maskNode = atRest.get("mask");
+            String masked = applyMask(textValue, maskNode);
+            statement.put(propName, masked);
+        }
+
+        if (atRest.has("suppression")) {
+            statement.remove(propName);
+        }
+    }
+
+    public static String computeHash(String value, String algorithm) {
+        try {
+            String javaAlgorithm = algorithm.replace("SHA3-256", "SHA3-256")
+                    .replace("SHA-256", "SHA-256")
+                    .replace("SHA-512", "SHA-512");
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance(javaAlgorithm);
+            byte[] hash = digest.digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(
+                    "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported", e);
+        }
+    }
+
+    public static String applyMask(String value, JsonNode maskNode) {
+        String direction = maskNode.get("from").asText();
+        JsonNode withNode = maskNode.get("with");
+        char maskChar = withNode.has("character") ? withNode.get("character").asText().charAt(0) : '*';
+        int occurrence = withNode.get("occurrence").asInt();
+
+        if (value.length() <= occurrence) {
+            // Mask the entire value — do not expose short sensitive data
+            return String.valueOf(maskChar).repeat(value.length());
+        }
+
+        char[] chars = value.toCharArray();
+        if ("LEFT".equals(direction)) {
+            // Keep first 'occurrence' characters visible, mask the rest
+            for (int i = occurrence; i < chars.length; i++) {
+                chars[i] = maskChar;
+            }
+        } else {
+            // RIGHT: keep last 'occurrence' characters visible, mask the rest
+            for (int i = 0; i < chars.length - occurrence; i++) {
+                chars[i] = maskChar;
+            }
+        }
+        return new String(chars);
+    }
+
+    // ======================================================================
+    // $gsm:validation evaluation at Ascription authoring
     // ======================================================================
 
     @SuppressWarnings("unchecked")
-    void evaluateValidationCel(JsonNode validationCelNode, JsonNode statement) {
-        if (!validationCelNode.isArray() || validationCelNode.isEmpty()) {
+    void evaluateValidation(JsonNode validationNode, JsonNode statement) {
+        if (!validationNode.isArray() || validationNode.isEmpty()) {
             return;
         }
 
         Map<String, Object> statementMap = celMapper.convertValue(statement, Map.class);
 
-        for (int i = 0; i < validationCelNode.size(); i++) {
-            JsonNode exprNode = validationCelNode.get(i);
+        for (int i = 0; i < validationNode.size(); i++) {
+            JsonNode exprNode = validationNode.get(i);
             if (!exprNode.isTextual()) {
                 continue;
             }
@@ -496,7 +540,7 @@ public abstract class AbstractAscriptionService {
                 CelValidationResult compileResult = celCompiler.compile(expr);
                 if (compileResult.hasError()) {
                     throw new IllegalArgumentException(
-                            "$gsm:validationCEL[" + i + "] CEL parse error: " + compileResult.getErrorString());
+                            "$gsm:validation[" + i + "] CEL parse error: " + compileResult.getErrorString());
                 }
                 CelAbstractSyntaxTree ast = compileResult.getAst();
                 CelRuntime.Program program = celRuntime.createProgram(ast);
@@ -504,14 +548,14 @@ public abstract class AbstractAscriptionService {
 
                 if (!(result instanceof Boolean b) || !b) {
                     throw new IllegalArgumentException(
-                            "$gsm:validationCEL[" + i + "] constraint failed: expression '"
+                            "$gsm:validation[" + i + "] constraint failed: expression '"
                                     + expr + "' evaluated to " + result);
                 }
             } catch (IllegalArgumentException e) {
                 throw e; // re-throw our own exceptions
             } catch (Exception e) {
                 throw new IllegalArgumentException(
-                        "$gsm:validationCEL[" + i + "] evaluation error for expression '"
+                        "$gsm:validation[" + i + "] evaluation error for expression '"
                                 + expr + "': " + e.getMessage(),
                         e);
             }

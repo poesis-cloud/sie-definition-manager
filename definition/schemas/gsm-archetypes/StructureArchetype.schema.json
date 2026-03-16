@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/StructureArchetype/v1",
   "title": "StructureArchetype",
   "description": "Schema for Structure Ascriptions — the foundational aggregate. Defines the Structure's purpose: its identity discriminator and governance address. DM input = DM output (1:1). Tenant-defined archetypes extending Structure MUST reference this schema via allOf.",

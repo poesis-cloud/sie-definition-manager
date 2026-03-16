@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -68,24 +70,59 @@ class ArchetypeServiceAllOfChainTest {
     }
 
     // ========================================================================
-    // Missing allOf
+    // Rootless archetypes (no allOf or no structural base) — accepted
     // ========================================================================
 
     @Test
-    void missingAllOf_rejected() {
-        ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantArchetype");
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.validateAllOfChain(schema));
-        assertTrue(ex.getMessage().contains("allOf"));
+    void missingAllOf_rootlessAccepted() {
+        ObjectNode schema = MAPPER.createObjectNode().put("title", "SecurityProperties");
+        assertDoesNotThrow(() -> service.validateAllOfChain(schema));
     }
 
     @Test
-    void emptyAllOf_rejected() {
-        ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantArchetype");
+    void emptyAllOf_rootlessAccepted() {
+        ObjectNode schema = MAPPER.createObjectNode().put("title", "SecurityProperties");
         schema.putArray("allOf");
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.validateAllOfChain(schema));
-        assertTrue(ex.getMessage().contains("allOf"));
+        assertDoesNotThrow(() -> service.validateAllOfChain(schema));
+    }
+
+    @Test
+    void allOfWithOnlyRootlessIntermediary_accepted() {
+        // SecurityProperties is rootless (no allOf itself)
+        ObjectNode facetSchema = schemaNode("SecurityProperties", false);
+        ArchetypeEntity facet = mockArchetype(facetSchema);
+        when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(facet));
+
+        ObjectNode schema = MAPPER.createObjectNode().put("title", "DetailedSecurity");
+        schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/SecurityProperties/v1");
+
+        assertDoesNotThrow(() -> service.validateAllOfChain(schema));
+    }
+
+    @Test
+    void allOfWithInlineEntriesOnly_rootlessAccepted() {
+        ObjectNode schema = MAPPER.createObjectNode().put("title", "InlineFacet");
+        var allOf = schema.putArray("allOf");
+        allOf.addObject().put("type", "object"); // inline schema, no $ref
+
+        assertDoesNotThrow(() -> service.validateAllOfChain(schema));
+    }
+
+    @Test
+    void structuralBaseWithRootlessFacet_accepted() {
+        // StructureArchetype is a GSM base (non-sealed)
+        ArchetypeEntity structBase = mockArchetype(schemaNode("StructureArchetype", false));
+        // SecurityProperties is rootless
+        ObjectNode facetSchema = schemaNode("SecurityProperties", false);
+        ArchetypeEntity facet = mockArchetype(facetSchema);
+        when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(structBase, facet));
+
+        ObjectNode schema = MAPPER.createObjectNode().put("title", "SecuredStructure");
+        var allOf = schema.putArray("allOf");
+        allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+        allOf.addObject().put("$ref", "gsm://archetypes/SecurityProperties/v1");
+
+        assertDoesNotThrow(() -> service.validateAllOfChain(schema));
     }
 
     // ========================================================================
@@ -213,6 +250,95 @@ class ArchetypeServiceAllOfChainTest {
     }
 
     // ========================================================================
+    // resolveForCreation — structural base enforcement for archetype_id
+    // ========================================================================
+
+    @Test
+    void resolveForCreation_gsmBaseArchetype_resolvesDirectly() {
+        UUID id = UUID.randomUUID();
+        ArchetypeEntity base = mockArchetype(schemaNode("StructureArchetype", false));
+        when(base.getId()).thenReturn(id);
+        when(archetypeRepo.findById(id)).thenReturn(Optional.of(base));
+
+        var resolution = service.resolveForCreation(id);
+        assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
+    }
+
+    @Test
+    void resolveForCreation_tenantStructuralArchetype_walksChain() {
+        // Base archetype for allOf chain resolution
+        ArchetypeEntity structBase = mockArchetype(schemaNode("StructureArchetype", false));
+        when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(structBase));
+
+        // Tenant archetype extending StructureArchetype
+        UUID tenantId = UUID.randomUUID();
+        ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "MyServiceArchetype");
+        tenantSchema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+        ArchetypeEntity tenant = mockArchetype(tenantSchema);
+        when(tenant.getId()).thenReturn(tenantId);
+        when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        var resolution = service.resolveForCreation(tenantId);
+        assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
+    }
+
+    @Test
+    void resolveForCreation_tenantViaIntermediary_walksChain() {
+        // Base archetype
+        ArchetypeEntity mechBase = mockArchetype(schemaNode("MechanismArchetype", false));
+        // Intermediary tenant archetype
+        ObjectNode intermediarySchema = schemaNode("BaseMechanismTemplate", false);
+        intermediarySchema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/MechanismArchetype/v1");
+        ArchetypeEntity intermediary = mockArchetype(intermediarySchema);
+        when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(mechBase, intermediary));
+
+        // Tenant archetype extending intermediary
+        UUID tenantId = UUID.randomUUID();
+        ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "SpecificMechanism");
+        tenantSchema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/BaseMechanismTemplate/v1");
+        ArchetypeEntity tenant = mockArchetype(tenantSchema);
+        when(tenant.getId()).thenReturn(tenantId);
+        when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        var resolution = service.resolveForCreation(tenantId);
+        assertEquals(DefinitionSubjectType.MECHANISM, resolution.subjectType());
+    }
+
+    @Test
+    void resolveForCreation_rootlessNoAllOf_rejected() {
+        UUID id = UUID.randomUUID();
+        ObjectNode rootless = MAPPER.createObjectNode().put("title", "SecurityProperties");
+        ArchetypeEntity entity = mockArchetype(rootless);
+        when(entity.getId()).thenReturn(id);
+        when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.resolveForCreation(id));
+        assertTrue(ex.getMessage().contains("Rootless"));
+        assertTrue(ex.getMessage().contains("archetype_id"));
+    }
+
+    @Test
+    void resolveForCreation_rootlessWithAllOf_rejected() {
+        // Rootless facet archetype extending another rootless facet
+        ObjectNode baseFacet = schemaNode("BaseFacet", false);
+        ArchetypeEntity baseFacetEntity = mockArchetype(baseFacet);
+        when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(baseFacetEntity));
+
+        UUID id = UUID.randomUUID();
+        ObjectNode rootless = MAPPER.createObjectNode().put("title", "DetailedFacet");
+        rootless.putArray("allOf").addObject().put("$ref", "gsm://archetypes/BaseFacet/v1");
+        ArchetypeEntity entity = mockArchetype(rootless);
+        when(entity.getId()).thenReturn(id);
+        when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.resolveForCreation(id));
+        assertTrue(ex.getMessage().contains("Rootless"));
+        assertTrue(ex.getMessage().contains("archetype_id"));
+    }
+
+    // ========================================================================
     // Helpers
     // ========================================================================
 
@@ -226,9 +352,7 @@ class ArchetypeServiceAllOfChainTest {
 
     private static ArchetypeEntity mockArchetype(JsonNode schema) {
         ArchetypeEntity entity = mock(ArchetypeEntity.class);
-        ObjectNode stmt = MAPPER.createObjectNode();
-        stmt.set("schema", schema);
-        when(entity.getStatement()).thenReturn(stmt);
+        when(entity.getStatement()).thenReturn(schema);
         when(entity.getId()).thenReturn(UUID.randomUUID());
         return entity;
     }

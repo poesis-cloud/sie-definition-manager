@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/MechanismArchetype/v1",
   "title": "MechanismArchetype",
   "description": "Schema for Mechanism Ascriptions — the logical causal unit. Defines the owning Structure, function label, and (in Generative mode) the Starlark rule. In Declarative mode, rule is absent and Effectors/Receptors are authored explicitly. DM input = DM output (1:1). Tenant-defined archetypes extending Mechanism MUST reference this schema via allOf.",

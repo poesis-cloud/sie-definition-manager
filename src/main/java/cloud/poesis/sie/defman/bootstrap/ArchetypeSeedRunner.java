@@ -105,7 +105,7 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
                 "WITH gen AS (SELECT uuid_v7() AS v)"
                         + " INSERT INTO archetype (id, definition_id, archetype_id, statement, version, status)"
                         + " SELECT v, ?::uuid, v, ?::jsonb, 1, 'ACTIVE'::ascription_status FROM gen RETURNING id",
-                UUID.class, axiomaticDefinitionId.toString(), wrapSchema(axiomaticArchetypeSchema));
+                UUID.class, axiomaticDefinitionId.toString(), axiomaticArchetypeSchema.toString());
         insertLifecycleTransitions(axiomaticArchetypeId);
         LOG.info("Seeded meta-archetype: Archetype (self-typed bootstrap)");
 
@@ -115,7 +115,7 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
                     "INSERT INTO archetype (definition_id, archetype_id, statement, version, status)"
                             + " VALUES (?::uuid, ?::uuid, ?::jsonb, 1, 'ACTIVE'::ascription_status) RETURNING id",
                     UUID.class, definitionId.toString(), axiomaticArchetypeId.toString(),
-                    wrapSchema(entry.getValue()));
+                    entry.getValue().toString());
             insertLifecycleTransitions(archetypeId);
             LOG.info("Seeded base archetype: {}", entry.getKey());
         }
@@ -167,9 +167,5 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
                 "INSERT INTO ascription_status_transition (ascription_id, pre_status, post_status)"
                         + " VALUES (?::uuid, 'APPROVED'::ascription_status, 'ACTIVE'::ascription_status)",
                 id);
-    }
-
-    private static String wrapSchema(JsonNode schema) {
-        return "{\"schema\":" + schema.toString() + "}";
     }
 }

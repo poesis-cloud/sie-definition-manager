@@ -2,6 +2,8 @@ package cloud.poesis.sie.defman.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +25,7 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 /**
  * Tests for {@link AbstractController#toAscriptionDto} — specifically
- * the $gsm:sensitive redaction logic (GSM §8 V8).
+ * the $gsm:dataProtection inTransit logic (GSM §8).
  */
 class AbstractControllerRedactionTest {
 
@@ -34,20 +36,21 @@ class AbstractControllerRedactionTest {
     };
 
     // ========================================================================
-    // $gsm:sensitive redaction (GSM §8 V8)
+    // $gsm:dataProtection inTransit (GSM §8)
     // ========================================================================
 
     @Nested
-    class SensitiveRedaction {
+    class DataProtectionInTransit {
 
         @Test
-        void sensitiveProperty_redacted() {
+        void hashInTransit_replacesValueWithHash() {
             ObjectNode archetypeSchema = MAPPER.createObjectNode();
             archetypeSchema.put("title", "TestSchema");
             ObjectNode props = archetypeSchema.putObject("properties");
             ObjectNode passwordProp = props.putObject("password");
             passwordProp.put("type", "string");
-            passwordProp.put("$gsm:sensitive", true);
+            ObjectNode dp = passwordProp.putObject("$gsm:dataProtection");
+            dp.putObject("inTransit").putObject("hash").put("algorithm", "SHA-256");
             ObjectNode nameProp = props.putObject("name");
             nameProp.put("type", "string");
 
@@ -59,26 +62,51 @@ class AbstractControllerRedactionTest {
 
             AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
 
-            assertEquals("[REDACTED]", dto.statement().get("password").asText());
+            // Password should be hashed (64 hex chars for SHA-256)
+            String hashed = dto.statement().get("password").asText();
+            assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex hash, got: " + hashed);
             assertEquals("test-service", dto.statement().get("name").asText());
         }
 
         @Test
-        void multipleSensitiveProperties_allRedacted() {
+        void maskInTransit_masksValue() {
             ObjectNode archetypeSchema = MAPPER.createObjectNode();
             archetypeSchema.put("title", "TestSchema");
             ObjectNode props = archetypeSchema.putObject("properties");
-            ObjectNode p1 = props.putObject("apiKey");
-            p1.put("type", "string");
-            p1.put("$gsm:sensitive", true);
-            ObjectNode p2 = props.putObject("secret");
-            p2.put("type", "string");
-            p2.put("$gsm:sensitive", true);
-            ObjectNode p3 = props.putObject("env");
-            p3.put("type", "string");
+            ObjectNode phoneProp = props.putObject("phone");
+            phoneProp.put("type", "string");
+            ObjectNode dp = phoneProp.putObject("$gsm:dataProtection");
+            ObjectNode mask = dp.putObject("inTransit").putObject("mask");
+            mask.put("from", "RIGHT");
+            ObjectNode with = mask.putObject("with");
+            with.put("character", "*");
+            with.put("occurrence", 4);
 
             ObjectNode statement = MAPPER.createObjectNode()
-                    .put("apiKey", "key-123")
+                    .put("phone", "555-1234");
+
+            AscriptionEntity entity = stubEntity(archetypeSchema, statement);
+
+            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+
+            String masked = dto.statement().get("phone").asText();
+            assertTrue(masked.endsWith("1234"), "Expected last 4 chars visible, got: " + masked);
+            assertTrue(masked.contains("*"), "Expected masking characters, got: " + masked);
+        }
+
+        @Test
+        void suppressionInTransit_removesField() {
+            ObjectNode archetypeSchema = MAPPER.createObjectNode();
+            archetypeSchema.put("title", "TestSchema");
+            ObjectNode props = archetypeSchema.putObject("properties");
+            ObjectNode secretProp = props.putObject("secret");
+            secretProp.put("type", "string");
+            ObjectNode dp = secretProp.putObject("$gsm:dataProtection");
+            dp.putObject("inTransit").put("suppression", true);
+            ObjectNode envProp = props.putObject("env");
+            envProp.put("type", "string");
+
+            ObjectNode statement = MAPPER.createObjectNode()
                     .put("secret", "top-secret")
                     .put("env", "prod");
 
@@ -86,13 +114,31 @@ class AbstractControllerRedactionTest {
 
             AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
 
-            assertEquals("[REDACTED]", dto.statement().get("apiKey").asText());
-            assertEquals("[REDACTED]", dto.statement().get("secret").asText());
+            assertNull(dto.statement().get("secret"));
             assertEquals("prod", dto.statement().get("env").asText());
         }
 
         @Test
-        void noSensitiveProperties_unchanged() {
+        void encryptionInTransit_throwsUnsupported() {
+            ObjectNode archetypeSchema = MAPPER.createObjectNode();
+            archetypeSchema.put("title", "TestSchema");
+            ObjectNode props = archetypeSchema.putObject("properties");
+            ObjectNode cardProp = props.putObject("card");
+            cardProp.put("type", "string");
+            ObjectNode dp = cardProp.putObject("$gsm:dataProtection");
+            dp.putObject("inTransit").putObject("encryption").put("algorithm", "AES-256-GCM");
+
+            ObjectNode statement = MAPPER.createObjectNode()
+                    .put("card", "4111-1111-1111-1111");
+
+            AscriptionEntity entity = stubEntity(archetypeSchema, statement);
+
+            assertThrows(UnsupportedOperationException.class,
+                    () -> controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity));
+        }
+
+        @Test
+        void noDataProtection_unchanged() {
             ObjectNode archetypeSchema = MAPPER.createObjectNode();
             archetypeSchema.put("title", "TestSchema");
             ObjectNode props = archetypeSchema.putObject("properties");
@@ -110,9 +156,30 @@ class AbstractControllerRedactionTest {
         }
 
         @Test
-        void noSchemaInArchetype_passThrough() {
+        void onlyAtRest_noInTransitTransform() {
+            ObjectNode archetypeSchema = MAPPER.createObjectNode();
+            archetypeSchema.put("title", "TestSchema");
+            ObjectNode props = archetypeSchema.putObject("properties");
+            ObjectNode ssnProp = props.putObject("ssn");
+            ssnProp.put("type", "string");
+            ObjectNode dp = ssnProp.putObject("$gsm:dataProtection");
+            dp.putObject("atRest").putObject("hash").put("algorithm", "SHA-256");
+            // No inTransit → should not modify value in API response
+
+            ObjectNode statement = MAPPER.createObjectNode()
+                    .put("ssn", "already-hashed-at-rest-value");
+
+            AscriptionEntity entity = stubEntity(archetypeSchema, statement);
+
+            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+
+            assertEquals("already-hashed-at-rest-value", dto.statement().get("ssn").asText());
+        }
+
+        @Test
+        void noPropertiesInArchetype_passThrough() {
             ObjectNode archetypeStatement = MAPPER.createObjectNode();
-            // no "schema" key
+            // no "properties" key
 
             ObjectNode statement = MAPPER.createObjectNode()
                     .put("password", "s3cret");
@@ -125,13 +192,14 @@ class AbstractControllerRedactionTest {
         }
 
         @Test
-        void sensitivePropertyNotInStatement_noError() {
+        void dataProtectionPropertyNotInStatement_noError() {
             ObjectNode archetypeSchema = MAPPER.createObjectNode();
             archetypeSchema.put("title", "TestSchema");
             ObjectNode props = archetypeSchema.putObject("properties");
             ObjectNode passwordProp = props.putObject("password");
             passwordProp.put("type", "string");
-            passwordProp.put("$gsm:sensitive", true);
+            ObjectNode dp = passwordProp.putObject("$gsm:dataProtection");
+            dp.putObject("inTransit").put("suppression", true);
 
             // Statement does NOT contain "password"
             ObjectNode statement = MAPPER.createObjectNode()
@@ -144,18 +212,6 @@ class AbstractControllerRedactionTest {
             assertNull(dto.statement().get("password"));
             assertEquals("test", dto.statement().get("name").asText());
         }
-
-        @Test
-        void nullStatement_passThrough() {
-            ObjectNode archetypeSchema = MAPPER.createObjectNode();
-            archetypeSchema.put("title", "TestSchema");
-
-            AscriptionEntity entity = stubEntity(archetypeSchema, null);
-
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
-
-            assertNull(dto.statement());
-        }
     }
 
     // ========================================================================
@@ -163,9 +219,7 @@ class AbstractControllerRedactionTest {
     // ========================================================================
 
     private AscriptionEntity stubEntity(ObjectNode archetypeSchema, ObjectNode statement) {
-        ObjectNode archetypeStmt = MAPPER.createObjectNode();
-        archetypeStmt.set("schema", archetypeSchema);
-        return stubEntityWithCustomArchetypeStatement(archetypeStmt, statement);
+        return stubEntityWithCustomArchetypeStatement(archetypeSchema, statement);
     }
 
     private AscriptionEntity stubEntityWithCustomArchetypeStatement(ObjectNode archetypeStmt, ObjectNode statement) {

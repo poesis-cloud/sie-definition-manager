@@ -11,25 +11,24 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
+import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 public abstract class AbstractController {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractController.class);
-    private static final String REDACTED = "[REDACTED]";
 
     // ========================================================================
     // MAPPING
     // ========================================================================
 
     protected AscriptionDto toAscriptionDto(DefinitionSubjectType type, AscriptionEntity entity) {
-        JsonNode statement = redactSensitiveFields(entity);
+        JsonNode statement = applyDataProtectionInTransit(entity);
         return new AscriptionDto(
                 entity.getId(),
                 entity.getDefinition().getId(),
@@ -37,25 +36,18 @@ public abstract class AbstractController {
                 type.getValue(),
                 statement,
                 entity.getVersion(),
-                entity.getStatus() != null ? entity.getStatus().name() : "DRAFT",
+                entity.getStatus().name(),
                 entity.getTimestamp());
     }
 
     /**
-     * GSM §8: $gsm:sensitive — redact sensitive properties from statement
-     * before including in API responses.
+     * GSM §8: $gsm:dataProtection — apply inTransit measures to statement
+     * properties before including in API responses.
      */
-    private JsonNode redactSensitiveFields(AscriptionEntity entity) {
+    private JsonNode applyDataProtectionInTransit(AscriptionEntity entity) {
         JsonNode statement = entity.getStatement();
-        if (statement == null || !statement.isObject()) {
-            return statement;
-        }
 
-        JsonNode archetypeStatement = entity.getArchetype().getStatement();
-        if (archetypeStatement == null) {
-            return statement;
-        }
-        JsonNode schema = archetypeStatement.get("schema");
+        JsonNode schema = entity.getArchetype().getStatement();
         if (schema == null) {
             return statement;
         }
@@ -64,37 +56,67 @@ public abstract class AbstractController {
             return statement;
         }
 
-        // Find sensitive properties
-        boolean hasSensitive = false;
+        // Collect properties that declare inTransit protection
+        boolean needsCopy = false;
         Iterator<String> fieldNames = properties.fieldNames();
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
             JsonNode propSchema = properties.get(fieldName);
-            if (propSchema.has("$gsm:sensitive") && propSchema.get("$gsm:sensitive").asBoolean(false)) {
-                if (statement.has(fieldName)) {
-                    hasSensitive = true;
+            if (propSchema.has("$gsm:dataProtection") && statement.has(fieldName)) {
+                JsonNode dp = propSchema.get("$gsm:dataProtection");
+                if (dp.has("inTransit")) {
+                    needsCopy = true;
                     break;
                 }
             }
         }
 
-        if (!hasSensitive) {
+        if (!needsCopy) {
             return statement;
         }
 
-        // Deep-copy and redact
-        ObjectNode redacted = statement.deepCopy();
-        Iterator<String> redactFieldNames = properties.fieldNames();
-        while (redactFieldNames.hasNext()) {
-            String fieldName = redactFieldNames.next();
+        // Deep-copy only when transformation is needed
+        ObjectNode result = statement.deepCopy();
+        fieldNames = properties.fieldNames();
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
             JsonNode propSchema = properties.get(fieldName);
-            if (propSchema.has("$gsm:sensitive") && propSchema.get("$gsm:sensitive").asBoolean(false)) {
-                if (redacted.has(fieldName)) {
-                    redacted.set(fieldName, TextNode.valueOf(REDACTED));
+            if (!propSchema.has("$gsm:dataProtection") || !result.has(fieldName)) {
+                continue;
+            }
+            JsonNode dp = propSchema.get("$gsm:dataProtection");
+            if (!dp.has("inTransit")) {
+                continue;
+            }
+
+            JsonNode inTransit = dp.get("inTransit");
+            JsonNode value = result.get(fieldName);
+            String textValue = value.isTextual() ? value.asText() : value.toString();
+
+            if (inTransit.has("encryption")) {
+                throw new UnsupportedOperationException(
+                        "$gsm:dataProtection inTransit.encryption is not yet supported");
+            }
+
+            if (inTransit.has("hash")) {
+                String algorithm = "SHA-256";
+                if (inTransit.get("hash").has("algorithm")) {
+                    algorithm = inTransit.get("hash").get("algorithm").asText();
                 }
+                result.put(fieldName,
+                        AbstractAscriptionService.computeHash(textValue, algorithm));
+            }
+
+            if (inTransit.has("mask")) {
+                result.put(fieldName,
+                        AbstractAscriptionService.applyMask(textValue, inTransit.get("mask")));
+            }
+
+            if (inTransit.has("suppression")) {
+                result.remove(fieldName);
             }
         }
-        return redacted;
+        return result;
     }
 
     protected AscriptionStatusTransitionDto toTransitionDto(AscriptionStatusTransitionEntity t) {

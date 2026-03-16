@@ -36,13 +36,11 @@ I've now read both files in their entirety. Here is the comprehensive rule extra
 | **Ascription-V1** | `statement` MUST validate against the JSON Schema stored in the referenced Archetype's `schema` property (`archetype.statement.schema`). |
 | **Ascription-V2** | **Definition identity invariant**: identity-bound `statement` fields MUST equal the value from the Definition's first Ascription. To change an identity-bound field, author a new Definition. Identity-bound fields are declared via `$gsm:identityBound` annotation. The identity-bound set itself is immutable per Archetype Definition. |
 | **Ascription-V3** | `$gsm:identityBound` — **all subtypes**: rejects if value differs from first Ascription of same Definition. |
-| **Ascription-V4** | `$gsm:referential` — **extensible subtypes**: validates referenced Definition exists; checks `subjectType` match if specified in annotation. Rejects on violation. |
-| **Ascription-V5** | `$gsm:unique` — **extensible subtypes**: validates value uniqueness among in-effect (ACTIVE/DEPRECATED) Ascriptions of same Archetype. Rejects on violation. Also DB-enforced via partial unique expression index. |
-| **Ascription-V6** | `$gsm:validationCEL` — **extensible subtypes**: evaluates all CEL expressions declared in the annotation with `statement` as `this`. All MUST return true. Rejects on failure. |
-| **Ascription-V7** | `$gsm:deprecated` — **extensible subtypes**: emits **warning** (not error) when an annotated property is populated. Ascription is accepted. |
-| **Ascription-V8** | `$gsm:sensitive` — **extensible subtypes**: (a) masks value in audit logs and `statusTransitions` context at authoring time, (b) encrypts at rest, (c) redacts in API responses unless caller holds explicit access scope/role. |
-| **Ascription-V9** | `$gsm:queryable` — **no Ascription authoring impact**. Indexes provisioned at Archetype activation. |
-| **Ascription-V10** | `$gsm:sealed` — **no Ascription authoring impact**. Enforced at Archetype authoring time. |
+| **Ascription-V4** | `$gsm:unique` — **extensible subtypes**: validates value uniqueness among in-effect (ACTIVE/DEPRECATED) Ascriptions of same Archetype. Rejects on violation. Also DB-enforced via partial unique expression index. |
+| **Ascription-V5** | `$gsm:validation` — **extensible subtypes**: evaluates all CEL expressions declared in the keyword with `statement` as `this`. All MUST return true. Rejects on failure. |
+| **Ascription-V6** | `$gsm:sensitive` — **extensible subtypes**: (a) masks value in audit logs and `statusTransitions` context at authoring time, (b) encrypts at rest, (c) redacts in API responses unless caller holds explicit access scope/role. |
+| **Ascription-V7** | `$gsm:queryable` — **no Ascription authoring impact**. Indexes provisioned at Archetype activation. |
+| **Ascription-V8** | `$gsm:sealed` — **no Ascription authoring impact**. Enforced at Archetype authoring time. |
 
 #### Assignment Rules
 
@@ -274,20 +272,19 @@ I've now read both files in their entirety. Here is the comprehensive rule extra
 | ID | Rule |
 |---|---|
 | **Archetype-V1** | `statement.schema` MUST NOT be null. |
-| **Archetype-V2** | `statement.schema` MUST be a valid JSON Schema (draft 2020-12+). |
+| **Archetype-V2** | `statement.schema` MUST validate against the GSM meta-schema (`gsm://meta/v1`, defined in `GsmMeta.schema.json`). This validates standard JSON Schema 2020-12 structure AND `$gsm:*` vocabulary keyword value shapes. Semantic checks (allOf chain, uniqueness, type-compatibility, mutual exclusion) are DM application-level. |
 | **Archetype-V3** | `statement.schema.title` MUST NOT be null or empty (DM-enforced identity rule). |
 | **Archetype-V4** | `statement.schema.title` is **identity-bound** (DM-enforced): MUST NOT change across Ascriptions of the same Definition. |
 | **Archetype-V5** | `statement.schema.title` MUST be globally unique among in-effect (ACTIVE or DEPRECATED) Archetype Ascriptions. |
 | **Archetype-V6** | `statement.schema` MUST declare an `allOf` chain that ultimately roots at the GSM base archetype schema. Intermediate tenant archetypes are permitted (depth-N chains) as long as all `allOf` paths converge to the same GSM base. |
 | **Archetype-V7** | Schemas whose `allOf` chain does not root at the GSM base archetype MUST be rejected by the definition-manager. |
 | **Archetype-V8** | The set of `$gsm:identityBound`-annotated properties in `statement.schema` MUST NOT differ from the first Ascription's schema for this Definition. Changing the identity-bound set = new Archetype Definition. |
-| **Archetype-V9** | *(Annotation)* `$gsm:queryable` — annotated property type MUST be indexable (string, number, integer, boolean, or array of scalars). |
-| **Archetype-V10** | *(Annotation)* Maximum queryable properties per Archetype: DM-configurable cap (default: 8). |
-| **Archetype-V11** | *(Annotation)* `$gsm:sensitive` + `$gsm:queryable` — mutual exclusion. Same property carrying both annotations is rejected (sensitive data MUST NOT be indexed). |
-| **Archetype-V12** | *(Annotation)* `$gsm:referential` — if `subjectType` is specified, it MUST be a valid DefinitionSubjectType enum value. |
-| **Archetype-V13** | *(Annotation)* `$gsm:validationCEL` — each expression MUST be parseable CEL, deterministic, and side-effect-free. |
-| **Archetype-V14** | *(Annotation)* `$gsm:identityBound` — the set of annotated properties MUST NOT differ from the first Ascription's schema for this Definition (immutable set). |
-| **Archetype-V15** | *(Annotation)* Unknown `$gsm:*` keywords — DM rejects unrecognized annotation keywords (sealed annotation vocabulary). |
+| **Archetype-V9** | *(Vocabulary)* `$gsm:queryable` — annotated property type MUST be indexable (string, number, integer, boolean, or array of scalars). |
+| **Archetype-V10** | *(Vocabulary)* Maximum queryable properties per Archetype: DM-configurable cap (default: 8). |
+| **Archetype-V11** | *(Vocabulary)* `$gsm:sensitive` + `$gsm:queryable` — mutual exclusion. Same property carrying both keywords is rejected (sensitive data MUST NOT be indexed). |
+| **Archetype-V12** | *(Vocabulary)* `$gsm:validation` — each expression MUST be parseable CEL, deterministic, and side-effect-free. |
+| **Archetype-V13** | *(Vocabulary)* `$gsm:identityBound` — the set of annotated properties MUST NOT differ from the first Ascription's schema for this Definition (immutable set). |
+| **Archetype-V14** | *(Vocabulary)* Unknown `$gsm:*` keywords — DM rejects unrecognized vocabulary keywords (sealed vocabulary). |
 
 #### Relational Consistency Rules
 
@@ -308,9 +305,9 @@ I've now read both files in their entirety. Here is the comprehensive rule extra
 |---|---|
 | **Archetype-S1** | See `gsm-ascription-lifecycle` state machine diagram for valid transitions, preconditions, cascades, and audit-log invariants. |
 | **Archetype-S2** | The definition-manager MUST reject activation of an Archetype whose `schema.title` duplicates an already in-effect Archetype's `schema.title`. |
-| **Archetype-S3** | *(Annotation infra)* `$gsm:queryable` — DM auto-provisions a PostgreSQL expression index on each annotated JSONB path (B-tree scalar / GIN array) scoped to this Archetype at ACTIVE transition. Index dropped when no in-effect Ascription remains. |
-| **Archetype-S4** | *(Annotation infra)* `$gsm:unique` — DM auto-provisions a PostgreSQL partial unique expression index at ACTIVE transition. Index dropped when no in-effect Ascription remains. |
-| **Archetype-S5** | Other annotations (`$gsm:identityBound`, `$gsm:referential`, `$gsm:validationCEL`, `$gsm:deprecated`, `$gsm:sensitive`) are enforced at application level and do NOT require database infrastructure provisioning. |
+| **Archetype-S3** | *(Vocabulary infra)* `$gsm:queryable` — DM auto-provisions a PostgreSQL expression index on each annotated JSONB path (B-tree scalar / GIN array) scoped to this Archetype at ACTIVE transition. Index dropped when no in-effect Ascription remains. |
+| **Archetype-S4** | *(Vocabulary infra)* `$gsm:unique` — DM auto-provisions a PostgreSQL partial unique expression index at ACTIVE transition. Index dropped when no in-effect Ascription remains. |
+| **Archetype-S5** | Other vocabulary keywords (`$gsm:identityBound`, `$gsm:validation`, `$gsm:dataProtection`, `$gsm:sensitive`) are enforced at application level and do NOT require database infrastructure provisioning. |
 
 ---
 
@@ -409,7 +406,7 @@ I've now read both files in their entirety. Here is the comprehensive rule extra
 | ID | Rule |
 |---|---|
 | **LI-1** | Certain `statement` fields are **identity-bound** — they MUST NOT change across Ascriptions of the same Definition. DM MUST reject any Ascription whose identity-bound fields differ from the Definition's first Ascription. To change an identity-bound field, author a new Definition. |
-| **LI-2** | Identity-bound fields are declared via `$gsm:identityBound: true` annotations. The identity-bound set is immutable per Archetype Definition. |
+| **LI-2** | Identity-bound fields are declared via `$gsm:identityBound: true` vocabulary keywords. The identity-bound set is immutable per Archetype Definition. |
 
 Identity-bound fields per SubjectType (reiterated from lifecycle file):
 

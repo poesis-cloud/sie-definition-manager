@@ -188,84 +188,166 @@ class ArchetypeServiceAnnotationTest {
     }
 
     // ========================================================================
-    // $gsm:sensitive + $gsm:queryable mutual exclusion
+    // $gsm:dataProtection (authoring-time validation)
     // ========================================================================
 
     @Nested
-    class SensitiveQueryableMutualExclusion {
+    class DataProtectionAnnotation {
 
         @Test
-        void sensitiveAndQueryable_rejected() {
+        void hashAtRest_valid() {
             ObjectNode propNode = prop("string");
-            propNode.put("$gsm:sensitive", true);
-            propNode.put("$gsm:queryable", true);
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            ObjectNode hash = atRest.putObject("hash");
+            hash.put("algorithm", "SHA-256");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("ssn", propNode);
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void maskInTransit_valid() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode inTransit = dp.putObject("inTransit");
+            ObjectNode mask = inTransit.putObject("mask");
+            mask.put("from", "LEFT");
+            ObjectNode with = mask.putObject("with");
+            with.put("character", "*");
+            with.put("occurrence", 4);
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("phone", propNode);
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void suppressionAtRest_valid() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            atRest.put("suppression", true);
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("secret", propNode);
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void encryptionAtRest_unsupported() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode atRest = dp.putObject("atRest");
+            atRest.putObject("encryption").put("algorithm", "AES-256-GCM");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("secret", propNode);
+
+            UUID defId = UUID.randomUUID();
+
+            assertThrows(UnsupportedOperationException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void encryptionInTransit_unsupported() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            ObjectNode inTransit = dp.putObject("inTransit");
+            inTransit.putObject("encryption").put("algorithm", "AES-256-GCM");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("secret", propNode);
+
+            UUID defId = UUID.randomUUID();
+
+            assertThrows(UnsupportedOperationException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void crossPhase_atRestHashWithInTransitHash_rejected() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            dp.putObject("atRest").putObject("hash").put("algorithm", "SHA-256");
+            dp.putObject("inTransit").putObject("hash").put("algorithm", "SHA-256");
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("ssn", propNode);
+
+            UUID defId = UUID.randomUUID();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.validateArchetypeAnnotations(schema, defId));
+            assertTrue(ex.getMessage().contains("atRest.hash constrains inTransit"));
+        }
+
+        @Test
+        void crossPhase_atRestSuppressionWithInTransit_rejected() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            dp.putObject("atRest").put("suppression", true);
+            dp.putObject("inTransit").put("suppression", true);
+            propNode.set("$gsm:dataProtection", dp);
             ObjectNode schema = schemaWithProperty("secret", propNode);
 
             UUID defId = UUID.randomUUID();
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateArchetypeAnnotations(schema, defId));
-            assertTrue(ex.getMessage().contains("$gsm:sensitive"));
-            assertTrue(ex.getMessage().contains("$gsm:queryable"));
+            assertTrue(ex.getMessage().contains("atRest.suppression requires inTransit to be absent"));
         }
 
         @Test
-        void sensitiveWithoutQueryable_valid() {
+        void crossPhase_atRestHashWithInTransitSuppression_valid() {
             ObjectNode propNode = prop("string");
-            propNode.put("$gsm:sensitive", true);
+            ObjectNode dp = MAPPER.createObjectNode();
+            dp.putObject("atRest").putObject("hash").put("algorithm", "SHA-256");
+            dp.putObject("inTransit").put("suppression", true);
+            propNode.set("$gsm:dataProtection", dp);
+            ObjectNode schema = schemaWithProperty("ssn", propNode);
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void queryableWithHashAtRest_valid() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            dp.putObject("atRest").putObject("hash").put("algorithm", "SHA-256");
+            propNode.set("$gsm:dataProtection", dp);
+            propNode.put("$gsm:queryable", true);
+            ObjectNode schema = schemaWithProperty("email", propNode);
+
+            UUID defId = UUID.randomUUID();
+            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+        }
+
+        @Test
+        void dataProtectionWithoutQueryable_valid() {
+            ObjectNode propNode = prop("string");
+            ObjectNode dp = MAPPER.createObjectNode();
+            dp.putObject("atRest").putObject("hash").put("algorithm", "SHA-512");
+            propNode.set("$gsm:dataProtection", dp);
             ObjectNode schema = schemaWithProperty("password", propNode);
 
             UUID defId = UUID.randomUUID();
             when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-        }
-    }
-
-    // ========================================================================
-    // $gsm:referential (authoring-time validation)
-    // ========================================================================
-
-    @Nested
-    class ReferentialAnnotation {
-
-        @Test
-        void referentialWithValidSubjectType_valid() {
-            ObjectNode ann = MAPPER.createObjectNode().put("subjectType", "STRUCTURE");
-            ObjectNode propNode = prop("string");
-            propNode.set("$gsm:referential", ann);
-            ObjectNode schema = schemaWithProperty("ownerId", propNode);
-
-            UUID defId = UUID.randomUUID();
-            when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-            assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-        }
-
-        @Test
-        void referentialWithInvalidSubjectType_rejected() {
-            ObjectNode ann = MAPPER.createObjectNode().put("subjectType", "BANANA");
-            ObjectNode propNode = prop("string");
-            propNode.set("$gsm:referential", ann);
-            ObjectNode schema = schemaWithProperty("ref", propNode);
-
-            UUID defId = UUID.randomUUID();
-
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                    () -> service.validateArchetypeAnnotations(schema, defId));
-            assertTrue(ex.getMessage().contains("BANANA"));
-        }
-
-        @Test
-        void referentialNotObject_rejected() {
-            ObjectNode propNode = prop("string");
-            propNode.put("$gsm:referential", true);
-            ObjectNode schema = schemaWithProperty("ref", propNode);
-
-            UUID defId = UUID.randomUUID();
-
-            assertThrows(IllegalArgumentException.class,
-                    () -> service.validateArchetypeAnnotations(schema, defId));
         }
     }
 
@@ -373,16 +455,16 @@ class ArchetypeServiceAnnotationTest {
     }
 
     // ========================================================================
-    // $gsm:validationCEL expression validation (V13)
+    // $gsm:validation expression validation
     // ========================================================================
 
     @Nested
-    class ValidationCelAnnotation {
+    class ValidationAnnotation {
 
         @Test
         void validCelExpressions_accepted() {
             ObjectNode schema = schemaWithProperty("budget", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.budget > 0.0"));
 
             UUID defId = UUID.randomUUID();
@@ -398,7 +480,7 @@ class ArchetypeServiceAnnotationTest {
             ObjectNode props = schema.putObject("properties");
             props.set("min", prop("number"));
             props.set("max", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.min <= this.max")
                     .add("this.min > 0"));
 
@@ -411,14 +493,14 @@ class ArchetypeServiceAnnotationTest {
         @Test
         void invalidCelSyntax_rejected() {
             ObjectNode schema = schemaWithProperty("x", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("this.x >>>> 0"));
 
             UUID defId = UUID.randomUUID();
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateArchetypeAnnotations(schema, defId));
-            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("CEL parse error")
                     || ex.getMessage().contains("CEL validation error"));
         }
@@ -426,7 +508,7 @@ class ArchetypeServiceAnnotationTest {
         @Test
         void notAnArray_rejected() {
             ObjectNode schema = schemaWithProperty("x", prop("number"));
-            schema.put("$gsm:validationCEL", "this.x > 0");
+            schema.put("$gsm:validation", "this.x > 0");
 
             UUID defId = UUID.randomUUID();
 
@@ -438,35 +520,35 @@ class ArchetypeServiceAnnotationTest {
         @Test
         void nonStringElement_rejected() {
             ObjectNode schema = schemaWithProperty("x", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add(42));
 
             UUID defId = UUID.randomUUID();
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateArchetypeAnnotations(schema, defId));
-            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("must be a string"));
         }
 
         @Test
         void blankExpression_rejected() {
             ObjectNode schema = schemaWithProperty("x", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode()
+            schema.set("$gsm:validation", MAPPER.createArrayNode()
                     .add("  "));
 
             UUID defId = UUID.randomUUID();
 
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> service.validateArchetypeAnnotations(schema, defId));
-            assertTrue(ex.getMessage().contains("$gsm:validationCEL[0]"));
+            assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("must not be blank"));
         }
 
         @Test
         void emptyArray_accepted() {
             ObjectNode schema = schemaWithProperty("x", prop("number"));
-            schema.set("$gsm:validationCEL", MAPPER.createArrayNode());
+            schema.set("$gsm:validation", MAPPER.createArrayNode());
 
             UUID defId = UUID.randomUUID();
             when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
@@ -492,11 +574,8 @@ class ArchetypeServiceAnnotationTest {
     }
 
     private ArchetypeEntity stubArchetypeWithSchema(ObjectNode schema) {
-        ObjectNode statement = MAPPER.createObjectNode();
-        statement.set("schema", schema);
-
         ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-        when(archetype.getStatement()).thenReturn(statement);
+        when(archetype.getStatement()).thenReturn(schema);
 
         DefinitionEntity def = mock(DefinitionEntity.class);
         when(def.getId()).thenReturn(UUID.randomUUID());

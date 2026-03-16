@@ -77,7 +77,7 @@ note as Rules
   Definition.
 
   Identity-bound fields are declared via `$gsm:identityBound: true`
-  annotations on properties in Archetype schemas. DM introspects
+  vocabulary keywords on properties in Archetype schemas. DM introspects
   schemas to enforce the invariant. The identity-bound set itself
   is immutable per Archetype Definition — changing which properties
   are identity-bound requires a new Archetype Definition.
@@ -94,7 +94,7 @@ note as Rules
   | Interface | `structure` |
   | Directive | `structure`, `qualifier`, `purpose` |
   | Norm | `structure`, `qualifier`, `predicate` |
-  | Archetype | `schema.title` (DM-enforced) |
+  | Archetype | `title` (DM-enforced) |
 
   ====
 

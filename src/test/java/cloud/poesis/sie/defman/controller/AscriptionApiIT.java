@@ -134,13 +134,9 @@ class AscriptionApiIT {
     @Order(10)
     void createArchetype_returnsDraftWithHalLinks() throws Exception {
         ObjectNode statement = mapper.createObjectNode();
-        statement.set(
-                "schema",
-                mapper
-                        .createObjectNode()
-                        .put("type", "object")
-                        .put("title", "TestArchetype")
-                        .put("$schema", "https://json-schema.org/draft/2020-12/schema"));
+        statement.put("type", "object");
+        statement.put("title", "TestArchetype");
+        statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
 
         ObjectNode request = mapper.createObjectNode();
         request.put("archetypeId", seedArchetypeId.toString());
@@ -171,13 +167,9 @@ class AscriptionApiIT {
     @Order(11)
     void createSiblingAscription_sameDefinitionDifferentAscription() throws Exception {
         ObjectNode statement = mapper.createObjectNode();
-        statement.set(
-                "schema",
-                mapper
-                        .createObjectNode()
-                        .put("type", "object")
-                        .put("title", "TestArchetype-v2")
-                        .put("$schema", "https://json-schema.org/draft/2020-12/schema"));
+        statement.put("type", "object");
+        statement.put("title", "TestArchetype-v2");
+        statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
 
         ObjectNode request = mapper.createObjectNode();
         request.put("definitionId", createdArchetypeDefinitionId.toString());
@@ -479,7 +471,8 @@ class AscriptionApiIT {
     @Order(80)
     void transitionAuditTrail_recordsAllChanges() throws Exception {
         ObjectNode stmt = mapper.createObjectNode();
-        stmt.set("schema", mapper.createObjectNode().put("type", "object").put("title", "AuditTest"));
+        stmt.put("type", "object");
+        stmt.put("title", "AuditTest");
         ObjectNode req = mapper.createObjectNode();
         req.put("archetypeId", seedArchetypeId.toString());
         req.set("statement", stmt);

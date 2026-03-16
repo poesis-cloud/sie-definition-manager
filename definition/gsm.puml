@@ -25,8 +25,6 @@ skinparam noteBorderColor #57606A
 
 ' ============================================================
 ' TODO:
-' - Define canonical Archetype catalog per Ascription
-'   subtype (well-known schemas).
 ' - Design inter-Structure governance patterns (governing
 '   Structure DNA → governed Structure Elements).
 ' - Think to making a Structure child of a Structure... The rationale
@@ -387,11 +385,93 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │  One Archetype kind. One validation surface.  │
     └─────────────────────────────────────────────┘
 
-    Base archetype enforcement is a definition-manager concern. Tenant-defined
-    archetype schemas must declare `allOf[{ "$ref": "<gsm-base-schema-uri>" }]`
-    pointing to exactly one GSM base archetype schema (depth = 1 minimum;
-    depth-N chains through intermediate tenant archetypes are permitted as long
-    as all allOf paths converge to the same GSM base).
+    Base archetype enforcement is a definition-manager concern.
+
+    **Structural archetypes** (typing archetypes) declare
+    `allOf[{ "$ref": "<gsm-base-schema-uri>" }]` pointing to exactly
+    one GSM base archetype schema (depth = 1 minimum; depth-N chains
+    through intermediate tenant archetypes are permitted as long as all
+    allOf paths converge to the same GSM base). Structural archetypes
+    MAY be used as `archetype_id` on Ascriptions.
+
+    **Rootless archetypes** (facet / qualifier / data archetypes)
+    either omit `allOf` entirely or declare `allOf` entries whose
+    chains do NOT converge to any GSM structural base. Rootless
+    archetypes are valid first-class Archetypes: they can be
+    referenced as `qualifier_id` (Directive/Norm facet) or as
+    `output_archetype_id` / `input_archetype_id` (Effector/Receptor
+    data type). Rootless archetypes MUST NOT be used as
+    `archetype_id` (the Ascription-level typing reference) because
+    `archetype_id` determines the `DefinitionSubjectType` via the
+    structural base.
+
+    A single Archetype schema MAY mix structural and rootless `allOf`
+    entries (e.g., extending `StructureArchetype` AND a rootless
+    `SecurityProperties` facet). The structural convergence rule
+    applies only to the subset of `allOf` paths that reach a GSM
+    base — exactly one structural base must be found among them.
+    Rootless entries contribute zero bases and are always allowed.
+
+    **Archetype's triple relational role — one instance, three FK
+    positions**:
+
+    A single Archetype **instance** (one Definition, one governed
+    schema, one lifecycle) can simultaneously occupy three distinct
+    FK positions across the GSM class model:
+
+    1. **Typing role** (`archetype_id` on every Ascription):
+       determines the structural class of the governed subject
+       (DefinitionSubjectType). MUST be a structural archetype
+       (allOf chain converging to exactly one GSM base). This is
+       the Ascription-envelope reference — every Ascription has
+       exactly one.
+    2. **Qualifier role** (`qualifier_id` on Directive/Norm):
+       defines the viability dimension being governed — the
+       cross-cutting concern axis. MAY be rootless (facet
+       archetype) or structural. Enables governance coverage
+       analysis and Norm chain validation.
+    3. **Data role** (`output_archetype_id` / `input_archetype_id`
+       on Effector/Receptor): declares the information type a
+       Mechanism port emits or consumes. MAY be rootless or
+       structural.
+
+    The key legitimation is at the **instance** level: the same
+    governed Archetype instance — e.g., a tenant-defined
+    `ServiceProperties` — can be simultaneously referenced as
+    `archetype_id` by Structure Ascriptions (typing their
+    statement), as `qualifier_id` by Directives/Norms (governing
+    the viability dimension it defines), and as
+    `output_archetype_id` by Effectors (declaring the data type
+    they emit). It is the same schema, the same identity, the same
+    governed artifact — viewed from three relational angles.
+
+    Why one entity and one table suffice:
+    - Because the **same instance** participates in all three
+      roles, splitting into separate entities would force
+      duplicating the instance itself — the same schema, the same
+      Definition, the same Ascription lifecycle — once per role.
+      That duplication would be semantically absurd: three
+      identical governed artifacts diverging over time, with no
+      single source of truth for the schema they share.
+    - All three roles share the same identity model (Definition +
+      Ascription lifecycle), the same schema validation surface
+      (JSON Schema + `$gsm:*` vocabulary), and the same governance
+      process (authoring → review → activation).
+    - The roles differ only in referential position (which FK
+      column) and in structural-base requirement (typing requires
+      a base; qualifier and data do not).
+    - The allOf chain presence/absence IS the discriminant: DM
+      enforces structural-base convergence at two points —
+      Archetype authoring (allOf validation) and Ascription
+      creation (`archetype_id` must resolve to a structural base).
+      Rootless archetypes pass authoring validation and are usable
+      in qualifier/data positions, but DM rejects them as
+      `archetype_id`.
+
+    This is Archetype's unique cross-cutting relational role in GSM:
+    one governed type **instance** participates in typing,
+    governance, and information-flow concerns simultaneously —
+    unified by identity, differentiated by FK position.
 
     GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
     InteractionArchetype, InterfaceArchetype, Archetype.
@@ -510,36 +590,70 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     ====
 
-    **§8 — Archetype schema annotations (`$gsm:*`)**
+    **§8 — Archetype schema vocabulary (`$gsm:*`)**
 
     Archetype schemas are the **governance contract** between a tenant/vendor
     and the definition-manager (DM). Beyond structural typing (JSON Schema),
-    schemas carry `$gsm:*` annotations — metadata that instructs DM *how*
-    to manage Ascription data governed by the Archetype.
+    schemas carry `$gsm:*` vocabulary keywords — governance instructions
+    that tell DM *how* to manage Ascription data governed by the Archetype.
 
-    DM introspects annotations at **Archetype authoring time** (validates
-    well-formedness, provisions infrastructure such as DB indexes) and
-    enforces them at **Ascription authoring time** (validates data against
-    declared constraints). No runtime behavior change — annotations are
-    pure definition-plane governance signals.
+    **Meta-schema validation**: DM validates every incoming Archetype schema
+    against the **GSM meta-schema** (`gsm://archetypes/Archetype/v1`,
+    defined in `Archetype.schema.json` — the seed Archetype's own
+    statement). The
+    meta-schema extends JSON Schema 2020-12 and declares `$gsm:*` as
+    recognized vocabulary keywords with defined value shapes. This is the
+    first-pass structural gate — it validates standard JSON Schema structure
+    AND `$gsm:*` keyword value shapes in one pass. Semantic checks (allOf
+    chain resolution, cross-Definition uniqueness, type-compatibility,
+    mutual exclusion) are DM application-level.
 
-    All annotations are JSON Schema custom keywords placed on individual
-    properties within the Archetype's `schema` document.
+    **Concrete DM validation mechanism**: DM loads `Archetype.schema.json`
+    (the seed Archetype's statement) at startup as a compiled JSON Schema
+    validator (classpath resource). When an Archetype Ascription arrives,
+    DM treats the `statement` (the incoming Archetype schema document) as
+    a **JSON instance** and validates it against the seed Archetype
+    validator. This is "schema validates schema" — the Archetype schema
+    is the *instance*, the seed Archetype is the *schema*. The `allOf`
+    in the seed Archetype inherits standard 2020-12 validation;
+    `$dynamicAnchor: "meta"` makes `$gsm:*` keyword validation apply
+    at every recursive schema node.
 
-    **Sealed annotations** (GSM-defined, DM-implemented):
+    **`$schema` security invariant**: DM MUST NOT resolve `$schema`
+    URIs from incoming tenant schemas for validation purposes. A
+    tenant declaring `"$schema": "https://evil.com/permissive.json"`
+    MUST NOT affect which meta-schema DM uses. DM always validates
+    against its own bundled seed Archetype. The `$schema` field in Archetype
+    schemas is a **declaration** (documents which meta-schema governs
+    the schema), not an enforcement vector. GSM base Archetype schemas
+    declare `"$schema": "gsm://archetypes/Archetype/v1"` — the truthful
+    declaration.
 
-    | Annotation | Scope | DM behavior | PostgreSQL mechanism |
+    DM introspects vocabulary keywords at **Archetype authoring time**
+    (validates well-formedness via meta-schema, provisions infrastructure
+    such as DB indexes) and enforces them at **Ascription authoring time**
+    (validates data against declared constraints). No runtime behavior
+    change — vocabulary keywords are pure definition-plane governance
+    signals.
+
+    `$gsm:*` keywords are JSON Schema custom vocabulary keywords placed on
+    individual properties within the Archetype's `schema` document. The
+    meta-schema uses `$dynamicAnchor: "meta"` (JSON Schema 2020-12
+    mechanism) to validate keywords at every schema node recursively —
+    not just at the top level.
+
+    **Sealed vocabulary keywords** (GSM-defined, DM-implemented):
+
+    | Keyword | Scope | DM behavior | PostgreSQL mechanism |
     |---|---|---|---|
     | `$gsm:sealed` | Archetype (top-level) | Rejects tenant `allOf` extension of this schema | Authoring-time validation |
     | `$gsm:identityBound` | Cross-version (same Definition) | Rejects Ascription if value differs from first Ascription | Authoring-time validation |
     | `$gsm:queryable` | Query optimization | Auto-provisions JSONB path index for efficient filtering | Expression index or GIN index on JSONB path |
-    | `$gsm:referential` | Cross-Definition integrity | Validates referenced Definition exists (+ optional subjectType/status check) | Authoring-time validation (no DB FK on JSONB) |
     | `$gsm:unique` | Cross-Definition (same Archetype) | Enforces value uniqueness among in-effect Ascriptions | Partial unique expression index |
-    | `$gsm:sensitive` | Data protection | Masks in audit logs, encrypts at rest, redacts in API unless authorized | Column-level encryption + application-level redaction |
-    | `$gsm:validationCEL` | Intra-Ascription | Evaluates CEL expression(s) as CHECK constraints at authoring time | Authoring-time validation |
-    | `$gsm:deprecated` | Schema evolution | Emits warning when new Ascriptions use the annotated property | Authoring-time warning |
+    | `$gsm:dataProtection` | Data protection | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time |
+    | `$gsm:validation` | Intra-Ascription | Evaluates CEL expression(s) as CHECK constraints at authoring time | Authoring-time validation |
 
-    **Annotation semantics (detailed)**:
+    **Vocabulary keyword semantics (detailed)**:
 
     `$gsm:sealed: true` (top-level schema keyword)
     Marks an Archetype schema as non-extensible. Tenant-defined Archetypes
@@ -573,22 +687,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       transitions to ACTIVE. Index is dropped when no in-effect
       Ascription references it.
 
-    `$gsm:referential: { "subjectType": "<DefinitionSubjectType>" }`
-    (property-level)
-    Marks a property as holding a Definition `id` (foreign reference).
-    DM validates at authoring time:
-    - The referenced Definition exists.
-    - If `subjectType` is specified, the referenced Definition's
-      `subjectType` matches.
-    - Optionally, the referenced Definition has an in-effect
-      Ascription (configurable strictness).
-    DM also enables reverse-reference queries: "what Ascriptions
-    reference this Definition?"
-    PostgreSQL FK constraints cannot target JSONB-extracted values;
-    DM enforces referential integrity at application level. This is
-    architecturally correct: the validation is richer than a DB FK
-    (checks subjectType, status, governance scope).
-
     `$gsm:unique: true` (property-level)
     Marks a property as unique among all in-effect (ACTIVE or
     DEPRECATED) Ascriptions of the same Archetype. Different from
@@ -599,40 +697,55 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     `CREATE UNIQUE INDEX ON ascription ((statement->>'prop'))
     WHERE archetype_id = X AND status IN ('ACTIVE','DEPRECATED')`.
 
-    `$gsm:sensitive: true` (property-level)
-    Marks a property as carrying sensitive data (PII, credentials,
-    classification markers). DM behavior:
-    - Masks the value in audit logs and `statusTransitions` context.
-    - Encrypts at rest (envelope encryption for the JSONB path or
-      column-level encryption).
-    - Redacts in API responses unless the caller has an explicit
-      scope/role granting access.
-    - Excludes from full-text search indexes and `$gsm:queryable`
-      indexing (sensitive + queryable is a contradiction — DM rejects
-      it at Archetype authoring time).
+    `$gsm:dataProtection: { ... }` (property-level)
+    Phase-first structured protection model. Two lifecycle
+    phases — `atRest` (persisted JSONB), `inTransit` (API responses,
+    domain events, streams, logs, traces, metrics, diagnostics).
+    Each phase declares at most one of four uniform
+    measures: `encryption` (reversible AES-256-GCM envelope
+    encryption, transparent to consumers), `hash` (irreversible
+    one-way salted hash, SHA-256/SHA-512/SHA3-256), `mask`
+    (partial masking: visible from LEFT/RIGHT, replacement
+    character × occurrence), `suppression` (field omission). No auto-cascade — each phase is explicitly declared.
+    Cross-phase mutual exclusion: `atRest` constrains `inTransit`
+    (e.g., `atRest=hash` → transit can only be `suppression` or
+    absent; `atRest=suppression` → transit MUST be absent).
+    Implicit access audit: every read of an Ascription touching a
+    `$gsm:dataProtection`-annotated field produces a governance
+    audit event (Description-plane evidence).
+    Schema validation hard rule: DM rejects keyword declarations at
+    authoring time if the declared treatment would produce
+    schema-invalid values. Encryption has no schema restrictions
+    (transparent). Hash/mask/suppression have per-measure
+    restrictions.
+    DM validates the keyword value against the DataProtection
+    `$defs` in Archetype.schema.json (the GSM meta-schema) at Archetype
+    authoring time.
+    `$gsm:queryable` +
+    `atRest.encryption` on the same property is rejected (ciphertext
+    is not indexable). `$gsm:queryable` + `atRest.hash` is
+    allowed (DM hashes query inputs to match stored hashes).
 
-    `$gsm:validationCEL: ["<expr>", ...]` (top-level schema keyword)
+    `$gsm:validation: ["<expr>", ...]` (top-level schema keyword)
     Declares CEL expressions evaluated as CHECK constraints at
     Ascription authoring time. Each expression receives the statement
     payload as `this` and MUST evaluate to `bool`. Covers cross-
     property invariants that JSON Schema alone cannot express:
     - `"this.minReplicas <= this.maxReplicas"`
     - `"this.budget > 0.0 || this.budgetExempt == true"`
-    Expressions MUST be deterministic and side-effect-free (same
-    restrictions as Norm property-assertion profile; both use
-    `this`/`self` as root — no Archetype name in the expression).
+    Expressions conform to the **validation-expression CEL profile**:
+    boolean expressions over statement properties, implicit root
+    `this`. Allowed: comparisons, boolean connectives, set membership,
+    arithmetic, string/collection functions, field presence, type
+    constructors/conversions, cross-property comparisons, ternary.
+    Forbidden: non-deterministic functions (`now()`, `uuid()`),
+    imperative constructs, side effects, external data access.
+    Same determinism requirement as Norm property-assertion profile.
 
-    `$gsm:deprecated: true` (property-level)
-    Marks a property as deprecated. DM emits a warning (not an error)
-    when new Ascriptions populate the annotated property. Supports
-    graceful schema evolution without breaking existing Ascriptions.
-    Deprecated properties are still validated against the schema — the
-    annotation is advisory, not structural.
-
-    **Annotation immutability rule**:
-    The set of `$gsm:*` annotations on a property (which annotations
+    **Vocabulary keyword immutability rule**:
+    The set of `$gsm:*` keywords on a property (which keywords
     are present and their values) is part of the Archetype's governance
-    contract. Adding, removing, or changing annotations on an existing
+    contract. Adding, removing, or changing keywords on an existing
     property within the same Archetype Definition is permitted across
     Ascription versions — EXCEPT for `$gsm:identityBound`, whose set
     is immutable per Archetype Definition (see §5).
@@ -649,8 +762,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     (b) **Efficient reverse-lookup queries** — all Mechanisms of
     Structure X, all Norms targeting Archetype Y.
     (c) **Uniqueness enforcement** — partial expression indexes on
-    JSONB for identity fields (purpose, function, schema.title).
-    (d) **Annotation-driven infrastructure** — `$gsm:queryable` and
+    JSONB for identity fields (purpose, function, title).
+    (d) **Vocabulary-driven infrastructure** — `$gsm:queryable` and
     `$gsm:unique` indexes provisioned at Archetype activation.
 
     Materialized columns are **derived at authoring time** by the
@@ -700,11 +813,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     |---|---|---|
     | Structure `purpose` | `((statement->>'purpose'))` | `status IN ('ACTIVE','DEPRECATED')` |
     | Mechanism `function` | `(structure_id, (statement->>'function'))` | `status IN ('ACTIVE','DEPRECATED')` |
-    | Archetype `schema.title` | `((statement->'schema'->>'title'))` | `status IN ('ACTIVE','DEPRECATED')` |
+    | Archetype `title` | `((statement->>'title'))` | `status IN ('ACTIVE','DEPRECATED')` |
 
-    **Annotation-driven indexes** (provisioned at Archetype activation):
+    **Vocabulary-driven indexes** (provisioned at Archetype activation):
 
-    | Annotation | Index type | Scoping |
+    | Keyword | Index type | Scoping |
     |---|---|---|
     | `$gsm:queryable` | Expression index (B-tree / GIN) per annotated JSONB path | `WHERE archetype_id = X` |
     | `$gsm:unique` | Partial unique expression index | `WHERE archetype_id = X AND status IN ('ACTIVE','DEPRECATED')` |
@@ -816,7 +929,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       exclusively through Archetypes (tenant-defined Archetype schemas
       extending GSM base schemas via allOf).
     - Determines which GSM base Archetype schema the Ascription's
-      Archetype allOf chain MUST converge to.
+      typing Archetype (`archetype_id`) allOf chain MUST converge to.
+      Rootless archetypes (used as qualifiers or data archetypes) do
+      not determine a DefinitionSubjectType.
 
     **Attribute Semantics**:
 
@@ -880,13 +995,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - **Schema evolution impact**: when the qualifier Archetype gains
         new fields, the system flags uncovered properties.
     - **Cross-cutting governance via facet archetypes**: the qualifier
-      Archetype need not be a leaf archetype. It can be an intermediate
-      "facet" archetype (e.g., DataProtectionObject, PerformanceGoverned-
-      Mechanism) that multiple leaf archetypes extend via allOf. A Directive
-      referencing a facet qualifier governs ALL elements whose Archetype's
-      allOf chain includes that facet. This enables single-Directive, single-
-      Norm-set governance of cross-cutting concerns (GDPR, security,
-      performance SLAs) without per-Archetype duplication.
+      Archetype need not be a leaf archetype. It can be a **rootless**
+      facet archetype (e.g., SecurityProperties, DataProtection-
+      Properties, PerformanceProperties) that multiple structural
+      archetypes extend via allOf. Rootless facets carry no structural
+      base — they exist purely as cross-cutting governance dimensions.
+      A Directive referencing a rootless facet qualifier governs ALL
+      elements whose typing Archetype's allOf chain includes that facet.
+      This enables single-Directive, single-Norm-set governance of
+      cross-cutting concerns (GDPR, security, performance SLAs)
+      without per-Archetype duplication.
     - The qualifier Archetype can type **any** Ascription subtype
       (Structure, Mechanism, Interface, Interaction), enabling:
       - **Definition-time governance**: Norms evaluate definition
@@ -1668,8 +1786,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Validation Rules**:
 
     - `statement` MUST validate against the JSON Schema stored in
-      the referenced Archetype's `schema` property
-      (`archetype.statement.schema`).
+      the referenced Archetype's `statement`
+      (`archetype.statement`).
     - **Definition identity invariant**: certain `statement` fields are
       **identity-bound** — they constitute what the Definition fundamentally
       IS and MUST NOT change across Ascriptions of the same Definition.
@@ -1695,45 +1813,41 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       | Interface | `structure` |
       | Directive | `structure`, `qualifier`, `purpose` |
       | Norm | `structure`, `qualifier`, `predicate` |
-      | Archetype | `schema.title` (DM-enforced) |
-    - **Annotation-driven validation** (DM enforces `$gsm:*`
-      annotations declared in the typing Archetype's schema at
+      | Archetype | `title` (DM-enforced) |
+    - **Vocabulary-driven validation** (DM enforces `$gsm:*`
+      vocabulary keywords declared in the typing Archetype's schema at
       Ascription authoring time — see §8 for the full catalog):
       Applicability depends on Archetype extensibility:
       - **Tenant-extensible Archetypes** (Structure, Mechanism,
-        Interaction, Interface): all `$gsm:*` annotations may
+        Interaction, Interface): all `$gsm:*` vocabulary keywords may
         appear on tenant-defined extended properties.
       - **Sealed / GSM-internal Archetypes** (Effector, Receptor,
-        Directive, Norm, Archetype): only GSM-defined annotations
-        apply (tenants cannot extend the schema or add annotations).
+        Directive, Norm, Archetype): only GSM-defined vocabulary
+        keywords apply (tenants cannot extend the schema or add
+        keywords).
       Note: GSM base-schema structural references (e.g.,
       Mechanism.structure, Effector.mechanism) are materialized as
-      table columns with database-level FKs — they do NOT use
-      `$gsm:referential`. The annotation is for JSONB-embedded
-      references in tenant-extended schemas where DB FKs cannot reach.
-      Per-annotation enforcement at Ascription authoring:
+      table columns with database-level FKs.
+      Per-keyword enforcement at Ascription authoring:
       `$gsm:identityBound` — **all subtypes**: rejects if value
       differs from first Ascription of same Definition (see
       identity-bound table above for per-subtype fields).
-      `$gsm:referential` — **extensible subtypes**: validates
-      referenced Definition exists; checks `subjectType` match if
-      specified in annotation. Rejects on violation.
       `$gsm:unique` — **extensible subtypes**: validates value
       uniqueness among in-effect (ACTIVE/DEPRECATED) Ascriptions of
       same Archetype. Rejects on violation. Also DB-enforced via
       partial unique expression index (provisioned at Archetype
       activation).
-      `$gsm:validationCEL` — **extensible subtypes**: evaluates
-      all CEL expressions declared in the annotation with `statement`
+      `$gsm:validation` — **extensible subtypes**: evaluates
+      all CEL expressions declared in the keyword with `statement`
       as `this`. All MUST return true. Rejects on failure.
-      `$gsm:deprecated` — **extensible subtypes**: emits **warning**
-      (not error) when an annotated property is populated. Ascription
-      is accepted.
-      `$gsm:sensitive` — **extensible subtypes**: (a) masks value in
-      audit logs and `statusTransitions` context at authoring time,
-      (b) encrypts at rest (envelope encryption on JSONB path or
-      column-level), (c) redacts in API responses unless caller holds
-      explicit access scope/role.
+      `$gsm:dataProtection` — **extensible subtypes**: applies
+      phase-first protection measures per lifecycle phase:
+      `atRest` (write-time — encryption/hash/mask/suppression
+      modify persisted JSONB), `inTransit` (read-time — modify
+      API responses, events, streams, logs, traces, metrics).
+      Implicit access audit for all
+      annotated fields. Schema validation hard rule and cross-phase
+      mutual exclusion enforced at authoring time (see §8).
       `$gsm:queryable` — **no Ascription authoring impact**. Indexes
       provisioned at Archetype activation (see Archetype State Rules).
       Ascription queries benefit from provisioned indexes.
@@ -2584,7 +2698,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   ' ============================================================
 
   class Archetype {
-    +getSchema(): Object
   }
 
   note bottom of Archetype
@@ -2611,43 +2724,54 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Archetypes are typed by Archetype (or by a tenant Archetype
       that ultimately chains to it).
     - Every Ascription instance references one Archetype.
-    - Unified type construct for all structural and domain typing.
+    - **Triple relational role** (see §5): a single Archetype
+      **instance** (one Definition, one schema, one lifecycle) can
+      simultaneously occupy three FK positions — (1) typing
+      (`archetype_id`, every Ascription), (2) qualifier
+      (`qualifier_id`, Directive/Norm), (3) data type
+      (`output/input_archetype_id`, Effector/Receptor). The same
+      governed artifact is referenced from three relational angles.
+      This instance-level simultaneity is what makes separate
+      entities nonsensical: splitting would duplicate the same
+      governed schema once per role. Roles differ only in FK
+      position and structural-base requirement (typing requires an
+      allOf chain; qualifier and data accept rootless archetypes).
     - Effectors and Receptors reference Archetypes directly to declare the
-      type of information they emit/consume. The Archetype's `schema`
-      property contains the JSON Schema document, persisted as-is. DM
+      type of information they emit/consume. The Archetype's `statement`
+      IS the JSON Schema document, persisted as-is. DM
       assigns `$id` inside the schema document using the convention
-      `gsm://archetypes/{schema.title}/v{version}`.
-    - **Identity via `schema.title`**: the Archetype's human-readable
-      identity is carried by `schema.title` inside the JSON Schema
+      `gsm://archetypes/{title}/v{version}`.
+    - **Identity via `title`**: the Archetype's human-readable
+      identity is carried by `title` inside the JSON Schema
       document — not by a separate `name` property. This avoids
       redundancy (JSON Schema already has `title` for naming).
-      `schema.title` is the root identifier in Norm CEL guard
+      `title` is the root identifier in Norm CEL guard
       expressions (e.g., `SecurityProperties.environment`).
       Norm predicates use `self` instead — bound to the qualifier FK.
-      DM enforces `schema.title` as identity-bound by built-in rule
-      (not via `$gsm:identityBound` annotation, since `title` is a
-      property inside the nested `schema` object, not a top-level
-      statement field).
+      DM enforces `title` as identity-bound by built-in rule
+      (not via `$gsm:identityBound` keyword, since `title` is a
+      standard JSON Schema keyword, not a `$gsm:*` keyword).
 
     **Attribute Semantics**:
 
-    - `schema`: the governed JSON Schema document (draft 2020-12+)
-      defining the structure and semantics of instances typed by this
-      Archetype. Persisted as-is in the statement. DM assigns `$id`
+    - The Archetype's `statement` IS the governed JSON Schema document
+      (draft 2020-12+) defining the structure and semantics of instances
+      typed by this Archetype. Persisted as-is. DM assigns `$id`
       inside the schema document using the convention
-      `gsm://archetypes/{schema.title}/v{version}` — deterministic from
-      schema.title (identity) and Ascription version. The schema content may
+      `gsm://archetypes/{title}/v{version}` — deterministic from
+      title (identity) and Ascription version. The schema content may
       evolve across Ascription versions (new properties, updated
       constraints). However, the set of properties annotated
       `$gsm:identityBound` within this schema IS immutable per Archetype
       Definition — changing the identity-bound set requires a new
       Definition.
-      Schemas may carry `$gsm:*` annotations on individual properties
-      to declare governance capabilities to DM (identity invariants,
-      query indexes, referential integrity, uniqueness, sensitivity,
-      CEL validation, deprecation). See §8 for the full annotation
-      catalog.
-      - `schema.title`: **DM-enforced identity-bound**. The Archetype's
+      Schemas carry `$gsm:*` vocabulary keywords on individual
+      properties to declare governance capabilities to DM (identity
+      invariants, query indexes, uniqueness, data protection, CEL
+      validation). DM validates the schema against the GSM meta-schema
+      (`gsm://archetypes/Archetype/v1`) at authoring time — see §8 for the full
+      vocabulary catalog.
+      - `title`: **DM-enforced identity-bound**. The Archetype's
         human-readable identity — what the Archetype IS. Globally unique
         among in-effect Archetypes. Used as the root identifier in Norm
         CEL guard expressions. Norm predicates use `self` (bound to
@@ -2658,57 +2782,71 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `statement.schema` MUST NOT be null.
-    - `statement.schema` MUST be a valid JSON Schema (draft 2020-12+).
-    - `statement.schema.title` MUST NOT be null or empty
+    - `statement` MUST be a valid JSON Schema document (not null).
+    - `statement` MUST validate against the GSM meta-schema
+      (`gsm://archetypes/Archetype/v1`). This validates: (a) standard JSON Schema
+      2020-12 structure (inherited via allOf), (b) `$gsm:*` vocabulary
+      keyword value shapes (via the meta-schema's `properties` +
+      `$defs`). Schemas that are not valid JSON Schema or carry
+      malformed `$gsm:*` values are rejected at this gate.
+    - DM MUST NOT resolve `$schema` from the incoming schema for
+      validation purposes — always validates against its own bundled
+      seed Archetype (see §8 security invariant).
+    - `statement.title` MUST NOT be null or empty
       (DM-enforced identity rule).
-    - `statement.schema.title` is **identity-bound** (DM-enforced):
+    - `statement.title` is **identity-bound** (DM-enforced):
       MUST NOT change across Ascriptions of the same Definition.
-    - `statement.schema.title` MUST be globally unique among in-effect
+    - `statement.title` MUST be globally unique among in-effect
       (ACTIVE or DEPRECATED) Archetype Ascriptions.
-    - `statement.schema` MUST declare an `allOf` chain that ultimately
-      roots at the GSM base archetype schema. Intermediate tenant
-      archetypes are permitted (depth-N chains) as long as all `allOf`
-      paths converge to the same GSM base.
-    - Schemas whose `allOf` chain does not root at the GSM base archetype
-      MUST be rejected by the definition-manager.
+    - **Structural archetype**: if `statement` declares an `allOf`
+      chain that converges to a GSM base, it MUST converge to exactly
+      one base (no divergence). Depth-N chains through intermediate
+      archetypes are permitted.
+    - **Rootless archetype**: `statement` MAY omit `allOf` entirely
+      or declare `allOf` entries that do not converge to any GSM base.
+      Such archetypes are valid as qualifier, facet, or data archetypes
+      but MUST NOT be used as the typing `archetype_id` on Ascriptions
+      (which requires a structural base for DefinitionSubjectType
+      resolution).
     - The set of `$gsm:identityBound`-annotated properties in
-      `statement.schema` MUST NOT differ from the first Ascription's
+      `statement` MUST NOT differ from the first Ascription's
       schema for this Definition. Changing the identity-bound set =
       new Archetype Definition.
-    - **Annotation well-formedness** (DM introspects `$gsm:*`
-      annotations in `statement.schema` at Archetype authoring time
-      and rejects malformed annotations — see §8):
+    - **Vocabulary well-formedness** (DM introspects `$gsm:*`
+      keywords in `statement` at Archetype authoring time
+      and rejects malformed keywords — see §8):
       `$gsm:queryable` — annotated property type MUST be indexable
       (string, number, integer, boolean, or array of scalars).
       Maximum queryable properties per Archetype: DM-configurable
       cap (default: 8).
-      `$gsm:sensitive` + `$gsm:queryable` — mutual exclusion. Same
-      property carrying both annotations is rejected (sensitive data
-      MUST NOT be indexed).
-      `$gsm:referential` — if `subjectType` is specified, it MUST
-      be a valid DefinitionSubjectType enum value.
-      `$gsm:validationCEL` — each expression MUST be parseable CEL,
+      `$gsm:dataProtection` + `$gsm:queryable` — mutual exclusion.
+      Same property carrying both keywords is rejected (protected
+      data MUST NOT be indexed in cleartext).
+      `$gsm:validation` — each expression MUST be parseable CEL,
       deterministic, and side-effect-free (same restrictions as Norm
       property-assertion profile; both use implicit root).
       `$gsm:identityBound` — the set of annotated properties MUST
       NOT differ from the first Ascription's schema for this
       Definition (immutable set — see §5 and §8).
-      Unknown `$gsm:*` keywords — DM rejects unrecognized annotation
-      keywords (sealed annotation vocabulary).
+      Unknown `$gsm:*` keywords — DM rejects unrecognized
+      keywords (sealed vocabulary).
 
     **Relational Consistency Rules**:
 
     - Any Ascription that references this Archetype MUST have
       `statement` compatible with the JSON Schema stored in
-      `statement.schema`.
+      the Archetype's `statement`.
 
     **Assignment Rules**:
 
-    - Authors provide `schema` in the Archetype Ascription (with
-      `schema.title` as the identity).
-    - DM validates the schema, assigns `$id` inside the schema document
-      using the convention `gsm://archetypes/{schema.title}/v{version}`,
+    - Authors provide the Archetype Ascription statement as a JSON
+      Schema document (with `title` as the identity).
+    - DM validates the schema against the GSM meta-schema
+      (`gsm://archetypes/Archetype/v1`) — first-pass structural validation of both
+      JSON Schema structure and `$gsm:*` keyword values. Then runs
+      semantic checks (allOf chain, uniqueness, type-compatibility,
+      mutual exclusion). Assigns `$id` inside the schema document
+      using the convention `gsm://archetypes/{title}/v{version}`,
       and persists the Ascription as-is (1:1).
 
     **State Rules**:
@@ -2717,10 +2855,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
     - The definition-manager MUST reject activation of an Archetype whose
-      `schema.title` duplicates an already in-effect Archetype's
-      `schema.title`.
-    - **Annotation-driven infrastructure** (provisioned at Archetype
-      ACTIVE transition — DM materializes `$gsm:*` annotations as
+      `title` duplicates an already in-effect Archetype's
+      `title`.
+    - **Vocabulary-driven infrastructure** (provisioned at Archetype
+      ACTIVE transition — DM materializes `$gsm:*` keywords as
       database infrastructure):
       `$gsm:queryable` — DM auto-provisions a PostgreSQL expression
       index on each annotated JSONB path (B-tree for scalar types,
@@ -2732,27 +2870,27 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       ((statement->>'prop')) WHERE archetype_id = X AND status IN
       ('ACTIVE','DEPRECATED')`. Index is dropped when no in-effect
       Ascription of this Archetype remains.
-      Other annotations (`$gsm:identityBound`, `$gsm:referential`,
-      `$gsm:validationCEL`, `$gsm:deprecated`, `$gsm:sensitive`)
+      Other keywords (`$gsm:identityBound`,
+      `$gsm:validation`, `$gsm:dataProtection`)
       are enforced at application level (authoring-time validation)
       and do NOT require database infrastructure provisioning.
 
     **Persistence Rules**:
 
-    - No materialized columns from `statement` — `schema` is a JSON
-      document, not a Definition reference.
+    - No materialized columns from `statement` — the statement is a JSON
+      Schema document, not a Definition reference.
     - Identity uniqueness via partial expression index:
-      `((statement->'schema'->>'title'))` WHERE `status IN
+      `((statement->>'title'))` WHERE `status IN
       ('ACTIVE','DEPRECATED')`. See §9.
-    - Annotation-driven indexes (`$gsm:queryable`, `$gsm:unique`)
+    - Vocabulary-driven indexes (`$gsm:queryable`, `$gsm:unique`)
       provisioned at Archetype ACTIVE transition — see State Rules
       and §9.
 
     **Derivation Rules**:
 
-    - `getSchema()` → `statement.schema`
+    - `getStatement()` → `statement` (the JSON Schema document)
     - Base archetype classification is derived from the schema content
-      (inspecting `allOf.$ref` within `statement.schema`), not from a
+      (inspecting `allOf.$ref` within `statement`), not from a
       separate field.
 
     **Notes**:

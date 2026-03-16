@@ -329,8 +329,8 @@ where status in ('ACTIVE', 'DEPRECATED');
 -- Mechanism.function unique within owning Structure among in-effect
 create unique index if not exists uq_mechanism_function on mechanism (structure_id, (statement->>'function'))
 where status in ('ACTIVE', 'DEPRECATED');
--- Archetype.schema.title globally unique among in-effect
-create unique index if not exists uq_archetype_schema_title on archetype ((statement->'schema'->>'title'))
+-- Archetype.title globally unique among in-effect
+create unique index if not exists uq_archetype_title on archetype ((statement->>'title'))
 where status in ('ACTIVE', 'DEPRECATED');
 -- ============================================================
 -- §5  Seed data — GSM base archetypes

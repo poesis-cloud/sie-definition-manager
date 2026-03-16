@@ -575,7 +575,7 @@ public class MechanismService extends AbstractAscriptionService {
                 if (archetype == null)
                     return; // Archetype not yet in-effect; can't validate
 
-                JsonNode schema = archetype.getStatement().get("schema");
+                JsonNode schema = archetype.getStatement();
                 if (schema == null || !schema.has("properties"))
                     return;
 
@@ -831,7 +831,7 @@ public class MechanismService extends AbstractAscriptionService {
         getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
         getEntityManager().refresh(saved);
         LOG.debug("Auto-derived Effector {} for data archetype {}", saved.getId(),
-                dataArchetype.getStatement().get("schema").get("title").asText());
+                dataArchetype.getStatement().get("title").asText());
     }
 
     private void deriveReceptor(MechanismEntity mechanism, UUID mechanismDefId,
@@ -855,7 +855,7 @@ public class MechanismService extends AbstractAscriptionService {
         getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
         getEntityManager().refresh(saved);
         LOG.debug("Auto-derived Receptor {} for data archetype {}", saved.getId(),
-                dataArchetype.getStatement().get("schema").get("title").asText());
+                dataArchetype.getStatement().get("title").asText());
     }
 
     /**
