@@ -28,10 +28,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
-import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
+import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionCreationDto;
+import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;

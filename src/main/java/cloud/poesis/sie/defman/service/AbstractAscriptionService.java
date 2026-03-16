@@ -160,7 +160,7 @@ public abstract class AbstractAscriptionService {
         afterCreate(saved);
 
         // 11. Ensure lazy associations are initialized for downstream DTO mapping
-        //     (refresh replaces real objects with proxies; session closes after return)
+        // (refresh replaces real objects with proxies; session closes after return)
         Hibernate.initialize(saved.getDefinition());
         Hibernate.initialize(saved.getArchetype());
 

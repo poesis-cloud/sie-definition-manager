@@ -70,12 +70,10 @@ import jakarta.persistence.NamedEntityGraph;
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
-@NamedEntityGraph(
-        name = "ascription-with-refs",
-        attributeNodes = {
-                @NamedAttributeNode("definition"),
-                @NamedAttributeNode("archetype")
-        })
+@NamedEntityGraph(name = "ascription-with-refs", attributeNodes = {
+        @NamedAttributeNode("definition"),
+        @NamedAttributeNode("archetype")
+})
 public abstract class AscriptionEntity {
 
     @Id
