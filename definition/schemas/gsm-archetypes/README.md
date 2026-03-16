@@ -156,7 +156,7 @@ Forbidden constructs:
 
 Examples:
 
-```
+```cel
 // Cross-property ordering:
 this.minReplicas <= this.maxReplicas
 
@@ -178,7 +178,7 @@ has(this.retentionPolicy) || this.dataClassification != "sensitive"
 
 Invalid:
 
-```
+```cel
 // Non-deterministic:
 this.lastReview > now() - duration("8760h")
 

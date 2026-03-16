@@ -42,11 +42,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * (Testcontainers). Flyway runs V1 migration, seeding 9 base archetypes.
  *
  * <p>
- * API shape: subjectType is derived from archetype's schema title; FK
- * references
- * live in the
- * statement payload; ascription history is queried via
- * {@code /history?definitionId=X&type=Y}.
+ * API shape: subjectType is exposed via {@code _embedded.definition} HAL
+ * projection; FK references live in the statement payload; ascription
+ * history is queried via {@code /history?definitionId=X&type=Y}.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -148,12 +146,15 @@ class AscriptionApiIT {
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
-                .andExpect(jsonPath("$.subjectType", is("archetype")))
+                .andExpect(jsonPath("$._embedded.definition.subjectType", is("archetype")))
+                .andExpect(jsonPath("$._embedded.archetype.title").exists())
                 .andExpect(jsonPath("$.status", is("DRAFT")))
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.definitionId").exists())
                 .andExpect(jsonPath("$.version", is(0)))
                 .andExpect(jsonPath("$._links.self.href").exists())
+                .andExpect(jsonPath("$._links.definition.href").exists())
+                .andExpect(jsonPath("$._links.describedby.href").exists())
                 .andExpect(jsonPath("$._links.history.href").exists())
                 .andExpect(jsonPath("$._links.transitions.href").exists())
                 .andReturn();
@@ -168,7 +169,8 @@ class AscriptionApiIT {
     void createSiblingAscription_sameDefinitionDifferentAscription() throws Exception {
         ObjectNode statement = mapper.createObjectNode();
         statement.put("type", "object");
-        statement.put("title", "TestArchetype-v2");
+        statement.put("title", "TestArchetype"); // same title — identity-bound
+        statement.put("description", "Revised schema"); // differ on non-identity field
         statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
 
         ObjectNode request = mapper.createObjectNode();
@@ -182,6 +184,7 @@ class AscriptionApiIT {
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.definitionId", is(createdArchetypeDefinitionId.toString())))
+                .andExpect(jsonPath("$._embedded.definition.id", is(createdArchetypeDefinitionId.toString())))
                 .andExpect(jsonPath("$.id", not(is(createdArchetypeId.toString()))))
                 .andReturn();
 
@@ -199,7 +202,10 @@ class AscriptionApiIT {
         mvc.perform(get("/api/v1/ascriptions/{id}", createdArchetypeId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(createdArchetypeId.toString())))
-                .andExpect(jsonPath("$.subjectType", is("archetype")))
+                .andExpect(jsonPath("$._embedded.definition.subjectType", is("archetype")))
+                .andExpect(jsonPath("$._embedded.archetype.title").exists())
+                .andExpect(jsonPath("$._links.definition.href").exists())
+                .andExpect(jsonPath("$._links.describedby.href").exists())
                 .andExpect(jsonPath("$.status", is("DRAFT")));
     }
 
@@ -321,7 +327,7 @@ class AscriptionApiIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.subjectType", is("structure")))
+                .andExpect(jsonPath("$._embedded.definition.subjectType", is("structure")))
                 .andExpect(jsonPath("$.status", is("DRAFT")))
                 .andReturn();
 
@@ -347,7 +353,7 @@ class AscriptionApiIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.subjectType", is("mechanism")))
+                .andExpect(jsonPath("$._embedded.definition.subjectType", is("mechanism")))
                 .andReturn();
 
         createdMechanismId = UUID.fromString(

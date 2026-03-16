@@ -12,12 +12,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import cloud.poesis.sie.defman.dto.ArchetypeProjectionDto;
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
+import cloud.poesis.sie.defman.dto.DefinitionProjectionDto;
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 public abstract class AbstractController {
 
@@ -27,17 +29,38 @@ public abstract class AbstractController {
     // MAPPING
     // ========================================================================
 
-    protected AscriptionDto toAscriptionDto(DefinitionSubjectType type, AscriptionEntity entity) {
+    protected AscriptionDto toAscriptionDto(AscriptionEntity entity) {
         JsonNode statement = applyDataProtectionInTransit(entity);
         return new AscriptionDto(
                 entity.getId(),
                 entity.getDefinition().getId(),
                 entity.getArchetype().getId(),
-                type.getValue(),
                 statement,
+                entity.getTimestamp(),
                 entity.getVersion(),
-                entity.getStatus().name(),
-                entity.getTimestamp());
+                entity.getStatus().name());
+    }
+
+    protected DefinitionProjectionDto toDefinitionProjection(AscriptionEntity entity) {
+        return new DefinitionProjectionDto(
+                entity.getDefinition().getId(),
+                entity.getDefinition().getSubjectType().getValue());
+    }
+
+    protected ArchetypeProjectionDto toArchetypeProjection(AscriptionEntity entity) {
+        ArchetypeEntity arch = entity.getArchetype();
+        JsonNode archStatement = arch.getStatement();
+        String title = null;
+        if (archStatement != null && archStatement.has("title")) {
+            title = archStatement.get("title").asText();
+        } else {
+            log.warn("Archetype {} has no title in statement — possible seed/migration issue",
+                    arch.getId());
+        }
+        return new ArchetypeProjectionDto(
+                arch.getId(),
+                arch.getDefinition().getId(),
+                title);
     }
 
     /**

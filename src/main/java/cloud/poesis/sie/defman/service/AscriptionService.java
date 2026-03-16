@@ -30,6 +30,7 @@ public class AscriptionService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No ascription found for id: " + ascriptionId));
         Hibernate.initialize(entity.getDefinition());
+        Hibernate.initialize(entity.getArchetype());
         return entity;
     }
 }

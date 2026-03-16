@@ -48,7 +48,7 @@ public class DefinitionController extends AbstractController {
         DefinitionEntity entity = service.getById(id);
 
         List<AscriptionDto> ascriptions = entity.getAscriptions().stream()
-                .map(a -> toAscriptionDto(entity.getSubjectType(), a))
+                .map(this::toAscriptionDto)
                 .toList();
 
         DefinitionDto response = new DefinitionDto(

@@ -41,13 +41,17 @@ Secrets policy:
 
 - Never commit production secrets in values files.
 - Inject secrets at deploy time (`--set-string`) or from a cluster secret
+
   manager.
+
 - The chart requires `secrets.DB_PASSWORD` explicitly.
 
 Schema validation:
 
 - The chart defines `values.schema.json`; validate the target environment file
+
   directly with `helm lint`.
+
 - Validate before deploy:
 
 ```bash
@@ -78,13 +82,20 @@ cd sie/sie-definition-manager && make dev-up
 Local DB credentials for dependency bootstrap:
 
 - Put `DB_USER`, `DB_PASSWORD`, and `DEF_DB_ADMIN_PASSWORD` in
+
   `sie-definition-manager/.env.dev`.
+
 - `make dev-up` injects those values into the Helm install.
 - The dev environment overlay enables a local-only post-install/post-upgrade
+
   Helm hook Job in the DM chart.
+
 - That hook creates or updates the DM database role after the local
+
   definition-database deployment is ready.
+
 - `make run-api` passes `DB_URL`, `DB_USER`, and `DB_PASSWORD` from the same
+
   local env file to Spring Boot, so the API connects with those credentials.
 
 Run DM locally:

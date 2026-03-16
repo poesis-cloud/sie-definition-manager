@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
@@ -29,6 +30,7 @@ import jakarta.persistence.EntityManager;
  * Replaces inline lifecycle logic formerly in {@link AscriptionService}.
  */
 @Service
+@Transactional("transactionManager")
 public class AscriptionLifecycleService {
 
     // ======================================================================

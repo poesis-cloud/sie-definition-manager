@@ -15,6 +15,8 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.hateoas.mediatype.hal.HalModelBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -48,6 +50,26 @@ import jakarta.validation.Valid;
  * <p>
  * Single resource endpoint {@code /api/v1/ascriptions} — the archetype (via
  * archetypeId) discriminates the entity type, not the URL path.
+ *
+ * <p>
+ * HAL link relations on every ascription:
+ * <ul>
+ * <li>{@code self} — this ascription resource
+ * <li>{@code definition} — the stable Definition identity this ascription
+ * belongs to
+ * <li>{@code describedby} (IANA RFC 6892) — the Archetype ascription whose
+ * {@code statement} IS the JSON Schema governing this ascription's
+ * statement payload
+ * <li>{@code history} — version history for this Definition
+ * <li>{@code transitions} — lifecycle audit trail for this ascription
+ * </ul>
+ *
+ * <p>
+ * Single-item responses ({@link #getById}, {@link #create}) additionally
+ * include {@code _embedded} projections of the Definition (with
+ * {@code subjectType}) and Archetype (with {@code title}), each carrying
+ * their own {@code self} link for inline type discrimination without extra
+ * round-trips.
  */
 @RestController
 @RequestMapping(value = "/api/v1/ascriptions", produces = { MediaTypes.HAL_JSON_VALUE,
@@ -77,15 +99,14 @@ public class AscriptionController extends AbstractController {
 
     @PostMapping
     @Operation(summary = "Create an ascription", description = "Creates a new ascription. The archetypeId determines the GSM type; statement must conform to the archetype's JSON Schema.")
-    public ResponseEntity<EntityModel<AscriptionDto>> create(
+    public ResponseEntity<RepresentationModel<?>> create(
             @Valid @RequestBody AscriptionRequestDto request) {
         var resolution = archetypeService.resolveForCreation(request.archetypeId());
         AbstractAscriptionService subtypeService = requireService(resolution.subjectType());
         AscriptionEntity entity = subtypeService.create(
                 resolution.archetype(), request.statement(), request.definitionId());
-        AscriptionDto response = toAscriptionDto(entity);
-        EntityModel<AscriptionDto> model = wrapWithLinks(response);
-        URI location = selfLinkFor(response).toUri();
+        RepresentationModel<?> model = wrapWithLinksAndEmbeds(entity);
+        URI location = linkTo(AscriptionController.class).slash(entity.getId()).toUri();
         return ResponseEntity.created(location).body(model);
     }
 
@@ -95,9 +116,8 @@ public class AscriptionController extends AbstractController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get ascription by ID")
-    public EntityModel<AscriptionDto> getById(@PathVariable UUID id) {
-        AscriptionEntity entity = ascriptionService.getById(id);
-        return wrapWithLinks(toAscriptionDto(entity));
+    public RepresentationModel<?> getById(@PathVariable UUID id) {
+        return wrapWithLinksAndEmbeds(ascriptionService.getById(id));
     }
 
     @GetMapping
@@ -112,8 +132,7 @@ public class AscriptionController extends AbstractController {
         Page<? extends AscriptionEntity> page = (statusEnum != null)
                 ? subtypeService.findAllByStatus(statusEnum, pageable)
                 : subtypeService.findAll(pageable);
-        Page<AscriptionDto> dtoPage = page.map(e -> toAscriptionDto(subjectType, e));
-        return toPagedModel(dtoPage, type, status);
+        return toPagedModel(page, type, status);
     }
 
     @GetMapping("/history")
@@ -123,7 +142,7 @@ public class AscriptionController extends AbstractController {
         DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);
         AbstractAscriptionService subtypeService = requireService(subjectType);
         return subtypeService.getHistory(definitionId).stream()
-                .map(e -> wrapWithLinks(toAscriptionDto(e)))
+                .map(e -> wrapWithLinks(e, type))
                 .toList();
     }
 
@@ -160,54 +179,104 @@ public class AscriptionController extends AbstractController {
     }
 
     // ========================================================================
-    // MAPPING HELPERS
+    // HATEOAS — single-item (rich: _embedded + _links)
     // ========================================================================
 
-    private AscriptionDto toAscriptionDto(AscriptionEntity entity) {
-        return toAscriptionDto(entity.getDefinition().getSubjectType(), entity);
+    /**
+     * Full HAL representation for single-item responses: embedded Definition
+     * and Archetype projections (each with own {@code self} link), plus all
+     * navigational links on the ascription itself.
+     */
+    private RepresentationModel<?> wrapWithLinksAndEmbeds(AscriptionEntity entity) {
+        AscriptionDto dto = toAscriptionDto(entity);
+        String subjectType = entity.getDefinition().getSubjectType().getValue();
+
+        var defProj = EntityModel.of(toDefinitionProjection(entity),
+                linkTo(DefinitionController.class).slash(dto.definitionId()).withSelfRel());
+        var archProj = EntityModel.of(toArchetypeProjection(entity),
+                linkTo(AscriptionController.class).slash(dto.archetypeId()).withSelfRel());
+
+        return HalModelBuilder.halModelOf(dto)
+                .embed(defProj)
+                .embed(archProj)
+                .link(selfLinkFor(dto))
+                .link(definitionLinkFor(dto))
+                .link(describedbyLinkFor(dto))
+                .link(historyLinkFor(dto, subjectType))
+                .link(transitionsLinkFor(dto))
+                .build();
     }
 
     // ========================================================================
-    // HATEOAS HELPERS
+    // HATEOAS — list items (lightweight: _links only)
     // ========================================================================
 
-    private EntityModel<AscriptionDto> wrapWithLinks(AscriptionDto response) {
-        EntityModel<AscriptionDto> model = EntityModel.of(Objects.requireNonNull(response));
-        model.add(selfLinkFor(response));
-        model.add(historyLinkFor(response));
-        model.add(transitionsLinkFor(response));
+    private EntityModel<AscriptionDto> wrapWithLinks(AscriptionEntity entity, String subjectType) {
+        AscriptionDto dto = toAscriptionDto(entity);
+        EntityModel<AscriptionDto> model = EntityModel.of(Objects.requireNonNull(dto));
+        model.add(selfLinkFor(dto));
+        model.add(definitionLinkFor(dto));
+        model.add(describedbyLinkFor(dto));
+        model.add(historyLinkFor(dto, subjectType));
+        model.add(transitionsLinkFor(dto));
         return model;
     }
 
     private PagedModel<EntityModel<AscriptionDto>> toPagedModel(
-            Page<AscriptionDto> page, String type, String status) {
-        List<EntityModel<AscriptionDto>> content = page.getContent().stream().map(this::wrapWithLinks).toList();
+            Page<? extends AscriptionEntity> page, String type, String status) {
+        List<EntityModel<AscriptionDto>> content = page.getContent().stream()
+                .map(e -> wrapWithLinks(e, type))
+                .toList();
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
                 page.getSize(), page.getNumber(),
                 page.getTotalElements(), page.getTotalPages());
-        PagedModel<EntityModel<AscriptionDto>> model = PagedModel.of(Objects.requireNonNull(content), metadata);
+        PagedModel<EntityModel<AscriptionDto>> model = PagedModel.of(
+                Objects.requireNonNull(content), metadata);
         model.add(listSelfLink(type, status, page.getPageable()));
         return model;
     }
 
-    private @NonNull Link selfLinkFor(AscriptionDto response) {
+    // ========================================================================
+    // LINK BUILDERS
+    // ========================================================================
+
+    private @NonNull Link selfLinkFor(AscriptionDto dto) {
         return linkTo(AscriptionController.class)
-                .slash(Objects.requireNonNull(response.id()))
+                .slash(Objects.requireNonNull(dto.id()))
                 .withSelfRel();
     }
 
-    private @NonNull Link historyLinkFor(AscriptionDto response) {
+    /** Stable Definition identity this ascription belongs to. */
+    private @NonNull Link definitionLinkFor(AscriptionDto dto) {
+        return linkTo(DefinitionController.class)
+                .slash(Objects.requireNonNull(dto.definitionId()))
+                .withRel("definition");
+    }
+
+    /**
+     * IANA RFC 6892 {@code describedby} — the Archetype ascription whose
+     * {@code statement} IS the JSON Schema that governs this ascription's
+     * statement payload. Follow this link to retrieve the schema.
+     */
+    private @NonNull Link describedbyLinkFor(AscriptionDto dto) {
+        return linkTo(AscriptionController.class)
+                .slash(Objects.requireNonNull(dto.archetypeId()))
+                .withRel("describedby");
+    }
+
+    private @NonNull Link historyLinkFor(AscriptionDto dto, String subjectType) {
         String href = linkTo(AscriptionController.class)
                 .slash("history")
                 .toUriComponentsBuilder()
-                .queryParam("definitionId", Objects.requireNonNull(response.definitionId()))
+                .queryParam("definitionId", Objects.requireNonNull(dto.definitionId()))
+                .queryParam("type", Objects.requireNonNull(subjectType))
                 .toUriString();
         return Link.of(href, "history");
     }
 
-    private @NonNull Link transitionsLinkFor(AscriptionDto response) {
+    private @NonNull Link transitionsLinkFor(AscriptionDto dto) {
         return linkTo(AscriptionController.class)
-                .slash(Objects.requireNonNull(response.id()))
+                .slash(Objects.requireNonNull(dto.id()))
                 .slash("transitions")
                 .withRel("transitions");
     }

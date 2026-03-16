@@ -11,8 +11,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.hibernate.Hibernate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +29,6 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -59,8 +56,6 @@ import jakarta.persistence.EntityManager;
  */
 public abstract class AbstractAscriptionService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractAscriptionService.class);
-
     private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
     /**
@@ -79,8 +74,6 @@ public abstract class AbstractAscriptionService {
     private DefinitionService definitionService;
     @Autowired
     private AscriptionStatusTransitionService transitionService;
-    @Autowired
-    private DefinitionRepository definitionRepository;
     @Autowired
     private AscriptionRepository ascriptionRepository;
     @Autowired
@@ -127,7 +120,10 @@ public abstract class AbstractAscriptionService {
     @Transactional(value = "transactionManager", readOnly = true)
     public List<? extends AscriptionEntity> getHistory(UUID definitionId) {
         List<? extends AscriptionEntity> entities = findAllByDefinitionId(definitionId);
-        entities.forEach(e -> Hibernate.initialize(e.getDefinition()));
+        entities.forEach(e -> {
+            Hibernate.initialize(e.getDefinition());
+            Hibernate.initialize(e.getArchetype());
+        });
         return entities;
     }
 
@@ -167,6 +163,11 @@ public abstract class AbstractAscriptionService {
 
         // 10. Post-creation hook (e.g., auto-derivation of ports)
         afterCreate(saved);
+
+        // 11. Ensure lazy associations are initialized for downstream DTO mapping
+        //     (refresh replaces real objects with proxies; session closes after return)
+        Hibernate.initialize(saved.getDefinition());
+        Hibernate.initialize(saved.getArchetype());
 
         return saved;
     }

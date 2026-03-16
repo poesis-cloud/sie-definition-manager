@@ -60,7 +60,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             // Password should be hashed (64 hex chars for SHA-256)
             String hashed = dto.statement().get("password").asText();
@@ -87,7 +87,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             String masked = dto.statement().get("phone").asText();
             assertTrue(masked.endsWith("1234"), "Expected last 4 chars visible, got: " + masked);
@@ -112,7 +112,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             assertNull(dto.statement().get("secret"));
             assertEquals("prod", dto.statement().get("env").asText());
@@ -134,7 +134,7 @@ class AbstractControllerRedactionTest {
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
             assertThrows(UnsupportedOperationException.class,
-                    () -> controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity));
+                    () -> controller.toAscriptionDto(entity));
         }
 
         @Test
@@ -150,7 +150,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             assertEquals("test-service", dto.statement().get("name").asText());
         }
@@ -171,7 +171,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             assertEquals("already-hashed-at-rest-value", dto.statement().get("ssn").asText());
         }
@@ -186,7 +186,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntityWithCustomArchetypeStatement(archetypeStatement, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             assertEquals("s3cret", dto.statement().get("password").asText());
         }
@@ -207,7 +207,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(DefinitionSubjectType.STRUCTURE, entity);
+            AscriptionDto dto = controller.toAscriptionDto(entity);
 
             assertNull(dto.statement().get("password"));
             assertEquals("test", dto.statement().get("name").asText());
@@ -233,6 +233,7 @@ class AbstractControllerRedactionTest {
 
         DefinitionEntity def = mock(DefinitionEntity.class);
         when(def.getId()).thenReturn(UUID.randomUUID());
+        when(def.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
 
         AscriptionEntity entity = mock(AscriptionEntity.class);
         when(entity.getId()).thenReturn(UUID.randomUUID());

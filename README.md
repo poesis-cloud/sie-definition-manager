@@ -44,6 +44,7 @@ Environment files:
 - Use `.env` for checked-in non-secret defaults.
 - Use `.env.dev` for machine-local dev secrets and overrides.
 - To enable social OAuth providers, run with profile `social`
+
   (e.g. `SPRING_PROFILES_ACTIVE=social`) and set provider client IDs/secrets.
 
 Deployment values structure:
@@ -163,7 +164,7 @@ operationalizing that Directive references the **same Archetype** as root
 identifier in its CEL `predicate`. This closes a machine-verifiable governance
 chain:
 
-```
+```text
 Directive (qualifierArchetypeId → Archetype A)
     └── Norm (predicate root identifier → same Archetype A)
 ```
@@ -199,7 +200,7 @@ Schema defines: `encryptionLevel`, `authenticationProtocol`, `dataClassification
 }
 ```
 
-*Reads: "platform-governance MUST ENSURE SecurityProperties OF order-processing."*
+> *Reads: "platform-governance MUST ENSURE SecurityProperties OF order-processing."*
 
 **Norms** operationalizing this Directive:
 
@@ -208,7 +209,7 @@ Schema defines: `encryptionLevel`, `authenticationProtocol`, `dataClassification
 | `true` | `SecurityProperties.encryptionLevel >= "AES-256"` | INSTANTANEOUS | All order-processing Structures must use AES-256+ encryption |
 | `true` | `SecurityProperties.authenticationProtocol == "mTLS"` | INSTANTANEOUS | Must use mTLS between services |
 
-*Pattern: **definition-time**. Norms evaluate Structure Ascription properties when the definition is authored.*
+> *Pattern: **definition-time**. Norms evaluate Structure Ascription properties when the definition is authored.*
 
 ### Example 2 — Mechanism governance: ComplianceProperties
 
@@ -227,7 +228,7 @@ Schema defines: `framework`, `validationCoverage`, `lastAuditDate`, …
 }
 ```
 
-*Reads: "compliance-board MUST ENSURE ComplianceProperties OF payment-validation."*
+> *Reads: "compliance-board MUST ENSURE ComplianceProperties OF payment-validation."*
 
 **Norms**:
 
@@ -236,7 +237,7 @@ Schema defines: `framework`, `validationCoverage`, `lastAuditDate`, …
 | `ComplianceProperties.framework == "PCI-DSS"` | `ComplianceProperties.validationCoverage >= 0.95` | INSTANTANEOUS | PCI-DSS mechanisms must have ≥ 95 % validation coverage |
 | `ComplianceProperties.framework == "SOC2"` | `ComplianceProperties.validationCoverage >= 0.80` | INSTANTANEOUS | SOC2 mechanisms need ≥ 80 % coverage |
 
-*Pattern: **definition-time**. The guard filters which Mechanisms the Norm applies to (only those in the matching compliance framework). Guards are how Norms achieve conditional governance without branching logic.*
+> *Pattern: **definition-time**. The guard filters which Mechanisms the Norm applies to (only those in the matching compliance framework). Guards are how Norms achieve conditional governance without branching logic.*
 
 ### Example 3 — Interface governance: APISecurityProperties
 
@@ -255,7 +256,7 @@ Schema defines: `exposure`, `tlsVersion`, `rateLimitRps`, `corsPolicy`, …
 }
 ```
 
-*Reads: "security-team MUST ENSURE APISecurityProperties OF customer-portal."*
+> *Reads: "security-team MUST ENSURE APISecurityProperties OF customer-portal."*
 
 **Norms**:
 
@@ -265,7 +266,7 @@ Schema defines: `exposure`, `tlsVersion`, `rateLimitRps`, `corsPolicy`, …
 | `APISecurityProperties.exposure == "public"` | `APISecurityProperties.rateLimitRps > 0` | INSTANTANEOUS | Public interfaces must have rate limiting |
 | `true` | `APISecurityProperties.corsPolicy != ""` | INSTANTANEOUS | All interfaces must declare a CORS policy |
 
-*Pattern: **definition-time**. Guards filter by exposure level — some Norms apply only to public-facing Interfaces, others apply universally.*
+> *Pattern: **definition-time**. Guards filter by exposure level — some Norms apply only to public-facing Interfaces, others apply universally.*
 
 ### Example 4 — Interaction governance: InteractionReliabilityProperties
 
@@ -284,7 +285,7 @@ Schema defines: `encryptionInTransit`, `maxPayloadBytes`, `retryPolicy`, …
 }
 ```
 
-*Reads: "infrastructure-team MUST ENSURE InteractionReliabilityProperties OF payment-notification-flow."*
+> *Reads: "infrastructure-team MUST ENSURE InteractionReliabilityProperties OF payment-notification-flow."*
 
 **Norms**:
 
@@ -294,7 +295,7 @@ Schema defines: `encryptionInTransit`, `maxPayloadBytes`, `retryPolicy`, …
 | `true` | `InteractionReliabilityProperties.maxPayloadBytes <= 1048576` | INSTANTANEOUS | Payload must not exceed 1 MB |
 | `true` | `InteractionReliabilityProperties.retryPolicy != "none"` | INSTANTANEOUS | A retry policy must be configured |
 
-*Pattern: **definition-time**. Norms constrain Interaction Ascription properties that govern how causal couplings between Mechanisms behave.*
+> *Pattern: **definition-time**. Norms constrain Interaction Ascription properties that govern how causal couplings between Mechanisms behave.*
 
 ### Example 5 — Artifact governance (runtime observation): LatencyMetrics
 
@@ -313,7 +314,7 @@ Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `er
 }
 ```
 
-*Reads: "platform-governance SHOULD OPTIMIZE LatencyMetrics OF checkout-service."*
+> *Reads: "platform-governance SHOULD OPTIMIZE LatencyMetrics OF checkout-service."*
 
 **Norms**:
 
@@ -323,7 +324,7 @@ Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `er
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.p99ResponseMs <= 2000` | SUSTAINED | PT15M | P99 | 0.95 | P99 latency ≤ 2 s must hold for 95 % of each 15-minute window |
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.errorRate < 0.01` | SUSTAINED | PT10M | AVG | 0.99 | Average error rate < 1 % must hold 99 % of each 10-minute window |
 
-*Pattern: **runtime observation**. Unlike examples 1–4, `LatencyMetrics` is an Artifact type (not a structural type). Instances are produced by the Description plane as runtime observations. Same Directive → Norm machinery, different temporal semantics: observation Norms typically use AGGREGATED or SUSTAINED tolerance modes with temporal windows.*
+> *Pattern: **runtime observation**. Unlike examples 1–4, `LatencyMetrics` is an Artifact type (not a structural type). Instances are produced by the Description plane as runtime observations. Same Directive → Norm machinery, different temporal semantics: observation Norms typically use AGGREGATED or SUSTAINED tolerance modes with temporal windows.*
 
 ## Definition-time appraisal (plane integration)
 
@@ -380,7 +381,7 @@ Three options were evaluated:
 
 **Decision**: Option B — decouple status from appraisal. Model norm appraisal checkpoints as native DNA artifacts owned by the SIE genesis system.
 
-**Core constructs:**
+#### Core constructs:
 
 | Construct | GSM Primitive | Purpose |
 |---|---|---|
@@ -388,7 +389,7 @@ Three options were evaluated:
 | Transition Guard | `Norm` | Constrains lifecycle transitions using cardinality predicates over AppraisalFinding state objects. Scoped to the DefinitionManager component. |
 | Checkpoint | `Mechanism rule` | Behavioral definition triggered by persisted-events. Each named checkpoint (NA-\*) is a Rule that evaluates coherence and produces findings. |
 
-**Key design corrections:**
+#### Key design corrections:
 
 - **No `ContextVariableReferenceExpression` in Norms.** Norms are declarative state constraints with no receptor context. Per-instance scoping (matching findings to the primitive being transitioned) is handled by Mechanism rules, which have receptor context. The Norm states the normative goal; the Mechanism rule enforces it behaviorally.
 - **Norm is used with structural constraint predicates.** Transition guards constrain *what definitions MUST BE* (structural invariants of the DNA set). The constraint nature (structural) is derived from the predicate target (cardinality via `size()`, dependencies via structural primitives) and the Directive's qualifier, not from a Norm subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
@@ -401,7 +402,7 @@ Three options were evaluated:
 
 **Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as DNA, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
 
-**Risks:**
+#### Risks:
 
 | ID | Risk | Severity | Mitigation |
 |---|---|---|---|
@@ -411,7 +412,7 @@ Three options were evaluated:
 | R4 | Meta-governance escape hatch — seed checkpoint blocks legitimate work | Low | SUSPEND checkpoint Mechanism rule; admin force-transition with audit event; SIE platform override |
 | R5 | Recursive governance depth — meta-DNA governs itself | Low | Exactly 2 layers (meta + tenant); meta-layer seeds are axiomatic (bypass lifecycle) |
 
-**Consequences:**
+#### Consequences:
 
 | Aspect | Pro | Con |
 |---|---|---|
