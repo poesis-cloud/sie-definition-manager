@@ -3,10 +3,13 @@ package cloud.poesis.sie.defman.controller;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,15 +35,20 @@ import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.AscriptionLifecycleService;
 import cloud.poesis.sie.defman.service.AscriptionService;
+import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
@@ -65,8 +73,8 @@ import jakarta.validation.Valid;
  * </ul>
  *
  * <p>
- * Single-item responses ({@link #getById}, {@link #create}) additionally
- * include {@code _embedded} projections of the Definition (with
+ * Single-item responses ({@link #getById}, {@link #create}) include
+ * {@code _embedded} projections of the Definition (with
  * {@code subjectType}) and Archetype (with {@code title}), each carrying
  * their own {@code self} link for inline type discrimination without extra
  * round-trips.
@@ -81,31 +89,42 @@ public class AscriptionController extends AbstractController {
     private final ArchetypeService archetypeService;
     private final AscriptionService ascriptionService;
     private final AscriptionLifecycleService lifecycleService;
+    private final DefinitionService definitionService;
 
     public AscriptionController(
             Map<DefinitionSubjectType, AbstractAscriptionService> serviceRegistry,
             ArchetypeService archetypeService,
             AscriptionService ascriptionService,
-            AscriptionLifecycleService lifecycleService) {
+            AscriptionLifecycleService lifecycleService,
+            DefinitionService definitionService) {
         this.serviceRegistry = serviceRegistry;
         this.archetypeService = archetypeService;
         this.ascriptionService = ascriptionService;
         this.lifecycleService = lifecycleService;
+        this.definitionService = definitionService;
     }
 
     // ========================================================================
     // CREATE
     // ========================================================================
 
+    /**
+     * Explicit-fetch design — see README.md § "Single-item fetch pattern".
+     */
     @PostMapping
     @Operation(summary = "Create an ascription", description = "Creates a new ascription. The archetypeId determines the GSM type; statement must conform to the archetype's JSON Schema.")
+    @ApiResponse(responseCode = "201", description = "Ascription created")
+    @ApiResponse(responseCode = "400", description = "Validation error (schema, identity-bound, referee precondition)")
+    @ApiResponse(responseCode = "409", description = "Conflict (duplicate identity)")
     public ResponseEntity<RepresentationModel<?>> create(
             @Valid @RequestBody AscriptionCreationDto request) {
         var resolution = archetypeService.resolveForCreation(request.archetypeId());
         AbstractAscriptionService subtypeService = requireService(resolution.subjectType());
         AscriptionEntity entity = subtypeService.create(
                 resolution.archetype(), request.statement(), request.definitionId());
-        RepresentationModel<?> model = wrapWithLinksAndEmbeds(entity);
+        DefinitionEntity definition = definitionService.getById(entity.getDefinition().getId());
+        ArchetypeEntity archetype = archetypeService.findEntityById(entity.getArchetype().getId());
+        RepresentationModel<?> model = wrapWithLinksAndEmbeds(entity, definition, archetype);
         URI location = linkTo(AscriptionController.class).slash(entity.getId()).toUri();
         return ResponseEntity.created(location).body(model);
     }
@@ -114,16 +133,32 @@ public class AscriptionController extends AbstractController {
     // READ
     // ========================================================================
 
+    /**
+     * Explicit-fetch design — see README.md § "Single-item fetch pattern".
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Get ascription by ID")
-    public RepresentationModel<?> getById(@PathVariable UUID id) {
-        return wrapWithLinksAndEmbeds(ascriptionService.getById(id));
+    @ApiResponse(responseCode = "200", description = "Ascription found")
+    @ApiResponse(responseCode = "404", description = "Ascription not found")
+    public RepresentationModel<?> getById(
+            @Parameter(description = "Ascription ID") @PathVariable UUID id) {
+        AscriptionEntity entity = ascriptionService.getById(id);
+        DefinitionEntity definition = definitionService.getById(entity.getDefinition().getId());
+        ArchetypeEntity archetype = archetypeService.findEntityById(entity.getArchetype().getId());
+        return wrapWithLinksAndEmbeds(entity, definition, archetype);
     }
 
+    /**
+     * Explicit-fetch design — see README.md § "Batch fetch pattern".
+     */
     @GetMapping
     @Operation(summary = "List ascriptions (paginated)", description = "Filter by subject type and optionally by status.")
+    @ApiResponse(responseCode = "200", description = "Paged list of ascriptions")
+    @ApiResponse(responseCode = "400", description = "Invalid type or status value")
     public PagedModel<EntityModel<AscriptionDto>> list(
+            @Parameter(description = "GSM subject type (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, INTERFACE, ARCHETYPE, NORM, DIRECTIVE)")
             @RequestParam String type,
+            @Parameter(description = "Optional lifecycle status filter")
             @RequestParam(required = false) String status,
             @PageableDefault(size = 20) Pageable pageable) {
         AscriptionStatusType statusEnum = (status != null) ? AscriptionStatusType.valueOf(status) : null;
@@ -132,23 +167,48 @@ public class AscriptionController extends AbstractController {
         Page<? extends AscriptionEntity> page = (statusEnum != null)
                 ? subtypeService.findAllByStatus(statusEnum, pageable)
                 : subtypeService.findAll(pageable);
-        return toPagedModel(page, type, status);
+        // Explicit-fetch design — see README.md § "Batch fetch pattern"
+        if (page.isEmpty()) {
+            return toPagedModel(page, type, status, Collections.emptyMap());
+        }
+        Set<UUID> archetypeIds = page.getContent().stream()
+                .map(e -> e.getArchetype().getId())
+                .collect(Collectors.toSet());
+        Map<UUID, ArchetypeEntity> archetypeMap = archetypeService.getByIds(archetypeIds);
+        return toPagedModel(page, type, status, archetypeMap);
     }
 
+    /**
+     * Explicit-fetch design — see README.md § "Batch fetch pattern".
+     */
     @GetMapping("/history")
     @Operation(summary = "Get ascription history for a definition")
+    @ApiResponse(responseCode = "200", description = "Ordered list of ascription versions")
     public List<EntityModel<AscriptionDto>> getAscriptionHistory(
-            @RequestParam UUID definitionId, @RequestParam String type) {
+            @Parameter(description = "Definition ID") @RequestParam UUID definitionId,
+            @Parameter(description = "GSM subject type") @RequestParam String type) {
         DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);
         AbstractAscriptionService subtypeService = requireService(subjectType);
-        return subtypeService.getHistory(definitionId).stream()
-                .map(e -> wrapWithLinks(e, type))
+        List<? extends AscriptionEntity> history = subtypeService.getHistory(definitionId);
+        // Explicit-fetch design — see README.md § "Batch fetch pattern"
+        if (history.isEmpty()) {
+            return List.of();
+        }
+        Set<UUID> archetypeIds = history.stream()
+                .map(e -> e.getArchetype().getId())
+                .collect(Collectors.toSet());
+        Map<UUID, ArchetypeEntity> archetypeMap = archetypeService.getByIds(archetypeIds);
+        return history.stream()
+                .map(e -> wrapWithLinks(e, type, archetypeMap.get(e.getArchetype().getId())))
                 .toList();
     }
 
     @GetMapping("/{id}/transitions")
     @Operation(summary = "Get transition audit trail")
-    public List<AscriptionStatusTransitionDto> getTransitions(@PathVariable UUID id) {
+    @ApiResponse(responseCode = "200", description = "Ordered transition records")
+    @ApiResponse(responseCode = "404", description = "Ascription not found")
+    public List<AscriptionStatusTransitionDto> getTransitions(
+            @Parameter(description = "Ascription ID") @PathVariable UUID id) {
         return lifecycleService.getTransitions(id).stream()
                 .map(this::toTransitionDto)
                 .toList();
@@ -160,8 +220,12 @@ public class AscriptionController extends AbstractController {
 
     @PostMapping("/{id}/transitions")
     @Operation(summary = "Transition ascription to a new status")
+    @ApiResponse(responseCode = "200", description = "Transition recorded")
+    @ApiResponse(responseCode = "400", description = "Invalid transition")
+    @ApiResponse(responseCode = "404", description = "Ascription not found")
     public ResponseEntity<AscriptionStatusTransitionDto> transition(
-            @PathVariable UUID id, @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
+            @Parameter(description = "Ascription ID") @PathVariable UUID id,
+            @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
         AscriptionStatusTransitionEntity saved = lifecycleService.transition(id, request.targetStatus());
         return ResponseEntity.ok(toTransitionDto(saved));
     }
@@ -187,18 +251,16 @@ public class AscriptionController extends AbstractController {
      * and Archetype projections (each with own {@code self} link), plus all
      * navigational links on the ascription itself.
      */
-    private RepresentationModel<?> wrapWithLinksAndEmbeds(AscriptionEntity entity) {
-        AscriptionDto dto = toAscriptionDto(entity);
-        String subjectType = entity.getDefinition().getSubjectType().getValue();
-
-        var defProj = EntityModel.of(toEmbeddedDefinition(entity),
-                linkTo(DefinitionController.class).slash(dto.definitionId()).withSelfRel());
-        var archProj = EntityModel.of(toEmbeddedArchetype(entity),
-                linkTo(AscriptionController.class).slash(dto.archetypeId()).withSelfRel());
+    private RepresentationModel<?> wrapWithLinksAndEmbeds(
+            AscriptionEntity entity, DefinitionEntity definition, ArchetypeEntity archetype) {
+        AscriptionDto dto = toAscriptionDto(entity, archetype);
+        String subjectType = definition.getSubjectType().getValue();
 
         return HalModelBuilder.halModelOf(dto)
-                .embed(defProj)
-                .embed(archProj)
+                .embed(EntityModel.of(toEmbeddedDefinition(definition),
+                        linkTo(DefinitionController.class).slash(dto.definitionId()).withSelfRel()))
+                .embed(EntityModel.of(toEmbeddedArchetype(archetype),
+                        linkTo(AscriptionController.class).slash(dto.archetypeId()).withSelfRel()))
                 .link(selfLinkFor(dto))
                 .link(definitionLinkFor(dto))
                 .link(describedbyLinkFor(dto))
@@ -211,8 +273,9 @@ public class AscriptionController extends AbstractController {
     // HATEOAS — list items (lightweight: _links only)
     // ========================================================================
 
-    private EntityModel<AscriptionDto> wrapWithLinks(AscriptionEntity entity, String subjectType) {
-        AscriptionDto dto = toAscriptionDto(entity);
+    private EntityModel<AscriptionDto> wrapWithLinks(
+            AscriptionEntity entity, String subjectType, ArchetypeEntity archetype) {
+        AscriptionDto dto = toAscriptionDto(entity, archetype);
         EntityModel<AscriptionDto> model = EntityModel.of(Objects.requireNonNull(dto));
         model.add(selfLinkFor(dto));
         model.add(definitionLinkFor(dto));
@@ -223,9 +286,10 @@ public class AscriptionController extends AbstractController {
     }
 
     private PagedModel<EntityModel<AscriptionDto>> toPagedModel(
-            Page<? extends AscriptionEntity> page, String type, String status) {
+            Page<? extends AscriptionEntity> page, String type, String status,
+            Map<UUID, ArchetypeEntity> archetypeMap) {
         List<EntityModel<AscriptionDto>> content = page.getContent().stream()
-                .map(e -> wrapWithLinks(e, type))
+                .map(e -> wrapWithLinks(e, type, archetypeMap.get(e.getArchetype().getId())))
                 .toList();
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
                 page.getSize(), page.getNumber(),

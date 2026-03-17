@@ -95,11 +95,11 @@ class AscriptionApiIT {
                         .param("status", "ACTIVE")
                         .param("size", "20"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._embedded.ascriptionResponseList", hasSize(9)))
+                .andExpect(jsonPath("$._embedded.ascriptionListResponse", hasSize(9)))
                 .andReturn();
 
         JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
-        JsonNode items = body.at("/_embedded/ascriptionResponseList");
+        JsonNode items = body.at("/_embedded/ascriptionListResponse");
         for (JsonNode item : items) {
             String stmtStr = item.get("statement").toString();
             if (stmtStr.contains("\"title\":\"Archetype\"")) {

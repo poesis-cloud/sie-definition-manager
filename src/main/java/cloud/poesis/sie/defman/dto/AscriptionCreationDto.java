@@ -18,7 +18,7 @@ import jakarta.validation.constraints.NotNull;
  */
 @Schema(description = "Creation request for a GSM ascription")
 public record AscriptionCreationDto(
-        @NotNull UUID archetypeId,
+        @Schema(description = "Definition ID of the typing Archetype") @NotNull UUID archetypeId,
         @Schema(description = "JSON payload conforming to the Archetype's schema. Query the Archetype ascription to discover the expected structure.", implementation = Object.class) @NotNull JsonNode statement,
         @Schema(description = "Optional: set for new ascription of existing definition") UUID definitionId) {
 }

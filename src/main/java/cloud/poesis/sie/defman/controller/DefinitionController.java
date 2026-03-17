@@ -2,9 +2,13 @@ package cloud.poesis.sie.defman.controller;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.MediaTypes;
@@ -17,9 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.DefinitionDto;
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
@@ -37,22 +46,40 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class DefinitionController extends AbstractController {
 
     private final DefinitionService service;
+    private final ArchetypeService archetypeService;
 
-    public DefinitionController(DefinitionService service) {
+    public DefinitionController(DefinitionService service, ArchetypeService archetypeService) {
         this.service = service;
+        this.archetypeService = archetypeService;
     }
 
+    /**
+     * Explicit-fetch design — see {@code package-info.java} §3 (batch fetch).
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Get definition by ID", description = "Returns the definition with its full ascription history.")
-    public EntityModel<DefinitionDto> getById(@PathVariable @NonNull UUID id) {
+    @ApiResponse(responseCode = "200", description = "Definition found")
+    @ApiResponse(responseCode = "404", description = "Definition not found")
+    public EntityModel<DefinitionDto> getById(
+            @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id) {
         DefinitionEntity entity = service.getById(id);
 
-        List<AscriptionDto> ascriptions = entity.getAscriptions().stream()
-                .map(this::toAscriptionDto)
-                .toList();
+        List<AscriptionEntity> ascriptions = entity.getAscriptions();
+        List<AscriptionDto> ascriptionDtos;
+        if (ascriptions.isEmpty()) {
+            ascriptionDtos = Collections.emptyList();
+        } else {
+            Set<UUID> archetypeIds = ascriptions.stream()
+                    .map(a -> a.getArchetype().getId())
+                    .collect(Collectors.toSet());
+            Map<UUID, ArchetypeEntity> archetypeMap = archetypeService.getByIds(archetypeIds);
+            ascriptionDtos = ascriptions.stream()
+                    .map(a -> toAscriptionDto(a, archetypeMap.get(a.getArchetype().getId())))
+                    .toList();
+        }
 
         DefinitionDto response = new DefinitionDto(
-                entity.getId(), entity.getSubjectType().getValue(), ascriptions);
+                entity.getId(), entity.getSubjectType().getValue(), ascriptionDtos);
 
         return EntityModel.of(
                 Objects.requireNonNull(response),

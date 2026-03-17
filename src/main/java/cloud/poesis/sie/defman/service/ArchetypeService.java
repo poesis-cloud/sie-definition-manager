@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,6 +167,21 @@ public class ArchetypeService extends AbstractAscriptionService {
     public ArchetypeEntity findEntityById(UUID id) {
         return archetypeRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Archetype not found: " + id));
+    }
+
+    /**
+     * Batch-fetches Archetypes by their IDs.
+     *
+     * <p>Part of the explicit-fetch design (see README.md
+     * § "Batch fetch pattern").
+     *
+     * @param ids collection of Archetype IDs to retrieve
+     * @return map of ID → ArchetypeEntity; IDs not found in the database
+     *         are silently absent from the returned map
+     */
+    public Map<UUID, ArchetypeEntity> getByIds(Collection<UUID> ids) {
+        return archetypeRepo.findAllById(ids).stream()
+                .collect(Collectors.toMap(ArchetypeEntity::getId, Function.identity()));
     }
 
     /**

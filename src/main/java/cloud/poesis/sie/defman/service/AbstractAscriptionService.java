@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -158,11 +157,6 @@ public abstract class AbstractAscriptionService {
 
         // 10. Post-creation hook (e.g., auto-derivation of ports)
         afterCreate(saved);
-
-        // 11. Ensure lazy associations are initialized for downstream DTO mapping
-        // (refresh replaces real objects with proxies; session closes after return)
-        Hibernate.initialize(saved.getDefinition());
-        Hibernate.initialize(saved.getArchetype());
 
         return saved;
     }

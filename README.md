@@ -85,7 +85,7 @@ GSM is a fundamental departure from classical systemic models such as Beer's Via
 **DNA** (Directives / Norms / Ascriptions) is the unified governance grammar, stratified by rate of change:
 
 | Layer | Primitive | Tempo | What it governs |
-|-------|-----------|-------|-----------------|
+| ------- | ----------- | ------- | ----------------- |
 | **D** | **Directive** | Slow (identity) | What the system fundamentally is. Grammar: **Modal × Verb × Qualifier × Purpose** (e.g., *"order-processing MUST ENSURE SecurityProperties OF payment-service"*). |
 | **N** | **Norm** | Medium (constraints) | Measurable constraint predicates operationalizing Directives. **Guard** (applicability-guard CEL profile) + **Predicate** (property-assertion CEL profile) + tolerance mode (INSTANTANEOUS / AGGREGATED / SUSTAINED). |
 | **A** | **Ascription** | Fast (definition) | Concrete, version-specific definition of each Element, typed by an **Archetype** (JSON Schema). All GSM primitives — Structure, Mechanism, Directive, Norm, Archetype itself — extend Ascription. |
@@ -142,6 +142,51 @@ The DM's own Layer 0 compilation logic is modeled as governable Mechanisms. The 
 - **Extension model**: self-governing. The compiler is part of the governed system.
 - **Compiler surface**: GSM Mechanisms (Starlark) all the way down.
 
+## Explicit-fetch design for lazy associations
+
+Controllers follow an **explicit-fetch** pattern for loading JPA associations (`definition`, `archetype`) that are mapped as `@ManyToOne(fetch = FetchType.LAZY)` on `AscriptionEntity`.
+
+Instead of relying on `@EntityGraph`, JPQL JOIN FETCH, or Open Session In View (OSIV) to transparently resolve lazy proxies, each controller endpoint **explicitly** fetches the required associations via dedicated service calls and passes them as method arguments to DTO mapping and HATEOAS helpers.
+
+### Constraints driving this design
+
+- **OSIV is disabled** (`spring.jpa.open-in-view=false`). Accessing a lazy proxy outside the originating transaction throws `LazyInitializationException`. The controller layer is outside the service transaction boundary, so lazy associations are unresolvable by default.
+- **Hibernate 6 proxy FK extraction**: calling `proxy.getId()` on a `@ManyToOne` lazy proxy returns the FK value *without* triggering proxy initialization. This makes extracting IDs for explicit fetch free (no DB hit).
+- **TABLE_PER_CLASS inheritance**: JPA `@EntityGraph` and JPQL JOIN FETCH on the abstract `AscriptionEntity` base require UNION ALL across 9 subtype tables. Adding a JOIN FETCH on top of that UNION is poorly optimized by most JPA providers and leads to complex, hard-to-tune queries.
+
+### Single-item fetch pattern
+
+For endpoints returning one ascription (`create`, `getById`):
+
+1. Fetch the ascription entity via the subtype service.
+2. Extract FKs: `entity.getDefinition().getId()` and `entity.getArchetype().getId()` (no proxy init).
+3. Fetch the full Definition and Archetype entities via `DefinitionService.getById()` and `ArchetypeService.findEntityById()` — two simple PK lookups.
+4. Pass all three entities to the HATEOAS builder.
+
+Cost: **3 queries** (entity + definition PK + archetype PK). All are indexed PK lookups — negligible overhead, fully predictable.
+
+### Batch fetch pattern (lists and history)
+
+For endpoints returning multiple ascriptions (`list`, `getAscriptionHistory`):
+
+1. Fetch the page/list of ascription entities.
+2. If the result is empty, return immediately (no batch query).
+3. Collect distinct archetype IDs from the result set (FK extraction, no proxy init).
+4. Batch-fetch all required Archetypes in one `IN (...)` query via `ArchetypeService.getByIds()`.
+5. Map each entity to its DTO using the pre-fetched map.
+
+Cost: **2 queries** (page + batch archetype IN). The batch fetch eliminates the N+1 problem.
+
+### Rationale and trade-offs
+
+| Pros | Cons |
+| ---- | ---- |
+| **Architectural simplicity**: no `@EntityGraph` annotations, no JPQL JOIN FETCH on TABLE_PER_CLASS unions, no OSIV. The persistence layer stays vanilla Spring Data derived queries — easy to understand, test, and maintain. | **Extra queries on single-item reads**: 3 queries instead of 1 JOIN. In practice, all are PK lookups served from the buffer pool — negligible for web latency. |
+| **Predictable query count**: every endpoint has an explicit, audit-visible query profile (2 or 3 queries, all PK or IN-list indexed). | **Controller verbosity**: explicit fetch calls add a few lines per endpoint. This is deliberate — visibility over magic. |
+| **Enables embed opt-in**: associations are fetched as first-class entities in the controller, readily available for embedding in HAL `_embedded` projections. Adding or removing embedded projections is a controller-only concern — no service/repository signature change required. A future `?embed=definition,archetype` query parameter can trivially gate the fetch calls. | **Batch callers must guard empty collections**: `getByIds()` should not be called with an empty collection (wasted round-trip). Callers must check emptiness before batching. |
+| **Service layer stays clean**: services return domain entities without DTO/presentation concerns. The controller owns the decision of which associations to load and how to present them. | |
+| **No proxy surprises**: lazy proxies are never dereferenced outside a transaction boundary — the pattern is immune to `LazyInitializationException` regardless of OSIV configuration. | |
+
 ## Where to start
 
 - GSM model: `definition/gsm.puml`
@@ -179,7 +224,7 @@ The same Directive → Norm machinery supports two distinct evaluation modes,
 depending on what the qualifier Archetype types:
 
 | Pattern | qualifierArchetypeId types… | Norm evaluates… | Trigger |
-|---------|----------------------------|-----------------|---------|
+| --------- | ---------------------------- | ----------------- | --------- |
 | **Definition-time** | Ascriptions (Structure, Mechanism, Interface, Interaction) | Ascription properties when a definition is authored or modified | Definition change event |
 | **Runtime observation** | Artifact instances from the Description plane | Observed metrics / measurements at runtime | Observation event |
 
@@ -205,7 +250,7 @@ Schema defines: `encryptionLevel`, `authenticationProtocol`, `dataClassification
 **Norms** operationalizing this Directive:
 
 | guard | predicate | toleranceMode | meaning |
-|-------|-----------|---------------|---------|
+| ------- | ----------- | --------------- | --------- |
 | `true` | `SecurityProperties.encryptionLevel >= "AES-256"` | INSTANTANEOUS | All order-processing Structures must use AES-256+ encryption |
 | `true` | `SecurityProperties.authenticationProtocol == "mTLS"` | INSTANTANEOUS | Must use mTLS between services |
 
@@ -233,7 +278,7 @@ Schema defines: `framework`, `validationCoverage`, `lastAuditDate`, …
 **Norms**:
 
 | guard | predicate | toleranceMode | meaning |
-|-------|-----------|---------------|---------|
+| ------- | ----------- | --------------- | --------- |
 | `ComplianceProperties.framework == "PCI-DSS"` | `ComplianceProperties.validationCoverage >= 0.95` | INSTANTANEOUS | PCI-DSS mechanisms must have ≥ 95 % validation coverage |
 | `ComplianceProperties.framework == "SOC2"` | `ComplianceProperties.validationCoverage >= 0.80` | INSTANTANEOUS | SOC2 mechanisms need ≥ 80 % coverage |
 
@@ -261,7 +306,7 @@ Schema defines: `exposure`, `tlsVersion`, `rateLimitRps`, `corsPolicy`, …
 **Norms**:
 
 | guard | predicate | toleranceMode | meaning |
-|-------|-----------|---------------|---------|
+| ------- | ----------- | --------------- | --------- |
 | `APISecurityProperties.exposure == "public"` | `APISecurityProperties.tlsVersion >= "1.3"` | INSTANTANEOUS | Public interfaces must use TLS 1.3+ |
 | `APISecurityProperties.exposure == "public"` | `APISecurityProperties.rateLimitRps > 0` | INSTANTANEOUS | Public interfaces must have rate limiting |
 | `true` | `APISecurityProperties.corsPolicy != ""` | INSTANTANEOUS | All interfaces must declare a CORS policy |
@@ -290,7 +335,7 @@ Schema defines: `encryptionInTransit`, `maxPayloadBytes`, `retryPolicy`, …
 **Norms**:
 
 | guard | predicate | toleranceMode | meaning |
-|-------|-----------|---------------|---------|
+| ------- | ----------- | --------------- | --------- |
 | `true` | `InteractionReliabilityProperties.encryptionInTransit == true` | INSTANTANEOUS | All interactions must be encrypted in transit |
 | `true` | `InteractionReliabilityProperties.maxPayloadBytes <= 1048576` | INSTANTANEOUS | Payload must not exceed 1 MB |
 | `true` | `InteractionReliabilityProperties.retryPolicy != "none"` | INSTANTANEOUS | A retry policy must be configured |
@@ -319,7 +364,7 @@ Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `er
 **Norms**:
 
 | guard | predicate | toleranceMode | temporalWindow | temporalAggregation | sustainedThreshold | meaning |
-|-------|-----------|---------------|----------------|---------------------|--------------------|---------|
+| ------- | ----------- | --------------- | ---------------- | --------------------- | -------------------- | --------- |
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.p95ResponseMs <= 500` | AGGREGATED | PT5M | P95 | — | P95 latency ≤ 500 ms over 5-minute windows (production only) |
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.p99ResponseMs <= 2000` | SUSTAINED | PT15M | P99 | 0.95 | P99 latency ≤ 2 s must hold for 95 % of each 15-minute window |
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.errorRate < 0.01` | SUSTAINED | PT10M | AVG | 0.99 | Average error rate < 1 % must hold 99 % of each 10-minute window |
@@ -331,7 +376,7 @@ Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `er
 The Definition Manager is not a passive store. When definitions are created, modified, or deleted, the Definition Manager triggers **Norm Appraisal and Form Appraisal by the relevant plane components**:
 
 | Definition change | Appraising plane | What is checked |
-|-------------------|------------------|-----------------|
+| ------------------- | ------------------ | ----------------- |
 | Directive created/modified | **Governance** (`../sie-governance/`) | Constitutive Norm Appraisal: Directive ↔ Quality, scope validity, verb conflicts, governance plane coverage |
 | Norm created/modified | **Regulation** (`../sie-regulation/`) | Constraint Norm Appraisal: direction vs. Directive verb, metric→qualifier path, scope containment, Norm↔Norm conflicts |
 | Mechanism rule created/modified | **Regulation** (`../sie-regulation/`) | rule→Norm coverage, CEL/Starlark validity |
@@ -346,7 +391,7 @@ This means each `PROPOSED → APPROVED → ACTIVE` transition in `AscriptionStat
 The Definition Manager is the primary trigger for **Norm Appraisal** — the appraisal of the form of norms (definition ↔ definition, intra-normative). Every definition change passes through Norm Appraisal before the definition can advance in its lifecycle. The three coherence dimensions checked are:
 
 | Dimension | What it checks | Definition Manager triggers |
-|-----------|----------------|----------------------------|
+| ----------- | ---------------- | ---------------------------- |
 | **Consistency** | No contradictions between norms | Directive verb conflict detection (NA-DIR-01); Norm↔Norm constraint conflicts (NA-POL-04) |
 | **Completeness** | No gaps within declared normative scope | DNA chain traversability (NA-DPR-01); Norm operationalization coverage (NA-POL-08); rule→Norm minimum (NA-RULE-01) |
 | **Adequacy** | Norms fit for declared purpose | Norm→Directive direction coherence (NA-POL-01); metric→qualifier path tracing (NA-POL-02, SUSPENDED); scope containment (NA-POL-03); Directive applicability guard validation (NA-DIR-02); Norm→Purpose grounding (NA-POL-05); Norm→qualifier path tracing (NA-POL-06, SUSPENDED); Norm→Structure grounding (NA-POL-07); rule→Norm scope containment (NA-RULE-02); rule behavioral grounding (NA-RULE-04, NA-RULE-05) |
@@ -358,7 +403,7 @@ Norm Appraisal is executed by the **Governance** and **Regulation** planes. The 
 The Definition Manager triggers **Form Appraisal** — the appraisal of the form of reality (definition ↔ reality, trans-normative) — when a definition transitions to `ACTIVE`. At that point, existing state-plane observations (held by the Description Manager / DSM) must be re-evaluated against the new or updated definition. The three coherence dimensions checked are:
 
 | Dimension | What it checks | Definition Manager triggers |
-|-----------|----------------|----------------------------|
+| ----------- | ---------------- | ---------------------------- |
 | **Fidelity** | Observed behavior matches definitions | Mechanism definition ↔ observed behavior (FA-MECH-01); Norm constraints ↔ measured metrics (FA-POL-01); Closed-loop Mechanism feedback verification (FA-ACT-01) |
 | **Coverage** | Observed state has corresponding definitions | Archetype ↔ observed state (FA-STATE-01); detect state objects or observed mechanisms lacking GSM definitions (input to Emergence) |
 | **Convergence** | Formation stabilizes toward the norm | Normative envelope convergence tracking (FA-CONV-01); track whether repeated appraisal cycles show decreasing deviation between definitions and reality |
@@ -381,15 +426,15 @@ Three options were evaluated:
 
 **Decision**: Option B — decouple status from appraisal. Model norm appraisal checkpoints as native DNA artifacts owned by the SIE genesis system.
 
-#### Core constructs:
+#### Core constructs
 
 | Construct | GSM Primitive | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Appraisal Finding | `Archetype` (persisted, queryable) | Result of a checkpoint evaluation. Includes `severity`, `checkpointId`, `targetPrimitiveId`, `evaluationMode` (DETERMINISTIC / PROBABILISTIC / UNDECIDABLE), `confidence` \[0.0, 1.0\]. |
 | Transition Guard | `Norm` | Constrains lifecycle transitions using cardinality predicates over AppraisalFinding state objects. Scoped to the DefinitionManager component. |
 | Checkpoint | `Mechanism rule` | Behavioral definition triggered by persisted-events. Each named checkpoint (NA-\*) is a Rule that evaluates coherence and produces findings. |
 
-#### Key design corrections:
+#### Key design corrections
 
 - **No `ContextVariableReferenceExpression` in Norms.** Norms are declarative state constraints with no receptor context. Per-instance scoping (matching findings to the primitive being transitioned) is handled by Mechanism rules, which have receptor context. The Norm states the normative goal; the Mechanism rule enforces it behaviorally.
 - **Norm is used with structural constraint predicates.** Transition guards constrain *what definitions MUST BE* (structural invariants of the DNA set). The constraint nature (structural) is derived from the predicate target (cardinality via `size()`, dependencies via structural primitives) and the Directive's qualifier, not from a Norm subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
@@ -402,20 +447,20 @@ Three options were evaluated:
 
 **Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as DNA, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
 
-#### Risks:
+#### Risks
 
 | ID | Risk | Severity | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | R1 | Bootstrap complexity — seed DNA validated outside the lifecycle it governs | Medium | Design-time validation; SIE upgrades are the only path to modify seeds |
 | R2 | Cognitive load — two DNA layers (meta + tenant) | Medium | UI separation; `SIE_*` namespace prefix; platform vs. system governance sections |
 | R3 | Performance — every lifecycle transition triggers checkpoint evaluation | Low | Batch evaluation; lazy evaluation on transition request; checkpoint parallelization |
 | R4 | Meta-governance escape hatch — seed checkpoint blocks legitimate work | Low | SUSPEND checkpoint Mechanism rule; admin force-transition with audit event; SIE platform override |
 | R5 | Recursive governance depth — meta-DNA governs itself | Low | Exactly 2 layers (meta + tenant); meta-layer seeds are axiomatic (bypass lifecycle) |
 
-#### Consequences:
+#### Consequences
 
 | Aspect | Pro | Con |
-|---|---|---|
+| --- | --- | --- |
 | Coherence | SIE governs itself with its own DNA constructs (maximal alignment) | Two DNA layers increase indirection |
 | Extensibility | Tenants add custom checkpoint Mechanism rules without SIE code changes | Tenant mistakes in custom Mechanism rules require escape hatches |
 | Auditability | Full DNA chain for every governance decision (compliance-grade trail) | — |

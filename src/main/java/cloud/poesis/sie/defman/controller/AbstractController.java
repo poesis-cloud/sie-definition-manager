@@ -19,6 +19,7 @@ import cloud.poesis.sie.defman.dto.EmbeddedDefinitionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 
 public abstract class AbstractController {
@@ -29,8 +30,17 @@ public abstract class AbstractController {
     // MAPPING
     // ========================================================================
 
-    protected AscriptionDto toAscriptionDto(AscriptionEntity entity) {
-        JsonNode statement = applyDataProtectionInTransit(entity);
+    /**
+     * Maps an ascription entity to its DTO, applying in-transit data protection.
+     *
+     * <p>Explicit-fetch design — see README.md § "Explicit-fetch design
+     * for lazy associations".
+     * The archetype is passed explicitly (already fetched by the caller)
+     * rather than navigated via {@code entity.getArchetype()}, which would
+     * trigger a lazy-loading proxy hit.
+     */
+    protected AscriptionDto toAscriptionDto(AscriptionEntity entity, ArchetypeEntity archetype) {
+        JsonNode statement = applyDataProtectionInTransit(entity, archetype);
         return new AscriptionDto(
                 entity.getId(),
                 entity.getDefinition().getId(),
@@ -41,25 +51,24 @@ public abstract class AbstractController {
                 entity.getStatus().name());
     }
 
-    protected EmbeddedDefinitionDto toEmbeddedDefinition(AscriptionEntity entity) {
+    protected EmbeddedDefinitionDto toEmbeddedDefinition(DefinitionEntity definition) {
         return new EmbeddedDefinitionDto(
-                entity.getDefinition().getId(),
-                entity.getDefinition().getSubjectType().getValue());
+                definition.getId(),
+                definition.getSubjectType().getValue());
     }
 
-    protected EmbeddedArchetypeDto toEmbeddedArchetype(AscriptionEntity entity) {
-        ArchetypeEntity arch = entity.getArchetype();
-        JsonNode archStatement = arch.getStatement();
+    protected EmbeddedArchetypeDto toEmbeddedArchetype(ArchetypeEntity archetype) {
+        JsonNode archStatement = archetype.getStatement();
         String title = null;
         if (archStatement != null && archStatement.has("title")) {
             title = archStatement.get("title").asText();
         } else {
             log.warn("Archetype {} has no title in statement — possible seed/migration issue",
-                    arch.getId());
+                    archetype.getId());
         }
         return new EmbeddedArchetypeDto(
-                arch.getId(),
-                arch.getDefinition().getId(),
+                archetype.getId(),
+                archetype.getDefinition().getId(),
                 title);
     }
 
@@ -67,10 +76,10 @@ public abstract class AbstractController {
      * GSM §8: $gsm:dataProtection — apply inTransit measures to statement
      * properties before including in API responses.
      */
-    private JsonNode applyDataProtectionInTransit(AscriptionEntity entity) {
+    private JsonNode applyDataProtectionInTransit(AscriptionEntity entity, ArchetypeEntity archetype) {
         JsonNode statement = entity.getStatement();
 
-        JsonNode schema = entity.getArchetype().getStatement();
+        JsonNode schema = archetype.getStatement();
         if (schema == null) {
             return statement;
         }

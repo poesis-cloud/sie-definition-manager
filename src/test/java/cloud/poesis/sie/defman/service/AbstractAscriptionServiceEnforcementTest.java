@@ -34,7 +34,7 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.repository.DefinitionRepository;
+import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -46,7 +46,7 @@ class AbstractAscriptionServiceEnforcementTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Mock
-    private DefinitionRepository definitionRepo;
+    private DefinitionService definitionService;
 
     @Mock
     private AscriptionRepository ascriptionRepo;
@@ -108,7 +108,7 @@ class AbstractAscriptionServiceEnforcementTest {
                 return refereeReferences;
             }
         };
-        ReflectionTestUtils.setField(service, "definitionRepository", definitionRepo);
+        ReflectionTestUtils.setField(service, "definitionService", definitionService);
         ReflectionTestUtils.setField(service, "ascriptionRepository", ascriptionRepo);
     }
 
