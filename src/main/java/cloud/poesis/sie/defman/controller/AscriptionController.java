@@ -257,9 +257,9 @@ public class AscriptionController extends AbstractController {
         String subjectType = definition.getSubjectType().getValue();
 
         return HalModelBuilder.halModelOf(dto)
-                .embed(EntityModel.of(toEmbeddedDefinition(definition),
+                .embed(EntityModel.of(toEmbeddedDefinitionDto(definition),
                         linkTo(DefinitionController.class).slash(dto.definitionId()).withSelfRel()))
-                .embed(EntityModel.of(toEmbeddedArchetype(archetype),
+                .embed(EntityModel.of(toEmbeddedArchetypeDto(archetype),
                         linkTo(AscriptionController.class).slash(dto.archetypeId()).withSelfRel()))
                 .link(selfLinkFor(dto))
                 .link(definitionLinkFor(dto))

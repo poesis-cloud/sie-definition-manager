@@ -33,14 +33,15 @@ public abstract class AbstractController {
     /**
      * Maps an ascription entity to its DTO, applying in-transit data protection.
      *
-     * <p>Explicit-fetch design — see README.md § "Explicit-fetch design
+     * <p>
+     * Explicit-fetch design — see README.md § "Explicit-fetch design
      * for lazy associations".
      * The archetype is passed explicitly (already fetched by the caller)
      * rather than navigated via {@code entity.getArchetype()}, which would
-     * trigger a lazy-loading proxy hit.
+     * trigger a lazy-loading proxy exception.
      */
     protected AscriptionDto toAscriptionDto(AscriptionEntity entity, ArchetypeEntity archetype) {
-        JsonNode statement = applyDataProtectionInTransit(entity, archetype);
+        JsonNode statement = applyInTransitDataProtection(entity, archetype);
         return new AscriptionDto(
                 entity.getId(),
                 entity.getDefinition().getId(),
@@ -51,32 +52,24 @@ public abstract class AbstractController {
                 entity.getStatus().name());
     }
 
-    protected EmbeddedDefinitionDto toEmbeddedDefinition(DefinitionEntity definition) {
+    protected EmbeddedDefinitionDto toEmbeddedDefinitionDto(DefinitionEntity definition) {
         return new EmbeddedDefinitionDto(
                 definition.getId(),
                 definition.getSubjectType().getValue());
     }
 
-    protected EmbeddedArchetypeDto toEmbeddedArchetype(ArchetypeEntity archetype) {
-        JsonNode archStatement = archetype.getStatement();
-        String title = null;
-        if (archStatement != null && archStatement.has("title")) {
-            title = archStatement.get("title").asText();
-        } else {
-            log.warn("Archetype {} has no title in statement — possible seed/migration issue",
-                    archetype.getId());
-        }
+    protected EmbeddedArchetypeDto toEmbeddedArchetypeDto(ArchetypeEntity archetype) {
         return new EmbeddedArchetypeDto(
                 archetype.getId(),
                 archetype.getDefinition().getId(),
-                title);
+                archetype.getStatement().get("title").asText());
     }
 
     /**
      * GSM §8: $gsm:dataProtection — apply inTransit measures to statement
      * properties before including in API responses.
      */
-    private JsonNode applyDataProtectionInTransit(AscriptionEntity entity, ArchetypeEntity archetype) {
+    private JsonNode applyInTransitDataProtection(AscriptionEntity entity, ArchetypeEntity archetype) {
         JsonNode statement = entity.getStatement();
 
         JsonNode schema = archetype.getStatement();
