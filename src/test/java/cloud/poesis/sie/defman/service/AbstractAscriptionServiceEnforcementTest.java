@@ -34,7 +34,6 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
