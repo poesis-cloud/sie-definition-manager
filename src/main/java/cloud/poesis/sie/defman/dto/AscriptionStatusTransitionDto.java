@@ -6,7 +6,7 @@ import java.util.UUID;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /** Response for a lifecycle transition. */
-@Schema(description = "Governance audit record of a lifecycle state change")
+@Schema(description = "Governance audit record of a lifecycle state change of an Ascription")
 public record AscriptionStatusTransitionDto(
         @Schema(description = "Transition record ID (UUIDv7)") UUID transitionId,
         @Schema(description = "Ascription ID this transition belongs to") UUID ascriptionId,
