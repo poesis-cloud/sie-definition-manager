@@ -79,6 +79,10 @@ public class GsmRuleViolationException extends RuntimeException {
     }
 
     private static Map<String, Object> toSite(Object... keyValuePairs) {
+        if (keyValuePairs.length % 2 != 0) {
+            throw new IllegalArgumentException(
+                    "Site key-value pairs must be even; got " + keyValuePairs.length);
+        }
         Map<String, Object> map = new LinkedHashMap<>();
         for (int i = 0; i < keyValuePairs.length; i += 2) {
             Object value = keyValuePairs[i + 1];
