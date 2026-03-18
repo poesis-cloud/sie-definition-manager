@@ -31,6 +31,8 @@ import org.mockito.quality.Strictness;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -131,7 +133,7 @@ class AscriptionLifecycleServiceTest {
 
             when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, to));
             assertTrue(ex.getMessage().contains("Invalid transition"));
         }
@@ -146,9 +148,9 @@ class AscriptionLifecycleServiceTest {
         UUID id = UUID.randomUUID();
         when(entityManager.find(AscriptionEntity.class, id)).thenReturn(null);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
                 () -> service.transition(id, "PROPOSED"));
-        assertTrue(ex.getMessage().contains("No ascription found"));
+        assertTrue(ex.getMessage().contains("not found"));
     }
 
     // ========================================================================
@@ -187,9 +189,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "ACTIVE"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
             assertTrue(ex.getMessage().contains("structure"));
         }
 
@@ -222,9 +224,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "PROPOSED"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -256,9 +258,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "APPROVED"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -290,9 +292,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "SUSPENDED"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -324,9 +326,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "ACTIVE"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -358,9 +360,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "RETIRED"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -376,9 +378,9 @@ class AscriptionLifecycleServiceTest {
             when(mechanismSubtype.getRefereeReferences(entity))
                     .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "REJECTED"));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -768,7 +770,7 @@ class AscriptionLifecycleServiceTest {
                     .when(effectorSubtype)
                     .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-            IllegalStateException ex = assertThrows(IllegalStateException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
             assertTrue(ex.getMessage().contains("Constitutive cascade failed"));
         }

@@ -156,10 +156,8 @@ public class AscriptionController extends AbstractController {
     @ApiResponse(responseCode = "200", description = "Paged list of ascriptions")
     @ApiResponse(responseCode = "400", description = "Invalid type or status value")
     public PagedModel<EntityModel<AscriptionDto>> list(
-            @Parameter(description = "GSM subject type (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, INTERFACE, ARCHETYPE, NORM, DIRECTIVE)")
-            @RequestParam String type,
-            @Parameter(description = "Optional lifecycle status filter")
-            @RequestParam(required = false) String status,
+            @Parameter(description = "GSM subject type (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") @RequestParam String type,
+            @Parameter(description = "Optional lifecycle status filter") @RequestParam(required = false) String status,
             @PageableDefault(size = 20) Pageable pageable) {
         AscriptionStatusType statusEnum = (status != null) ? AscriptionStatusType.valueOf(status) : null;
         DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);

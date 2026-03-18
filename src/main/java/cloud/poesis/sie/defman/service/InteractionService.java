@@ -17,10 +17,12 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 @Service
 public class InteractionService extends AbstractAscriptionService {
@@ -56,10 +58,12 @@ public class InteractionService extends AbstractAscriptionService {
         UUID effArchDefId = effector.getOutputArchetype().getDefinition().getId();
         UUID recArchDefId = receptor.getInputArchetype().getDefinition().getId();
         if (!effArchDefId.equals(recArchDefId)) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.INTERACTION_ENDPOINTS_COMPATIBILITY,
                     "Interaction archetype mismatch: effector output archetype (definition "
                             + effArchDefId + ") is not compatible with receptor input archetype (definition "
-                            + recArchDefId + ")");
+                            + recArchDefId + ")",
+                    "effectorArchetypeDefinitionId", effArchDefId,
+                    "receptorArchetypeDefinitionId", recArchDefId);
         }
 
         return new InteractionEntity(

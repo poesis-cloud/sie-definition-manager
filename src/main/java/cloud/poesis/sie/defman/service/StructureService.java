@@ -15,9 +15,12 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 @Service
 public class StructureService extends AbstractAscriptionService {
@@ -45,7 +48,7 @@ public class StructureService extends AbstractAscriptionService {
 
     public StructureEntity findEntityById(UUID id) {
         return structureRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Structure not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Structure", id));
     }
 
     @Override
@@ -82,7 +85,8 @@ public class StructureService extends AbstractAscriptionService {
         var stmt = entity.getStatement();
         String purpose = stmt.has("purpose") ? stmt.get("purpose").asText() : null;
         if (purpose == null || purpose.isBlank()) {
-            throw new IllegalArgumentException("Structure purpose must not be empty");
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+                    "Structure purpose must not be empty", "field", "purpose");
         }
         UUID thisDefId = entity.getDefinition().getId();
         List<StructureEntity> inEffect = structureRepo.findAllByStatusIn(
@@ -92,9 +96,11 @@ public class StructureService extends AbstractAscriptionService {
                 continue;
             String sPurpose = s.getStatement().has("purpose") ? s.getStatement().get("purpose").asText() : null;
             if (purpose.equals(sPurpose)) {
-                throw new IllegalArgumentException(
-                        "Structure purpose '" + purpose + "' duplicates in-effect Structure "
-                                + s.getId() + " (definition " + s.getDefinition().getId() + ")");
+                throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+                        "Structure purpose '" + purpose + "' already in effect",
+                        "field", "purpose", "value", purpose,
+                        "conflictingAscriptionId", s.getId(),
+                        "conflictingDefinitionId", s.getDefinition().getId());
             }
         }
     }

@@ -110,7 +110,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Mechanism: the logical causal unit. Rule logic + Effectors +
       Receptors.
     - Interaction: causal coupling (Effector → Receptor).
-    - Interface: exposed boundary (named set of Effectors and Receptors).
 
     A Structure operates with its capacity constrained by its
     **governing** Structures. Its operations are encoded by
@@ -298,7 +297,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     semantics.
 
     Structural roles are expressed by the class hierarchy: Structure, Mechanism,
-    Effector, Receptor, Interface, Interaction.
+    Effector, Receptor, Interaction.
 
     Domain semantics are expressed through **Archetypes** — each Archetype
     carries a `schema` (JSON Schema document, persisted as-is) whose
@@ -345,8 +344,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │ Mechanism     │ Norm          │
     │ Effector      ├─────────────── ┤
     │ Receptor      │ META-MODEL     │
-    │ Interface     │ Archetype      │
-    │ Interaction   │                │
+    │ Interaction   │ Archetype      │
     └───────────────┴─────────────── ┘
 
     ----
@@ -354,8 +352,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Separation of concerns (what lives where):
     ┌─────────────────────────────────────────────┐
     │ STRUCTURAL: what the system is / does        │
-    │   Mechanism, Effector, Receptor, Interface, │
-    │   Interaction                                │
+    │   Mechanism, Effector, Receptor, Interaction │
     │   topology, information flow, bounds         │
     ├─────────────────────────────────────────────┤
     │ GOVERNANCE DNA: identity + constraints        │
@@ -474,7 +471,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     unified by identity, differentiated by FK position.
 
     GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
-    InteractionArchetype, InterfaceArchetype, Archetype.
+    InteractionArchetype, Archetype.
     EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
     for Mechanism Effectors and Receptors (lifecycle-coupled, derived at
     authoring time) and MUST NOT be tenant-extended. DirectiveArchetype and
@@ -510,7 +507,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Constitutive** (existential dependency, lifecycle coupling —
     Mechanism ↔ Effector/Receptor), **Governing** (governance scope —
     Structure → its Elements), and **Dependent** (downstream consumer
-    integrity — Effector/Receptor → Interaction/Interface). See
+    integrity — Effector/Receptor → Interaction). See
     `gsm-ascription-lifecycle` for the full cascade semantics.
 
     **Layers** (Constitution/Organization/Infrastructure/...):
@@ -521,6 +518,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     DNA, not hierarchical containment.
 
     **Relationship / Role**: inter-structure governance via DNA.
+
+    **Interface**: eliminated as a structural primitive. Interface was the
+    only non-causal Element in GSM — it carried no behavior, no rule logic,
+    and no intrinsic causal existence. Its governance functions (boundary
+    declaration, group-level constraints on exposed ports) are fully
+    expressible through existing Norm enforcement on Effector and Receptor
+    Ascriptions: a Norm can constrain which ports of a Structure are
+    available for inter-Structure Interaction coupling, without an
+    additional structural primitive. Approved Interactions already capture
+    exposure intent (an Effector/Receptor participating in a cross-Structure
+    Interaction is de facto exposed). Dropping Interface dissolves cascade
+    complexity (three referee matrix rows, two join tables, governing and
+    dependent cascade paths) rather than patching it, and aligns GSM with
+    a stricter causal-only Element set: Mechanism (causal unit), Effector/
+    Receptor (causal ports), Interaction (causal coupling).
 
     ====
 
@@ -786,7 +798,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     | `ascription` | `version` | (trigger-assigned) | — | lineage |
     | `ascription` | `status` | (trigger-assigned) | — | denormalized |
     | `ascription` | `timestamp` | (DB-assigned) | — | ordering |
-    | `ascription` | `structure_id` | `statement.structure` | `definition(id)` [STRUCTURE] | FK + reverse lookup — Directive, Norm, Mechanism, Interface |
+    | `ascription` | `structure_id` | `statement.structure` | `definition(id)` [STRUCTURE] | FK + reverse lookup — Directive, Norm, Mechanism |
     | `ascription` | `qualifier_id` | `statement.qualifier` | `definition(id)` [ARCHETYPE] | FK + reverse lookup — Directive, Norm |
     | `ascription` | `purpose_id` | `statement.purpose` | `definition(id)` [STRUCTURE] | FK — Directive |
     | `ascription` | `mechanism_id` | `statement.mechanism` | `definition(id)` [MECHANISM] | FK + reverse lookup — Effector, Receptor |
@@ -799,13 +811,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     | `ascription_status_transition` | `pre_status` | (field) | — | audit |
     | `ascription_status_transition` | `post_status` | (field) | — | audit |
     | `ascription_status_transition` | `timestamp` | (DB-assigned) | — | ordering |
-
-    **Join tables**:
-
-    | Join table | Column A | Column B | Purpose |
-    |---|---|---|---|
-    | `interface_effector` | `interface_id` (FK) | `effector_id` (FK) | Interface ↔ Effector M:N exposure |
-    | `interface_receptor` | `interface_id` (FK) | `receptor_id` (FK) | Interface ↔ Receptor M:N exposure |
 
     **Partial expression indexes** (identity uniqueness):
 
@@ -824,8 +829,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Nullable columns rule**: materialized columns are **nullable** —
     they are populated only for the subjectType(s) that use them. E.g.,
-    `structure_id` is populated for Directive, Norm, Mechanism, and
-    Interface Ascriptions; NULL for Structure, Archetype, etc.
+    `structure_id` is populated for Directive, Norm, and Mechanism
+    Ascriptions; NULL for Structure, Archetype, etc.
     The definition-manager validates at authoring time that required
     columns are non-null for the applicable subjectType.
 
@@ -912,7 +917,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     EFFECTOR
     RECEPTOR
     INTERACTION
-    INTERFACE
     ARCHETYPE
     NORM
     DIRECTIVE
@@ -940,7 +944,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - EFFECTOR: the subject is an Effector.
     - RECEPTOR: the subject is a Receptor.
     - INTERACTION: the subject is an Interaction.
-    - INTERFACE: the subject is an Interface.
     - ARCHETYPE: the subject is an Archetype.
     - NORM: the subject is a Norm.
     - DIRECTIVE: the subject is a Directive.
@@ -1006,9 +1009,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       cross-cutting concerns (GDPR, security, performance SLAs)
       without per-Archetype duplication.
     - The qualifier Archetype can type **any** Ascription subtype
-      (Structure, Mechanism, Interface, Interaction), enabling:
+      (Structure, Mechanism, Interaction), enabling:
       - **Definition-time governance**: Norms evaluate definition
-        of Ascriptions (e.g., "all public Interfaces must use mTLS").
+        of Ascriptions (e.g., "all external Effectors must use mTLS").
       - **Runtime observation governance**: Norms evaluate Archetype-typed
         instances from the Description plane (e.g., "P95 latency < 500ms").
     - Without Directives, a system has purposes but no declared stance
@@ -1699,8 +1702,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - An Ascription is the act of ascribing normative structure to a
       Definition — a governed snapshot that carries the concrete, version-
       specific statement of what the governed subject currently IS.
-    - Every structural constituent of a Structure (Mechanism, Interaction,
-      Interface), the Structure itself, Archetypes, Directives, and Norms
+    - Every structural constituent of a Structure (Mechanism, Interaction),
+      the Structure itself, Archetypes, Directives, and Norms
       are Ascriptions. The subtypes express *what kind of statement* is being
       ascribed; the Ascription base provides the common governance envelope.
     - `id` is the globally unique identity of THIS Ascription (snapshot).
@@ -1810,7 +1813,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       | Effector | `mechanism`, `archetype` (data) |
       | Receptor | `mechanism`, `archetype` (data) |
       | Interaction | `effector`, `receptor` |
-      | Interface | `structure` |
       | Directive | `structure`, `qualifier`, `purpose` |
       | Norm | `structure`, `qualifier`, `predicate` |
       | Archetype | `title` (DM-enforced) |
@@ -1819,7 +1821,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Ascription authoring time — see §8 for the full catalog):
       Applicability depends on Archetype extensibility:
       - **Tenant-extensible Archetypes** (Structure, Mechanism,
-        Interaction, Interface): all `$gsm:*` vocabulary keywords may
+        Interaction): all `$gsm:*` vocabulary keywords may
         appear on tenant-defined extended properties.
       - **Sealed / GSM-internal Archetypes** (Effector, Receptor,
         Directive, Norm, Archetype): only GSM-defined vocabulary
@@ -1892,7 +1894,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Subtype-specific materialized columns** (nullable — populated
       only for applicable subjectTypes, derived from `statement` at
       authoring time by DM):
-      `structure_id` (FK) — Directive, Norm, Mechanism, Interface.
+      `structure_id` (FK) — Directive, Norm, Mechanism.
       `qualifier_id` (FK) — Directive, Norm.
       `purpose_id` (FK) — Directive.
       `mechanism_id` (FK) — Effector, Receptor.
@@ -1900,9 +1902,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `receptor_id` (FK) — Interaction.
       `output_archetype_id` (FK) — Effector (data archetype).
       `input_archetype_id` (FK) — Receptor (data archetype).
-    - **Join tables**:
-      `interface_effector` (`interface_id`, `effector_id`) — Interface.
-      `interface_receptor` (`interface_id`, `receptor_id`) — Interface.
     - All FK columns reference `definition(id)` — the stable identity
       of the referenced subject.
     - See §9 for the complete column materialization map.
@@ -2051,7 +2050,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   class Structure {
     +getPurpose(): String
     +getMechanisms(): Mechanism[]
-    +getInterfaces(): Interface[]
   }
 
   note bottom of Structure
@@ -2094,8 +2092,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `purpose` field.
     - `mechanisms`: the set of Mechanisms belonging to this Structure. A
       Mechanism belongs to exactly one Structure.
-    - `interfaces`: the set of Interfaces belonging to this Structure. An
-      Interface belongs to exactly one Structure.
 
     **Validation Rules**:
 
@@ -2113,7 +2109,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - The definition-manager MUST reject activation of a Structure whose purpose
       duplicates an already in-effect Structure's purpose.
     - **Governing cascade source**: Structure lifecycle transitions
-      cascade to Mechanisms, Interfaces, Directives, and Norms belonging
+      cascade to Mechanisms, Directives, and Norms belonging
       to this Structure (all transitions, no-op on failure — governed
       elements have independent identity and their own referee
       preconditions).
@@ -2133,13 +2129,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getPurpose()` → `statement.purpose`
     - `getMechanisms()` → reverse lookup (Mechanisms
       whose `structure_id` = this Definition id)
-    - `getInterfaces()` → derived (Interfaces whose effectors/receptors belong
-      to this Structure's Mechanisms)
   end note
 
   Structure --|> Ascription
   Structure "1" *--> "0..*" Mechanism : has
-  Structure "1" *--> "0..*" Interface : has
 
   ' ============================================================
   ' MECHANISM
@@ -2351,9 +2344,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     on the triple (Mechanism Definition, data Archetype, direction). If a
     matching Definition exists, the new derived Ascription is created under
     that Definition. If no match exists, a new Definition is created. This
-    preserves referential stability: Interactions and Interfaces that
-    reference port Definitions remain valid across Mechanism re-authorings,
-    as long as the port's data Archetype does not change.
+    preserves referential stability: Interactions that reference port
+    Definitions remain valid across Mechanism re-authorings, as long as
+    the port's data Archetype does not change.
   end note
 
   Mechanism --|> Ascription
@@ -2382,8 +2375,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       data.
     - Effectors do not carry values at the GSM level. Values exist in runtime
       instances.
-    - Exposure to inter-Structure coupling is managed by Interface (which
-      references Effectors via a join relationship), not by the Effector itself.
 
     **Attribute Semantics**:
 
@@ -2418,7 +2409,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Constitutive cascade target**: receives cascades from its
       owning Mechanism (blocks Mechanism on failure).
     - **Dependent cascade source**: Effector degradation/terminal
-      transitions cascade to Interactions and Interfaces that
+      transitions cascade to Interactions that
       reference this Effector (no-op on failure).
 
     **Persistence Rules**:
@@ -2463,8 +2454,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       to operate.
     - Receptors do not carry values at the GSM level. Values exist in runtime
       instances.
-    - Exposure to inter-Structure coupling is managed by Interface (which
-      references Receptors via a join relationship), not by the Receptor itself.
 
     **Attribute Semantics**:
 
@@ -2499,7 +2488,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Constitutive cascade target**: receives cascades from its
       owning Mechanism (blocks Mechanism on failure).
     - **Dependent cascade source**: Receptor degradation/terminal
-      transitions cascade to Interactions and Interfaces that
+      transitions cascade to Interactions that
       reference this Receptor (no-op on failure).
 
     **Persistence Rules**:
@@ -2542,9 +2531,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       same Mechanism.
     - An Interaction may connect an Effector and a Receptor belonging to
       different Structures.
-    - When coupling crosses Structures, the participating Effectors and
-      Receptors are exposed by Interfaces of their respective Structures
-      (Interface is the exposure manifest; Interaction is the causal binding).
     - All causality is Interaction-mediated — no shared state at the structural
       level.
     - Channel properties (environmental constraints, capacity, ...) are
@@ -2599,99 +2585,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   Interaction --|> Ascription
   Interaction "0..*" --> "1" Effector : from
   Interaction "0..*" --> "1" Receptor : to
-
-  ' ============================================================
-  ' INTERFACE
-  ' ============================================================
-
-  class Interface {
-    +getStructure(): Structure
-    +getEffectors(): Effector[]
-    +getReceptors(): Receptor[]
-  }
-
-  note bottom of Interface
-    **Interface** — Exposed boundary of a Structure. Extends Ascription.
-
-    **Concept Semantics**:
-
-    - Declarative *exposure manifest*. Defines Structure's boundary
-      surface by listing which Mechanism Effectors and Receptors are
-      exposed for external coupling.
-    - An Interface is **not** a Mechanism and has **no behavior** of its own.
-      All behavior and realization lives in Mechanisms; Interfaces only define
-      exposure.
-    - Makes the boundary explicit and governable. Governance Norms can target an
-      Interface directly (e.g., "all Effectors in this Interface must use mTLS").
-    - **Interface owns the exposure relationship**: the Interface references
-      Effectors and Receptors (via join tables), not the other way around.
-      This preserves Ascription immutability — defining or redacting an
-      Interface does not force new Effector/Receptor Ascription versions.
-
-    **Attribute Semantics**:
-
-    - `structure`: the owning Structure. An Interface cannot exist without
-      a Structure.
-    - `effectors`: list of referenced Effector `id`s that declare which
-      Effectors are exposed by this Interface. Materialized as
-      `interface_effector` join table.
-    - `receptors`: list of referenced Receptor `id`s that declare which
-      Receptors are exposed by this Interface. Materialized as
-      `interface_receptor` join table.
-
-    **Validation Rules**:
-
-      - `statement.structure` is **identity-bound**: MUST NOT change across
-        Ascriptions of the same Definition (see Ascription identity invariant).
-      - If `statement.effectorIds`/`statement.receptorIds` are
-        present, they MUST reference Effector/Receptor `id`s that belong
-        to Mechanisms within the same Structure as the Interface's Structure.
-
-    **State Rules**:
-
-    - See `gsm-ascription-lifecycle` state machine diagram
-      for valid transitions, preconditions, cascades,
-      and audit-log invariants.
-    - **Referee**: References Structure, Effectors, and Receptors.
-      On every transition, ALL referenced elements MUST satisfy
-      the lifecycle referential integrity precondition for the
-      target status.
-    - **Governing cascade target**: receives cascades from its
-      owning Structure (no-op on failure).
-    - **Dependent cascade target**: receives cascades from its
-      referenced Effectors and Receptors on degradation/terminal
-      transitions (no-op on failure).
-
-    **Persistence Rules**:
-
-    - `statement.structure` → column `structure_id`
-      (FK → `definition(id)` [STRUCTURE]). Enables reverse lookup:
-      "all Interfaces of Structure X".
-    - `statement.effectorIds` → `interface_effector` join table
-      (`interface_id`, `effector_id`). M:N exposure relationship.
-    - `statement.receptorIds` → `interface_receptor` join table
-      (`interface_id`, `receptor_id`). M:N exposure relationship.
-    - All derived at authoring time by DM; see §9.
-
-    **Derivation Rules**:
-
-    - `getStructure()` → column `structure_id` → resolves Structure
-    - `getEffectors()` → `interface_effector` join table
-    - `getReceptors()` → `interface_receptor` join table
-
-    **Usage Rules**:
-
-    - Group Effectors/Receptors by external exposure semantics (e.g.,
-      "admin", "monitoring", "public API").
-    - Apply boundary-level governance Norms to Interfaces rather than individual
-      Effectors/Receptors when the constraint is uniform across all grouped
-      Effectors/Receptors, (AND) relative to the Interface itself.
-  end note
-
-  Interface --|> Ascription
-  Interface "0..*" --> "1" Structure : constitutes
-  Interface "0..*" --> "0..*" Effector : exposes
-  Interface "0..*" --> "0..*" Receptor : exposes
 
   ' ============================================================
   ' ARCHETYPE

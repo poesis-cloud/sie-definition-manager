@@ -1,6 +1,6 @@
 # GSM Base Archetype Schemas
 
-JSON Schema (draft 2020-12) definitions for the 9 GSM base Archetypes.
+JSON Schema (draft 2020-12) definitions for the 8 GSM base Archetypes.
 
 These are the **governance contract** between DM and tenants. Each schema types the `statement` payload of Ascriptions for one GSM class. Tenants extend structural schemas via `allOf`; sealed schemas cannot be extended. Rootless archetypes (no `allOf` or no structural base) are valid for qualifier, facet, and data archetype roles.
 
@@ -29,7 +29,6 @@ All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "g
 | `Effector.schema.json` | Effector | No | Yes (`allOf`) | `mechanism`, `archetype` |
 | `Receptor.schema.json` | Receptor | No | Yes (`allOf`) | `mechanism`, `archetype` |
 | `Interaction.schema.json` | Interaction | No | Yes (`allOf`) | `effector`, `receptor` |
-| `Interface.schema.json` | Interface | No | Yes (`allOf`) | `structure` |
 | `Archetype.schema.json` | Archetype | Yes | No | `title` (DM-enforced) |
 | `Directive.schema.json` | Directive | Yes | No | `structure`, `qualifier`, `purpose` |
 | `Norm.schema.json` | Norm | Yes | No | `structure`, `qualifier`, `predicate` |

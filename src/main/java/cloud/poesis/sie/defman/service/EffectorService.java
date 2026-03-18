@@ -16,6 +16,7 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -65,7 +66,7 @@ public class EffectorService extends AbstractAscriptionService {
 
     public EffectorEntity findEntityById(UUID id) {
         return effectorRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Effector not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Effector", id));
     }
 
     @Override

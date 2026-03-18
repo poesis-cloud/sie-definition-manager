@@ -29,10 +29,6 @@ public class StructureEntity extends AscriptionEntity {
     @OrderBy("id ASC")
     private List<MechanismEntity> mechanisms;
 
-    @OneToMany(mappedBy = "structure", fetch = FetchType.LAZY)
-    @OrderBy("id ASC")
-    private List<InterfaceEntity> interfaces;
-
     protected StructureEntity() {
     }
 
@@ -44,10 +40,5 @@ public class StructureEntity extends AscriptionEntity {
     @NonNull
     public List<MechanismEntity> getMechanisms() {
         return Collections.unmodifiableList(mechanisms);
-    }
-
-    @NonNull
-    public List<InterfaceEntity> getInterfaces() {
-        return Collections.unmodifiableList(interfaces);
     }
 }

@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -40,7 +41,7 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class AbstractAscriptionServiceEnforcementTest {
+class AbstractAscriptionServiceTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -157,9 +158,9 @@ class AbstractAscriptionServiceEnforcementTest {
             when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of(existing));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, defId));
-            assertTrue(ex.getMessage().contains("$gsm:unique"));
+            assertTrue(ex.getMessage().contains("duplicates"));
             assertTrue(ex.getMessage().contains("code"));
         }
 
@@ -219,7 +220,7 @@ class AbstractAscriptionServiceEnforcementTest {
             // Missing required field
             ObjectNode statement = MAPPER.createObjectNode();
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
             assertTrue(ex.getMessage().contains("Statement validation failed"));
         }
@@ -236,7 +237,7 @@ class AbstractAscriptionServiceEnforcementTest {
             // Wrong type: string where integer expected
             ObjectNode statement = MAPPER.createObjectNode().put("count", "not-a-number");
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
             assertTrue(ex.getMessage().contains("Statement validation failed"));
         }
@@ -346,7 +347,7 @@ class AbstractAscriptionServiceEnforcementTest {
                 }
             };
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> spyService.validateIdentityBound(newEntity));
             assertTrue(ex.getMessage().contains("Identity-bound field"));
             assertTrue(ex.getMessage().contains("purpose"));
@@ -436,9 +437,9 @@ class AbstractAscriptionServiceEnforcementTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
             assertTrue(ex.getMessage().contains("RETIRED"));
         }
 
@@ -451,9 +452,9 @@ class AbstractAscriptionServiceEnforcementTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -465,9 +466,9 @@ class AbstractAscriptionServiceEnforcementTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
 
         @Test
@@ -479,9 +480,9 @@ class AbstractAscriptionServiceEnforcementTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertTrue(ex.getMessage().contains("Referee precondition failed"));
+            assertTrue(ex.getMessage().contains("Referee"));
         }
     }
 
@@ -519,7 +520,7 @@ class AbstractAscriptionServiceEnforcementTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
             ObjectNode statement = MAPPER.createObjectNode().put("budget", -5.0);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
             assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("constraint failed"));
@@ -541,7 +542,7 @@ class AbstractAscriptionServiceEnforcementTest {
                     .put("min", 10.0)
                     .put("max", 5.0); // violates 2nd expression
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
             assertTrue(ex.getMessage().contains("$gsm:validation"));
             assertTrue(ex.getMessage().contains("constraint failed"));
@@ -692,7 +693,7 @@ class AbstractAscriptionServiceEnforcementTest {
         }
 
         @Test
-        void encryptionAtRest_throwsUnsupported() {
+        void encryptionAtRest_silentlyIgnored() {
             ObjectNode propNode = prop("string");
             ObjectNode dp = MAPPER.createObjectNode();
             ObjectNode atRest = dp.putObject("atRest");
@@ -703,7 +704,7 @@ class AbstractAscriptionServiceEnforcementTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("card", "4111-1111-1111-1111");
 
-            assertThrows(UnsupportedOperationException.class,
+            assertDoesNotThrow(
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
         }
 

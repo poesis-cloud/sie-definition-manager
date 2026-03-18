@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -74,10 +75,10 @@ class StructureServiceTest {
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of(existing));
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateActivationUniqueness(entity));
             assertTrue(ex.getMessage().contains("order-processing"));
-            assertTrue(ex.getMessage().contains("duplicates"));
+            assertTrue(ex.getMessage().contains("already in"));
         }
 
         @Test
@@ -98,7 +99,7 @@ class StructureServiceTest {
         void emptyPurpose_rejected() {
             StructureEntity entity = stubStructure("", UUID.randomUUID());
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateActivationUniqueness(entity));
             assertTrue(ex.getMessage().contains("must not be empty"));
         }
@@ -107,7 +108,7 @@ class StructureServiceTest {
         void nullPurpose_rejected() {
             StructureEntity entity = stubStructureNoPurpose(UUID.randomUUID());
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateActivationUniqueness(entity));
             assertTrue(ex.getMessage().contains("must not be empty"));
         }

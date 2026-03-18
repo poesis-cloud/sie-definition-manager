@@ -9,8 +9,7 @@
 --   4. Version CHECK fixed: >= 0 (V5 set DEFAULT 0 but kept > 0).
 --   5. subject_type dropped from transition table (V6 change).
 --   6. Effector/Receptor columns: output/input_archetype_id (V9).
---   7. interface_effector/interface_receptor join tables (V8).
---   8. directive.purpose_id NOT NULL (V7).
+--   7. directive.purpose_id NOT NULL (V7).
 -- ============================================================
 begin;
 -- ============================================================
@@ -58,7 +57,6 @@ do $$ begin create type definition_subject_type as enum (
   'ARCHETYPE',
   'STRUCTURE',
   'MECHANISM',
-  'INTERFACE',
   'EFFECTOR',
   'RECEPTOR',
   'INTERACTION',
@@ -115,20 +113,7 @@ create table if not exists mechanism (
   constraint mechanism_pk primary key (id),
   constraint mechanism_version_check check (version >= 0)
 );
--- 3e. interface ---------------------------------------------------
-create table if not exists interface (
-  id uuid not null default uuid_v7(),
-  definition_id uuid not null references definition(id),
-  archetype_id uuid not null references archetype(id),
-  statement jsonb not null default '{}'::jsonb,
-  "timestamp" timestamptz not null default clock_timestamp(),
-  status ascription_status not null default 'DRAFT',
-  version integer not null default 0,
-  structure_id uuid not null references structure(id),
-  constraint interface_pk primary key (id),
-  constraint interface_version_check check (version >= 0)
-);
--- 3f. effector ----------------------------------------------------
+-- 3e. effector ----------------------------------------------------
 create table if not exists effector (
   id uuid not null default uuid_v7(),
   definition_id uuid not null references definition(id),
@@ -142,7 +127,7 @@ create table if not exists effector (
   constraint effector_pk primary key (id),
   constraint effector_version_check check (version >= 0)
 );
--- 3g. receptor ----------------------------------------------------
+-- 3f. receptor ----------------------------------------------------
 create table if not exists receptor (
   id uuid not null default uuid_v7(),
   definition_id uuid not null references definition(id),
@@ -156,7 +141,7 @@ create table if not exists receptor (
   constraint receptor_pk primary key (id),
   constraint receptor_version_check check (version >= 0)
 );
--- 3h. interaction -------------------------------------------------
+-- 3g. interaction -------------------------------------------------
 create table if not exists interaction (
   id uuid not null default uuid_v7(),
   definition_id uuid not null references definition(id),
@@ -170,7 +155,7 @@ create table if not exists interaction (
   constraint interaction_pk primary key (id),
   constraint interaction_version_check check (version >= 0)
 );
--- 3i. directive ---------------------------------------------------
+-- 3h. directive ---------------------------------------------------
 create table if not exists directive (
   id uuid not null default uuid_v7(),
   definition_id uuid not null references definition(id),
@@ -185,7 +170,7 @@ create table if not exists directive (
   constraint directive_pk primary key (id),
   constraint directive_version_check check (version >= 0)
 );
--- 3j. norm --------------------------------------------------------
+-- 3i. norm --------------------------------------------------------
 create table if not exists norm (
   id uuid not null default uuid_v7(),
   definition_id uuid not null references definition(id),
@@ -199,7 +184,7 @@ create table if not exists norm (
   constraint norm_pk primary key (id),
   constraint norm_version_check check (version >= 0)
 );
--- 3k. ascription_status_transition --------------------------------
+-- 3j. ascription_status_transition --------------------------------
 create table if not exists ascription_status_transition (
   id uuid not null default uuid_v7(),
   ascription_id uuid not null,
@@ -211,18 +196,6 @@ create table if not exists ascription_status_transition (
     pre_status is distinct
     from post_status
   )
-);
--- 3l. interface_effector (join) -----------------------------------
-create table if not exists interface_effector (
-  interface_id uuid not null references interface(id),
-  effector_id uuid not null references effector(id),
-  constraint interface_effector_pk primary key (interface_id, effector_id)
-);
--- 3m. interface_receptor (join) -----------------------------------
-create table if not exists interface_receptor (
-  interface_id uuid not null references interface(id),
-  receptor_id uuid not null references receptor(id),
-  constraint interface_receptor_pk primary key (interface_id, receptor_id)
 );
 -- ============================================================
 -- §4  Indexes
@@ -243,11 +216,6 @@ create index if not exists idx_mechanism_definition on mechanism (definition_id)
 create index if not exists idx_mechanism_status on mechanism (status);
 create index if not exists idx_mechanism_structure on mechanism (structure_id);
 create index if not exists gin_mechanism_stmt on mechanism using gin (statement);
--- interface
-create index if not exists idx_interface_definition on interface (definition_id);
-create index if not exists idx_interface_status on interface (status);
-create index if not exists idx_interface_structure on interface (structure_id);
-create index if not exists gin_interface_stmt on interface using gin (statement);
 -- effector
 create index if not exists idx_effector_definition on effector (definition_id);
 create index if not exists idx_effector_status on effector (status);
@@ -297,10 +265,6 @@ where status = 'APPROVED';
 create unique index if not exists uq_mechanism_active on mechanism (definition_id)
 where status = 'ACTIVE';
 create unique index if not exists uq_mechanism_approved on mechanism (definition_id)
-where status = 'APPROVED';
-create unique index if not exists uq_interface_active on interface (definition_id)
-where status = 'ACTIVE';
-create unique index if not exists uq_interface_approved on interface (definition_id)
 where status = 'APPROVED';
 create unique index if not exists uq_effector_active on effector (definition_id)
 where status = 'ACTIVE';
@@ -368,10 +332,6 @@ from (
     union all
     select 'mechanism'
     from mechanism
-    where id = p_id
-    union all
-    select 'interface'
-    from interface
     where id = p_id
     union all
     select 'effector'
@@ -512,7 +472,7 @@ $$ language plpgsql;
 -- ============================================================
 -- Attach the standard 6-trigger set to each ascription class table.
 -- PostgreSQL requires one CREATE TRIGGER per trigger, so we
--- enumerate all 9 tables × 6 triggers.
+-- enumerate all 8 tables × 6 triggers.
 -- ---- archetype ----
 create trigger trg_archetype_assign_id before
 insert on archetype for each row execute function tgf_assign_id();
@@ -558,21 +518,6 @@ after
 insert
   or
 update on mechanism deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
--- ---- interface ----
-create trigger trg_interface_assign_id before
-insert on interface for each row execute function tgf_assign_id();
-create trigger trg_interface_assign_timestamp before
-insert on interface for each row execute function tgf_assign_timestamp();
-create trigger trg_interface_reject_status_update before
-update of status on interface for each row execute function tgf_reject_status_update();
-create trigger trg_interface_reject_id_update before
-update of id on interface for each row execute function tgf_reject_id_update();
-create trigger trg_interface_restrict_delete before delete on interface for each row execute function tgf_restrict_ascription_delete_when_transitions_exist();
-create constraint trigger trg_interface_status_matches_history
-after
-insert
-  or
-update on interface deferrable initially deferred for each row execute function tgf_assert_ascription_status_matches_history();
 -- ---- effector ----
 create trigger trg_effector_assign_id before
 insert on effector for each row execute function tgf_assign_id();
@@ -693,16 +638,6 @@ select 'MECHANISM',
   version,
   status
 from mechanism
-union all
-select 'INTERFACE',
-  definition_id,
-  id,
-  "timestamp",
-  archetype_id,
-  statement,
-  version,
-  status
-from interface
 union all
 select 'EFFECTOR',
   definition_id,

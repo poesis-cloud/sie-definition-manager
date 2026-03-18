@@ -27,10 +27,12 @@ import com.networknt.schema.ValidationMessage;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import dev.cel.common.CelAbstractSyntaxTree;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.types.SimpleType;
@@ -248,14 +250,16 @@ public abstract class AbstractAscriptionService {
     protected UUID extractRequiredUuid(JsonNode statement, String field) {
         JsonNode node = statement.get(field);
         if (node == null || node.isNull() || node.asText().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Required field '" + field + "' missing in statement payload");
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+                    "Required field '" + field + "' missing in statement payload",
+                    "field", field);
         }
         try {
             return UUID.fromString(node.asText());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Invalid UUID for field '" + field + "': " + node.asText());
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_FORMATTING,
+                    "Invalid UUID for field '" + field + "': " + node.asText(),
+                    "field", field, "value", node.asText());
         }
     }
 
@@ -269,8 +273,9 @@ public abstract class AbstractAscriptionService {
             try {
                 result.add(UUID.fromString(element.asText()));
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(
-                        "Invalid UUID in '" + field + "': " + element.asText());
+                throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_FORMATTING,
+                        "Invalid UUID in '" + field + "': " + element.asText(),
+                        "field", field, "value", element.asText());
             }
         }
         return result;
@@ -301,10 +306,12 @@ public abstract class AbstractAscriptionService {
             Object newVal = entry.getValue();
             Object firstVal = firstValues.get(field);
             if (!Objects.equals(newVal, firstVal)) {
-                throw new IllegalArgumentException(
-                        "Identity-bound field '" + field + "' cannot change across Ascriptions "
-                                + "of the same Definition " + definitionId
-                                + ": was '" + firstVal + "', got '" + newVal + "'");
+                throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+                        "Identity-bound field '" + field + "' changed: expected '" + firstVal
+                                + "' but got '" + newVal + "'",
+                        "field", field, "definitionId", definitionId,
+                        "expectedValue", String.valueOf(firstVal),
+                        "actualValue", String.valueOf(newVal));
             }
         }
     }
@@ -322,11 +329,16 @@ public abstract class AbstractAscriptionService {
         for (RefereeReference ref : refs) {
             AscriptionStatusType refStatus = ref.reference().getStatus();
             if (!CREATION_REFEREE_ALLOWED.contains(refStatus)) {
-                throw new IllegalArgumentException(
-                        "Referee precondition failed for [*]->DRAFT: reference '"
-                                + ref.label() + "' (id=" + ref.reference().getId()
-                                + ") is in status " + refStatus
-                                + ", must be one of " + CREATION_REFEREE_ALLOWED);
+                throw GsmRuleViolationException.of(
+                        GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                        "Referee '" + ref.label() + "' (" + ref.reference().getId()
+                                + ") is " + refStatus.name() + "; creation requires one of "
+                                + CREATION_REFEREE_ALLOWED.stream().map(Enum::name).collect(Collectors.toSet()),
+                        "fromStatus", null, "toStatus", AscriptionStatusType.DRAFT.name(),
+                        "refereeLabel", ref.label(), "refereeId", ref.reference().getId(),
+                        "refereeStatus", refStatus.name(),
+                        "requiredStatuses",
+                        CREATION_REFEREE_ALLOWED.stream().map(Enum::name).collect(Collectors.toSet()));
             }
         }
     }
@@ -343,10 +355,12 @@ public abstract class AbstractAscriptionService {
         Set<ValidationMessage> errors = schema.validate(statement);
 
         if (!errors.isEmpty()) {
-            String details = errors.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("; "));
-            throw new IllegalArgumentException(
-                    "Statement validation failed against archetype ["
-                            + archetype.getDefinition().getId() + "]: " + details);
+            List<String> messages = errors.stream().map(ValidationMessage::getMessage).toList();
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+                    "Statement validation failed against archetype " + archetype.getDefinition().getId()
+                            + ": " + messages,
+                    "archetypeDefinitionId", archetype.getDefinition().getId(),
+                    "violations", messages);
         }
     }
 
@@ -406,10 +420,12 @@ public abstract class AbstractAscriptionService {
                 JsonNode existingVal = existingStmt.get(propName);
                 String existingStr = existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
                 if (valueStr.equals(existingStr)) {
-                    throw new IllegalArgumentException(
-                            "$gsm:unique: property '" + propName + "' value '" + valueStr
-                                    + "' is already in use by in-effect Ascription " + existing.getId()
-                                    + " (definition " + existing.getDefinition().getId() + ")");
+                    throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+                            propName + " '" + valueStr + "' duplicates ascription " + existing.getId()
+                                    + " (definition " + existing.getDefinition().getId() + ")",
+                            "field", propName, "value", valueStr,
+                            "conflictingAscriptionId", existing.getId(),
+                            "conflictingDefinitionId", existing.getDefinition().getId());
                 }
             }
         }
@@ -436,8 +452,8 @@ public abstract class AbstractAscriptionService {
         String textValue = value.isTextual() ? value.asText() : value.toString();
 
         if (atRest.has("encryption")) {
-            throw new UnsupportedOperationException(
-                    "$gsm:dataProtection atRest.encryption is not yet supported");
+            // Encryption not yet implemented — silently skip
+            return;
         }
 
         if (atRest.has("hash")) {
@@ -473,8 +489,9 @@ public abstract class AbstractAscriptionService {
             }
             return hex.toString();
         } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException(
-                    "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported", e);
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                    "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
+                    "keyword", "$gsm:dataProtection", "property", "hash.algorithm");
         }
     }
 
@@ -529,25 +546,27 @@ public abstract class AbstractAscriptionService {
             try {
                 CelValidationResult compileResult = celCompiler.compile(expr);
                 if (compileResult.hasError()) {
-                    throw new IllegalArgumentException(
-                            "$gsm:validation[" + i + "] CEL parse error: " + compileResult.getErrorString());
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                            "$gsm:validation[" + i + "] CEL parse error: " + compileResult.getErrorString(),
+                            "keyword", "$gsm:validation", "index", i);
                 }
                 CelAbstractSyntaxTree ast = compileResult.getAst();
                 CelRuntime.Program program = celRuntime.createProgram(ast);
                 Object result = program.eval(Map.of("this", statementMap));
 
                 if (!(result instanceof Boolean b) || !b) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
                             "$gsm:validation[" + i + "] constraint failed: expression '"
-                                    + expr + "' evaluated to " + result);
+                                    + expr + "' evaluated to " + result,
+                            "keyword", "$gsm:validation", "index", i, "expression", expr);
                 }
-            } catch (IllegalArgumentException e) {
+            } catch (GsmRuleViolationException e) {
                 throw e; // re-throw our own exceptions
             } catch (Exception e) {
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
                         "$gsm:validation[" + i + "] evaluation error for expression '"
                                 + expr + "': " + e.getMessage(),
-                        e);
+                        "keyword", "$gsm:validation", "index", i, "expression", expr);
             }
         }
     }

@@ -19,11 +19,12 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import dev.cel.common.CelAbstractSyntaxTree;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.ast.CelExpr;
@@ -168,7 +169,7 @@ public class NormService extends AbstractAscriptionService {
         if (guard == null || guard.isBlank() || "true".equals(guard.trim())) {
             return;
         }
-        CelExpr ast = parseCel(guardCompiler, guard, "Guard");
+        CelExpr ast = parseGuardCel(guardCompiler, guard);
         Set<String> axes = new HashSet<>();
         validateGuardExpr(ast, axes, true);
     }
@@ -176,24 +177,38 @@ public class NormService extends AbstractAscriptionService {
     /** Package-private for test access. */
     void validatePredicate(String predicate) {
         if (predicate == null || predicate.isBlank()) {
-            throw new IllegalArgumentException("Predicate must not be empty");
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+                    "Predicate must not be empty", "field", "predicate");
         }
-        CelExpr ast = parseCel(predicateCompiler, predicate, "Predicate");
+        CelExpr ast = parsePredicateCel(predicateCompiler, predicate);
         validatePredicateExpr(ast);
     }
 
-    private static CelExpr parseCel(CelCompiler compiler, String expression, String profileName) {
+    private static CelExpr parseGuardCel(CelCompiler compiler, String expression) {
         CelValidationResult result = compiler.parse(expression);
         if (result.hasError()) {
-            throw new IllegalArgumentException(
-                    profileName + " CEL parse error: " + result.getErrorString());
+            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_PARSE_ERROR,
+                    "Guard CEL parse error: " + result.getErrorString());
         }
         try {
-            CelAbstractSyntaxTree ast = result.getAst();
-            return ast.getExpr();
+            return result.getAst().getExpr();
         } catch (CelValidationException e) {
-            throw new IllegalArgumentException(
-                    profileName + " CEL validation error: " + e.getMessage(), e);
+            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_PARSE_ERROR,
+                    "Guard CEL validation error: " + e.getMessage(), e);
+        }
+    }
+
+    private static CelExpr parsePredicateCel(CelCompiler compiler, String expression) {
+        CelValidationResult result = compiler.parse(expression);
+        if (result.hasError()) {
+            throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_PARSE_ERROR,
+                    "Predicate CEL parse error: " + result.getErrorString());
+        }
+        try {
+            return result.getAst().getExpr();
+        } catch (CelValidationException e) {
+            throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_PARSE_ERROR,
+                    "Predicate CEL validation error: " + e.getMessage(), e);
         }
     }
 
@@ -210,17 +225,17 @@ public class NormService extends AbstractAscriptionService {
                     return;
                 }
                 if ("_||_".equals(fn)) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_DISJUNCTION,
                             "Guard profile violation: '||' (OR) is forbidden. "
                                     + "The guard must be a pure conjunction. "
                                     + "Use 'in [...]' for set membership instead of OR.");
                 }
                 if ("_?_:_".equals(fn)) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_TERNARY,
                             "Guard profile violation: ternary operator (?:) is forbidden in guard expressions.");
                 }
                 if (GUARD_ARITHMETIC_OPS.contains(fn)) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_ARITHMETIC,
                             "Guard profile violation: arithmetic operators are forbidden in guard expressions.");
                 }
                 if ("!_".equals(fn) || "_!_".equals(fn)) {
@@ -237,21 +252,21 @@ public class NormService extends AbstractAscriptionService {
                 }
                 if (call.target().isPresent()) {
                     if (!GUARD_ALLOWED_FUNCTIONS.contains(fn)) {
-                        throw new IllegalArgumentException(
+                        throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_FORBIDDEN_FUNCTION,
                                 "Guard profile violation: only .matches() is allowed as a function call. "
                                         + "Found: ." + fn + "()");
                     }
                     if (topLevel) {
                         String axis = extractAxis(call.target().get());
                         if (axis != null && !axes.add(axis)) {
-                            throw new IllegalArgumentException(
+                            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_DUPLICATE_AXIS,
                                     "Guard profile violation: duplicate axis '" + axis
                                             + "'. At most one predicate per (Archetype, propertyPath).");
                         }
                     }
                     return;
                 }
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_FORBIDDEN_FUNCTION,
                         "Guard profile violation: function call '" + fn
                                 + "' is forbidden. Only comparison operators and .matches() are allowed.");
             }
@@ -271,14 +286,14 @@ public class NormService extends AbstractAscriptionService {
             collectAxes(arg, predAxes);
         }
         if (predAxes.size() > 1) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_CROSS_PROPERTY,
                     "Guard profile violation: cross-property comparison detected. "
                             + "Each predicate must compare a single property to a literal. "
                             + "Found axes: " + predAxes);
         }
         for (String axis : predAxes) {
             if (!axes.add(axis)) {
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_DUPLICATE_AXIS,
                         "Guard profile violation: duplicate axis '" + axis
                                 + "'. At most one predicate per (Archetype, propertyPath).");
             }
@@ -292,10 +307,10 @@ public class NormService extends AbstractAscriptionService {
                 CelExpr.CelCall call = kind.call();
                 String fn = call.function();
                 if (GUARD_ARITHMETIC_OPS.contains(fn)) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_ARITHMETIC,
                             "Guard profile violation: arithmetic operators are forbidden in guard expressions.");
                 }
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_FORBIDDEN_FUNCTION,
                         "Guard profile violation: function call '" + fn
                                 + "' is forbidden in guard comparison operands. "
                                 + "Only property references and literals are allowed. "
@@ -366,7 +381,7 @@ public class NormService extends AbstractAscriptionService {
                 CelExpr.CelCall call = kind.call();
                 String fn = call.function();
                 if (PREDICATE_FORBIDDEN_FUNCTIONS.contains(fn)) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_NON_DETERMINISTIC,
                             "Predicate profile violation: non-deterministic functions (now(), uuid()) are forbidden. "
                                     + "Predicate must be deterministic and side-effect-free.");
                 }
@@ -385,7 +400,7 @@ public class NormService extends AbstractAscriptionService {
                 if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
                     String rootName = root.exprKind().ident().name();
                     if (!rootName.equals("self") && Character.isUpperCase(rootName.charAt(0))) {
-                        throw new IllegalArgumentException(
+                        throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_EXPLICIT_ROOT,
                                 "Predicate profile violation: use 'self' as implicit root, "
                                         + "not an explicit Archetype name. "
                                         + "Example: 'self.encryptionLevel' instead of '"

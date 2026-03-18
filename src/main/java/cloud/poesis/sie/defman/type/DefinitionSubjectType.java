@@ -18,7 +18,6 @@ public enum DefinitionSubjectType {
     ARCHETYPE("archetype"),
     STRUCTURE("structure"),
     MECHANISM("mechanism"),
-    INTERFACE("interface"),
     EFFECTOR("effector"),
     RECEPTOR("receptor"),
     INTERACTION("interaction"),

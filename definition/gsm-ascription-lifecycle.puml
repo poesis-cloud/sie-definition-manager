@@ -91,7 +91,6 @@ note as Rules
   | Effector | `mechanism`, `archetype` (data) |
   | Receptor | `mechanism`, `archetype` (data) |
   | Interaction | `effector`, `receptor` |
-  | Interface | `structure` |
   | Directive | `structure`, `qualifier`, `purpose` |
   | Norm | `structure`, `qualifier`, `predicate` |
   | Archetype | `title` (DM-enforced) |
@@ -124,9 +123,6 @@ note as Rules
   | Receptor     | Archetype     |
   | Interaction  | Effector     |
   | Interaction  | Receptor     |
-  | Interface    | Structure    |
-  | Interface    | Effector     |
-  | Interface    | Receptor     |
   | Directive    | Structure (definedBy)  |
   | Directive    | Archetype (qualifier)  |
   | Directive    | Structure (purpose)    |
@@ -217,7 +213,6 @@ note as Rules
 
   - **Governing** (governance scope):
     - Structure.`X->Y` -> Mechanism.`X->Y`
-    - Structure.`X->Y` -> Interface.`X->Y`
     - Structure.`X->Y` -> Directive.`X->Y`
     - Structure.`X->Y` -> Norm.`X->Y`
     - **Scope**: all `X->Y`.
@@ -231,9 +226,7 @@ note as Rules
 
   - **Dependent** (downstream consumers):
     - Effector.`X->Y` -> Interaction.`X->Y`
-    - Effector.`X->Y` -> Interface.`X->Y`
     - Receptor.`X->Y` -> Interaction.`X->Y`
-    - Receptor.`X->Y` -> Interface.`X->Y`
     - **Scope**: `X->Y` ∈ {`ACTIVE->SUSPENDED`,
       `ACTIVE->DEPRECATED`, `SUSPENDED->DEPRECATED`,
       `DEPRECATED->SUSPENDED`, `DEPRECATED->RETIRED`,
@@ -243,11 +236,42 @@ note as Rules
       their own governance.
     - **Invariant**: none (lagging permitted).
     - **On failure**: no-op for that target.
-    - **Rationale**: Interactions and Interfaces depend on
+    - **Rationale**: Interactions depend on
       Effectors/Receptors. When a port degrades, its
       dependents should degrade too (integrity). Progress
       does not cascade because dependents advance through
       their own governance timeline.
+
+  **Intra Definition Rules**
+
+  Rules governing the relationship between Ascriptions of
+  the **same** Definition (not cross-element).
+
+  - **Approval convergence**:
+    When an Ascription transitions `PROPOSED->APPROVED`,
+    all other non-terminal sibling Ascriptions of the same
+    Definition are auto-terminated:
+    - DRAFT siblings → `DRAFT->ABANDONED`.
+    - PROPOSED siblings → `PROPOSED->REJECTED`.
+    Ensures exactly one governance winner per creative
+    cycle (see Ascription §Governance convergence pattern
+    in GSM).
+
+  - **Activation handoff**:
+    When an Ascription transitions `APPROVED->ACTIVE`,
+    the previous in-effect Ascription for the same
+    Definition (if any) is superseded:
+    - ACTIVE predecessor → `ACTIVE->DEPRECATED`.
+    Preserves the invariant: at most one in-effect
+    (ACTIVE or DEPRECATED may coexist briefly during the
+    transition, but exactly one ACTIVE).
+
+  - **Terminal immutability**:
+    Once an Ascription reaches a terminal status
+    (ABANDONED, REJECTED, RETIRED), no additional
+    transitions may be appended. The Ascription is
+    permanently frozen — a new creative cycle requires
+    authoring a new Ascription (new `id`, fresh DRAFT).
 end note
 
 note as AuditRules
@@ -423,30 +447,6 @@ note as Scenarios
 
   ====
 
-  **§5 — Multi-reference: Interface (Str + Eff + Rec)**
-
-  SC-40 — Structure(PROPOSED), Effector(PROPOSED),
-  Receptor(DRAFT). Interface(DRAFT).
-  Interface `DRAFT->PROPOSED`.
-  **BLOCKED**: Receptor DRAFT ∉ {PROPOSED,APPROVED,ACTIVE}.
-
-  SC-41 — Structure(PROPOSED), Effector(PROPOSED),
-  Receptor(PROPOSED). Interface(DRAFT).
-  Interface `DRAFT->PROPOSED`.
-  **PASS**: all 3 ∈ {PROPOSED,APPROVED,ACTIVE}.
-
-  SC-42 — Structure(ACTIVE), Effector(ACTIVE),
-  Receptor(ACTIVE). Interface(APPROVED).
-  Interface `APPROVED->ACTIVE`.
-  **PASS**: all 3 ∈ {ACTIVE}.
-
-  SC-43 — Structure(ACTIVE), Effector(ACTIVE),
-  Receptor(APPROVED). Interface(APPROVED).
-  Interface `APPROVED->ACTIVE`.
-  **BLOCKED**: Receptor APPROVED ∉ {ACTIVE}.
-
-  ====
-
   **§6 — Not-Referee (Structure, Archetype)**
 
   SC-50 — Structure(DRAFT). Structure `DRAFT->PROPOSED`.
@@ -586,52 +586,43 @@ note as Scenarios
 
   **§8 — Governing cascade (lagging)**
 
-  SC-70 — Structure(DRAFT), Mechanism(DRAFT),
-  Interface(DRAFT). Structure `DRAFT->PROPOSED`.
+  SC-70 — Structure(DRAFT), Mechanism(DRAFT).
+  Structure `DRAFT->PROPOSED`.
   **CASCADE**: Mechanism `DRAFT->PROPOSED`.
-  **CASCADE**: Interface `DRAFT->PROPOSED`.
 
-  SC-71 — Structure(PROPOSED), Mechanism(DRAFT),
-  Interface(PROPOSED). Structure `PROPOSED->APPROVED`.
+  SC-71 — Structure(PROPOSED), Mechanism(DRAFT).
+  Structure `PROPOSED->APPROVED`.
   Mechanism cascade step 1 fails: DRAFT ≠ PROPOSED.
   **NO-OP**: Mechanism stays DRAFT.
-  **CASCADE**: Interface `PROPOSED->APPROVED`.
   Structure transition succeeds (governing — on failure:
   no-op).
 
-  SC-72 — Structure(APPROVED), Mechanism(DRAFT),
-  Interface(APPROVED). Structure `APPROVED->ACTIVE`.
+  SC-72 — Structure(APPROVED), Mechanism(DRAFT).
+  Structure `APPROVED->ACTIVE`.
   Mechanism cascade step 1 fails: DRAFT ≠ APPROVED.
   **NO-OP**: Mechanism stays DRAFT.
-  **CASCADE**: Interface `APPROVED->ACTIVE`.
 
-  SC-73 — Structure(ACTIVE), Mechanism(ACTIVE),
-  Interface(DRAFT). Structure `ACTIVE->SUSPENDED`.
-  Interface cascade step 1 fails: DRAFT ≠ ACTIVE.
+  SC-73 — Structure(ACTIVE), Mechanism(ACTIVE).
+  Structure `ACTIVE->SUSPENDED`.
   **CASCADE**: Mechanism `ACTIVE->SUSPENDED`.
-  **NO-OP**: Interface stays DRAFT.
 
-  SC-74 — Structure(ACTIVE), Mechanism(ACTIVE),
-  Interface(ACTIVE). Structure `ACTIVE->DEPRECATED`.
-  **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
-  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
-
-  SC-75 — Structure(DRAFT), Mechanism(DRAFT),
-  Interface(DRAFT). Structure `DRAFT->ABANDONED`.
-  **CASCADE**: Mechanism `DRAFT->ABANDONED`.
-  **CASCADE**: Interface `DRAFT->ABANDONED`.
-
-  SC-76 — Structure(PROPOSED), Mechanism(DRAFT),
-  Interface(PROPOSED). Structure `PROPOSED->REJECTED`.
-  Mechanism cascade step 1 fails: DRAFT ≠ PROPOSED.
-  **NO-OP**: Mechanism stays DRAFT.
-  **CASCADE**: Interface `PROPOSED->REJECTED`.
-
-  SC-77 — Structure(ACTIVE), Mechanism(ACTIVE),
-  Interface(ACTIVE), Directive(ACTIVE), Norm(ACTIVE).
+  SC-74 — Structure(ACTIVE), Mechanism(ACTIVE).
   Structure `ACTIVE->DEPRECATED`.
   **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
-  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
+
+  SC-75 — Structure(DRAFT), Mechanism(DRAFT).
+  Structure `DRAFT->ABANDONED`.
+  **CASCADE**: Mechanism `DRAFT->ABANDONED`.
+
+  SC-76 — Structure(PROPOSED), Mechanism(DRAFT).
+  Structure `PROPOSED->REJECTED`.
+  Mechanism cascade step 1 fails: DRAFT ≠ PROPOSED.
+  **NO-OP**: Mechanism stays DRAFT.
+
+  SC-77 — Structure(ACTIVE), Mechanism(ACTIVE),
+  Directive(ACTIVE), Norm(ACTIVE).
+  Structure `ACTIVE->DEPRECATED`.
+  **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
   **CASCADE**: Directive `ACTIVE->DEPRECATED`
   (step 2 OK: Directive references Structure(definedBy) +
   Archetype(qualifier) + Structure(purpose) — all must be
@@ -669,11 +660,6 @@ note as Scenarios
   Interaction cascade step 1 fails: PROPOSED ≠ ACTIVE.
   **NO-OP**: Interaction stays PROPOSED.
 
-  SC-82 — Receptor(ACTIVE), Interface(ACTIVE).
-  Receptor `ACTIVE->DEPRECATED`.
-  Dependent cascade fires.
-  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
-
   SC-83 — Effector(DRAFT), Interaction(DRAFT).
   Effector `DRAFT->PROPOSED`.
   **NO CASCADE**: `DRAFT->PROPOSED` ∉ dependent scope
@@ -694,11 +680,6 @@ note as Scenarios
   Receptor `PROPOSED->REJECTED`.
   Dependent cascade fires (`PROPOSED->REJECTED` ∈ scope).
   **CASCADE**: Interaction `PROPOSED->REJECTED`.
-
-  SC-87 — Effector(ACTIVE), Interface(ACTIVE).
-  Effector `ACTIVE->DEPRECATED`.
-  Dependent cascade fires.
-  **CASCADE**: Interface `ACTIVE->DEPRECATED`.
 
   SC-88 — Effector(DEPRECATED), Interaction(DEPRECATED).
   Effector `DEPRECATED->RETIRED`.
@@ -732,27 +713,24 @@ note as Scenarios
 
   SC-91 — Structure(ACTIVE), Mechanism(ACTIVE),
   Effector(ACTIVE), Receptor(ACTIVE), Interaction(ACTIVE),
-  Interface(ACTIVE), Directive(ACTIVE), Norm(ACTIVE).
+  Directive(ACTIVE), Norm(ACTIVE).
   Structure `ACTIVE->DEPRECATED`.
-  Chain: Structure→(gov)Mechanism,Interface,Directive,Norm
-  →(con)Effector,Receptor→(dep)Interaction,Interface.
+  Chain: Structure→(gov)Mechanism,Directive,Norm
+  →(con)Effector,Receptor→(dep)Interaction.
   **CASCADE**: Mechanism `ACTIVE->DEPRECATED`.
-  **CASCADE**: Interface `ACTIVE->DEPRECATED` (via gov).
   **CASCADE**: Directive `ACTIVE->DEPRECATED` (via gov).
   **CASCADE**: Norm `ACTIVE->DEPRECATED` (via gov).
   **CASCADE**: Effector `ACTIVE->DEPRECATED`.
   **CASCADE**: Receptor `ACTIVE->DEPRECATED`.
   **CASCADE**: Interaction `ACTIVE->DEPRECATED` (via dep
   from Effector and/or Receptor).
-  Interface also targeted by dep cascade (idempotent —
-  already transitioned via governing).
 
   SC-92 — Structure(DRAFT), Mechanism(DRAFT),
   Effector(DRAFT), Receptor(DRAFT), Interaction(DRAFT),
-  Interface(DRAFT), Directive(DRAFT), Norm(DRAFT).
+  Directive(DRAFT), Norm(DRAFT).
   Structure `DRAFT->ABANDONED`.
-  Chain: Structure→(gov)Mechanism,Interface,Directive,Norm
-  →(con)Effector,Receptor→(dep)Interaction,Interface.
+  Chain: Structure→(gov)Mechanism,Directive,Norm
+  →(con)Effector,Receptor→(dep)Interaction.
   **CASCADE**: all elements `DRAFT->ABANDONED` (terminal
   is in governing, constitutive, and dependent scope).
 

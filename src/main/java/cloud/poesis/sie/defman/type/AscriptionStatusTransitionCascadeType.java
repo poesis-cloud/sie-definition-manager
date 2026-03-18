@@ -18,7 +18,7 @@ public enum AscriptionStatusTransitionCascadeType {
 
     /**
      * Governance scope.
-     * Structure → Mechanism/Interface/Directive/Norm.
+     * Structure → Mechanism/Directive/Norm.
      * Scope: all transitions.
      * On failure: no-op for that target.
      */
@@ -26,7 +26,7 @@ public enum AscriptionStatusTransitionCascadeType {
 
     /**
      * Downstream consumer integrity.
-     * Effector/Receptor → Interaction/Interface.
+     * Effector/Receptor → Interaction.
      * Scope: degradation + terminal transitions only.
      * On failure: no-op for that target.
      */

@@ -14,10 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -196,14 +199,14 @@ public class AscriptionLifecycleService {
 
         AscriptionEntity entity = entityManager.find(AscriptionEntity.class, ascriptionId);
         if (entity == null) {
-            throw new IllegalArgumentException("No ascription found for id: " + ascriptionId);
+            throw new ResourceNotFoundException("Ascription", ascriptionId);
         }
 
         DefinitionSubjectType type = entity.getDefinition().getSubjectType();
         AscriptionStatusType currentStatus = entity.getStatus();
 
         // 1. Validate state machine transition
-        validateTransition(currentStatus, targetStatusType);
+        validateTransition(ascriptionId, currentStatus, targetStatusType);
 
         // 2. Check referee preconditions
         validateRefereePreconditions(entity, type, currentStatus, targetStatusType);
@@ -272,11 +275,13 @@ public class AscriptionLifecycleService {
     // Transition validation
     // ======================================================================
 
-    private void validateTransition(AscriptionStatusType from, AscriptionStatusType to) {
+    private void validateTransition(UUID ascriptionId, AscriptionStatusType from, AscriptionStatusType to) {
         Set<AscriptionStatusType> allowed = VALID_TRANSITIONS.getOrDefault(
                 from, EnumSet.noneOf(AscriptionStatusType.class));
         if (!allowed.contains(to)) {
-            throw new IllegalArgumentException("Invalid transition: " + from + " -> " + to);
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
+                    "Invalid transition from " + from + " to " + to + " for ascription " + ascriptionId,
+                    "ascriptionId", ascriptionId, "fromStatus", from.name(), "toStatus", to.name());
         }
     }
 
@@ -307,11 +312,20 @@ public class AscriptionLifecycleService {
         for (RefereeReference ref : refs) {
             AscriptionStatusType refStatus = ref.reference().getStatus();
             if (!allowed.contains(refStatus)) {
-                throw new IllegalArgumentException(
-                        "Referee precondition failed for " + from + "->" + to
-                                + ": reference '" + ref.label() + "' (id=" + ref.reference().getId()
-                                + ") is in status " + refStatus
-                                + ", must be one of " + allowed);
+                Set<String> allowedNames = new java.util.LinkedHashSet<>();
+                for (AscriptionStatusType s : allowed) {
+                    allowedNames.add(s.name());
+                }
+                throw GsmRuleViolationException.of(
+                        GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                        "Referee '" + ref.label() + "' (" + ref.reference().getId()
+                                + ") is " + refStatus.name() + ", must be one of " + allowedNames,
+                        "fromStatus", from == null ? null : from.name(),
+                        "toStatus", to.name(),
+                        "refereeLabel", ref.label(),
+                        "refereeId", ref.reference().getId(),
+                        "refereeStatus", refStatus.name(),
+                        "allowedStatuses", allowedNames);
             }
         }
     }
@@ -343,11 +357,17 @@ public class AscriptionLifecycleService {
                 // Cascade evaluation rule 1: target.status must == fromStatus
                 if (target.getStatus() != fromStatus) {
                     if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
-                        throw new IllegalStateException(
+                        throw GsmRuleViolationException.of(
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUANTS,
                                 "Constitutive cascade failed: target " + target.getId()
-                                        + " (type=" + entry.targetService().getSubjectType()
-                                        + ") has status " + target.getStatus()
-                                        + ", expected " + fromStatus);
+                                        + " (" + entry.targetService().getSubjectType().name()
+                                        + ") is " + target.getStatus().name()
+                                        + ", expected " + fromStatus.name(),
+                                "targetId", target.getId(),
+                                "targetType", entry.targetService().getSubjectType().name(),
+                                "targetStatus", target.getStatus().name(),
+                                "expectedStatus", fromStatus.name(),
+                                "cascadeType", entry.cascadeType().name());
                     }
                     continue; // GOVERNING / DEPENDENT: no-op
                 }
@@ -356,10 +376,12 @@ public class AscriptionLifecycleService {
                 DefinitionSubjectType targetType = entry.targetService().getSubjectType();
                 try {
                     validateRefereePreconditions(target, targetType, fromStatus, toStatus);
-                } catch (IllegalArgumentException e) {
+                } catch (GsmRuleViolationException e) {
                     if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
-                        throw new IllegalStateException(
-                                "Constitutive cascade blocked: " + e.getMessage(), e);
+                        throw GsmRuleViolationException.of(
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUANTS,
+                                "Constitutive cascade blocked: " + e.getMessage(), e,
+                                "cascadeType", entry.cascadeType().name());
                     }
                     continue; // GOVERNING / DEPENDENT: no-op
                 }

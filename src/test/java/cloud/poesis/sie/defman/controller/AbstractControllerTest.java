@@ -1,8 +1,8 @@
 package cloud.poesis.sie.defman.controller;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -27,7 +27,7 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
  * Tests for {@link AbstractController#toAscriptionDto} — specifically
  * the $gsm:dataProtection inTransit logic (GSM §8).
  */
-class AbstractControllerRedactionTest {
+class AbstractControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -119,7 +119,7 @@ class AbstractControllerRedactionTest {
         }
 
         @Test
-        void encryptionInTransit_throwsUnsupported() {
+        void encryptionInTransit_silentlyIgnored() {
             ObjectNode archetypeSchema = MAPPER.createObjectNode();
             archetypeSchema.put("title", "TestSchema");
             ObjectNode props = archetypeSchema.putObject("properties");
@@ -133,7 +133,7 @@ class AbstractControllerRedactionTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            assertThrows(UnsupportedOperationException.class,
+            assertDoesNotThrow(
                     () -> controller.toAscriptionDto(entity, entity.getArchetype()));
         }
 

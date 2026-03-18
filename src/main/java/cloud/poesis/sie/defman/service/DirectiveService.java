@@ -19,10 +19,12 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 @Service
 public class DirectiveService extends AbstractAscriptionService {
@@ -172,20 +174,29 @@ public class DirectiveService extends AbstractAscriptionService {
             String sibModal = sibling.getStatement().get("modal").asText();
 
             if (!verb.equals(sibVerb) && CONTRADICTORY_VERB_PAIRS.contains(Set.of(verb, sibVerb))) {
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.DIRECTIVE_VERB_COMPATIBILITY,
                         "Directive contradiction: " + verb + " and " + sibVerb
                                 + " on same qualifier (definition " + qualifierDefId
                                 + ") and purpose (definition " + purposeDefId
-                                + "). Conflicting directive: " + sibling.getId());
+                                + "). Conflicting directive: " + sibling.getId(),
+                        "verb", verb, "siblingVerb", sibVerb,
+                        "qualifierDefinitionId", qualifierDefId,
+                        "purposeDefinitionId", purposeDefId,
+                        "conflictingDirectiveId", sibling.getId());
             }
 
             if (verb.equals(sibVerb) && areModalContradictions(modal, sibModal)) {
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.DIRECTIVE_MODAL_COMPATIBILITY,
                         "Directive modal contradiction: " + modal + " " + verb
                                 + " vs " + sibModal + " " + sibVerb
                                 + " on same qualifier (definition " + qualifierDefId
                                 + ") and purpose (definition " + purposeDefId
-                                + "). Conflicting directive: " + sibling.getId());
+                                + "). Conflicting directive: " + sibling.getId(),
+                        "verb", verb, "siblingVerb", sibVerb,
+                        "modal", modal, "siblingModal", sibModal,
+                        "qualifierDefinitionId", qualifierDefId,
+                        "purposeDefinitionId", purposeDefId,
+                        "conflictingDirectiveId", sibling.getId());
             }
 
             // GSM §DirectiveModal: modal precedence — higher tier overrides lower tier

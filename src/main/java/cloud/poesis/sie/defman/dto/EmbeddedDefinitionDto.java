@@ -13,5 +13,5 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Embedded projection of the governing Definition (stable identity)")
 public record EmbeddedDefinitionDto(
         @Schema(description = "Definition ID (stable identity)") UUID id,
-        @Schema(description = "GSM structural role (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, INTERFACE, ARCHETYPE, NORM, DIRECTIVE)") String subjectType) {
+        @Schema(description = "GSM structural role (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") String subjectType) {
 }

@@ -2,7 +2,7 @@
   "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/ReceptorArchetype/v1",
   "title": "ReceptorArchetype",
-  "description": "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. Interface exposure is owned by the Interface itself (via join tables), not by the Receptor. DM input = DM output (1:1). Tenant-defined archetypes extending Receptor MUST reference this schema via allOf.",
+  "description": "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. DM input = DM output (1:1). Tenant-defined archetypes extending Receptor MUST reference this schema via allOf.",
   "$gsm:sealed": true,
   "type": "object",
   "examples": [

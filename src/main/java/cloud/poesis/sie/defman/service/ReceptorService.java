@@ -16,6 +16,7 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -65,7 +66,7 @@ public class ReceptorService extends AbstractAscriptionService {
 
     public ReceptorEntity findEntityById(UUID id) {
         return receptorRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Receptor not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Receptor", id));
     }
 
     @Override

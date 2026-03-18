@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
@@ -103,7 +104,7 @@ class InteractionServiceTest {
             DefinitionEntity definition = mock(DefinitionEntity.class);
             ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.buildEntity(definition, archetypeRef, statement));
             assertTrue(ex.getMessage().contains("archetype mismatch"));
         }

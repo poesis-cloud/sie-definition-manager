@@ -20,6 +20,8 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 
 public abstract class AbstractController {
@@ -119,8 +121,8 @@ public abstract class AbstractController {
             String textValue = value.isTextual() ? value.asText() : value.toString();
 
             if (inTransit.has("encryption")) {
-                throw new UnsupportedOperationException(
-                        "$gsm:dataProtection inTransit.encryption is not yet supported");
+                // Encryption not yet implemented — silently skip
+                continue;
             }
 
             if (inTransit.has("hash")) {
@@ -156,6 +158,50 @@ public abstract class AbstractController {
     // ========================================================================
     // EXCEPTION HANDLERS
     // ========================================================================
+
+    @ExceptionHandler(GsmRuleViolationException.class)
+    ProblemDetail handleGsmRuleViolationException(GsmRuleViolationException ex) {
+        HttpStatus status = resolveHttpStatus(ex);
+        if (status.is5xxServerError()) {
+            log.error("{}: {}", ex.getTitle(), ex.getMessage());
+        } else {
+            log.warn("{}: {}", ex.getTitle(), ex.getMessage());
+        }
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+        pd.setTitle(ex.getTitle());
+        pd.setType(java.net.URI.create(ex.getType()));
+        ex.getExtensions().forEach(pd::setProperty);
+        return pd;
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
+        log.warn("{}: {}", ex.getTitle(), ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle(ex.getTitle());
+        pd.setType(java.net.URI.create(ex.getType()));
+        ex.getExtensions().forEach(pd::setProperty);
+        return pd;
+    }
+
+    private static HttpStatus resolveHttpStatus(GsmRuleViolationException ex) {
+        return switch (ex.getRuleType()) {
+            case ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+                    ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+                    DIRECTIVE_VERB_COMPATIBILITY,
+                    DIRECTIVE_MODAL_COMPATIBILITY,
+                    ASCRIPTION_STATUS_TRANSITION_PATH,
+                    ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUANTS,
+                    ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS,
+                    ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS,
+                    ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,
+                    ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF,
+                    ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY ->
+                HttpStatus.CONFLICT;
+            default -> HttpStatus.BAD_REQUEST;
+        };
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {

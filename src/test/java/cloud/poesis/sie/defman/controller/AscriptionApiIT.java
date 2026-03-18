@@ -535,13 +535,12 @@ class AscriptionApiIT {
                 .andExpect(jsonPath("$.components.schemas.EffectorArchetypeStatement").exists())
                 .andExpect(jsonPath("$.components.schemas.ReceptorArchetypeStatement").exists())
                 .andExpect(jsonPath("$.components.schemas.InteractionArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.InterfaceArchetypeStatement").exists())
                 .andExpect(jsonPath("$.components.schemas.DirectiveArchetypeStatement").exists())
                 .andExpect(jsonPath("$.components.schemas.NormArchetypeStatement").exists())
                 .andExpect(jsonPath("$.components.schemas.ArchetypeStatement").exists())
                 // StatementPayload oneOf references
                 .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf").isArray())
-                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf", hasSize(10)))
+                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf", hasSize(9)))
                 .andReturn();
 
         // Verify a concrete archetype schema has the expected properties

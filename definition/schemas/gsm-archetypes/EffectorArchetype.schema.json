@@ -2,7 +2,7 @@
   "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/EffectorArchetype/v1",
   "title": "EffectorArchetype",
-  "description": "Schema for Effector Ascriptions — output endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the output payload. Interface exposure is owned by the Interface itself (via join tables), not by the Effector. DM input = DM output (1:1). Tenant-defined archetypes extending Effector MUST reference this schema via allOf.",
+  "description": "Schema for Effector Ascriptions — output endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the output payload. DM input = DM output (1:1). Tenant-defined archetypes extending Effector MUST reference this schema via allOf.",
   "$gsm:sealed": true,
   "type": "object",
   "examples": [

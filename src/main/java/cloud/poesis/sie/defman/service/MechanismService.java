@@ -25,12 +25,15 @@ import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import net.starlark.java.syntax.Argument;
 import net.starlark.java.syntax.AssignmentStatement;
 import net.starlark.java.syntax.CallExpression;
@@ -139,7 +142,7 @@ public class MechanismService extends AbstractAscriptionService {
 
     public MechanismEntity findEntityById(UUID id) {
         return mechanismRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Mechanism not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Mechanism", id));
     }
 
     @Override
@@ -203,7 +206,9 @@ public class MechanismService extends AbstractAscriptionService {
 
         String function = m.getStatement().has("function") ? m.getStatement().get("function").asText() : null;
         if (function == null || function.isBlank()) {
-            throw new IllegalArgumentException("Mechanism function must not be empty");
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+                    "Mechanism function must not be empty",
+                    "property", "function");
         }
         UUID structureDefId = m.getStructure().getDefinition().getId();
         UUID thisDefId = m.getDefinition().getId();
@@ -217,10 +222,11 @@ public class MechanismService extends AbstractAscriptionService {
                     ? sibling.getStatement().get("function").asText()
                     : null;
             if (function.equals(sibFunc)) {
-                throw new IllegalArgumentException(
-                        "Mechanism function '" + function + "' duplicates in-effect Mechanism "
-                                + sibling.getId() + " within Structure definition "
-                                + structureDefId);
+                throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+                        "Mechanism function '" + function + "' already in-effect for another definition",
+                        "property", "function", "value", function,
+                        "conflictingAscriptionId", sibling.getId(),
+                        "conflictingDefinitionId", sibling.getDefinition().getId());
             }
         }
     }
@@ -235,7 +241,8 @@ public class MechanismService extends AbstractAscriptionService {
      */
     String validateStarlarkRule(String rule) {
         if (rule == null || rule.isBlank()) {
-            throw new IllegalArgumentException("Mechanism rule must not be null or blank");
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_FORMATTING,
+                    "Mechanism rule must not be null or blank");
         }
 
         StarlarkFile file = parseStarlark(rule);
@@ -243,29 +250,33 @@ public class MechanismService extends AbstractAscriptionService {
         // GSM §Mechanism V14: execution budget — reject rules exceeding statement limit
         int stmtCount = countStatements(file);
         if (stmtCount > MAX_RULE_STATEMENTS) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_BUDGET_EXCEEDED,
                     "Mechanism rule exceeds execution budget: " + stmtCount
-                            + " statements (max " + MAX_RULE_STATEMENTS + ")");
+                            + " statements (max " + MAX_RULE_STATEMENTS + ")",
+                    "statementCount", stmtCount, "maxStatements", MAX_RULE_STATEMENTS);
         }
 
         for (Statement stmt : file.getStatements()) {
             if (stmt instanceof LoadStatement) {
-                throw new IllegalArgumentException("load() statements are not allowed in Mechanism rules");
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_LOAD_FORBIDDEN,
+                        "load() statements are not allowed in Mechanism rules");
             }
         }
 
         String triggerArchetype = validateOnTrigger(file);
 
         if (countOnCalls(file) > 1) {
-            throw new IllegalArgumentException("Mechanism rule must have exactly one on() trigger declaration");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_MULTIPLE_TRIGGERS,
+                    "Mechanism rule must have exactly one on() trigger declaration");
         }
 
         Set<String> locals = collectLocals(file);
         Set<String> unknowns = collectUnknownGlobals(file, locals);
         if (!unknowns.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_UNKNOWN_GLOBAL,
                     "Unknown globals in Mechanism rule: " + unknowns
-                            + ". Allowed: " + ALLOWED_GLOBALS + " + Starlark built-ins");
+                            + ". Allowed: " + ALLOWED_GLOBALS + " + Starlark built-ins",
+                    "unknownGlobals", unknowns.toString());
         }
 
         // Collect all archetype names referenced in sys.* calls
@@ -313,7 +324,7 @@ public class MechanismService extends AbstractAscriptionService {
             for (SyntaxError e : file.errors()) {
                 sb.append("\n  - ").append(e.message());
             }
-            throw new IllegalArgumentException(sb.toString());
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_PARSE_ERROR, sb.toString());
         }
         return file;
     }
@@ -321,23 +332,26 @@ public class MechanismService extends AbstractAscriptionService {
     private String validateOnTrigger(StarlarkFile file) {
         CallExpression onCall = extractOnCall(file);
         if (onCall == null) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_MISSING_TRIGGER,
                     "Mechanism rule must begin with on(\"ArchetypeName\") as its first executable statement");
         }
 
         List<Argument> args = onCall.getArguments();
         if (args.size() != 1 || !(args.get(0) instanceof Argument.Positional)) {
-            throw new IllegalArgumentException("on() must have exactly one positional string argument");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT,
+                    "on() must have exactly one positional string argument");
         }
 
         Expression argExpr = args.get(0).getValue();
         if (!(argExpr instanceof StringLiteral sl)) {
-            throw new IllegalArgumentException("on() argument must be a string literal");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT,
+                    "on() argument must be a string literal");
         }
 
         String archetype = sl.getValue();
         if (archetype == null || archetype.isBlank()) {
-            throw new IllegalArgumentException("on() argument must be a non-empty string literal");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT,
+                    "on() argument must be a non-empty string literal");
         }
         return archetype;
     }
@@ -395,19 +409,23 @@ public class MechanismService extends AbstractAscriptionService {
 
             String method = dot.getField().getName();
             if (!SYS_METHODS.contains(method)) {
-                throw new IllegalArgumentException(
-                        "Unknown sys method: sys." + method + ". Allowed: " + SYS_METHODS);
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_UNKNOWN_SYS_METHOD,
+                        "Unknown sys method: sys." + method + ". Allowed: " + SYS_METHODS,
+                        "method", method);
             }
 
             List<Argument> args = call.getArguments();
             if (args.isEmpty()) {
-                throw new IllegalArgumentException("sys." + method + "() requires at least one argument");
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_SYS_ARGUMENT,
+                        "sys." + method + "() requires at least one argument",
+                        "method", method);
             }
 
             Expression firstArg = args.get(0).getValue();
             if (!(firstArg instanceof StringLiteral)) {
-                throw new IllegalArgumentException(
-                        "sys." + method + "() first argument must be a string literal (archetype name)");
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_NON_LITERAL_ARCHETYPE,
+                        "sys." + method + "() first argument must be a string literal (archetype name)",
+                        "method", method);
             }
         }
     }
@@ -463,10 +481,11 @@ public class MechanismService extends AbstractAscriptionService {
             if (dot.getObject() instanceof Identifier obj && "sys".equals(obj.getName())) {
                 String field = dot.getField().getName();
                 if (!SYS_METHODS.contains(field) && !SYS_PROPERTIES.contains(field)) {
-                    throw new IllegalArgumentException(
+                    throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_UNKNOWN_SYS_PROPERTY,
                             "Unknown sys property: sys." + field
                                     + ". Allowed methods: " + SYS_METHODS
-                                    + ", allowed properties: " + SYS_PROPERTIES);
+                                    + ", allowed properties: " + SYS_PROPERTIES,
+                            "field", field);
                 }
             }
         } else if (expr instanceof ListExpression list) {
@@ -607,15 +626,17 @@ public class MechanismService extends AbstractAscriptionService {
         if (hasRule) {
             boolean hasEffectors = !effectorRepo.findAllByMechanismDefinitionId(mechanismDefId).isEmpty();
             if (hasEffectors) {
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MODE_EXCLUSIVITY,
                         "Generative mode conflict: explicitly authored Effector Ascriptions exist "
-                                + "for Mechanism definition " + mechanismDefId);
+                                + "for Mechanism definition " + mechanismDefId,
+                        "mechanismDefinitionId", mechanismDefId, "conflictingPort", "effector");
             }
             boolean hasReceptors = !receptorRepo.findAllByMechanismDefinitionId(mechanismDefId).isEmpty();
             if (hasReceptors) {
-                throw new IllegalArgumentException(
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MODE_EXCLUSIVITY,
                         "Generative mode conflict: explicitly authored Receptor Ascriptions exist "
-                                + "for Mechanism definition " + mechanismDefId);
+                                + "for Mechanism definition " + mechanismDefId,
+                        "mechanismDefinitionId", mechanismDefId, "conflictingPort", "receptor");
             }
         }
     }
@@ -629,16 +650,18 @@ public class MechanismService extends AbstractAscriptionService {
         boolean hasEffectors = !effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(
                 mechanismDefId, MODE_IN_EFFECT).isEmpty();
         if (!hasEffectors) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MIN_PORT,
                     "Declarative mode: at least 1 in-effect Effector required "
-                            + "for Mechanism definition " + mechanismDefId);
+                            + "for Mechanism definition " + mechanismDefId,
+                    "mechanismDefinitionId", mechanismDefId, "missingPort", "effector");
         }
         boolean hasReceptors = !receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(
                 mechanismDefId, MODE_IN_EFFECT).isEmpty();
         if (!hasReceptors) {
-            throw new IllegalArgumentException(
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MIN_PORT,
                     "Declarative mode: at least 1 in-effect Receptor required "
-                            + "for Mechanism definition " + mechanismDefId);
+                            + "for Mechanism definition " + mechanismDefId,
+                    "mechanismDefinitionId", mechanismDefId, "missingPort", "receptor");
         }
     }
 
