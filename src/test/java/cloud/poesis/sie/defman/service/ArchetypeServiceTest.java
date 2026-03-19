@@ -34,6 +34,7 @@ import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -91,6 +92,7 @@ class ArchetypeServiceTest {
                         () -> service.validateActivationUniqueness(entity));
                 assertTrue(ex.getMessage().contains("SecurityProperties"));
                 assertTrue(ex.getMessage().contains("already in"));
+                assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
             }
 
             @Test
@@ -115,6 +117,7 @@ class ArchetypeServiceTest {
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateActivationUniqueness(entity));
                 assertTrue(ex.getMessage().contains("must not be"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
@@ -125,6 +128,7 @@ class ArchetypeServiceTest {
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateActivationUniqueness(entity));
                 assertTrue(ex.getMessage().contains("must not be"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
@@ -260,6 +264,7 @@ class ArchetypeServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateAllOfChain(schema));
             assertTrue(ex.getMessage().contains("sealed"));
+            assertEquals(GsmRuleType.ARCHETYPE_ALLOF_SEAL, ex.getRuleType());
         }
 
         @Test
@@ -270,6 +275,7 @@ class ArchetypeServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateAllOfChain(schema));
             assertTrue(ex.getMessage().contains("gsm://"));
+            assertEquals(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE, ex.getRuleType());
         }
 
         @Test
@@ -286,6 +292,7 @@ class ArchetypeServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateAllOfChain(schema));
             assertTrue(ex.getMessage().contains("multiple"));
+            assertEquals(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE, ex.getRuleType());
         }
 
         @Test
@@ -305,18 +312,32 @@ class ArchetypeServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateAllOfChain(schema));
             assertTrue(ex.getMessage().contains("Cycle") || ex.getMessage().contains("already visited"));
+            assertEquals(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_ACYCLICITY, ex.getRuleType());
         }
 
         @Test
-        void unresolvableIntermediary_rejected() {
+        void unresolvableIntermediary_lenientAtAuthoring() {
             when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of());
 
             ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
             schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/NonExistent/v1");
 
+            // Authoring-time (strict=false): warns and skips unresolvable intermediary.
+            assertDoesNotThrow(() -> service.validateAllOfChain(schema));
+        }
+
+        @Test
+        void unresolvableIntermediary_strictAtActivation() {
+            when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of());
+
+            ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
+            schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/NonExistent/v1");
+
+            // Activation-time (strict=true): rejects unresolvable intermediary.
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                    () -> service.validateAllOfChain(schema));
+                    () -> service.validateAllOfChain(schema, true));
             assertTrue(ex.getMessage().contains("Cannot resolve"));
+            assertEquals(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE, ex.getRuleType());
         }
 
         @Test
@@ -392,6 +413,7 @@ class ArchetypeServiceTest {
                     () -> service.resolveForCreation(id));
             assertTrue(ex.getMessage().contains("Rootless"));
             assertTrue(ex.getMessage().contains("archetype_id"));
+            assertEquals(GsmRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE, ex.getRuleType());
         }
 
         @Test
@@ -411,6 +433,7 @@ class ArchetypeServiceTest {
                     () -> service.resolveForCreation(id));
             assertTrue(ex.getMessage().contains("Rootless"));
             assertTrue(ex.getMessage().contains("archetype_id"));
+            assertEquals(GsmRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE, ex.getRuleType());
         }
     }
 
@@ -432,8 +455,9 @@ class ArchetypeServiceTest {
                 UUID defId = UUID.randomUUID();
                 when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
-                assertThrows(GsmRuleViolationException.class,
+                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
@@ -449,6 +473,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("$gsm:foobar"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
@@ -463,6 +488,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("top-level only"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
         }
 
@@ -494,6 +520,7 @@ class ArchetypeServiceTest {
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("$gsm:queryable"));
                 assertTrue(ex.getMessage().contains("object"));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
             }
 
             @Test
@@ -504,8 +531,9 @@ class ArchetypeServiceTest {
 
                 UUID defId = UUID.randomUUID();
 
-                assertThrows(GsmRuleViolationException.class,
+                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
             }
 
             @Test
@@ -534,8 +562,9 @@ class ArchetypeServiceTest {
 
                 UUID defId = UUID.randomUUID();
 
-                assertThrows(GsmRuleViolationException.class,
+                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
             }
 
             @Test
@@ -555,6 +584,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("Too many $gsm:queryable"));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
             }
         }
 
@@ -656,6 +686,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("atRest.hash constrains inTransit"));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_DATA_PROTECTION, ex.getRuleType());
             }
 
             @Test
@@ -673,6 +704,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("atRest.suppression requires inTransit to be absent"));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_DATA_PROTECTION, ex.getRuleType());
             }
 
             @Test
@@ -770,6 +802,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(newSchema, defId));
                 assertTrue(ex.getMessage().contains("identityBound set immutability"));
+                assertEquals(GsmRuleType.ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY, ex.getRuleType());
             }
         }
 
@@ -858,6 +891,7 @@ class ArchetypeServiceTest {
                 assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
                 assertTrue(ex.getMessage().contains("CEL parse error")
                         || ex.getMessage().contains("CEL validation error"));
+                assertEquals(GsmRuleType.ARCHETYPE_VALIDATION_CEL_PARSING, ex.getRuleType());
             }
 
             @Test
@@ -871,6 +905,7 @@ class ArchetypeServiceTest {
                         GsmRuleViolationException.class,
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("must be an array"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
@@ -886,6 +921,7 @@ class ArchetypeServiceTest {
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
                 assertTrue(ex.getMessage().contains("must be a string"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
@@ -901,6 +937,7 @@ class ArchetypeServiceTest {
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
                 assertTrue(ex.getMessage().contains("must not be blank"));
+                assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test

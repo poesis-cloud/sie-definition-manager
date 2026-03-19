@@ -4,6 +4,11 @@ SIE (Systemic Intelligence Engine) is an **AI Context Platform**: it turns "cont
 
 This module hosts the **Definition Manager** service managing the core conceptual model, primarily the **GSM (Generative System Model)** — SIE's generative/definitional system model.
 
+## MVP TODOs
+
+- Logging
+- Authn/authz & Authorship/Governance
+
 ## DM v1 service scaffold
 
 This module now also includes a runnable **Definition Manager API scaffold**:

@@ -1,6 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,12 +33,13 @@ import org.mockito.quality.Strictness;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,7 +68,7 @@ class AscriptionLifecycleServiceTest {
 
         when(mechanismSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
         when(mechanismSubtype.getCascadeTargetRoles()).thenReturn(
-                Map.of(DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING));
+                Map.of(DefinitionSubjectType.STRUCTURE, AscriptionCascadeType.GOVERNING));
 
         service = new AscriptionLifecycleService(
                 List.of(structureSubtype, mechanismSubtype),
@@ -135,7 +138,13 @@ class AscriptionLifecycleServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, to));
-            assertTrue(ex.getMessage().contains("Invalid transition"));
+            assertTrue(ex.getMessage().contains("Invalid transition")
+                    || ex.getMessage().contains("terminal state"),
+                    "Expected 'Invalid transition' or 'terminal state' but got: " + ex.getMessage());
+            GsmRuleType expectedRule = Set.of("RETIRED", "ABANDONED", "REJECTED").contains(from)
+                    ? GsmRuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY
+                    : GsmRuleType.ASCRIPTION_STATUS_TRANSITION_PATH;
+            assertEquals(expectedRule, ex.getRuleType());
         }
     }
 
@@ -193,6 +202,8 @@ class AscriptionLifecycleServiceTest {
                     () -> service.transition(id, "ACTIVE"));
             assertTrue(ex.getMessage().contains("Referee"));
             assertTrue(ex.getMessage().contains("structure"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -227,6 +238,8 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "PROPOSED"));
             assertTrue(ex.getMessage().contains("Referee"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -261,6 +274,8 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "APPROVED"));
             assertTrue(ex.getMessage().contains("Referee"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -295,6 +310,8 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "SUSPENDED"));
             assertTrue(ex.getMessage().contains("Referee"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -329,6 +346,8 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "ACTIVE"));
             assertTrue(ex.getMessage().contains("Referee"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -363,6 +382,8 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "RETIRED"));
             assertTrue(ex.getMessage().contains("Referee"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -381,6 +402,8 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.transition(id, "REJECTED"));
             assertTrue(ex.getMessage().contains("Referee"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
         }
 
         @Test
@@ -596,13 +619,13 @@ class AscriptionLifecycleServiceTest {
             when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
             when(mechSvc.getCascadeTargetRoles()).thenReturn(
                     Map.of(DefinitionSubjectType.STRUCTURE,
-                            AscriptionStatusTransitionCascadeType.GOVERNING));
+                            AscriptionCascadeType.GOVERNING));
 
             effectorSubtype = mock(AbstractAscriptionService.class);
             when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
             when(effectorSubtype.getCascadeTargetRoles()).thenReturn(
                     Map.of(DefinitionSubjectType.MECHANISM,
-                            AscriptionStatusTransitionCascadeType.DEPENDENT));
+                            AscriptionCascadeType.DEPENDENT));
 
             AbstractAscriptionService structSvc = mock(AbstractAscriptionService.class);
             when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
@@ -743,7 +766,7 @@ class AscriptionLifecycleServiceTest {
             when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
             when(effectorSubtype.getCascadeTargetRoles()).thenReturn(
                     Map.of(DefinitionSubjectType.MECHANISM,
-                            AscriptionStatusTransitionCascadeType.CONSTITUTIVE));
+                            AscriptionCascadeType.CONSTITUTIVE));
 
             AbstractAscriptionService structSvc = mock(AbstractAscriptionService.class);
             when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
@@ -773,6 +796,7 @@ class AscriptionLifecycleServiceTest {
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
             assertTrue(ex.getMessage().contains("Constitutive cascade failed"));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS, ex.getRuleType());
         }
 
         @Test

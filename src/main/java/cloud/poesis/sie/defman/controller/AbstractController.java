@@ -1,10 +1,12 @@
 package cloud.poesis.sie.defman.controller;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +25,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 public abstract class AbstractController {
 
@@ -184,6 +187,73 @@ public abstract class AbstractController {
         return pd;
     }
 
+    // Known FK constraint → GsmRuleType mapping (PostgreSQL auto-generated names)
+    private static final Map<String, GsmRuleType> CONSTRAINT_TO_RULE = Map.ofEntries(
+            // Directive reference FKs
+            Map.entry("directive_structure_id_fkey", GsmRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY),
+            Map.entry("directive_qualifier_id_fkey", GsmRuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
+            Map.entry("directive_purpose_id_fkey", GsmRuleType.DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY),
+            // Norm reference FKs
+            Map.entry("norm_structure_id_fkey", GsmRuleType.NORM_STRUCTURE_REFERENCE_INTEGRITY),
+            Map.entry("norm_qualifier_id_fkey", GsmRuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
+            // Effector / Receptor reference FKs
+            Map.entry("effector_mechanism_id_fkey", GsmRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
+            Map.entry("receptor_mechanism_id_fkey", GsmRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
+            // Interaction reference FKs
+            Map.entry("interaction_effector_id_fkey", GsmRuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
+            Map.entry("interaction_receptor_id_fkey", GsmRuleType.INTERACTION_RECEPTOR_REFERENCE_INTEGRITY),
+            // Archetype self-typing FK
+            Map.entry("archetype_typed_by_fk", GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY),
+            // Identity uniqueness indexes
+            Map.entry("uq_structure_purpose", GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+            Map.entry("uq_mechanism_function", GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+            Map.entry("uq_archetype_title", GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS));
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String constraintName = extractConstraintName(ex);
+        if (constraintName != null) {
+            GsmRuleType ruleType = CONSTRAINT_TO_RULE.get(constraintName);
+            if (ruleType == null && constraintName.endsWith("_archetype_id_fkey")) {
+                ruleType = GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
+            }
+            if (ruleType == null && (constraintName.endsWith("_output_archetype_id_fkey")
+                    || constraintName.endsWith("_input_archetype_id_fkey"))) {
+                ruleType = GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
+            }
+            if (ruleType != null) {
+                var mapped = GsmRuleViolationException.of(ruleType,
+                        "Database constraint violation: " + constraintName,
+                        "constraint", constraintName);
+                return handleGsmRuleViolationException(mapped);
+            }
+        }
+        log.error("Unmapped DB constraint violation (constraint={})", constraintName, ex);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "Database constraint violation");
+        pd.setTitle("Data integrity violation");
+        return pd;
+    }
+
+    private static String extractConstraintName(DataIntegrityViolationException ex) {
+        Throwable cause = ex;
+        while (cause != null) {
+            String msg = cause.getMessage();
+            if (msg != null) {
+                int idx = msg.indexOf("constraint \"");
+                if (idx >= 0) {
+                    int start = idx + "constraint \"".length();
+                    int end = msg.indexOf('"', start);
+                    if (end > start) {
+                        return msg.substring(start, end);
+                    }
+                }
+            }
+            cause = cause.getCause();
+        }
+        return null;
+    }
+
     private static HttpStatus resolveHttpStatus(GsmRuleViolationException ex) {
         return switch (ex.getRuleType()) {
             case ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
@@ -192,7 +262,7 @@ public abstract class AbstractController {
                     DIRECTIVE_MODAL_COMPATIBILITY,
                     ASCRIPTION_STATUS_TRANSITION_PATH,
                     ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
-                    ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUANTS,
+                    ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                     ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS,
                     ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS,
                     ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,

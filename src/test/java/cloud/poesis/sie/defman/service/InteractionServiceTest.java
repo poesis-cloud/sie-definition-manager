@@ -1,5 +1,6 @@
 package cloud.poesis.sie.defman.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,11 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 /**
  * Tests Interaction-specific validation rules:
@@ -106,6 +108,7 @@ class InteractionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.buildEntity(definition, archetypeRef, statement));
+            assertEquals(GsmRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("archetype mismatch"));
         }
     }

@@ -21,7 +21,7 @@ import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
@@ -122,8 +122,8 @@ public class DirectiveService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
-        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING);
+    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
+        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionCascadeType.GOVERNING);
     }
 
     @Override

@@ -2,22 +2,19 @@
   "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/MechanismArchetype/v1",
   "title": "MechanismArchetype",
-  "description": "Schema for Mechanism Ascriptions — the logical causal unit. Defines the owning Structure, function label, and (in Generative mode) the Starlark rule. In Declarative mode, rule is absent and Effectors/Receptors are authored explicitly. DM input = DM output (1:1). Tenant-defined archetypes extending Mechanism MUST reference this schema via allOf.",
+  "description": "Schema for Mechanism Ascriptions — the logical causal unit. Defines the owning Structure, function label, and the Starlark rule. DM auto-derives Effectors and Receptors from the rule's AST. DM input = DM output (1:1). Tenant-defined archetypes extending Mechanism MUST reference this schema via allOf.",
   "type": "object",
   "examples": [
     {
       "structure": "019cc49a-dc5a-7003-98e1-c214032f0420",
       "function": "UserValidation",
       "rule": "evt = on(\"IdentityEvent\")\nif evt.userId != \"\":\n    sys.emit(\"ValidatedIdentity\", {\"userId\": evt.userId})"
-    },
-    {
-      "structure": "019cc49a-dc5a-7003-98e1-c214032f0420",
-      "function": "ExternalPaymentGateway"
     }
   ],
   "required": [
     "structure",
-    "function"
+    "function",
+    "rule"
   ],
   "properties": {
     "structure": {
@@ -35,7 +32,7 @@
     "rule": {
       "type": "string",
       "minLength": 1,
-      "description": "Starlark source code defining the Mechanism's behavioral logic. Present in Generative mode; absent in Declarative mode. Mutual exclusivity: when rule is present, Effectors/Receptors are auto-derived from the rule AST by the definition-manager; when rule is absent, Effectors/Receptors MUST be authored explicitly as separate Ascriptions.\n\n## Sandboxed environment\nThe rule body executes in a sandboxed Starlark environment exposing exactly: the `sys` namespace, injected host functions (`on`, `now`, `uuid7`, `fullmatch`, `search`), and Starlark built-ins. No other globals are permitted. No `load()` statements allowed. Execution budget: configurable max steps (default 100k).\n\n## sys namespace\n- `sys.id` — read-only property: the Mechanism's `id`.\n\n## Event trigger (Receptor derivation)\n- `on(\"ArchetypeName\")` — MUST be the first executable statement. Declares the triggering Archetype and returns its payload. Auto-derives a Receptor typed by the named Archetype.\n\n## Output calls (Effector derivation)\n- `sys.emit(\"ArchetypeName\", data)` — emits data typed by the named Archetype. Auto-derives an Effector.\n- `sys.emit(\"ArchetypeName\", data, response=\"RespArchetype\")` — emits with synchronous response expectation. Auto-derives an Effector (emit) + Receptor (response).\n- `sys.create(\"ArchetypeName\", data)` — creates a state object. Auto-derives an Effector.\n- `sys.modify(\"ArchetypeName\", filter, data)` — modifies state object(s). Auto-derives an Effector.\n- `sys.delete(\"ArchetypeName\", filter)` — deletes state object(s). Auto-derives an Effector.\n- `sys.acquire(\"ArchetypeName\", filter)` — reads/acquires state object(s). Auto-derives an Effector.\n\n## Closed-loop vs open-loop\n- `var = sys.create(...)` (assigned) → closed-loop: auto-derives a feedback Receptor for verification.\n- `sys.create(...)` (unassigned) → open-loop / fire-and-forget: no feedback Receptor derived.\n- Same pattern for `sys.modify`, `sys.delete`, `sys.acquire`.\n\n## Injected host functions\n- `on(archetype)` — event trigger (see above).\n- `now()` → ISO 8601 timestamp.\n- `uuid7()` → UUIDv7 string (RFC 9562, time-sortable).\n- `fullmatch(pattern, string)` → boolean (full regex match).\n- `search(pattern, string)` → first regex match or None.\n\n## Constraints\n- MUST begin with exactly one `on(\"...\")` call as first executable statement.\n- First argument (archetype name) in all `sys.*` calls MUST be a string literal (enables static analysis and Effector/Receptor auto-derivation).\n- All archetype name literals MUST resolve to declared Archetypes in the governed scope."
+      "description": "Starlark source code defining the Mechanism's behavioral logic. Every Mechanism carries a rule — the definition-manager auto-derives Effectors and Receptors from the rule's AST at authoring time.\n\n## Sandboxed environment\nThe rule body executes in a sandboxed Starlark environment exposing exactly: the `sys` namespace, injected host functions (`on`, `now`, `uuid7`, `fullmatch`, `search`), and Starlark built-ins. No other globals are permitted. No `load()` statements allowed. Execution budget: configurable max steps (default 100k).\n\n## sys namespace\n- `sys.id` — read-only property: the Mechanism's `id`.\n\n## Event trigger (Receptor derivation)\n- `on(\"ArchetypeName\")` — MUST be the first executable statement. Declares the triggering Archetype and returns its payload. Auto-derives a Receptor typed by the named Archetype.\n\n## Output calls (Effector derivation)\n- `sys.emit(\"ArchetypeName\", data)` — emits data typed by the named Archetype. Auto-derives an Effector.\n- `sys.emit(\"ArchetypeName\", data, response=\"RespArchetype\")` — emits with synchronous response expectation. Auto-derives an Effector (emit) + Receptor (response).\n- `sys.create(\"ArchetypeName\", data)` — creates a state object. Auto-derives an Effector.\n- `sys.modify(\"ArchetypeName\", filter, data)` — modifies state object(s). Auto-derives an Effector.\n- `sys.delete(\"ArchetypeName\", filter)` — deletes state object(s). Auto-derives an Effector.\n- `sys.acquire(\"ArchetypeName\", filter)` — reads/acquires state object(s). Auto-derives an Effector.\n\n## Closed-loop vs open-loop\n- `var = sys.create(...)` (assigned) → closed-loop: auto-derives a feedback Receptor for verification.\n- `sys.create(...)` (unassigned) → open-loop / fire-and-forget: no feedback Receptor derived.\n- Same pattern for `sys.modify`, `sys.delete`, `sys.acquire`.\n\n## Injected host functions\n- `on(archetype)` — event trigger (see above).\n- `now()` → ISO 8601 timestamp.\n- `uuid7()` → UUIDv7 string (RFC 9562, time-sortable).\n- `fullmatch(pattern, string)` → boolean (full regex match).\n- `search(pattern, string)` → first regex match or None.\n\n## Constraints\n- MUST begin with exactly one `on(\"...\")` call as first executable statement.\n- First argument (archetype name) in all `sys.*` calls MUST be a string literal (enables static analysis and Effector/Receptor auto-derivation).\n- All archetype name literals MUST resolve to declared Archetypes in the governed scope."
     }
   },
   "unevaluatedProperties": false

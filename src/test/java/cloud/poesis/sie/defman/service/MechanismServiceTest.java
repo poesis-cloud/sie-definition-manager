@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,18 +24,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
-import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.service.MechanismService.PortSignature;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import net.starlark.java.syntax.FileOptions;
 import net.starlark.java.syntax.ParserInput;
 import net.starlark.java.syntax.StarlarkFile;
@@ -169,6 +166,7 @@ class MechanismServiceTest {
 
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateActivationUniqueness(entity));
+                assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("UserValidation"));
                 assertTrue(ex.getMessage().contains("already in"));
             }
@@ -201,6 +199,7 @@ class MechanismServiceTest {
 
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateActivationUniqueness(entity));
+                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("must not be empty"));
             }
 
@@ -274,142 +273,8 @@ class MechanismServiceTest {
 
                 assertEquals(1, roles.size());
                 assertTrue(roles.containsKey(DefinitionSubjectType.STRUCTURE));
-                assertEquals(AscriptionStatusTransitionCascadeType.GOVERNING,
+                assertEquals(AscriptionCascadeType.GOVERNING,
                         roles.get(DefinitionSubjectType.STRUCTURE));
-            }
-        }
-    }
-
-    // ========================================================================
-    // Mode
-    // ========================================================================
-
-    @Nested
-    class Mode {
-
-        @Nested
-        class CreationDeclarative {
-
-            @Test
-            void noRule_alwaysValid() {
-                MechanismEntity mechanism = stubMechanism(null);
-                assertDoesNotThrow(() -> service.validateModeCreation(mechanism));
-            }
-
-            @Test
-            void emptyRule_alwaysValid() {
-                MechanismEntity mechanism = stubMechanism("");
-                assertDoesNotThrow(() -> service.validateModeCreation(mechanism));
-            }
-
-            @Test
-            void blankRule_alwaysValid() {
-                MechanismEntity mechanism = stubMechanism("   ");
-                assertDoesNotThrow(() -> service.validateModeCreation(mechanism));
-            }
-        }
-
-        @Nested
-        class CreationGenerative {
-
-            @Test
-            void generativeMode_noExistingPorts_valid() {
-                MechanismEntity mechanism = stubMechanism("on(\"X\")\nsys.emit(\"Y\", {})");
-                UUID defId = mechanism.getDefinition().getId();
-
-                when(effectorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of());
-                when(receptorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of());
-
-                assertDoesNotThrow(() -> service.validateModeCreation(mechanism));
-            }
-
-            @Test
-            void generativeMode_existingEffectors_rejected() {
-                MechanismEntity mechanism = stubMechanism("on(\"X\")\nsys.emit(\"Y\", {})");
-                UUID defId = mechanism.getDefinition().getId();
-
-                EffectorEntity existing = mock(EffectorEntity.class);
-                when(effectorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of(existing));
-
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                        () -> service.validateModeCreation(mechanism));
-                assertTrue(ex.getMessage().contains("Generative mode conflict"));
-                assertTrue(ex.getMessage().contains("Effector"));
-            }
-
-            @Test
-            void generativeMode_existingReceptors_rejected() {
-                MechanismEntity mechanism = stubMechanism("on(\"X\")\nsys.emit(\"Y\", {})");
-                UUID defId = mechanism.getDefinition().getId();
-
-                when(effectorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of());
-                ReceptorEntity existing = mock(ReceptorEntity.class);
-                when(receptorRepo.findAllByMechanismDefinitionId(defId)).thenReturn(List.of(existing));
-
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                        () -> service.validateModeCreation(mechanism));
-                assertTrue(ex.getMessage().contains("Generative mode conflict"));
-                assertTrue(ex.getMessage().contains("Receptor"));
-            }
-        }
-
-        @Nested
-        class ActivationGenerative {
-
-            @Test
-            void generativeMode_activationAlwaysValid() {
-                MechanismEntity mechanism = stubMechanism("on(\"X\")\nsys.emit(\"Y\", {})");
-                assertDoesNotThrow(() -> service.validateModeActivation(mechanism));
-            }
-        }
-
-        @Nested
-        class ActivationDeclarative {
-
-            @Test
-            void declarativeMode_hasBothPorts_valid() {
-                MechanismEntity mechanism = stubMechanism(null);
-                UUID defId = mechanism.getDefinition().getId();
-
-                EffectorEntity eff = mock(EffectorEntity.class);
-                ReceptorEntity rec = mock(ReceptorEntity.class);
-                when(effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
-                        .thenReturn(List.of(eff));
-                when(receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
-                        .thenReturn(List.of(rec));
-
-                assertDoesNotThrow(() -> service.validateModeActivation(mechanism));
-            }
-
-            @Test
-            void declarativeMode_noEffectors_rejected() {
-                MechanismEntity mechanism = stubMechanism(null);
-                UUID defId = mechanism.getDefinition().getId();
-
-                when(effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
-                        .thenReturn(List.of());
-
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                        () -> service.validateModeActivation(mechanism));
-                assertTrue(ex.getMessage().contains("Declarative mode"));
-                assertTrue(ex.getMessage().contains("Effector"));
-            }
-
-            @Test
-            void declarativeMode_noReceptors_rejected() {
-                MechanismEntity mechanism = stubMechanism(null);
-                UUID defId = mechanism.getDefinition().getId();
-
-                EffectorEntity eff = mock(EffectorEntity.class);
-                when(effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
-                        .thenReturn(List.of(eff));
-                when(receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(eq(defId), anyCollection()))
-                        .thenReturn(List.of());
-
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                        () -> service.validateModeActivation(mechanism));
-                assertTrue(ex.getMessage().contains("Declarative mode"));
-                assertTrue(ex.getMessage().contains("Receptor"));
             }
         }
     }
@@ -774,23 +639,30 @@ class MechanismServiceTest {
 
             @Test
             void nullRule_rejected() {
-                assertThrows(GsmRuleViolationException.class, () -> service.validateStarlarkRule(null));
+                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                        () -> service.validateStarlarkRule(null));
+                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
             void emptyRule_rejected() {
-                assertThrows(GsmRuleViolationException.class, () -> service.validateStarlarkRule(""));
+                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                        () -> service.validateStarlarkRule(""));
+                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
             void blankRule_rejected() {
-                assertThrows(GsmRuleViolationException.class, () -> service.validateStarlarkRule("   "));
+                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                        () -> service.validateStarlarkRule("   "));
+                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
             void invalidSyntax_rejected() {
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateStarlarkRule("def foo(:::"));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("syntax error"));
             }
         }
@@ -802,6 +674,7 @@ class MechanismServiceTest {
             void missingOnTrigger_rejected() {
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateStarlarkRule("sys.emit(\"X\", {})"));
+                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("on("));
             }
 
@@ -812,6 +685,7 @@ class MechanismServiceTest {
                                 on()
                                 sys.emit("X", {})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("one positional string argument"));
             }
 
@@ -823,6 +697,7 @@ class MechanismServiceTest {
                                 on(name)
                                 sys.emit("X", {})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("on(") || ex.getMessage().contains("first"));
             }
 
@@ -833,6 +708,7 @@ class MechanismServiceTest {
                                 on("")
                                 sys.emit("X", {})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("empty"));
             }
 
@@ -843,6 +719,7 @@ class MechanismServiceTest {
                                 on("First")
                                 on("Second")
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("exactly one on()"));
             }
         }
@@ -858,6 +735,7 @@ class MechanismServiceTest {
                                 on("X")
                                 sys.emit("Y", {})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("load()"));
             }
         }
@@ -873,6 +751,7 @@ class MechanismServiceTest {
                                 archetype = "DynamicType"
                                 sys.emit(archetype, {})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
@@ -884,6 +763,7 @@ class MechanismServiceTest {
                                 name = "SomeType"
                                 sys.create(name, {})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
@@ -894,6 +774,7 @@ class MechanismServiceTest {
                                 on("Input")
                                 sys.emit()
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("requires at least one"));
             }
         }
@@ -909,6 +790,7 @@ class MechanismServiceTest {
                                 result = unknown_func()
                                 sys.emit("Output", {"r": result})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown globals"));
                 assertTrue(ex.getMessage().contains("unknown_func"));
             }
@@ -920,6 +802,7 @@ class MechanismServiceTest {
                                 on("Input")
                                 sys.emit("Output", {"val": external_var})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown globals"));
             }
         }
@@ -943,6 +826,7 @@ class MechanismServiceTest {
                                 on("Input")
                                 sys.emit("Output", {"name": sys.name})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown sys property"));
                 assertTrue(ex.getMessage().contains("sys.name"));
             }
@@ -954,6 +838,7 @@ class MechanismServiceTest {
                                 on("Input")
                                 sys.emit("Output", {"v": sys.version})
                                 """));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown sys property"));
             }
         }
@@ -978,6 +863,7 @@ class MechanismServiceTest {
                 }
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateStarlarkRule(sb.toString()));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("execution budget"));
                 assertTrue(ex.getMessage().contains(String.valueOf(MechanismService.MAX_RULE_STATEMENTS)));
             }
@@ -990,6 +876,7 @@ class MechanismServiceTest {
                 }
                 GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                         () -> service.validateStarlarkRule(sb.toString()));
+                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("execution budget"));
             }
         }

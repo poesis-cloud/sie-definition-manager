@@ -2175,17 +2175,14 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       teleological decomposition: what capacity this Mechanism contributes
       to the Structure's purpose.
     - `rule`: Starlark source code defining the Mechanism's behavioral
-      logic (Generative mode only). When present, this IS the compilable
-      logical atom — the single source of truth for imperative behavioral
-      definitions. The definition-manager auto-derives the Mechanism's
-      Effectors and Receptors from the rule body's AST (see Derivation
-      Rules). When absent, the Mechanism operates in Declarative mode.
+      logic. This IS the compilable logical atom — the single source of
+      truth for imperative behavioral definitions. The definition-manager
+      auto-derives the Mechanism's Effectors and Receptors from the rule
+      body's AST (see Derivation Rules). Every Mechanism carries a rule.
     - `effectors`: the set of Effectors belonging to this Mechanism
-      (auto-derived in Generative mode; explicitly authored in Declarative
-      mode).
+      (auto-derived from the rule AST by the definition-manager).
     - `receptors`: the set of Receptors belonging to this Mechanism
-      (auto-derived in Generative mode; explicitly authored in Declarative
-      mode).
+      (auto-derived from the rule AST by the definition-manager).
 
     **Validation Rules**:
 
@@ -2197,30 +2194,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Ascriptions of the same Definition (see Ascription identity invariant).
     - `statement.function` MUST be unique among all in-effect
       Mechanisms belonging to the same Structure.
-    - **When `statement.rule` is present (Generative mode)**:
-      - `statement.rule` MUST be syntactically valid Starlark
-        (parseable by the Starlark parser).
-      - `statement.rule` MUST begin with exactly one
-        `on("...")` call as its first executable statement.
-      - The `on()` argument MUST be a string literal resolving to a defined
-        Archetype in the governed scope.
-      - String literals in `sys.*` calls (first argument = archetype name)
-        MUST be string literals (enables static analysis and Effector/Receptor
-        auto-derivation).
-      - String literals in `sys.*` calls MUST resolve to declared Archetypes
-        in the governed scope.
-      - Dict literals in `sys.emit/create/modify` SHOULD conform to the
-        target Archetype schema (best-effort for dynamic values).
-      - Only `sys`, injected host functions (`on`, `now`, `uuid7`,
-        `fullmatch`, `search`), and Starlark built-ins are allowed globals.
-        Any other global → error.
-      - No `load()` statements.
-      - Execution budget: configurable max steps (default 100k).
-      - Explicitly authored Effector/Receptor Ascriptions for this
-        Mechanism Definition MUST NOT exist.
-    - **When `statement.rule` is absent (Declarative mode)**:
-      - At least 1 Effector and 1 Receptor MUST be explicitly authored
-        as separate Ascriptions referencing this Mechanism Definition.
+    - `statement.rule` MUST NOT be null or empty.
+    - `statement.rule` MUST be syntactically valid Starlark
+      (parseable by the Starlark parser).
+    - `statement.rule` MUST begin with exactly one
+      `on("...")` call as its first executable statement.
+    - The `on()` argument MUST be a string literal resolving to a defined
+      Archetype in the governed scope.
+    - String literals in `sys.*` calls (first argument = archetype name)
+      MUST be string literals (enables static analysis and Effector/Receptor
+      auto-derivation).
+    - String literals in `sys.*` calls MUST resolve to declared Archetypes
+      in the governed scope.
+    - Dict literals in `sys.emit/create/modify` SHOULD conform to the
+      target Archetype schema (best-effort for dynamic values).
+    - Only `sys`, injected host functions (`on`, `now`, `uuid7`,
+      `fullmatch`, `search`), and Starlark built-ins are allowed globals.
+      Any other global → error.
+    - No `load()` statements.
+    - Execution budget: configurable max steps (default 100k).
 
     **State Rules**:
 
@@ -2251,18 +2243,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `getStructure()` → column `structure_id` → resolves Structure
     - `getFunction()` → `statement.function`
-    - `getRule()` → `statement.rule` (nullable — absent in Declarative mode)
-    - `getEffectors()` → Generative: auto-derived from `statement.rule` AST;
-      Declarative: reverse lookup (Effectors whose `mechanism` = this Definition)
-    - `getReceptors()` → Generative: auto-derived from `statement.rule` AST;
-      Declarative: reverse lookup (Receptors whose `mechanism` = this Definition)
-    - *Receptor derivation (Generative mode — inputs)*
+    - `getRule()` → `statement.rule`
+    - `getEffectors()` → auto-derived from `statement.rule` AST
+    - `getReceptors()` → auto-derived from `statement.rule` AST
+    - *Receptor derivation (inputs)*
       - `on("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
         Auto-derives a Receptor typed by the named Archetype.
       - Return-value assignment of a `sys.*` mutation call (see below)
         auto-derives an additional Receptor (feedback / closed-loop).
-    - *Effector derivation (Generative mode — outputs)*
+    - *Effector derivation (outputs)*
       - `sys.emit("ArchetypeName", data)` — emits data typed by the
         named Archetype. Auto-derives an Effector.
       - `sys.emit("ArchetypeName", data, response="RespArchetype")` —
@@ -2279,7 +2269,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Usage Rules**:
 
-      - **Rule API contract (STARLARK, Generative mode only)**
+      - **Rule API contract (STARLARK)**
         The rule body executes within a sandboxed Starlark environment
         that exposes exactly: the `sys` namespace, injected host functions
         (`on`, `now`, `uuid7`, `fullmatch`, `search`), and Starlark
@@ -2301,44 +2291,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
           - `search(pattern, string)` → first regex match or None.
 
     **Notes**:
-    
-    **Generative / Declarative duality (port extensibility)**:
-
-    A Mechanism operates in exactly one of two **mutually exclusive modes**
-    per Ascription — the mode is determined by the presence or absence of
-    `rule` in the Mechanism's statement:
-
-    - **Generative mode** (`rule` present):
-      The Mechanism carries a Starlark rule. The definition-manager
-      **auto-derives** Effectors and Receptors from the rule's AST during
-      statement. Explicitly authored Effectors/Receptors for this
-      Mechanism MUST NOT exist — they are a derived output, not an
-      authoring input. This is the default mode for behavioral Mechanisms.
-    - **Declarative mode** (`rule` absent):
-      The Mechanism carries no rule. Effectors and Receptors MUST be
-      **authored explicitly** as separate Ascriptions referencing this
-      Mechanism's Definition. The Mechanism is a structural container for
-      externally-defined causal ports (e.g., connectors to external systems,
-      manually-specified interfaces). This mode is suited for modeling
-      Mechanisms whose causal behavior is defined outside SIE.
-
-    **Mutual exclusivity invariant**: within a single Ascription of a
-    Mechanism Definition, either `rule` is present (Generative) or `rule`
-    is absent (Declarative). The definition-manager MUST reject:
-    - A Generative Ascription that has explicitly authored Effector/Receptor
-      Ascriptions for the same Mechanism Definition.
-    - A Declarative Ascription that has zero explicitly authored
-      Effector/Receptor Ascriptions for the same Mechanism Definition
-      (at least 1 Effector and 1 Receptor required).
 
     **Enrichment independence**: updating a Mechanism Ascription (new version)
     does NOT cascade to its Effectors/Receptors. Effectors/Receptors have
     their own Definitions and Ascription lifecycles. A new Mechanism
-    Ascription in Generative mode re-derives ports, but the derived
-    Effector/Receptor Ascriptions are new Ascriptions of their existing
-    Definitions (or new Definitions if the port signature changed).
+    Ascription re-derives ports, but the derived Effector/Receptor
+    Ascriptions are new Ascriptions of their existing Definitions (or new
+    Definitions if the port signature changed).
 
-    **Port Definition reuse protocol (Generative mode)**:
+    **Port Definition reuse protocol**:
     When auto-deriving Effectors/Receptors from a new Mechanism Ascription's
     rule, the definition-manager reuses existing port Definitions by matching
     on the triple (Mechanism Definition, data Archetype, direction). If a

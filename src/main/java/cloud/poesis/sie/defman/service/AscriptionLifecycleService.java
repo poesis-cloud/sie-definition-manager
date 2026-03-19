@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +19,7 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
@@ -35,6 +37,8 @@ import jakarta.persistence.EntityManager;
 @Service
 @Transactional("transactionManager")
 public class AscriptionLifecycleService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AscriptionLifecycleService.class);
 
     // ======================================================================
     // State machine: valid transitions
@@ -148,7 +152,7 @@ public class AscriptionLifecycleService {
 
     private record CascadeTargetEntry(
             AbstractAscriptionService targetService,
-            AscriptionStatusTransitionCascadeType cascadeType) {
+            AscriptionCascadeType cascadeType) {
     }
 
     private final Map<DefinitionSubjectType, AbstractAscriptionService> subtypeByType;
@@ -276,8 +280,16 @@ public class AscriptionLifecycleService {
     // ======================================================================
 
     private void validateTransition(UUID ascriptionId, AscriptionStatusType from, AscriptionStatusType to) {
+        // Explicit terminal immutability check (before general path check)
         Set<AscriptionStatusType> allowed = VALID_TRANSITIONS.getOrDefault(
                 from, EnumSet.noneOf(AscriptionStatusType.class));
+        if (allowed.isEmpty()) {
+            throw GsmRuleViolationException.of(
+                    GsmRuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
+                    "Ascription " + ascriptionId + " is in terminal state "
+                            + from + " and cannot transition to " + to,
+                    "ascriptionId", ascriptionId, "fromStatus", from.name(), "toStatus", to.name());
+        }
         if (!allowed.contains(to)) {
             throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
                     "Invalid transition from " + from + " to " + to + " for ascription " + ascriptionId,
@@ -345,7 +357,7 @@ public class AscriptionLifecycleService {
 
         for (CascadeTargetEntry entry : targetEntries) {
             // Check scope: dependent cascades only fire for specific transitions
-            if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT
+            if (entry.cascadeType() == AscriptionCascadeType.DEPENDENT
                     && !isDependentCascadeApplicable(fromStatus, toStatus)) {
                 continue;
             }
@@ -356,9 +368,9 @@ public class AscriptionLifecycleService {
             for (AscriptionEntity target : targets) {
                 // Cascade evaluation rule 1: target.status must == fromStatus
                 if (target.getStatus() != fromStatus) {
-                    if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
+                    if (entry.cascadeType() == AscriptionCascadeType.CONSTITUTIVE) {
                         throw GsmRuleViolationException.of(
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUANTS,
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                                 "Constitutive cascade failed: target " + target.getId()
                                         + " (" + entry.targetService().getSubjectType().name()
                                         + ") is " + target.getStatus().name()
@@ -369,6 +381,17 @@ public class AscriptionLifecycleService {
                                 "expectedStatus", fromStatus.name(),
                                 "cascadeType", entry.cascadeType().name());
                     }
+                    if (entry.cascadeType() == AscriptionCascadeType.GOVERNING) {
+                        LOG.debug("[{}] Governing cascade skipped: target {} ({}) is {}, expected {}",
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
+                                target.getId(), entry.targetService().getSubjectType().name(),
+                                target.getStatus().name(), fromStatus.name());
+                    } else if (entry.cascadeType() == AscriptionCascadeType.DEPENDENT) {
+                        LOG.debug("[{}] Dependent cascade skipped: target {} ({}) is {}, expected {}",
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
+                                target.getId(), entry.targetService().getSubjectType().name(),
+                                target.getStatus().name(), fromStatus.name());
+                    }
                     continue; // GOVERNING / DEPENDENT: no-op
                 }
 
@@ -377,11 +400,20 @@ public class AscriptionLifecycleService {
                 try {
                     validateRefereePreconditions(target, targetType, fromStatus, toStatus);
                 } catch (GsmRuleViolationException e) {
-                    if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
+                    if (entry.cascadeType() == AscriptionCascadeType.CONSTITUTIVE) {
                         throw GsmRuleViolationException.of(
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUANTS,
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                                 "Constitutive cascade blocked: " + e.getMessage(), e,
                                 "cascadeType", entry.cascadeType().name());
+                    }
+                    if (entry.cascadeType() == AscriptionCascadeType.GOVERNING) {
+                        LOG.debug("[{}] Governing cascade skipped (referee precondition): target {} — {}",
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
+                                target.getId(), e.getMessage());
+                    } else if (entry.cascadeType() == AscriptionCascadeType.DEPENDENT) {
+                        LOG.debug("[{}] Dependent cascade skipped (referee precondition): target {} — {}",
+                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
+                                target.getId(), e.getMessage());
                     }
                     continue; // GOVERNING / DEPENDENT: no-op
                 }
@@ -424,6 +456,9 @@ public class AscriptionLifecycleService {
             } else {
                 continue;
             }
+            LOG.debug("[{}] Governance convergence: sibling {} ({}) → {}",
+                    GsmRuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE.getType(),
+                    sibling.getId(), siblingStatus.name(), terminalStatus.name());
             recordTransition(sibling, siblingStatus, terminalStatus);
         }
     }
@@ -439,6 +474,9 @@ public class AscriptionLifecycleService {
         for (AscriptionEntity prev : activeAscriptions) {
             if (prev.getId().equals(activating.getId()))
                 continue;
+            LOG.debug("[{}] Activation handoff: predecessor {} (ACTIVE → DEPRECATED)",
+                    GsmRuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF.getType(),
+                    prev.getId());
             recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
         }
     }

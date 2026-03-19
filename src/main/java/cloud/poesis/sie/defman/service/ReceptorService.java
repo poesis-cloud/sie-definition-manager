@@ -18,7 +18,7 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
@@ -100,8 +100,8 @@ public class ReceptorService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
-        return Map.of(DefinitionSubjectType.MECHANISM, AscriptionStatusTransitionCascadeType.CONSTITUTIVE);
+    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
+        return Map.of(DefinitionSubjectType.MECHANISM, AscriptionCascadeType.CONSTITUTIVE);
     }
 
     @Override

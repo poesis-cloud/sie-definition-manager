@@ -31,8 +31,11 @@ import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import dev.cel.common.CelAbstractSyntaxTree;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
+import dev.cel.common.ast.CelConstant;
+import dev.cel.common.ast.CelExpr;
 import dev.cel.common.types.SimpleType;
 import dev.cel.compiler.CelCompiler;
 import dev.cel.compiler.CelCompilerFactory;
@@ -113,7 +116,7 @@ public class ArchetypeService extends AbstractAscriptionService {
     @Override
     public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         if (statement == null || !statement.isObject()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Archetype statement must be a JSON object", "field", "statement");
         }
 
@@ -172,6 +175,10 @@ public class ArchetypeService extends AbstractAscriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Archetype", id));
     }
 
+    public java.util.Optional<ArchetypeEntity> findInEffectByTitle(String title) {
+        return archetypeRepo.findInEffectByTitle(title);
+    }
+
     /**
      * Batch-fetches Archetypes by their IDs.
      *
@@ -206,7 +213,7 @@ public class ArchetypeService extends AbstractAscriptionService {
     private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
         JsonNode stmt = archetype.getStatement();
         if (stmt == null || !stmt.has("title")) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_TYPING_DERIVATION,
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
                     "Cannot derive subject type: archetype has no title: " + archetype.getId(),
                     "archetypeId", archetype.getId());
         }
@@ -221,7 +228,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         // Tenant archetype: walk the allOf chain to find the structural base.
         JsonNode allOf = stmt.get("allOf");
         if (allOf == null || !allOf.isArray() || allOf.isEmpty()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_TYPING_DERIVATION,
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
                     "Rootless archetype '" + title
                             + "' cannot be used as archetype_id — no structural base (allOf chain required)",
                     "title", title);
@@ -230,10 +237,10 @@ public class ArchetypeService extends AbstractAscriptionService {
         Set<String> resolvedBases = new HashSet<>();
         Set<String> visited = new HashSet<>();
         visited.add(title);
-        walkAllOfChain(allOf, resolvedBases, visited);
+        walkAllOfChain(allOf, resolvedBases, visited, true);
 
         if (resolvedBases.isEmpty()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_TYPING_DERIVATION,
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
                     "Rootless archetype '" + title
                             + "' cannot be used as archetype_id — allOf chain does not converge to any GSM base",
                     "title", title);
@@ -242,7 +249,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         // authoring time;
         // defensive check here for safety.
         if (resolvedBases.size() > 1) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CONVERGENCE,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
                     "Archetype '" + title + "' allOf chain converges to multiple GSM bases: " + resolvedBases,
                     "title", title, "resolvedBases", resolvedBases);
         }
@@ -250,7 +257,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         String baseName = resolvedBases.iterator().next();
         type = SCHEMA_TITLE_TO_SUBJECT_TYPE.get(baseName);
         if (type == null) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_TYPING_DERIVATION,
+            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
                     "Cannot map structural base '" + baseName + "' to a DefinitionSubjectType",
                     "baseName", baseName);
         }
@@ -271,12 +278,12 @@ public class ArchetypeService extends AbstractAscriptionService {
     public void validateActivationUniqueness(AscriptionEntity entity) {
         JsonNode stmt = entity.getStatement();
         if (stmt == null || !stmt.has("title")) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Archetype title must not be null or empty", "field", "title");
         }
         String title = stmt.get("title").asText();
         if (title.isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Archetype title must not be empty", "field", "title");
         }
         UUID thisDefId = entity.getDefinition().getId();
@@ -302,6 +309,8 @@ public class ArchetypeService extends AbstractAscriptionService {
     @Override
     public void onActivation(AscriptionEntity entity) {
         if (entity instanceof ArchetypeEntity archetypeEntity) {
+            // GSM §5: strict allOf chain resolution — all intermediaries must be in-effect.
+            validateAllOfChain(archetypeEntity.getStatement(), true);
             provisionIndexes(archetypeEntity);
         }
     }
@@ -443,6 +452,10 @@ public class ArchetypeService extends AbstractAscriptionService {
     // ========================================================================
 
     void validateAllOfChain(JsonNode schema) {
+        validateAllOfChain(schema, false);
+    }
+
+    void validateAllOfChain(JsonNode schema, boolean strict) {
         String title = schema.has("title") ? schema.get("title").asText() : null;
 
         // GSM base archetypes are exempt — they define the bases themselves.
@@ -464,21 +477,21 @@ public class ArchetypeService extends AbstractAscriptionService {
             visited.add(title);
         }
 
-        walkAllOfChain(allOf, resolvedBases, visited);
+        walkAllOfChain(allOf, resolvedBases, visited, strict);
 
         // 0 bases → rootless archetype with allOf (e.g., facet extending another
         // facet).
         // 1 base → structural archetype (valid typing archetype for archetype_id).
         // 2+ bases → divergent structural bases (ambiguous subject type → rejected).
         if (resolvedBases.size() > 1) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CONVERGENCE,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
                     "Archetype schema allOf chain converges to multiple GSM base archetypes: "
                             + resolvedBases,
                     "resolvedBases", resolvedBases);
         }
     }
 
-    private void walkAllOfChain(JsonNode allOf, Set<String> resolvedBases, Set<String> visited) {
+    private void walkAllOfChain(JsonNode allOf, Set<String> resolvedBases, Set<String> visited, boolean strict) {
         for (JsonNode entry : allOf) {
             if (!entry.has("$ref")) {
                 continue;
@@ -488,21 +501,22 @@ public class ArchetypeService extends AbstractAscriptionService {
             String refTitle = extractTitleFromRef(ref);
 
             if (refTitle == null) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_RESOLUTION,
+                // Format error — always rejected (authoring + activation).
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
                         "Cannot resolve allOf $ref '" + ref
                                 + "': must use gsm://archetypes/{title}/v{version} convention",
                         "ref", ref);
             }
 
             if (!visited.add(refTitle)) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_ACYCLICITY,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
                         "Cycle detected in allOf chain: '" + refTitle + "' already visited",
                         "refTitle", refTitle);
             }
 
             if (GSM_BASE_TITLES.contains(refTitle)) {
                 if (isSealedBaseArchetype(refTitle)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_SEALED_EXTENSION_PROHIBITION,
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_SEAL,
                             "Archetype schema allOf references sealed schema '"
                                     + refTitle + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
                             "sealedArchetype", refTitle);
@@ -511,15 +525,22 @@ public class ArchetypeService extends AbstractAscriptionService {
             } else {
                 JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
                 if (intermediateSchema == null) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_RESOLUTION,
-                            "Cannot resolve intermediary archetype '" + refTitle
-                                    + "' referenced via allOf — no in-effect Archetype with this title",
-                            "refTitle", refTitle);
+                    if (strict) {
+                        // Activation-time: intermediary MUST be resolvable.
+                        throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+                                "Cannot resolve intermediary archetype '" + refTitle
+                                        + "' referenced via allOf — no in-effect Archetype with this title",
+                                "refTitle", refTitle);
+                    }
+                    // Authoring-time: intermediary may not be in-effect yet — warn and skip.
+                    LOG.warn("allOf $ref '{}' not resolvable at authoring time — will be validated at activation",
+                            refTitle);
+                    continue;
                 }
 
                 if (intermediateSchema.has("$gsm:sealed")
                         && intermediateSchema.get("$gsm:sealed").asBoolean()) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_SEALED_EXTENSION_PROHIBITION,
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ALLOF_SEAL,
                             "Archetype schema allOf references sealed schema '"
                                     + refTitle + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
                             "sealedArchetype", refTitle);
@@ -527,7 +548,7 @@ public class ArchetypeService extends AbstractAscriptionService {
 
                 JsonNode intermediateAllOf = intermediateSchema.get("allOf");
                 if (intermediateAllOf != null && intermediateAllOf.isArray()) {
-                    walkAllOfChain(intermediateAllOf, resolvedBases, visited);
+                    walkAllOfChain(intermediateAllOf, resolvedBases, visited, strict);
                 }
             }
         }
@@ -597,7 +618,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         }
 
         if (queryableCount > DEFAULT_MAX_QUERYABLE) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE,
                     "Too many $gsm:queryable properties (" + queryableCount
                             + "): maximum allowed is " + DEFAULT_MAX_QUERYABLE,
                     "annotation", "$gsm:queryable", "count", queryableCount, "max", DEFAULT_MAX_QUERYABLE);
@@ -617,7 +638,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         while (fieldNames.hasNext()) {
             String name = fieldNames.next();
             if (name.startsWith("$gsm:") && !KNOWN_ANNOTATIONS.contains(name)) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                         "Unknown $gsm:* annotation '" + name + "' — sealed annotation vocabulary",
                         "annotation", name);
             }
@@ -630,13 +651,13 @@ public class ArchetypeService extends AbstractAscriptionService {
             String name = fieldNames.next();
             if (name.startsWith("$gsm:")) {
                 if (!KNOWN_ANNOTATIONS.contains(name)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                             "Unknown $gsm:* annotation '" + name + "' on property '"
                                     + propName + "' — sealed annotation vocabulary",
                             "annotation", name, "property", propName);
                 }
                 if (TOP_LEVEL_ANNOTATIONS.contains(name)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                             "Annotation '" + name + "' is top-level only, not valid on property '"
                                     + propName + "'",
                             "annotation", name, "property", propName);
@@ -648,7 +669,7 @@ public class ArchetypeService extends AbstractAscriptionService {
     private static void validateQueryableType(JsonNode propSchema, String propName) {
         String type = propSchema.has("type") ? propSchema.get("type").asText() : null;
         if (type == null) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE,
                     "$gsm:queryable on property '" + propName
                             + "' requires an explicit type (string, number, integer, boolean, or array of scalars)",
                     "annotation", "$gsm:queryable", "property", propName);
@@ -658,13 +679,13 @@ public class ArchetypeService extends AbstractAscriptionService {
             JsonNode items = propSchema.get("items");
             if (items == null || !items.has("type")
                     || !INDEXABLE_TYPES.contains(items.get("type").asText())) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE,
                         "$gsm:queryable on array property '" + propName
                                 + "' requires items of indexable type (string, number, integer, boolean)",
                         "annotation", "$gsm:queryable", "property", propName);
             }
         } else if (!INDEXABLE_TYPES.contains(type)) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_QUERYABLE,
                     "$gsm:queryable on property '" + propName + "' with type '" + type
                             + "' — type must be string, number, integer, boolean, or array of scalars",
                     "annotation", "$gsm:queryable", "property", propName, "type", type);
@@ -693,7 +714,7 @@ public class ArchetypeService extends AbstractAscriptionService {
 
         Set<String> firstIdentityBound = collectIdentityBoundFields(firstStmt);
         if (!firstIdentityBound.equals(currentSet)) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY,
                     "$gsm:identityBound set immutability violation: first Ascription had identity-bound fields "
                             + firstIdentityBound + " but new Ascription declares " + currentSet
                             + ". Changing the identity-bound set requires a new Archetype Definition.",
@@ -722,7 +743,7 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     void validateValidationExpressions(JsonNode validationNode) {
         if (!validationNode.isArray()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "$gsm:validation must be an array of CEL expression strings",
                     "annotation", "$gsm:validation");
         }
@@ -732,29 +753,102 @@ public class ArchetypeService extends AbstractAscriptionService {
         for (int i = 0; i < validationNode.size(); i++) {
             JsonNode exprNode = validationNode.get(i);
             if (!exprNode.isTextual()) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                         "$gsm:validation[" + i + "] must be a string, got " + exprNode.getNodeType(),
                         "annotation", "$gsm:validation", "index", i);
             }
             String expr = exprNode.asText();
             if (expr.isBlank()) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                         "$gsm:validation[" + i + "] must not be blank",
                         "annotation", "$gsm:validation", "index", i);
             }
             CelValidationResult result = validationCompiler.parse(expr);
             if (result.hasError()) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_PARSING,
                         "$gsm:validation[" + i + "] CEL parse error: " + result.getErrorString(),
                         "annotation", "$gsm:validation", "index", i, "expression", expr);
             }
+            CelAbstractSyntaxTree ast;
             try {
-                result.getAst();
+                ast = result.getAst();
             } catch (CelValidationException e) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_CONSTRUCT_BLACKLIST,
                         "$gsm:validation[" + i + "] CEL validation error: " + e.getMessage(), e,
                         "annotation", "$gsm:validation", "index", i, "expression", expr);
             }
+            // F5: Root binding — all idents must be "this"
+            CelExpr rootExpr = ast.getExpr();
+            Set<String> rootIdents = new HashSet<>();
+            collectRootIdents(rootExpr, rootIdents);
+            rootIdents.remove("this");
+            if (!rootIdents.isEmpty()) {
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING,
+                        "$gsm:validation[" + i + "] must use 'this' as root — unbound identifiers: "
+                                + rootIdents,
+                        "annotation", "$gsm:validation", "index", i, "expression", expr,
+                        "unboundIdents", rootIdents.toString());
+            }
+            // F5: Boolean result — top-level must evaluate to bool
+            validateCelBooleanResult(rootExpr, i, expr);
+        }
+    }
+
+    private static void collectRootIdents(CelExpr expr, Set<String> idents) {
+        CelExpr.ExprKind kind = expr.exprKind();
+        switch (kind.getKind()) {
+            case IDENT -> idents.add(kind.ident().name());
+            case SELECT -> collectRootIdents(kind.select().operand(), idents);
+            case CALL -> {
+                CelExpr.CelCall call = kind.call();
+                call.target().ifPresent(t -> collectRootIdents(t, idents));
+                for (CelExpr arg : call.args()) {
+                    collectRootIdents(arg, idents);
+                }
+            }
+            case LIST -> {
+                for (CelExpr el : kind.list().elements()) {
+                    collectRootIdents(el, idents);
+                }
+            }
+            default -> {
+                /* CONSTANT — no ident */ }
+        }
+    }
+
+    private static final Set<String> CEL_BOOLEAN_OPS = Set.of(
+            "_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_",
+            "_&&_", "_||_", "!_", "_!_", "@in",
+            "matches", "startsWith", "endsWith", "contains",
+            "has", "exists", "all", "exists_one");
+    private static final Set<String> CEL_ARITHMETIC_OPS = Set.of(
+            "_+_", "_-_", "_*_", "_/_", "_%_");
+
+    private static void validateCelBooleanResult(CelExpr root, int index, String expr) {
+        CelExpr.ExprKind kind = root.exprKind();
+        switch (kind.getKind()) {
+            case CALL -> {
+                String fn = kind.call().function();
+                if ("_?_:_".equals(fn))
+                    return; // ternary — accept
+                if (CEL_ARITHMETIC_OPS.contains(fn)) {
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT,
+                            "$gsm:validation[" + index + "] top-level is arithmetic ('"
+                                    + fn + "') — must evaluate to bool",
+                            "annotation", "$gsm:validation", "index", index, "expression", expr);
+                }
+            }
+            case CONSTANT -> {
+                CelConstant c = kind.constant();
+                if (c.getKind() != CelConstant.Kind.BOOLEAN_VALUE) {
+                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT,
+                            "$gsm:validation[" + index
+                                    + "] top-level is a non-boolean constant — must evaluate to bool",
+                            "annotation", "$gsm:validation", "index", index, "expression", expr);
+                }
+            }
+            default -> {
+                /* IDENT, SELECT, LIST — DYN, accept */ }
         }
     }
 
@@ -764,7 +858,7 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     private static void validateDataProtection(JsonNode dpNode, String propName, boolean isQueryable) {
         if (!dpNode.isObject()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_DATA_PROTECTION,
                     "$gsm:dataProtection on property '" + propName + "' must be an object",
                     "annotation", "$gsm:dataProtection", "property", propName);
         }
@@ -779,7 +873,7 @@ public class ArchetypeService extends AbstractAscriptionService {
             JsonNode inTransit = dpNode.get("inTransit");
 
             if (atRest.has("suppression")) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_DATA_PROTECTION,
                         "$gsm:dataProtection on property '" + propName
                                 + "': atRest.suppression requires inTransit to be absent "
                                 + "(suppressed data does not exist at rest)",
@@ -787,7 +881,7 @@ public class ArchetypeService extends AbstractAscriptionService {
             }
 
             if (atRest.has("hash") && !inTransit.has("suppression")) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_DATA_PROTECTION,
                         "$gsm:dataProtection on property '" + propName
                                 + "': atRest.hash constrains inTransit to suppression or absent "
                                 + "(hashed data cannot be meaningfully re-transformed)",
@@ -801,7 +895,7 @@ public class ArchetypeService extends AbstractAscriptionService {
         if (isQueryable && dpNode.has("atRest")) {
             JsonNode atRest = dpNode.get("atRest");
             if (atRest.has("encryption")) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_ANNOTATION_DATA_PROTECTION,
                         "$gsm:dataProtection on property '" + propName
                                 + "': $gsm:queryable + atRest.encryption is forbidden "
                                 + "(ciphertext is not indexable)",

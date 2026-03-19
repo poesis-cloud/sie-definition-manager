@@ -38,6 +38,7 @@ import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -160,6 +161,7 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, defId));
+            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
             assertTrue(ex.getMessage().contains("duplicates"));
             assertTrue(ex.getMessage().contains("code"));
         }
@@ -222,6 +224,7 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
+            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("Statement validation failed"));
         }
 
@@ -239,6 +242,7 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
+            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("Statement validation failed"));
         }
     }
@@ -349,6 +353,7 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> spyService.validateIdentityBound(newEntity));
+            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION, ex.getRuleType());
             assertTrue(ex.getMessage().contains("Identity-bound field"));
             assertTrue(ex.getMessage().contains("purpose"));
         }
@@ -439,6 +444,8 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
             assertTrue(ex.getMessage().contains("RETIRED"));
         }
@@ -454,6 +461,8 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
         }
 
@@ -468,6 +477,8 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
         }
 
@@ -482,6 +493,8 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
+            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                    ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
         }
     }
@@ -522,6 +535,7 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("constraint failed"));
         }
@@ -544,6 +558,7 @@ class AbstractAscriptionServiceTest {
 
             GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
                     () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("$gsm:validation"));
             assertTrue(ex.getMessage().contains("constraint failed"));
         }

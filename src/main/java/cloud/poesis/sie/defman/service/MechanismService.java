@@ -30,7 +30,7 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
@@ -83,9 +83,6 @@ public class MechanismService extends AbstractAscriptionService {
 
     private static final Logger LOG = LoggerFactory.getLogger(MechanismService.class);
 
-    private static final Collection<AscriptionStatusType> MODE_IN_EFFECT = List.of(AscriptionStatusType.ACTIVE,
-            AscriptionStatusType.DEPRECATED);
-
     private final MechanismRepository mechanismRepo;
     private final StructureService structureService;
     private final ArchetypeService archetypeService;
@@ -121,16 +118,8 @@ public class MechanismService extends AbstractAscriptionService {
                 statement,
                 structure);
 
-        // GSM: generative/declarative mutual exclusivity at creation time
-        validateModeCreation(entity);
-
-        // GSM: Starlark rule structural validation (generative mode)
-        if (statement.has("rule") && !statement.get("rule").isNull()) {
-            String rule = statement.get("rule").asText();
-            if (!rule.isBlank()) {
-                validateStarlarkRule(rule);
-            }
-        }
+        // GSM: Starlark rule structural validation
+        validateStarlarkRule(statement.get("rule").asText());
 
         return entity;
     }
@@ -176,8 +165,8 @@ public class MechanismService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
-        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING);
+    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
+        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionCascadeType.GOVERNING);
     }
 
     @Override
@@ -201,12 +190,9 @@ public class MechanismService extends AbstractAscriptionService {
     public void validateActivationUniqueness(AscriptionEntity entity) {
         var m = (MechanismEntity) entity;
 
-        // GSM: declarative mode must have in-effect ports at activation
-        validateModeActivation(m);
-
         String function = m.getStatement().has("function") ? m.getStatement().get("function").asText() : null;
         if (function == null || function.isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Mechanism function must not be empty",
                     "property", "function");
         }
@@ -241,8 +227,9 @@ public class MechanismService extends AbstractAscriptionService {
      */
     String validateStarlarkRule(String rule) {
         if (rule == null || rule.isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_FORMATTING,
-                    "Mechanism rule must not be null or blank");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+                    "Mechanism rule must not be null or blank",
+                    "field", "rule");
         }
 
         StarlarkFile file = parseStarlark(rule);
@@ -250,7 +237,7 @@ public class MechanismService extends AbstractAscriptionService {
         // GSM §Mechanism V14: execution budget — reject rules exceeding statement limit
         int stmtCount = countStatements(file);
         if (stmtCount > MAX_RULE_STATEMENTS) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_BUDGET_EXCEEDED,
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_STARLARK_BUDGET,
                     "Mechanism rule exceeds execution budget: " + stmtCount
                             + " statements (max " + MAX_RULE_STATEMENTS + ")",
                     "statementCount", stmtCount, "maxStatements", MAX_RULE_STATEMENTS);
@@ -258,22 +245,24 @@ public class MechanismService extends AbstractAscriptionService {
 
         for (Statement stmt : file.getStatements()) {
             if (stmt instanceof LoadStatement) {
-                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_LOAD_FORBIDDEN,
-                        "load() statements are not allowed in Mechanism rules");
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
+                        "load() statements are not allowed in Mechanism rules",
+                        "field", "rule", "construct", "load");
             }
         }
 
         String triggerArchetype = validateOnTrigger(file);
 
         if (countOnCalls(file) > 1) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_MULTIPLE_TRIGGERS,
-                    "Mechanism rule must have exactly one on() trigger declaration");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
+                    "Mechanism rule must have exactly one on() trigger declaration",
+                    "field", "rule", "construct", "on");
         }
 
         Set<String> locals = collectLocals(file);
         Set<String> unknowns = collectUnknownGlobals(file, locals);
         if (!unknowns.isEmpty()) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_UNKNOWN_GLOBAL,
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
                     "Unknown globals in Mechanism rule: " + unknowns
                             + ". Allowed: " + ALLOWED_GLOBALS + " + Starlark built-ins",
                     "unknownGlobals", unknowns.toString());
@@ -324,7 +313,8 @@ public class MechanismService extends AbstractAscriptionService {
             for (SyntaxError e : file.errors()) {
                 sb.append("\n  - ").append(e.message());
             }
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_PARSE_ERROR, sb.toString());
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_STARLARK_PARSING, sb.toString(),
+                    "field", "rule");
         }
         return file;
     }
@@ -332,26 +322,30 @@ public class MechanismService extends AbstractAscriptionService {
     private String validateOnTrigger(StarlarkFile file) {
         CallExpression onCall = extractOnCall(file);
         if (onCall == null) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_MISSING_TRIGGER,
-                    "Mechanism rule must begin with on(\"ArchetypeName\") as its first executable statement");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
+                    "Mechanism rule must begin with on(\"ArchetypeName\") as its first executable statement",
+                    "field", "rule", "construct", "on");
         }
 
         List<Argument> args = onCall.getArguments();
         if (args.size() != 1 || !(args.get(0) instanceof Argument.Positional)) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT,
-                    "on() must have exactly one positional string argument");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+                    "on() must have exactly one positional string argument",
+                    "field", "rule", "construct", "on");
         }
 
         Expression argExpr = args.get(0).getValue();
         if (!(argExpr instanceof StringLiteral sl)) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT,
-                    "on() argument must be a string literal");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+                    "on() argument must be a string literal",
+                    "field", "rule", "construct", "on");
         }
 
         String archetype = sl.getValue();
         if (archetype == null || archetype.isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT,
-                    "on() argument must be a non-empty string literal");
+            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+                    "on() argument must be a non-empty string literal",
+                    "field", "rule", "construct", "on");
         }
         return archetype;
     }
@@ -409,25 +403,57 @@ public class MechanismService extends AbstractAscriptionService {
 
             String method = dot.getField().getName();
             if (!SYS_METHODS.contains(method)) {
-                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_UNKNOWN_SYS_METHOD,
+                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
                         "Unknown sys method: sys." + method + ". Allowed: " + SYS_METHODS,
                         "method", method);
             }
 
             List<Argument> args = call.getArguments();
             if (args.isEmpty()) {
-                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_SYS_ARGUMENT,
+                throw GsmRuleViolationException.of(sysMethodArityRule(method),
                         "sys." + method + "() requires at least one argument",
                         "method", method);
             }
 
             Expression firstArg = args.get(0).getValue();
             if (!(firstArg instanceof StringLiteral)) {
-                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_NON_LITERAL_ARCHETYPE,
+                throw GsmRuleViolationException.of(sysMethodArityRule(method),
                         "sys." + method + "() first argument must be a string literal (archetype name)",
                         "method", method);
             }
+
+            // Validate response= keyword arg (only valid on sys.emit)
+            for (Argument arg : args) {
+                if (arg instanceof Argument.Keyword kw && "response".equals(kw.getName())) {
+                    if (!"emit".equals(method)) {
+                        throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE,
+                                "response= keyword argument is only valid on sys.emit(), not sys." + method + "()",
+                                "method", method);
+                    }
+                    if (!(kw.getValue() instanceof StringLiteral sl)) {
+                        throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE,
+                                "sys.emit() response= must be a string literal (archetype name)",
+                                "method", method);
+                    }
+                    if (sl.getValue().isBlank()) {
+                        throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE,
+                                "sys.emit() response= must be a non-empty archetype name",
+                                "method", method);
+                    }
+                }
+            }
         }
+    }
+
+    private static GsmRuleType sysMethodArityRule(String method) {
+        return switch (method) {
+            case "emit" -> GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY;
+            case "create" -> GsmRuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY;
+            case "modify" -> GsmRuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY;
+            case "delete" -> GsmRuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY;
+            case "acquire" -> GsmRuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY;
+            default -> GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST;
+        };
     }
 
     private Set<String> collectLocals(StarlarkFile file) {
@@ -481,7 +507,7 @@ public class MechanismService extends AbstractAscriptionService {
             if (dot.getObject() instanceof Identifier obj && "sys".equals(obj.getName())) {
                 String field = dot.getField().getName();
                 if (!SYS_METHODS.contains(field) && !SYS_PROPERTIES.contains(field)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_UNKNOWN_SYS_PROPERTY,
+                    throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
                             "Unknown sys property: sys." + field
                                     + ". Allowed methods: " + SYS_METHODS
                                     + ", allowed properties: " + SYS_PROPERTIES,
@@ -616,62 +642,6 @@ public class MechanismService extends AbstractAscriptionService {
     }
 
     // ======================================================================
-    // Mode validation (inlined from MechanismModeValidator)
-    // ======================================================================
-
-    void validateModeCreation(MechanismEntity entity) {
-        boolean hasRule = hasRule(entity);
-        UUID mechanismDefId = entity.getDefinition().getId();
-
-        if (hasRule) {
-            boolean hasEffectors = !effectorRepo.findAllByMechanismDefinitionId(mechanismDefId).isEmpty();
-            if (hasEffectors) {
-                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MODE_EXCLUSIVITY,
-                        "Generative mode conflict: explicitly authored Effector Ascriptions exist "
-                                + "for Mechanism definition " + mechanismDefId,
-                        "mechanismDefinitionId", mechanismDefId, "conflictingPort", "effector");
-            }
-            boolean hasReceptors = !receptorRepo.findAllByMechanismDefinitionId(mechanismDefId).isEmpty();
-            if (hasReceptors) {
-                throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MODE_EXCLUSIVITY,
-                        "Generative mode conflict: explicitly authored Receptor Ascriptions exist "
-                                + "for Mechanism definition " + mechanismDefId,
-                        "mechanismDefinitionId", mechanismDefId, "conflictingPort", "receptor");
-            }
-        }
-    }
-
-    void validateModeActivation(MechanismEntity entity) {
-        boolean hasRule = hasRule(entity);
-        if (hasRule)
-            return;
-
-        UUID mechanismDefId = entity.getDefinition().getId();
-        boolean hasEffectors = !effectorRepo.findAllByMechanismDefinitionIdAndStatusIn(
-                mechanismDefId, MODE_IN_EFFECT).isEmpty();
-        if (!hasEffectors) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MIN_PORT,
-                    "Declarative mode: at least 1 in-effect Effector required "
-                            + "for Mechanism definition " + mechanismDefId,
-                    "mechanismDefinitionId", mechanismDefId, "missingPort", "effector");
-        }
-        boolean hasReceptors = !receptorRepo.findAllByMechanismDefinitionIdAndStatusIn(
-                mechanismDefId, MODE_IN_EFFECT).isEmpty();
-        if (!hasReceptors) {
-            throw GsmRuleViolationException.of(GsmRuleType.MECHANISM_RULE_DECLARATION_MIN_PORT,
-                    "Declarative mode: at least 1 in-effect Receptor required "
-                            + "for Mechanism definition " + mechanismDefId,
-                    "mechanismDefinitionId", mechanismDefId, "missingPort", "receptor");
-        }
-    }
-
-    private boolean hasRule(MechanismEntity entity) {
-        JsonNode stmt = entity.getStatement();
-        return stmt != null && stmt.has("rule") && !stmt.get("rule").isNull()
-                && !stmt.get("rule").asText().isBlank();
-    }
-
-    // ======================================================================
     // Port auto-derivation (U3/U4 + U12)
     // ======================================================================
 
@@ -686,10 +656,6 @@ public class MechanismService extends AbstractAscriptionService {
     @Override
     protected void afterCreate(AscriptionEntity saved) {
         MechanismEntity mechanism = (MechanismEntity) saved;
-        if (!hasRule(mechanism)) {
-            return; // Declarative mode — no auto-derivation
-        }
-
         String rule = mechanism.getStatement().get("rule").asText();
         StarlarkFile file = parseStarlark(rule);
         List<PortSignature> signatures = collectPortSignatures(file);

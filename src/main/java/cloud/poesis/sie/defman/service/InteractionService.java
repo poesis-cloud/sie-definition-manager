@@ -19,7 +19,7 @@ import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
@@ -58,7 +58,7 @@ public class InteractionService extends AbstractAscriptionService {
         UUID effArchDefId = effector.getOutputArchetype().getDefinition().getId();
         UUID recArchDefId = receptor.getInputArchetype().getDefinition().getId();
         if (!effArchDefId.equals(recArchDefId)) {
-            throw GsmRuleViolationException.of(GsmRuleType.INTERACTION_ENDPOINTS_COMPATIBILITY,
+            throw GsmRuleViolationException.of(GsmRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
                     "Interaction archetype mismatch: effector output archetype (definition "
                             + effArchDefId + ") is not compatible with receptor input archetype (definition "
                             + recArchDefId + ")",
@@ -112,10 +112,10 @@ public class InteractionService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
         return Map.of(
-                DefinitionSubjectType.EFFECTOR, AscriptionStatusTransitionCascadeType.DEPENDENT,
-                DefinitionSubjectType.RECEPTOR, AscriptionStatusTransitionCascadeType.DEPENDENT);
+                DefinitionSubjectType.EFFECTOR, AscriptionCascadeType.DEPENDENT,
+                DefinitionSubjectType.RECEPTOR, AscriptionCascadeType.DEPENDENT);
     }
 
     @Override

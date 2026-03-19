@@ -29,7 +29,7 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
@@ -89,11 +89,41 @@ public abstract class AbstractAscriptionService {
     private static final List<AscriptionStatusType> GSM_IN_EFFECT = List.of(
             AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
 
+    // GSM base schema property sets for extensible subject types (sealed — these
+    // match the GSM base archetype schemas and never change at runtime).
+    // Used to classify validation errors as GSM-base vs tenant-extension.
+    private static final Map<DefinitionSubjectType, Set<String>> GSM_BASE_PROPERTIES = Map.of(
+            DefinitionSubjectType.STRUCTURE, Set.of("purpose"),
+            DefinitionSubjectType.MECHANISM, Set.of("structure", "function", "rule"),
+            DefinitionSubjectType.INTERACTION, Set.of("effector", "receptor"));
+
     // ======================================================================
     // Subtype identity
     // ======================================================================
 
     public abstract DefinitionSubjectType getSubjectType();
+
+    protected GsmRuleType statementValidationRule() {
+        return switch (getSubjectType()) {
+            case STRUCTURE -> GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case MECHANISM -> GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case EFFECTOR -> GsmRuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case RECEPTOR -> GsmRuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case INTERACTION -> GsmRuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case DIRECTIVE -> GsmRuleType.DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case NORM -> GsmRuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+            case ARCHETYPE -> GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+        };
+    }
+
+    protected GsmRuleType nonGsmStatementValidationRule() {
+        return switch (getSubjectType()) {
+            case STRUCTURE -> GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+            case MECHANISM -> GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+            case INTERACTION -> GsmRuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+            default -> null; // Other types have no tenant-extensible base schemas
+        };
+    }
 
     // ======================================================================
     // Entity CRUD (abstract)
@@ -182,7 +212,7 @@ public abstract class AbstractAscriptionService {
         return List.of();
     }
 
-    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
         return Map.of();
     }
 
@@ -250,14 +280,14 @@ public abstract class AbstractAscriptionService {
     protected UUID extractRequiredUuid(JsonNode statement, String field) {
         JsonNode node = statement.get(field);
         if (node == null || node.isNull() || node.asText().isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+            throw GsmRuleViolationException.of(statementValidationRule(),
                     "Required field '" + field + "' missing in statement payload",
                     "field", field);
         }
         try {
             return UUID.fromString(node.asText());
         } catch (IllegalArgumentException e) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_FORMATTING,
+            throw GsmRuleViolationException.of(statementValidationRule(),
                     "Invalid UUID for field '" + field + "': " + node.asText(),
                     "field", field, "value", node.asText());
         }
@@ -273,7 +303,7 @@ public abstract class AbstractAscriptionService {
             try {
                 result.add(UUID.fromString(element.asText()));
             } catch (IllegalArgumentException e) {
-                throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_FORMATTING,
+                throw GsmRuleViolationException.of(statementValidationRule(),
                         "Invalid UUID in '" + field + "': " + element.asText(),
                         "field", field, "value", element.asText());
             }
@@ -354,14 +384,72 @@ public abstract class AbstractAscriptionService {
         JsonSchema schema = schemaFactory.getSchema(archetypeStatement, config);
         Set<ValidationMessage> errors = schema.validate(statement);
 
-        if (!errors.isEmpty()) {
-            List<String> messages = errors.stream().map(ValidationMessage::getMessage).toList();
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
-                    "Statement validation failed against archetype " + archetype.getDefinition().getId()
-                            + ": " + messages,
-                    "archetypeDefinitionId", archetype.getDefinition().getId(),
-                    "violations", messages);
+        if (errors.isEmpty()) {
+            return;
         }
+
+        // For extensible subject types (Structure, Mechanism, Interaction),
+        // classify errors as GSM-base vs tenant-extension violations.
+        Set<String> baseProps = GSM_BASE_PROPERTIES.get(getSubjectType());
+        GsmRuleType nonGsmRule = nonGsmStatementValidationRule();
+
+        if (baseProps != null && nonGsmRule != null) {
+            List<String> gsmMessages = new ArrayList<>();
+            List<String> nonGsmMessages = new ArrayList<>();
+
+            for (ValidationMessage err : errors) {
+                if (isGsmBaseError(err, baseProps)) {
+                    gsmMessages.add(err.getMessage());
+                } else {
+                    nonGsmMessages.add(err.getMessage());
+                }
+            }
+
+            // Throw GSM violations first (higher precedence)
+            if (!gsmMessages.isEmpty()) {
+                throw GsmRuleViolationException.of(statementValidationRule(),
+                        "Statement validation failed against archetype "
+                                + archetype.getDefinition().getId() + ": " + gsmMessages,
+                        "archetypeDefinitionId", archetype.getDefinition().getId(),
+                        "violations", gsmMessages);
+            }
+            if (!nonGsmMessages.isEmpty()) {
+                throw GsmRuleViolationException.of(nonGsmRule,
+                        "Statement validation failed against tenant-extended archetype "
+                                + archetype.getDefinition().getId() + ": " + nonGsmMessages,
+                        "archetypeDefinitionId", archetype.getDefinition().getId(),
+                        "violations", nonGsmMessages);
+            }
+        }
+
+        // Non-extensible types or fallback: all errors are GSM violations
+        List<String> messages = errors.stream().map(ValidationMessage::getMessage).toList();
+        throw GsmRuleViolationException.of(statementValidationRule(),
+                "Statement validation failed against archetype " + archetype.getDefinition().getId()
+                        + ": " + messages,
+                "archetypeDefinitionId", archetype.getDefinition().getId(),
+                "violations", messages);
+    }
+
+    /**
+     * Determines whether a validation error pertains to a GSM base schema property.
+     * Uses instance location path and the property hint from the validation
+     * message.
+     */
+    private static boolean isGsmBaseError(ValidationMessage error, Set<String> baseProps) {
+        // Check instance location: root property of the failing path
+        var instanceLoc = error.getInstanceLocation();
+        if (instanceLoc != null && instanceLoc.getNameCount() > 0) {
+            String rootProp = instanceLoc.getName(0);
+            return baseProps.contains(rootProp);
+        }
+        // Check the property hint (used by 'required', 'additionalProperties', etc.)
+        String property = error.getProperty();
+        if (property != null && !property.isEmpty()) {
+            return baseProps.contains(property);
+        }
+        // Root-level structural errors (e.g., type mismatch on root) → GSM
+        return true;
     }
 
     // ======================================================================
@@ -489,7 +577,8 @@ public abstract class AbstractAscriptionService {
             }
             return hex.toString();
         } catch (java.security.NoSuchAlgorithmException e) {
-            throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+            throw GsmRuleViolationException.of(
+                    GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
                     "keyword", "$gsm:dataProtection", "property", "hash.algorithm");
         }
@@ -546,7 +635,7 @@ public abstract class AbstractAscriptionService {
             try {
                 CelValidationResult compileResult = celCompiler.compile(expr);
                 if (compileResult.hasError()) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                    throw GsmRuleViolationException.of(statementValidationRule(),
                             "$gsm:validation[" + i + "] CEL parse error: " + compileResult.getErrorString(),
                             "keyword", "$gsm:validation", "index", i);
                 }
@@ -555,7 +644,7 @@ public abstract class AbstractAscriptionService {
                 Object result = program.eval(Map.of("this", statementMap));
 
                 if (!(result instanceof Boolean b) || !b) {
-                    throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                    throw GsmRuleViolationException.of(statementValidationRule(),
                             "$gsm:validation[" + i + "] constraint failed: expression '"
                                     + expr + "' evaluated to " + result,
                             "keyword", "$gsm:validation", "index", i, "expression", expr);
@@ -563,7 +652,7 @@ public abstract class AbstractAscriptionService {
             } catch (GsmRuleViolationException e) {
                 throw e; // re-throw our own exceptions
             } catch (Exception e) {
-                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VOCABULARY_WELLFORMEDNESS,
+                throw GsmRuleViolationException.of(statementValidationRule(),
                         "$gsm:validation[" + i + "] evaluation error for expression '"
                                 + expr + "': " + e.getMessage(),
                         "keyword", "$gsm:validation", "index", i, "expression", expr);

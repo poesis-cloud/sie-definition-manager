@@ -85,7 +85,7 @@ public class StructureService extends AbstractAscriptionService {
         var stmt = entity.getStatement();
         String purpose = stmt.has("purpose") ? stmt.get("purpose").asText() : null;
         if (purpose == null || purpose.isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_PROPERTY_REQUIREMENT,
+            throw GsmRuleViolationException.of(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Structure purpose must not be empty", "field", "purpose");
         }
         UUID thisDefId = entity.getDefinition().getId();

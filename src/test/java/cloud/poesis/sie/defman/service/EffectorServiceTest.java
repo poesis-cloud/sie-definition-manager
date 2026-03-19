@@ -21,7 +21,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 /**
@@ -97,7 +97,7 @@ class EffectorServiceTest {
 
             assertEquals(1, roles.size());
             assertTrue(roles.containsKey(DefinitionSubjectType.MECHANISM));
-            assertEquals(AscriptionStatusTransitionCascadeType.CONSTITUTIVE,
+            assertEquals(AscriptionCascadeType.CONSTITUTIVE,
                     roles.get(DefinitionSubjectType.MECHANISM));
         }
     }
