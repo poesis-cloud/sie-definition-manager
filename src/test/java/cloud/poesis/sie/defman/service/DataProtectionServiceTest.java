@@ -20,9 +20,11 @@ import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.type.GsmRuleType;
 
 /**
- * Unit tests for {@link DataProtectionService} — GSM §8 {@code $gsm:dataProtection}.
+ * Unit tests for {@link DataProtectionService} — GSM §8
+ * {@code $gsm:dataProtection}.
  *
- * <p>Tests cover the four data protection measures (hash, mask, suppression,
+ * <p>
+ * Tests cover the four data protection measures (hash, mask, suppression,
  * encryption-noop) across both lifecycle phases (atRest, inTransit), plus the
  * two shared primitives ({@code computeHash}, {@code applyMask}).
  */
@@ -530,14 +532,20 @@ class DataProtectionServiceTest {
     // Helpers
     // ==================================================================
 
-    /** Creates a {@code $gsm:dataProtection} node with an empty {@code atRest} container. */
+    /**
+     * Creates a {@code $gsm:dataProtection} node with an empty {@code atRest}
+     * container.
+     */
     private static ObjectNode dpAtRest() {
         ObjectNode dp = MAPPER.createObjectNode();
         dp.putObject("atRest");
         return dp;
     }
 
-    /** Builds an archetype schema with one {@code $gsm:dataProtection.inTransit} property. */
+    /**
+     * Builds an archetype schema with one {@code $gsm:dataProtection.inTransit}
+     * property.
+     */
     private static ObjectNode schemaWithInTransit(String propName, JsonNode inTransitContent) {
         ObjectNode schema = MAPPER.createObjectNode();
         schema.put("title", "TestSchema");

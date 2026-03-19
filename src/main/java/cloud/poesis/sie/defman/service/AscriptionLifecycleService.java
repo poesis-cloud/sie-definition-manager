@@ -238,7 +238,8 @@ public class AscriptionLifecycleService {
             }
         }
 
-        // 4–7. Persistence operations (translate DB constraint violations to domain exceptions)
+        // 4–7. Persistence operations (translate DB constraint violations to domain
+        // exceptions)
         try {
             // 4. Record transition (DB trigger updates entity status/version)
             AscriptionStatusTransitionEntity saved = recordTransition(entity, currentStatus, targetStatusType);

@@ -202,7 +202,8 @@ class InteractionServiceTest {
 
         @Test
         void nonGsmSchemaViolation_rejected() {
-            // Schema with a required tenant-extension property (not GSM-base: effector/receptor)
+            // Schema with a required tenant-extension property (not GSM-base:
+            // effector/receptor)
             ObjectNode schema = MAPPER.createObjectNode();
             schema.put("title", "ExtInt");
             schema.put("type", "object");

@@ -1001,7 +1001,8 @@ class MechanismServiceTest {
 
         @Test
         void nonGsmSchemaViolation_rejected() {
-            // Schema with a required tenant-extension property (not GSM-base: structure/function/rule)
+            // Schema with a required tenant-extension property (not GSM-base:
+            // structure/function/rule)
             ObjectNode schema = MAPPER.createObjectNode();
             schema.put("title", "ExtMech");
             schema.put("type", "object");
