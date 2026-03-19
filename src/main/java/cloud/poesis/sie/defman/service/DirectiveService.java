@@ -20,11 +20,13 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @Service
 public class DirectiveService extends AbstractAscriptionService {
@@ -52,7 +54,13 @@ public class DirectiveService extends AbstractAscriptionService {
     public DirectiveService(
             DirectiveRepository directiveRepo,
             StructureService structureService,
-            ArchetypeService archetypeService) {
+            ArchetypeService archetypeService,
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        super(definitionService, transitionService, ascriptionRepository, entityManager, dataProtectionService);
         this.directiveRepo = directiveRepo;
         this.structureService = structureService;
         this.archetypeService = archetypeService;

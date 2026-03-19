@@ -31,10 +31,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -51,7 +53,12 @@ class ArchetypeServiceTest {
     void setUp() {
         service = new ArchetypeService(
                 archetypeRepo,
-                mock(JdbcTemplate.class));
+                mock(JdbcTemplate.class),
+                mock(DefinitionService.class),
+                mock(AscriptionStatusTransitionService.class),
+                mock(AscriptionRepository.class),
+                mock(EntityManager.class),
+                mock(DataProtectionService.class));
     }
 
     // ========================================================================
@@ -949,6 +956,51 @@ class ArchetypeServiceTest {
                 when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
                 assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
+            }
+
+            @Test
+            void unboundIdent_rejected() {
+                ObjectNode schema = schemaWithProperty("bar", prop("number"));
+                schema.set("$gsm:validation", MAPPER.createArrayNode()
+                        .add("foo.bar > 0"));
+
+                UUID defId = UUID.randomUUID();
+
+                GsmRuleViolationException ex = assertThrows(
+                        GsmRuleViolationException.class,
+                        () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("unbound"));
+            }
+
+            @Test
+            void arithmeticTopLevel_rejected() {
+                ObjectNode schema = schemaWithProperty("a", prop("number"));
+                schema.set("$gsm:validation", MAPPER.createArrayNode()
+                        .add("this.a + 1"));
+
+                UUID defId = UUID.randomUUID();
+
+                GsmRuleViolationException ex = assertThrows(
+                        GsmRuleViolationException.class,
+                        () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("arithmetic"));
+            }
+
+            @Test
+            void nonBooleanConstant_rejected() {
+                ObjectNode schema = schemaWithProperty("x", prop("number"));
+                schema.set("$gsm:validation", MAPPER.createArrayNode()
+                        .add("42"));
+
+                UUID defId = UUID.randomUUID();
+
+                GsmRuleViolationException ex = assertThrows(
+                        GsmRuleViolationException.class,
+                        () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("non-boolean constant"));
             }
         }
     }

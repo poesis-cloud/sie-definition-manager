@@ -17,10 +17,12 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import jakarta.persistence.EntityManager;
 
 @Service
 public class EffectorService extends AbstractAscriptionService {
@@ -32,7 +34,13 @@ public class EffectorService extends AbstractAscriptionService {
     public EffectorService(
             EffectorRepository effectorRepo,
             MechanismService mechanismService,
-            ArchetypeService archetypeService) {
+            ArchetypeService archetypeService,
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        super(definitionService, transitionService, ascriptionRepository, entityManager, dataProtectionService);
         this.effectorRepo = effectorRepo;
         this.mechanismService = mechanismService;
         this.archetypeService = archetypeService;

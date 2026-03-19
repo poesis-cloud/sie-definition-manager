@@ -1,8 +1,8 @@
 package cloud.poesis.sie.defman.type;
 
 /**
- * Single source of truth for all GSM domain rules enforced by the
- * definition-manager.
+ * Centralized source of truth for references of all GSM domain rules enforced
+ * by the definition-manager.
  *
  * <p>
  * Each value describes a <em>rule</em> (the constraint that must hold), not an

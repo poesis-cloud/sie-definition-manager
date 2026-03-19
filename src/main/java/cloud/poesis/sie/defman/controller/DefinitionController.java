@@ -25,6 +25,7 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.service.ArchetypeService;
+import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,7 +49,11 @@ public class DefinitionController extends AbstractController {
     private final DefinitionService service;
     private final ArchetypeService archetypeService;
 
-    public DefinitionController(DefinitionService service, ArchetypeService archetypeService) {
+    public DefinitionController(
+            DefinitionService service,
+            ArchetypeService archetypeService,
+            DataProtectionService dataProtectionService) {
+        super(dataProtectionService);
         this.service = service;
         this.archetypeService = archetypeService;
     }

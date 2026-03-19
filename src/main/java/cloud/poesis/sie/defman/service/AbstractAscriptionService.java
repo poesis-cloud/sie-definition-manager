@@ -10,7 +10,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +60,8 @@ import jakarta.persistence.EntityManager;
  */
 public abstract class AbstractAscriptionService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractAscriptionService.class);
+
     private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
     /**
@@ -69,16 +74,25 @@ public abstract class AbstractAscriptionService {
     private final CelRuntime celRuntime = CelRuntimeFactory.standardCelRuntimeBuilder().build();
     private final ObjectMapper celMapper = new ObjectMapper();
 
-    // Shared dependencies — field-injected to avoid constructor bloat across 9
-    // subclasses
-    @Autowired
-    private DefinitionService definitionService;
-    @Autowired
-    private AscriptionStatusTransitionService transitionService;
-    @Autowired
-    private AscriptionRepository ascriptionRepository;
-    @Autowired
-    private EntityManager entityManager;
+    // Shared dependencies — constructor-injected into all subclasses
+    private final DefinitionService definitionService;
+    private final AscriptionStatusTransitionService transitionService;
+    private final AscriptionRepository ascriptionRepository;
+    private final EntityManager entityManager;
+    private final DataProtectionService dataProtectionService;
+
+    protected AbstractAscriptionService(
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        this.definitionService = definitionService;
+        this.transitionService = transitionService;
+        this.ascriptionRepository = ascriptionRepository;
+        this.entityManager = entityManager;
+        this.dataProtectionService = dataProtectionService;
+    }
 
     // Referee precondition for [*]→DRAFT creation
     private static final Set<AscriptionStatusType> CREATION_REFEREE_ALLOWED = EnumSet.of(
@@ -96,6 +110,72 @@ public abstract class AbstractAscriptionService {
             DefinitionSubjectType.STRUCTURE, Set.of("purpose"),
             DefinitionSubjectType.MECHANISM, Set.of("structure", "function", "rule"),
             DefinitionSubjectType.INTERACTION, Set.of("effector", "receptor"));
+
+    // Known PostgreSQL constraint → GsmRuleType mapping (auto-generated FK names
+    // and partial unique indexes)
+    static final Map<String, GsmRuleType> CONSTRAINT_TO_RULE = Map.ofEntries(
+            // Directive reference FKs
+            Map.entry("directive_structure_id_fkey", GsmRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY),
+            Map.entry("directive_qualifier_id_fkey", GsmRuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
+            Map.entry("directive_purpose_id_fkey", GsmRuleType.DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY),
+            // Norm reference FKs
+            Map.entry("norm_structure_id_fkey", GsmRuleType.NORM_STRUCTURE_REFERENCE_INTEGRITY),
+            Map.entry("norm_qualifier_id_fkey", GsmRuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
+            // Effector / Receptor reference FKs
+            Map.entry("effector_mechanism_id_fkey", GsmRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
+            Map.entry("receptor_mechanism_id_fkey", GsmRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
+            // Interaction reference FKs
+            Map.entry("interaction_effector_id_fkey", GsmRuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
+            Map.entry("interaction_receptor_id_fkey", GsmRuleType.INTERACTION_RECEPTOR_REFERENCE_INTEGRITY),
+            // Archetype self-typing FK
+            Map.entry("archetype_typed_by_fk", GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY),
+            // Identity uniqueness indexes
+            Map.entry("uq_structure_purpose", GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+            Map.entry("uq_mechanism_function", GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+            Map.entry("uq_archetype_title", GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS));
+
+    // ======================================================================
+    // Persistence exception translation
+    // ======================================================================
+
+    /**
+     * Translates a {@link DataIntegrityViolationException} to a domain exception.
+     *
+     * @return a {@link GsmRuleViolationException} for known constraints, or an
+     *         {@link IllegalStateException} for unmapped constraints
+     */
+    static RuntimeException translatePersistenceException(DataIntegrityViolationException ex) {
+        String constraintName = extractConstraintName(ex);
+        if (constraintName != null) {
+            GsmRuleType ruleType = CONSTRAINT_TO_RULE.get(constraintName);
+            if (ruleType == null && constraintName.endsWith("_archetype_id_fkey")) {
+                ruleType = GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
+            }
+            if (ruleType == null && (constraintName.endsWith("_output_archetype_id_fkey")
+                    || constraintName.endsWith("_input_archetype_id_fkey"))) {
+                ruleType = GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
+            }
+            if (ruleType != null) {
+                return GsmRuleViolationException.of(ruleType,
+                        "Database constraint violation: " + constraintName,
+                        ex,
+                        "constraint", constraintName);
+            }
+        }
+        LOG.error("Unmapped DB constraint violation (constraint={})", constraintName, ex);
+        return new IllegalStateException(
+                "Database constraint violation"
+                        + (constraintName != null ? ": " + constraintName : ""),
+                ex);
+    }
+
+    static String extractConstraintName(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof ConstraintViolationException cve) {
+            return cve.getConstraintName();
+        }
+        return null;
+    }
 
     // ======================================================================
     // Subtype identity
@@ -179,13 +259,18 @@ public abstract class AbstractAscriptionService {
         validateCreationPreconditions(entity);
 
         // 7. Persist
-        AscriptionEntity saved = save(entity);
+        AscriptionEntity saved;
+        try {
+            saved = save(entity);
 
-        // 8. Record initial DRAFT transition
-        transitionService.recordTransition(saved, null, AscriptionStatusType.DRAFT);
+            // 8. Record initial DRAFT transition
+            transitionService.recordTransition(saved, null, AscriptionStatusType.DRAFT);
 
-        // 9. Refresh to pick up DB-trigger-assigned fields (status, timestamp)
-        entityManager.refresh(saved);
+            // 9. Refresh to pick up DB-trigger-assigned fields (status, timestamp)
+            entityManager.refresh(saved);
+        } catch (DataIntegrityViolationException ex) {
+            throw translatePersistenceException(ex);
+        }
 
         // 10. Post-creation hook (e.g., auto-derivation of ports)
         afterCreate(saved);
@@ -483,7 +568,7 @@ public abstract class AbstractAscriptionService {
             }
 
             if (propSchema.has("$gsm:dataProtection")) {
-                applyDataProtectionAtRest(propSchema.get("$gsm:dataProtection"),
+                dataProtectionService.applyAtRestProtection(propSchema.get("$gsm:dataProtection"),
                         propName, (ObjectNode) statement);
             }
         }
@@ -521,93 +606,6 @@ public abstract class AbstractAscriptionService {
 
     private static boolean hasGsmAnnotation(JsonNode node, String annotation) {
         return node.has(annotation) && node.get(annotation).asBoolean(false);
-    }
-
-    // ======================================================================
-    // $gsm:dataProtection atRest enforcement at Ascription authoring
-    // ======================================================================
-
-    static void applyDataProtectionAtRest(JsonNode dpNode, String propName, ObjectNode statement) {
-        if (dpNode == null || !dpNode.has("atRest")) {
-            return;
-        }
-
-        JsonNode atRest = dpNode.get("atRest");
-        JsonNode value = statement.get(propName);
-        if (value == null || value.isNull()) {
-            return;
-        }
-        String textValue = value.isTextual() ? value.asText() : value.toString();
-
-        if (atRest.has("encryption")) {
-            // Encryption not yet implemented — silently skip
-            return;
-        }
-
-        if (atRest.has("hash")) {
-            String algorithm = "SHA-256";
-            if (atRest.get("hash").has("algorithm")) {
-                algorithm = atRest.get("hash").get("algorithm").asText();
-            }
-            String hashed = computeHash(textValue, algorithm);
-            statement.put(propName, hashed);
-        }
-
-        if (atRest.has("mask")) {
-            JsonNode maskNode = atRest.get("mask");
-            String masked = applyMask(textValue, maskNode);
-            statement.put(propName, masked);
-        }
-
-        if (atRest.has("suppression")) {
-            statement.remove(propName);
-        }
-    }
-
-    public static String computeHash(String value, String algorithm) {
-        try {
-            String javaAlgorithm = algorithm.replace("SHA3-256", "SHA3-256")
-                    .replace("SHA-256", "SHA-256")
-                    .replace("SHA-512", "SHA-512");
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance(javaAlgorithm);
-            byte[] hash = digest.digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder(hash.length * 2);
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw GsmRuleViolationException.of(
-                    GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-                    "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
-                    "keyword", "$gsm:dataProtection", "property", "hash.algorithm");
-        }
-    }
-
-    public static String applyMask(String value, JsonNode maskNode) {
-        String direction = maskNode.get("from").asText();
-        JsonNode withNode = maskNode.get("with");
-        char maskChar = withNode.has("character") ? withNode.get("character").asText().charAt(0) : '*';
-        int occurrence = withNode.get("occurrence").asInt();
-
-        if (value.length() <= occurrence) {
-            // Mask the entire value — do not expose short sensitive data
-            return String.valueOf(maskChar).repeat(value.length());
-        }
-
-        char[] chars = value.toCharArray();
-        if ("LEFT".equals(direction)) {
-            // Keep first 'occurrence' characters visible, mask the rest
-            for (int i = occurrence; i < chars.length; i++) {
-                chars[i] = maskChar;
-            }
-        } else {
-            // RIGHT: keep last 'occurrence' characters visible, mask the rest
-            for (int i = 0; i < chars.length - occurrence; i++) {
-                chars[i] = maskChar;
-            }
-        }
-        return new String(chars);
     }
 
     // ======================================================================

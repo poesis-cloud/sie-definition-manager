@@ -2,6 +2,8 @@ package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,10 +25,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -35,10 +37,12 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -52,6 +56,12 @@ class AbstractAscriptionServiceTest {
     @Mock
     private AscriptionRepository ascriptionRepo;
 
+    @Mock
+    private AscriptionStatusTransitionService transitionService;
+
+    @Mock
+    private EntityManager entityManager;
+
     /** Minimal concrete subclass for testing package-private base methods. */
     private AbstractAscriptionService service;
 
@@ -62,7 +72,9 @@ class AbstractAscriptionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AbstractAscriptionService() {
+        service = new AbstractAscriptionService(
+                definitionService, transitionService, ascriptionRepo,
+                entityManager, new DataProtectionService()) {
             @Override
             public DefinitionSubjectType getSubjectType() {
                 return DefinitionSubjectType.STRUCTURE;
@@ -109,8 +121,6 @@ class AbstractAscriptionServiceTest {
                 return refereeReferences;
             }
         };
-        ReflectionTestUtils.setField(service, "definitionService", definitionService);
-        ReflectionTestUtils.setField(service, "ascriptionRepository", ascriptionRepo);
     }
 
     // ========================================================================
@@ -305,7 +315,9 @@ class AbstractAscriptionServiceTest {
             final Map<String, Object> oldValues = Map.of("purpose", "old-purpose");
             final Map<String, Object> newValues = Map.of("purpose", "new-purpose");
 
-            AbstractAscriptionService spyService = new AbstractAscriptionService() {
+            AbstractAscriptionService spyService = new AbstractAscriptionService(
+                    definitionService, transitionService, ascriptionRepo,
+                    entityManager, new DataProtectionService()) {
                 @Override
                 public DefinitionSubjectType getSubjectType() {
                     return DefinitionSubjectType.STRUCTURE;
@@ -784,5 +796,85 @@ class AbstractAscriptionServiceTest {
         when(def.getId()).thenReturn(defId);
         when(entity.getDefinition()).thenReturn(def);
         return entity;
+    }
+
+    // ========================================================================
+    // Persistence exception translation
+    // ========================================================================
+
+    @Nested
+    class ExtractConstraintName {
+
+        @Test
+        void extractsFromHibernateConstraintViolationException() {
+            var cve = new ConstraintViolationException("violation", null, "uq_structure_purpose");
+            var dive = new DataIntegrityViolationException("wrapped", cve);
+
+            assertEquals("uq_structure_purpose",
+                    AbstractAscriptionService.extractConstraintName(dive));
+        }
+
+        @Test
+        void returnsNullWhenCauseIsNotConstraintViolation() {
+            var dive = new DataIntegrityViolationException("no hibernate cause",
+                    new RuntimeException("something else"));
+
+            assertNull(AbstractAscriptionService.extractConstraintName(dive));
+        }
+
+        @Test
+        void returnsNullWhenNoCause() {
+            var dive = new DataIntegrityViolationException("no cause");
+
+            assertNull(AbstractAscriptionService.extractConstraintName(dive));
+        }
+    }
+
+    @Nested
+    class TranslatePersistenceException {
+
+        @Test
+        void mappedConstraint_returnsGsmRuleViolation() {
+            var cve = new ConstraintViolationException("violation", null, "uq_structure_purpose");
+            var dive = new DataIntegrityViolationException("wrapped", cve);
+
+            RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
+
+            assertInstanceOf(GsmRuleViolationException.class, result);
+            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+                    ((GsmRuleViolationException) result).getRuleType());
+        }
+
+        @Test
+        void archetypeIdFkeySuffix_returnsArchetypeReferenceIntegrity() {
+            var cve = new ConstraintViolationException("violation", null, "ascription_archetype_id_fkey");
+            var dive = new DataIntegrityViolationException("wrapped", cve);
+
+            RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
+
+            assertInstanceOf(GsmRuleViolationException.class, result);
+            assertEquals(GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+                    ((GsmRuleViolationException) result).getRuleType());
+        }
+
+        @Test
+        void unmappedConstraint_returnsIllegalState() {
+            var cve = new ConstraintViolationException("violation", null, "some_unknown_constraint");
+            var dive = new DataIntegrityViolationException("wrapped", cve);
+
+            RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
+
+            assertInstanceOf(IllegalStateException.class, result);
+            assertTrue(result.getMessage().contains("some_unknown_constraint"));
+        }
+
+        @Test
+        void noConstraintName_returnsIllegalState() {
+            var dive = new DataIntegrityViolationException("no cause");
+
+            RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
+
+            assertInstanceOf(IllegalStateException.class, result);
+        }
     }
 }

@@ -43,6 +43,7 @@ import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.AscriptionLifecycleService;
 import cloud.poesis.sie.defman.service.AscriptionService;
+import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -96,7 +97,9 @@ public class AscriptionController extends AbstractController {
             ArchetypeService archetypeService,
             AscriptionService ascriptionService,
             AscriptionLifecycleService lifecycleService,
-            DefinitionService definitionService) {
+            DefinitionService definitionService,
+            DataProtectionService dataProtectionService) {
+        super(dataProtectionService);
         this.serviceRegistry = serviceRegistry;
         this.archetypeService = archetypeService;
         this.ascriptionService = ascriptionService;

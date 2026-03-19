@@ -26,9 +26,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -43,7 +45,13 @@ class StructureServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StructureService(structureRepo);
+        service = new StructureService(
+                structureRepo,
+                mock(DefinitionService.class),
+                mock(AscriptionStatusTransitionService.class),
+                mock(AscriptionRepository.class),
+                mock(EntityManager.class),
+                mock(DataProtectionService.class));
     }
 
     // ========================================================================

@@ -18,11 +18,13 @@ import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @Service
 public class InteractionService extends AbstractAscriptionService {
@@ -34,7 +36,13 @@ public class InteractionService extends AbstractAscriptionService {
     public InteractionService(
             InteractionRepository interactionRepo,
             EffectorService effectorService,
-            ReceptorService receptorService) {
+            ReceptorService receptorService,
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        super(definitionService, transitionService, ascriptionRepository, entityManager, dataProtectionService);
         this.interactionRepo = interactionRepo;
         this.effectorService = effectorService;
         this.receptorService = receptorService;

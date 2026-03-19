@@ -28,10 +28,12 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -49,7 +51,12 @@ class DirectiveServiceTest {
         service = new DirectiveService(
                 directiveRepo,
                 mock(StructureService.class),
-                mock(ArchetypeService.class));
+                mock(ArchetypeService.class),
+                mock(DefinitionService.class),
+                mock(AscriptionStatusTransitionService.class),
+                mock(AscriptionRepository.class),
+                mock(EntityManager.class),
+                mock(DataProtectionService.class));
     }
 
     // ========================================================================
@@ -313,6 +320,27 @@ class DirectiveServiceTest {
                 assertEquals(AscriptionCascadeType.GOVERNING,
                         roles.get(DefinitionSubjectType.STRUCTURE));
             }
+        }
+    }
+
+    // ========================================================================
+    // Statement Compliance
+    // ========================================================================
+
+    @Nested
+    class StatementCompliance {
+
+        @Test
+        void missingRequiredField_rejected() {
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+            ObjectNode emptyStatement = MAPPER.createObjectNode();
+
+            GsmRuleViolationException ex = assertThrows(
+                    GsmRuleViolationException.class,
+                    () -> service.buildEntity(def, archetype, emptyStatement));
+            assertEquals(GsmRuleType.DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertTrue(ex.getMessage().contains("structure"));
         }
     }
 

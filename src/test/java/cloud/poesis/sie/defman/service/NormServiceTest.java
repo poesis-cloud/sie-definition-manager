@@ -29,10 +29,12 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -49,7 +51,12 @@ class NormServiceTest {
         service = new NormService(
                 mock(NormRepository.class),
                 mock(StructureService.class),
-                archetypeService);
+                archetypeService,
+                mock(DefinitionService.class),
+                mock(AscriptionStatusTransitionService.class),
+                mock(AscriptionRepository.class),
+                mock(EntityManager.class),
+                mock(DataProtectionService.class));
     }
 
     // ========================================================================

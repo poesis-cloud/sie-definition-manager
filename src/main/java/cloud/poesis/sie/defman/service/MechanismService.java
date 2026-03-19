@@ -27,6 +27,7 @@ import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
@@ -34,6 +35,7 @@ import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 import net.starlark.java.syntax.Argument;
 import net.starlark.java.syntax.AssignmentStatement;
 import net.starlark.java.syntax.CallExpression;
@@ -94,7 +96,13 @@ public class MechanismService extends AbstractAscriptionService {
             StructureService structureService,
             ArchetypeService archetypeService,
             EffectorRepository effectorRepo,
-            ReceptorRepository receptorRepo) {
+            ReceptorRepository receptorRepo,
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        super(definitionService, transitionService, ascriptionRepository, entityManager, dataProtectionService);
         this.mechanismRepo = mechanismRepo;
         this.structureService = structureService;
         this.archetypeService = archetypeService;

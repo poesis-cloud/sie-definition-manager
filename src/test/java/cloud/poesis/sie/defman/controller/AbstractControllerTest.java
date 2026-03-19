@@ -12,7 +12,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -20,6 +19,7 @@ import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
@@ -32,8 +32,12 @@ class AbstractControllerTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** Minimal concrete subclass exposing the protected method. */
-    private final AbstractController controller = new AbstractController() {
-    };
+    private final AbstractController controller;
+
+    AbstractControllerTest() {
+        controller = new AbstractController(new DataProtectionService()) {
+        };
+    }
 
     // ========================================================================
     // $gsm:dataProtection inTransit (GSM §8)

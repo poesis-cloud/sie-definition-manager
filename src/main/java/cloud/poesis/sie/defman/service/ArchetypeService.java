@@ -28,6 +28,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.GsmRuleType;
@@ -39,6 +40,7 @@ import dev.cel.common.ast.CelExpr;
 import dev.cel.common.types.SimpleType;
 import dev.cel.compiler.CelCompiler;
 import dev.cel.compiler.CelCompilerFactory;
+import jakarta.persistence.EntityManager;
 
 @Service
 public class ArchetypeService extends AbstractAscriptionService {
@@ -100,7 +102,13 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     public ArchetypeService(
             ArchetypeRepository archetypeRepo,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        super(definitionService, transitionService, ascriptionRepository, entityManager, dataProtectionService);
         this.archetypeRepo = archetypeRepo;
         this.jdbcTemplate = jdbcTemplate;
         this.validationCompiler = CelCompilerFactory.standardCelCompilerBuilder()

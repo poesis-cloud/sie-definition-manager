@@ -1,6 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -16,13 +17,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
+import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
+import jakarta.persistence.EntityManager;
 
 /**
  * Tests Effector lifecycle descriptors: identity-bound values,
@@ -32,6 +40,8 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class EffectorServiceTest {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private EffectorService service;
 
     @BeforeEach
@@ -39,7 +49,12 @@ class EffectorServiceTest {
         service = new EffectorService(
                 mock(EffectorRepository.class),
                 mock(MechanismService.class),
-                mock(ArchetypeService.class));
+                mock(ArchetypeService.class),
+                mock(DefinitionService.class),
+                mock(AscriptionStatusTransitionService.class),
+                mock(AscriptionRepository.class),
+                mock(EntityManager.class),
+                mock(DataProtectionService.class));
     }
 
     // ========================================================================
@@ -99,6 +114,27 @@ class EffectorServiceTest {
             assertTrue(roles.containsKey(DefinitionSubjectType.MECHANISM));
             assertEquals(AscriptionCascadeType.CONSTITUTIVE,
                     roles.get(DefinitionSubjectType.MECHANISM));
+        }
+    }
+
+    // ========================================================================
+    // Statement Compliance
+    // ========================================================================
+
+    @Nested
+    class StatementCompliance {
+
+        @Test
+        void missingRequiredField_rejected() {
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+            ObjectNode emptyStatement = MAPPER.createObjectNode();
+
+            GsmRuleViolationException ex = assertThrows(
+                    GsmRuleViolationException.class,
+                    () -> service.buildEntity(def, archetype, emptyStatement));
+            assertEquals(GsmRuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertTrue(ex.getMessage().contains("mechanism"));
         }
     }
 

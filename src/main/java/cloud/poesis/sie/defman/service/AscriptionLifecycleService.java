@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -237,23 +238,28 @@ public class AscriptionLifecycleService {
             }
         }
 
-        // 4. Record transition (DB trigger updates entity status/version)
-        AscriptionStatusTransitionEntity saved = recordTransition(entity, currentStatus, targetStatusType);
+        // 4–7. Persistence operations (translate DB constraint violations to domain exceptions)
+        try {
+            // 4. Record transition (DB trigger updates entity status/version)
+            AscriptionStatusTransitionEntity saved = recordTransition(entity, currentStatus, targetStatusType);
 
-        // 5. Governance convergence (APPROVED → sibling termination)
-        if (targetStatusType == AscriptionStatusType.APPROVED) {
-            handleApproval(type, entity);
+            // 5. Governance convergence (APPROVED → sibling termination)
+            if (targetStatusType == AscriptionStatusType.APPROVED) {
+                handleApproval(type, entity);
+            }
+
+            // 6. Activation (ACTIVE → previous ACTIVE to DEPRECATED)
+            if (targetStatusType == AscriptionStatusType.ACTIVE) {
+                handleActivation(type, entity);
+            }
+
+            // 7. Execute cascades
+            executeCascades(entity, type, currentStatus, targetStatusType);
+
+            return saved;
+        } catch (DataIntegrityViolationException ex) {
+            throw AbstractAscriptionService.translatePersistenceException(ex);
         }
-
-        // 6. Activation (ACTIVE → previous ACTIVE to DEPRECATED)
-        if (targetStatusType == AscriptionStatusType.ACTIVE) {
-            handleActivation(type, entity);
-        }
-
-        // 7. Execute cascades
-        executeCascades(entity, type, currentStatus, targetStatusType);
-
-        return saved;
     }
 
     // ======================================================================

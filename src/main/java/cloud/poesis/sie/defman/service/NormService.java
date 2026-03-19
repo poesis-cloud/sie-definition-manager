@@ -22,6 +22,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -34,6 +35,7 @@ import dev.cel.common.ast.CelExpr;
 import dev.cel.common.types.SimpleType;
 import dev.cel.compiler.CelCompiler;
 import dev.cel.compiler.CelCompilerFactory;
+import jakarta.persistence.EntityManager;
 
 @Service
 public class NormService extends AbstractAscriptionService {
@@ -58,7 +60,13 @@ public class NormService extends AbstractAscriptionService {
     public NormService(
             NormRepository normRepo,
             StructureService structureService,
-            ArchetypeService archetypeService) {
+            ArchetypeService archetypeService,
+            DefinitionService definitionService,
+            AscriptionStatusTransitionService transitionService,
+            AscriptionRepository ascriptionRepository,
+            EntityManager entityManager,
+            DataProtectionService dataProtectionService) {
+        super(definitionService, transitionService, ascriptionRepository, entityManager, dataProtectionService);
         this.normRepo = normRepo;
         this.structureService = structureService;
         this.archetypeService = archetypeService;
