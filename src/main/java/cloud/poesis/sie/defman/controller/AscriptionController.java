@@ -211,7 +211,7 @@ public class AscriptionController extends AbstractController {
     public List<AscriptionStatusTransitionDto> getTransitions(
             @Parameter(description = "Ascription ID") @PathVariable UUID id) {
         return lifecycleService.getTransitions(id).stream()
-                .map(this::toTransitionDto)
+                .map(this::toAscriptionStatusTransitionDto)
                 .toList();
     }
 
@@ -228,7 +228,7 @@ public class AscriptionController extends AbstractController {
             @Parameter(description = "Ascription ID") @PathVariable UUID id,
             @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
         AscriptionStatusTransitionEntity saved = lifecycleService.transition(id, request.targetStatus());
-        return ResponseEntity.ok(toTransitionDto(saved));
+        return ResponseEntity.ok(toAscriptionStatusTransitionDto(saved));
     }
 
     // ========================================================================

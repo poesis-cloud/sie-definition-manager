@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -180,7 +180,7 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     public ArchetypeEntity findEntityById(UUID id) {
         return archetypeRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Archetype", id));
+                .orElseThrow(() -> new GsmResourceNotFoundException("Archetype", id));
     }
 
     public java.util.Optional<ArchetypeEntity> findInEffectByTitle(String title) {

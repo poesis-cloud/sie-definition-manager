@@ -30,6 +30,7 @@ import com.networknt.schema.ValidationMessage;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmInternalException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
@@ -141,8 +142,8 @@ public abstract class AbstractAscriptionService {
     /**
      * Translates a {@link DataIntegrityViolationException} to a domain exception.
      *
-     * @return a {@link GsmRuleViolationException} for known constraints, or an
-     *         {@link IllegalStateException} for unmapped constraints
+     * @return a {@link GsmRuleViolationException} for known constraints, or a
+     *         {@link GsmInternalException} for unmapped constraints
      */
     static RuntimeException translatePersistenceException(DataIntegrityViolationException ex) {
         String constraintName = extractConstraintName(ex);
@@ -163,7 +164,7 @@ public abstract class AbstractAscriptionService {
             }
         }
         LOG.error("Unmapped DB constraint violation (constraint={})", constraintName, ex);
-        return new IllegalStateException(
+        return new GsmInternalException(
                 "Database constraint violation"
                         + (constraintName != null ? ": " + constraintName : ""),
                 ex);

@@ -33,8 +33,8 @@ import org.mockito.quality.Strictness;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -157,7 +157,7 @@ class AscriptionLifecycleServiceTest {
         UUID id = UUID.randomUUID();
         when(entityManager.find(AscriptionEntity.class, id)).thenReturn(null);
 
-        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
+        GsmResourceNotFoundException ex = assertThrows(GsmResourceNotFoundException.class,
                 () -> service.transition(id, "PROPOSED"));
         assertTrue(ex.getMessage().contains("not found"));
     }

@@ -25,8 +25,8 @@ import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
@@ -139,7 +139,7 @@ public class MechanismService extends AbstractAscriptionService {
 
     public MechanismEntity findEntityById(UUID id) {
         return mechanismRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Mechanism", id));
+                .orElseThrow(() -> new GsmResourceNotFoundException("Mechanism", id));
     }
 
     @Override

@@ -16,7 +16,7 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionCascadeType;
@@ -74,7 +74,7 @@ public class ReceptorService extends AbstractAscriptionService {
 
     public ReceptorEntity findEntityById(UUID id) {
         return receptorRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Receptor", id));
+                .orElseThrow(() -> new GsmResourceNotFoundException("Receptor", id));
     }
 
     @Override

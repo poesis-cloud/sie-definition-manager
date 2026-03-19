@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmInternalException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
@@ -858,23 +859,23 @@ class AbstractAscriptionServiceTest {
         }
 
         @Test
-        void unmappedConstraint_returnsIllegalState() {
+        void unmappedConstraint_returnsGsmInternal() {
             var cve = new ConstraintViolationException("violation", null, "some_unknown_constraint");
             var dive = new DataIntegrityViolationException("wrapped", cve);
 
             RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
 
-            assertInstanceOf(IllegalStateException.class, result);
+            assertInstanceOf(GsmInternalException.class, result);
             assertTrue(result.getMessage().contains("some_unknown_constraint"));
         }
 
         @Test
-        void noConstraintName_returnsIllegalState() {
+        void noConstraintName_returnsGsmInternal() {
             var dive = new DataIntegrityViolationException("no cause");
 
             RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
 
-            assertInstanceOf(IllegalStateException.class, result);
+            assertInstanceOf(GsmInternalException.class, result);
         }
     }
 }

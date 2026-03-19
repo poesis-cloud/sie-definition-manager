@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
@@ -31,13 +32,14 @@ public class DefinitionService {
     @Transactional(value = "transactionManager", readOnly = true)
     public DefinitionEntity getById(@NonNull UUID id) {
         return definitionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No definition found for id: " + id));
+                .orElseThrow(() -> new GsmResourceNotFoundException("Definition", id));
     }
 
     /**
      * Batch-fetches Definitions by their IDs.
      *
-     * <p>Part of the explicit-fetch design (see README.md
+     * <p>
+     * Part of the explicit-fetch design (see README.md
      * § "Batch fetch pattern").
      *
      * @param ids collection of Definition IDs to retrieve

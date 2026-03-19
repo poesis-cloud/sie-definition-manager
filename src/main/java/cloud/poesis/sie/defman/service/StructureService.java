@@ -15,8 +15,8 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -57,7 +57,7 @@ public class StructureService extends AbstractAscriptionService {
 
     public StructureEntity findEntityById(UUID id) {
         return structureRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Structure", id));
+                .orElseThrow(() -> new GsmResourceNotFoundException("Structure", id));
     }
 
     @Override
