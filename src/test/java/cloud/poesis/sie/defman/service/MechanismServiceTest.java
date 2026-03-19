@@ -104,23 +104,6 @@ class MechanismServiceTest {
         return entity;
     }
 
-    private MechanismEntity stubMechanism(String rule) {
-        UUID defId = UUID.randomUUID();
-        DefinitionEntity defEntity = mock(DefinitionEntity.class);
-        when(defEntity.getId()).thenReturn(defId);
-
-        ObjectNode stmt = MAPPER.createObjectNode();
-        if (rule != null) {
-            stmt.put("rule", rule);
-        }
-
-        MechanismEntity mechanism = mock(MechanismEntity.class);
-        when(mechanism.getDefinition()).thenReturn(defEntity);
-        when(mechanism.getStatement()).thenReturn(stmt);
-
-        return mechanism;
-    }
-
     private StarlarkFile parse(String rule) {
         return StarlarkFile.parse(ParserInput.fromString(rule, "<test>"), FileOptions.DEFAULT);
     }

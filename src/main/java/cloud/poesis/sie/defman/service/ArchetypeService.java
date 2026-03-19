@@ -838,13 +838,19 @@ public class ArchetypeService extends AbstractAscriptionService {
             case CALL -> {
                 String fn = kind.call().function();
                 if ("_?_:_".equals(fn))
-                    return; // ternary — accept
+                    return; // ternary — accept (result type depends on branches)
+                if (CEL_BOOLEAN_OPS.contains(fn))
+                    return; // known boolean-producing operation — accept
                 if (CEL_ARITHMETIC_OPS.contains(fn)) {
                     throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT,
                             "$gsm:validation[" + index + "] top-level is arithmetic ('"
                                     + fn + "') — must evaluate to bool",
                             "annotation", "$gsm:validation", "index", index, "expression", expr);
                 }
+                throw GsmRuleViolationException.of(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT,
+                        "$gsm:validation[" + index + "] top-level function '" + fn
+                                + "' is not a known boolean-producing operation — must evaluate to bool",
+                        "annotation", "$gsm:validation", "index", index, "expression", expr);
             }
             case CONSTANT -> {
                 CelConstant c = kind.constant();

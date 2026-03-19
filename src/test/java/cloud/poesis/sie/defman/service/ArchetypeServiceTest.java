@@ -18,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -986,6 +988,35 @@ class ArchetypeServiceTest {
                         () -> service.validateArchetypeAnnotations(schema, defId));
                 assertEquals(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("arithmetic"));
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {
+                    "this.tags.size()",
+                    "int(this.a)",
+                    "double(this.a)",
+                    "uint(this.a)",
+                    "string(this.a)",
+                    "duration('5m')",
+                    "timestamp('2024-01-01T00:00:00Z')"
+            })
+            void nonBooleanFunctionTopLevel_rejected(String expression) {
+                ObjectNode schema = MAPPER.createObjectNode();
+                schema.put("title", "TestSchema");
+                ObjectNode props = schema.putObject("properties");
+                props.set("tags", prop("array"));
+                props.set("a", prop("number"));
+                schema.set("$gsm:validation", MAPPER.createArrayNode()
+                        .add(expression));
+
+                UUID defId = UUID.randomUUID();
+
+                GsmRuleViolationException ex = assertThrows(
+                        GsmRuleViolationException.class,
+                        () -> service.validateArchetypeAnnotations(schema, defId));
+                assertEquals(GsmRuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("not a known boolean-producing operation"),
+                        "Expected rejection for: " + expression);
             }
 
             @Test
