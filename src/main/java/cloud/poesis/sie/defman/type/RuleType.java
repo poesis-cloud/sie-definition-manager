@@ -20,7 +20,7 @@ package cloud.poesis.sie.defman.type;
  * </ul>
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public enum RuleType {
 
@@ -591,7 +591,18 @@ public enum RuleType {
             "Ascription status transition terminal immutability",
             "Once an Ascription reaches a terminal status (ABANDONED, REJECTED, "
                     + "RETIRED), no further status transitions may be appended — "
-                    + "a new creative cycle requires a new Ascription.");
+                    + "a new creative cycle requires a new Ascription."),
+
+    // ====================================================================
+    // DEFINITION — structural invariants
+    // ====================================================================
+
+    DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT(
+            "gsm:rules/definition/ascriptions/always-present",
+            "Definition ascriptions always present",
+            "A persisted Definition must always have at least one Ascription — "
+                    + "Definitions are created transactionally with their first "
+                    + "Ascription and must never exist without one.");
 
     // ====================================================================
     // Fields and accessors

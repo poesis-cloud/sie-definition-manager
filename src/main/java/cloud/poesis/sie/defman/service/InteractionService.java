@@ -35,7 +35,7 @@ import jakarta.persistence.EntityManager;
  * cascade from referenced Effector and Receptor.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 public class InteractionService extends AbstractAscriptionService {

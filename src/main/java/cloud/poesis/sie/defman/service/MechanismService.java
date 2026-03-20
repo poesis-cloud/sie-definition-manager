@@ -64,7 +64,7 @@ import net.starlark.java.syntax.SyntaxError;
  * and Receptors from the rule AST, and governing cascade from owning Structure.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 public class MechanismService extends AbstractAscriptionService {

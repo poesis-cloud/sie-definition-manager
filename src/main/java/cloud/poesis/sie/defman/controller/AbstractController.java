@@ -1,5 +1,8 @@
 package cloud.poesis.sie.defman.controller;
 
+import java.net.URI;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -10,13 +13,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
-import cloud.poesis.sie.defman.dto.EmbeddedArchetypeDto;
-import cloud.poesis.sie.defman.dto.EmbeddedDefinitionDto;
+import cloud.poesis.sie.defman.dto.DefinitionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
@@ -26,7 +27,7 @@ import cloud.poesis.sie.defman.service.DataProtectionService;
  * exception handling for all GSM REST endpoints.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public abstract class AbstractController {
 
@@ -37,7 +38,8 @@ public abstract class AbstractController {
     /**
      * Constructs the abstract controller with shared services.
      *
-     * @param dataProtectionService the data protection service for in-transit protection
+     * @param dataProtectionService the data protection service for in-transit
+     *                              protection
      */
     protected AbstractController(DataProtectionService dataProtectionService) {
         this.dataProtectionService = dataProtectionService;
@@ -62,7 +64,7 @@ public abstract class AbstractController {
      * @param archetype  the resolved archetype entity
      * @return the DTO with in-transit data protection applied
      */
-    protected AscriptionDto toAscriptionDto(AscriptionEntity ascription, ArchetypeEntity archetype) {
+    protected AscriptionDto mapEntityToAscriptionDto(AscriptionEntity ascription, ArchetypeEntity archetype) {
         JsonNode statement = dataProtectionService.applyInTransitProtection(
                 ascription.getStatement(), archetype.getStatement());
         return new AscriptionDto(
@@ -81,7 +83,7 @@ public abstract class AbstractController {
      * @param ascriptionStatusTransition the transition entity
      * @return the transition DTO
      */
-    protected AscriptionStatusTransitionDto toAscriptionStatusTransitionDto(
+    protected AscriptionStatusTransitionDto mapEntityToAscriptionStatusTransitionDto(
             AscriptionStatusTransitionEntity ascriptionStatusTransition) {
         return new AscriptionStatusTransitionDto(
                 ascriptionStatusTransition.getId(),
@@ -94,33 +96,55 @@ public abstract class AbstractController {
     }
 
     /**
-     * Maps a definition entity to an embedded DTO for HAL responses.
+     * Maps a definition entity to a DTO for HAL responses.
      *
      * @param definition the definition entity
-     * @return the embedded definition DTO
+     * @return the definition DTO
      */
-    protected EmbeddedDefinitionDto toEmbeddedDefinitionDto(DefinitionEntity definition) {
-        return new EmbeddedDefinitionDto(
+    protected DefinitionDto mapEntityToDefinitionDto(DefinitionEntity definition) {
+        return new DefinitionDto(
                 definition.getId(),
                 definition.getSubjectType().getValue());
-    }
-
-    /**
-     * Maps an archetype entity to an embedded DTO for HAL responses.
-     *
-     * @param archetype the archetype entity
-     * @return the embedded archetype DTO
-     */
-    protected EmbeddedArchetypeDto toEmbeddedArchetypeDto(ArchetypeEntity archetype) {
-        return new EmbeddedArchetypeDto(
-                archetype.getId(),
-                archetype.getDefinition().getId(),
-                archetype.getStatement().get("title").asText());
     }
 
     // ========================================================================
     // EXCEPTION -> PROBLEM DETAIL MAPPING
     // ========================================================================
+
+    @ExceptionHandler(RuleViolationException.class)
+    ProblemDetail mapRuleViolationExceptionToProblemDetail(RuleViolationException exception) {
+        HttpStatus status = mapRuleViolationTypeToHttpStatus(exception);
+        if (status.is5xxServerError()) {
+            return mapExceptionToProblemDetail(exception);
+        }
+        return constructProblemDetail(status, exception.getMessage(), exception.getTitle(), exception.getType(),
+                exception.getExtensions());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    ProblemDetail mapResourceNotFoundExceptionToProblemDetail(ResourceNotFoundException exception) {
+        return constructProblemDetail(HttpStatus.NOT_FOUND, exception.getMessage(), exception.getTitle(),
+                exception.getType(),
+                exception.getExtensions());
+    }
+
+    @ExceptionHandler(Exception.class)
+    ProblemDetail mapExceptionToProblemDetail(Exception exception) {
+        log.error("Unexpected error", exception);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
+        problemDetail.setTitle("Internal server error");
+        return problemDetail;
+    }
+
+    private static ProblemDetail constructProblemDetail(HttpStatus status, String detail, String title, String type,
+            Map<String, Object> extensions) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
+        problemDetail.setTitle(title);
+        problemDetail.setType(URI.create(type));
+        extensions.forEach(problemDetail::setProperty);
+        return problemDetail;
+    }
 
     /**
      * Maps a {@link RuleViolationException} to an HTTP status code.
@@ -128,7 +152,7 @@ public abstract class AbstractController {
      * @param exception the rule violation exception
      * @return the corresponding HTTP status
      */
-    private static HttpStatus resolveHttpStatus(RuleViolationException exception) {
+    private static HttpStatus mapRuleViolationTypeToHttpStatus(RuleViolationException exception) {
         return switch (exception.getRuleType()) {
             case STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
@@ -201,51 +225,8 @@ public abstract class AbstractController {
                     ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF,
                     ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY ->
                 HttpStatus.CONFLICT;
+            case DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT ->
+                HttpStatus.INTERNAL_SERVER_ERROR;
         };
-    }
-
-    @ExceptionHandler(RuleViolationException.class)
-    ProblemDetail handleRuleViolationException(RuleViolationException exception) {
-        HttpStatus status = resolveHttpStatus(exception);
-        if (status.is5xxServerError()) {
-            log.error("{}: {}", exception.getTitle(), exception.getMessage(), exception);
-        } else {
-            log.warn("{}: {}", exception.getTitle(), exception.getMessage());
-        }
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, exception.getMessage());
-        problemDetail.setTitle(exception.getTitle());
-        problemDetail.setType(java.net.URI.create(exception.getType()));
-        exception.getExtensions().forEach(problemDetail::setProperty);
-        return problemDetail;
-    }
-
-    @ExceptionHandler(ResourceNotFoundException.class)
-    ProblemDetail handleResourceNotFound(ResourceNotFoundException exception) {
-        log.warn("{}: {}", exception.getTitle(), exception.getMessage());
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
-        problemDetail.setTitle(exception.getTitle());
-        problemDetail.setType(java.net.URI.create(exception.getType()));
-        exception.getExtensions().forEach(problemDetail::setProperty);
-        return problemDetail;
-    }
-
-    @ExceptionHandler(InternalException.class)
-    ProblemDetail handleInternalException(InternalException exception) {
-        log.error("{}: {}", exception.getTitle(), exception.getMessage(), exception);
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
-        problemDetail.setTitle(exception.getTitle());
-        problemDetail.setType(java.net.URI.create(exception.getType()));
-        exception.getExtensions().forEach(problemDetail::setProperty);
-        return problemDetail;
-    }
-
-    @ExceptionHandler(Exception.class)
-    ProblemDetail handleGeneric(Exception exception) {
-        log.error("Unexpected error", exception);
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
-        problemDetail.setTitle("Internal server error");
-        return problemDetail;
     }
 }

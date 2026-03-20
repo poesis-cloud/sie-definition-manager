@@ -12,16 +12,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RuleType;
 
 /**
  * Service for GSM Definition (stable identity) operations.
  * Owns {@link DefinitionRepository}.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 @Transactional("transactionManager")
@@ -48,8 +50,36 @@ public class DefinitionService {
      */
     @Transactional(value = "transactionManager", readOnly = true)
     public DefinitionEntity getById(@NonNull UUID id) {
-        return definitionRepository.findById(id)
+        DefinitionEntity entity = definitionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
+        if (entity.getAscriptions().isEmpty()) {
+            throw RuleViolationException.of(
+                    RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT,
+                    "Definition has no ascriptions",
+                    "definitionId", id.toString());
+        }
+        return entity;
+    }
+
+    /**
+     * Retrieves a definition by ID with its ascriptions and their archetypes
+     * eagerly loaded (entity graph, avoids N+1).
+     *
+     * @param id the definition UUID
+     * @return the definition entity with ascriptions and archetypes initialized
+     * @throws ResourceNotFoundException if no definition exists with the given id
+     */
+    @Transactional(value = "transactionManager", readOnly = true)
+    public DefinitionEntity getByIdWithArchetypes(@NonNull UUID id) {
+        DefinitionEntity entity = definitionRepository.findWithAscriptionArchetypesById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
+        if (entity.getAscriptions().isEmpty()) {
+            throw RuleViolationException.of(
+                    RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT,
+                    "Definition has no ascriptions",
+                    "definitionId", id.toString());
+        }
+        return entity;
     }
 
     /**

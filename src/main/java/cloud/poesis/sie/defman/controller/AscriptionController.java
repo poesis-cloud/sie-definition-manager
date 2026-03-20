@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.LinkRelation;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.RepresentationModel;
@@ -81,7 +82,7 @@ import jakarta.validation.Valid;
  * round-trips.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @RestController
 @RequestMapping(value = "/api/v1/ascriptions", produces = { MediaTypes.HAL_JSON_VALUE,
@@ -224,7 +225,7 @@ public class AscriptionController extends AbstractController {
     public List<AscriptionStatusTransitionDto> getTransitions(
             @Parameter(description = "Ascription ID") @PathVariable UUID id) {
         return lifecycleService.getTransitions(id).stream()
-                .map(this::toAscriptionStatusTransitionDto)
+                .map(this::mapEntityToAscriptionStatusTransitionDto)
                 .toList();
     }
 
@@ -241,7 +242,7 @@ public class AscriptionController extends AbstractController {
             @Parameter(description = "Ascription ID") @PathVariable UUID id,
             @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
         AscriptionStatusTransitionEntity saved = lifecycleService.transition(id, request.targetStatus());
-        return ResponseEntity.ok(toAscriptionStatusTransitionDto(saved));
+        return ResponseEntity.ok(mapEntityToAscriptionStatusTransitionDto(saved));
     }
 
     // ========================================================================
@@ -267,14 +268,13 @@ public class AscriptionController extends AbstractController {
      */
     private RepresentationModel<?> wrapWithLinksAndEmbeds(
             AscriptionEntity entity, DefinitionEntity definition, ArchetypeEntity archetype) {
-        AscriptionDto dto = toAscriptionDto(entity, archetype);
+        AscriptionDto dto = mapEntityToAscriptionDto(entity, archetype);
         String subjectType = definition.getSubjectType().getValue();
 
         return HalModelBuilder.halModelOf(dto)
-                .embed(EntityModel.of(toEmbeddedDefinitionDto(definition),
+                .embed(EntityModel.of(mapEntityToDefinitionDto(definition),
                         linkTo(DefinitionController.class).slash(dto.definitionId()).withSelfRel()))
-                .embed(EntityModel.of(toEmbeddedArchetypeDto(archetype),
-                        linkTo(AscriptionController.class).slash(dto.archetypeId()).withSelfRel()))
+                .embed(mapEntityToAscriptionDto(archetype, archetype), LinkRelation.of("archetype"))
                 .link(selfLinkFor(dto))
                 .link(definitionLinkFor(dto))
                 .link(describedbyLinkFor(dto))
@@ -289,7 +289,7 @@ public class AscriptionController extends AbstractController {
 
     private EntityModel<AscriptionDto> wrapWithLinks(
             AscriptionEntity entity, String subjectType, ArchetypeEntity archetype) {
-        AscriptionDto dto = toAscriptionDto(entity, archetype);
+        AscriptionDto dto = mapEntityToAscriptionDto(entity, archetype);
         EntityModel<AscriptionDto> model = EntityModel.of(Objects.requireNonNull(dto));
         model.add(selfLinkFor(dto));
         model.add(definitionLinkFor(dto));

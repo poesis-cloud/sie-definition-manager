@@ -14,6 +14,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedAttributeNode;
+import jakarta.persistence.NamedEntityGraph;
+import jakarta.persistence.NamedSubgraph;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -37,11 +40,12 @@ import jakarta.persistence.Table;
  * {@code uuid_v7()} (DB-side, not application-generated).
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "definition")
+@NamedEntityGraph(name = "definition-with-ascription-archetypes", attributeNodes = @NamedAttributeNode(value = "ascriptions", subgraph = "ascription-archetype"), subgraphs = @NamedSubgraph(name = "ascription-archetype", attributeNodes = @NamedAttributeNode("archetype")))
 public class DefinitionEntity {
 
     @Id

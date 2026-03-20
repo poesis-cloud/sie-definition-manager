@@ -22,7 +22,7 @@ import java.util.Set;
  * lifecycle evolves, only this enum needs updating.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public enum AscriptionLifecyclePathType {
 

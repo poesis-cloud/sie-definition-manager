@@ -15,7 +15,7 @@ package cloud.poesis.sie.defman.type;
  * query parameters, OpenAPI type discriminators).
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public enum DefinitionSubjectType {
     ARCHETYPE(PrimitiveType.ARCHETYPE),

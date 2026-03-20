@@ -8,7 +8,7 @@ package cloud.poesis.sie.defman.type;
  * </p>
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public enum AscriptionStatusType {
     DRAFT,

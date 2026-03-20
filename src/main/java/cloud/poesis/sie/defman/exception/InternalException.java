@@ -19,7 +19,7 @@ import java.util.Map;
  * </p>
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public class InternalException extends RuntimeException {
 

@@ -46,7 +46,7 @@ import jakarta.persistence.Table;
  * </ul>
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity

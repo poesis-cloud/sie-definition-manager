@@ -34,7 +34,7 @@ import jakarta.persistence.EntityManager;
  * to downstream Interactions.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 public class ReceptorService extends AbstractAscriptionService {

@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * {@code dm.security.oauth2-login-enabled}.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Configuration
 @EnableWebSecurity

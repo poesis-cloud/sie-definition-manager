@@ -52,7 +52,7 @@ import jakarta.persistence.EntityManager;
  * subject type resolution, and vocabulary-driven index provisioning.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 public class ArchetypeService extends AbstractAscriptionService {
@@ -199,7 +199,7 @@ public class ArchetypeService extends AbstractAscriptionService {
      * @return the resolved archetype with its derived subject type
      * @throws ResourceNotFoundException if no archetype exists with the given id
      * @throws RuleViolationException    if the archetype has no title or is
-     *                                      rootless
+     *                                   rootless
      */
     public ArchetypeResolution resolveForCreation(UUID archetypeId) {
         ArchetypeEntity archetype = findEntityById(archetypeId);
@@ -216,7 +216,7 @@ public class ArchetypeService extends AbstractAscriptionService {
      */
     public ArchetypeEntity findEntityById(UUID id) {
         return archetypeRepo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ARCHETYPE, id));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ARCHETYPE, id));
     }
 
     /**

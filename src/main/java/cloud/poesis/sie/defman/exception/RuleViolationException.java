@@ -21,7 +21,7 @@ import cloud.poesis.sie.defman.type.RuleType;
  * </p>
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public class RuleViolationException extends RuntimeException {
 

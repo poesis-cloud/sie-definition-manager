@@ -18,7 +18,7 @@ import jakarta.persistence.EntityManager;
  * {@link AscriptionStatusTransitionRepository}.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 @Transactional("transactionManager")

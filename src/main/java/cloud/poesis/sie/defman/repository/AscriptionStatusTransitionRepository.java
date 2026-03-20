@@ -12,7 +12,7 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
  * (the {@code ascription_status_transition} table).
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public interface AscriptionStatusTransitionRepository
         extends JpaRepository<AscriptionStatusTransitionEntity, UUID> {

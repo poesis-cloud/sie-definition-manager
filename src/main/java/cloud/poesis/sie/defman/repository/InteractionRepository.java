@@ -16,7 +16,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
  * {@code interaction} table).
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public interface InteractionRepository extends JpaRepository<InteractionEntity, UUID> {
 

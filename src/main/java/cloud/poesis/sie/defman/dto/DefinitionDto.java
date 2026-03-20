@@ -1,7 +1,8 @@
 package cloud.poesis.sie.defman.dto;
 
-import java.util.List;
 import java.util.UUID;
+
+import org.springframework.hateoas.server.core.Relation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -10,13 +11,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *
  * @param id          Definition ID (UUIDv7)
  * @param subjectType GSM structural role
- * @param ascriptions ordered Ascription history for this Definition
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
+@Relation(value = "definition", collectionRelation = "definitions")
 @Schema(description = "Stable identity of a governed subject")
 public record DefinitionDto(
         @Schema(description = "Definition ID (UUIDv7)") UUID id,
-        @Schema(description = "GSM structural role (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") String subjectType,
-        @Schema(description = "Ordered ascription history for this definition") List<AscriptionDto> ascriptions) {
+        @Schema(description = "GSM structural role (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") String subjectType) {
 }

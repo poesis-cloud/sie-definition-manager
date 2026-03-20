@@ -16,7 +16,7 @@ import cloud.poesis.sie.defman.type.PrimitiveType;
  * the concrete entity type in advance.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 @Transactional("transactionManager")

@@ -47,7 +47,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * edit schema files, restart — no migration changes needed.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Component
 public class ArchetypeSeedRunner implements ApplicationRunner {

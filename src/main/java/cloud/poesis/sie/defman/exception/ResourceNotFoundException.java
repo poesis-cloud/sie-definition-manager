@@ -19,7 +19,7 @@ import cloud.poesis.sie.defman.type.PrimitiveType;
  * </p>
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public class ResourceNotFoundException extends RuntimeException {
 
@@ -89,7 +89,8 @@ public class ResourceNotFoundException extends RuntimeException {
      * <p>
      * When available, the map includes:
      * <ul>
-    * <li>{@code "resourceType"} – the human-readable label of the missing resource</li>
+     * <li>{@code "resourceType"} – the human-readable label of the missing
+     * resource</li>
      * <li>{@code "resourceId"} – the UUID of the missing resource</li>
      * </ul>
      * The returned map is immutable.

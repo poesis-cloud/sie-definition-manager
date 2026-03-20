@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
  * @param targetStatus the target lifecycle status (e.g. {@code PROPOSED},
  *                     {@code APPROVED}, {@code ACTIVE})
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Schema(description = "Request to transition an ascription to a new lifecycle status")
 public record AscriptionStatusTransitionCreationDto(

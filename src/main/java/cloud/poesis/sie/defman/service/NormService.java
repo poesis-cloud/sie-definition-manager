@@ -46,7 +46,7 @@ import jakarta.persistence.EntityManager;
  * and property-assertion profiles) and governing cascade from owning Structure.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 public class NormService extends AbstractAscriptionService {

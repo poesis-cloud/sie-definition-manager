@@ -21,7 +21,7 @@ import jakarta.validation.constraints.NotNull;
  * @param definitionId optional Definition ID when creating a new Ascription
  *                     for an existing Definition
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Schema(description = "Creation request for a GSM ascription")
 public record AscriptionCreationDto(

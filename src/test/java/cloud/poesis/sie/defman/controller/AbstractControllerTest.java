@@ -25,7 +25,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 /**
- * Tests for {@link AbstractController#toAscriptionDto} — specifically
+ * Tests for {@link AbstractController#mapEntityToAscriptionDto} — specifically
  * the $gsm:dataProtection inTransit logic (GSM §8).
  */
 class AbstractControllerTest {
@@ -65,7 +65,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             // Password should be hashed (64 hex chars for SHA-256)
             String hashed = dto.statement().get("password").asText();
@@ -92,7 +92,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             String masked = dto.statement().get("phone").asText();
             assertTrue(masked.endsWith("1234"), "Expected last 4 chars visible, got: " + masked);
@@ -117,7 +117,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             assertNull(dto.statement().get("secret"));
             assertEquals("prod", dto.statement().get("env").asText());
@@ -139,7 +139,7 @@ class AbstractControllerTest {
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
             assertDoesNotThrow(
-                    () -> controller.toAscriptionDto(entity, entity.getArchetype()));
+                    () -> controller.mapEntityToAscriptionDto(entity, entity.getArchetype()));
         }
 
         @Test
@@ -155,7 +155,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             assertEquals("test-service", dto.statement().get("name").asText());
         }
@@ -176,7 +176,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             assertEquals("already-hashed-at-rest-value", dto.statement().get("ssn").asText());
         }
@@ -191,7 +191,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntityWithCustomArchetypeStatement(archetypeStatement, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             assertEquals("s3cret", dto.statement().get("password").asText());
         }
@@ -212,7 +212,7 @@ class AbstractControllerTest {
 
             AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-            AscriptionDto dto = controller.toAscriptionDto(entity, entity.getArchetype());
+            AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             assertNull(dto.statement().get("password"));
             assertEquals("test", dto.statement().get("name").asText());

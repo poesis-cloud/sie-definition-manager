@@ -22,9 +22,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *                     {@code 1+} = approved)
  * @param status       lifecycle status
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
-@Relation(collectionRelation = "ascriptionListResponse")
+@Relation(collectionRelation = "ascriptions")
 @Schema(description = "Governed normative snapshot of a Definition")
 public record AscriptionDto(
         @Schema(description = "Ascription ID (UUIDv7, time-sortable)") UUID id,

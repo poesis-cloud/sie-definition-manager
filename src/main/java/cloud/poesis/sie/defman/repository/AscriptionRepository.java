@@ -14,7 +14,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
  * queries).
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public interface AscriptionRepository extends JpaRepository<AscriptionEntity, UUID> {
 

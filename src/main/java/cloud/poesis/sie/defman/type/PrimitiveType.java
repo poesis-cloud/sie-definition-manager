@@ -4,7 +4,7 @@ package cloud.poesis.sie.defman.type;
  * Canonical primitive/resource types used by GSM entities and diagnostics.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public enum PrimitiveType {
     DEFINITION("definition", "Definition"),

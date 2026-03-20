@@ -37,7 +37,7 @@ import jakarta.persistence.EntityManager;
  * Replaces inline lifecycle logic formerly in {@link AscriptionService}.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Service
 @Transactional("transactionManager")

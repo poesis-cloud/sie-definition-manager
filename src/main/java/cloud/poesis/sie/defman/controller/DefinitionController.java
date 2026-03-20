@@ -2,16 +2,14 @@ package cloud.poesis.sie.defman.controller;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.LinkRelation;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.hateoas.mediatype.hal.HalModelBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +22,6 @@ import cloud.poesis.sie.defman.dto.DefinitionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +38,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * versions. Ascription-level operations live in {@link AscriptionController}.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @RestController
 @RequestMapping(value = "/api/v1/definitions", produces = { MediaTypes.HAL_JSON_VALUE,
@@ -49,55 +46,57 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Definitions", description = "Stable identity layer for governed subjects")
 public class DefinitionController extends AbstractController {
 
-    private final DefinitionService service;
-    private final ArchetypeService archetypeService;
+    private final DefinitionService definitionService;
 
     /**
      * Constructs the definition controller with its required services.
      *
-     * @param service               the definition service
-     * @param archetypeService      the archetype service for batch fetching
-     * @param dataProtectionService the data protection service
+     * @param definitionService     the definition definitionService
+     * @param dataProtectionService the data protection definitionService
      */
     public DefinitionController(
-            DefinitionService service,
-            ArchetypeService archetypeService,
+            DefinitionService definitionService,
             DataProtectionService dataProtectionService) {
         super(dataProtectionService);
-        this.service = service;
-        this.archetypeService = archetypeService;
+        this.definitionService = definitionService;
     }
 
     /**
-     * Explicit-fetch design — see {@code package-info.java} §3 (batch fetch).
+     * Retrieves a definition by its unique identifier, including its full
+     * ascription history.
+     *
+     * @param id the unique identifier of the definition
+     * @return the definition with its full ascription history
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get definition by ID", description = "Returns the definition with its full ascription history.")
     @ApiResponse(responseCode = "200", description = "Definition found")
     @ApiResponse(responseCode = "404", description = "Definition not found")
-    public EntityModel<DefinitionDto> getById(
+    public RepresentationModel<?> getById(
             @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id) {
-        DefinitionEntity entity = service.getById(id);
-
+        DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);
         List<AscriptionEntity> ascriptions = entity.getAscriptions();
-        List<AscriptionDto> ascriptionDtos;
-        if (ascriptions.isEmpty()) {
-            ascriptionDtos = Collections.emptyList();
-        } else {
-            Set<UUID> archetypeIds = ascriptions.stream()
-                    .map(a -> a.getArchetype().getId())
-                    .collect(Collectors.toSet());
-            Map<UUID, ArchetypeEntity> archetypeMap = archetypeService.getByIds(archetypeIds);
-            ascriptionDtos = ascriptions.stream()
-                    .map(a -> toAscriptionDto(a, archetypeMap.get(a.getArchetype().getId())))
-                    .toList();
-        }
 
-        DefinitionDto response = new DefinitionDto(
-                entity.getId(), entity.getSubjectType().getValue(), ascriptionDtos);
+        @SuppressWarnings("unchecked")
+        List<RepresentationModel<?>> ascriptionModels = (List<RepresentationModel<?>>) (List<?>) ascriptions.stream()
+                .map(ascription -> {
+                    ArchetypeEntity archetype = ascription.getArchetype();
+                    AscriptionDto dto = mapEntityToAscriptionDto(ascription, archetype);
+                    AscriptionDto archetypeDto = mapEntityToAscriptionDto(archetype, archetype);
+                    return (RepresentationModel<?>) HalModelBuilder.halModelOf(dto)
+                            .embed(archetypeDto, LinkRelation.of("archetype"))
+                            .link(linkTo(AscriptionController.class).slash(dto.id()).withSelfRel())
+                            .link(linkTo(AscriptionController.class).slash(dto.id()).slash("transitions")
+                                    .withRel("transitions"))
+                            .build();
+                })
+                .toList();
 
-        return EntityModel.of(
-                Objects.requireNonNull(response),
-                linkTo(DefinitionController.class).slash(id).withSelfRel());
+        DefinitionDto response = new DefinitionDto(entity.getId(), entity.getSubjectType().getValue());
+
+        HalModelBuilder builder = HalModelBuilder.halModelOf(Objects.requireNonNull(response));
+        ascriptionModels.forEach(builder::embed);
+        builder.link(linkTo(DefinitionController.class).slash(id).withSelfRel());
+        return builder.build();
     }
 }

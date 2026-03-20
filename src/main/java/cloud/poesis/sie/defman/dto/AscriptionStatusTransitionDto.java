@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param postStatus   status after the transition
  * @param timestamp    timestamp of the transition
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @Schema(description = "Governance audit record of a lifecycle state change of an Ascription")
 public record AscriptionStatusTransitionDto(

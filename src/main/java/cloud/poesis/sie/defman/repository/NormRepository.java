@@ -15,7 +15,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
  * Spring Data JPA repository for {@link NormEntity} (the {@code norm} table).
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 public interface NormRepository extends JpaRepository<NormEntity, UUID> {
 

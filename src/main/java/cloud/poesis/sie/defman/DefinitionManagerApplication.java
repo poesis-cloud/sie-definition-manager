@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.info.Info;
  * Spring Boot entry point for the SIE Definition Manager service.
  *
  * @author Clément Cazaud
- * @since 0.1.0
+ * @since 1.0.0
  */
 @OpenAPIDefinition(info = @Info(title = "SIE Definition Manager API", version = "v1", description = "Governance API for GSM definitions and ascriptions. "
         + "The `statement` payload in ascriptions is typed by "
