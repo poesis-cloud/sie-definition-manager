@@ -23,8 +23,8 @@ public interface StructureRepository extends JpaRepository<StructureEntity, UUID
     /**
      * Returns a page of structures filtered by lifecycle status.
      *
-     * @param status  the lifecycle status to match
-    * @param pageable pagination parameters
+     * @param status   the lifecycle status to match
+     * @param pageable pagination parameters
      * @return a page of matching structure entities
      */
     Page<StructureEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);

@@ -22,7 +22,7 @@ public interface NormRepository extends JpaRepository<NormEntity, UUID> {
     /**
      * Returns a page of norms filtered by lifecycle status.
      *
-     * @param status the lifecycle status to match
+     * @param status   the lifecycle status to match
      * @param pageable pagination parameters
      * @return a page of matching norm entities
      */

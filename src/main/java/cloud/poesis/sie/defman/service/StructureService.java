@@ -21,8 +21,8 @@ import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -85,7 +85,7 @@ public class StructureService extends AbstractAscriptionService {
      */
     public StructureEntity findEntityById(UUID id) {
         return structureRepo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.STRUCTURE, id));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.STRUCTURE, id));
     }
 
     @Override

@@ -106,7 +106,7 @@ public class EffectorService extends AbstractAscriptionService {
      */
     public EffectorEntity findEntityById(UUID id) {
         return effectorRepo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.EFFECTOR, id));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.EFFECTOR, id));
     }
 
     @Override

@@ -23,8 +23,8 @@ import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReferenc
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -213,8 +213,8 @@ public class AscriptionLifecycleService {
      * @return the persisted transition record
      * @throws ResourceNotFoundException if the ascription does not exist
      * @throws RuleViolationException    if the transition violates state
-     *                                      machine,
-     *                                      referee, or cascade constraints
+     *                                   machine,
+     *                                   referee, or cascade constraints
      */
     public AscriptionStatusTransitionEntity transition(UUID ascriptionId, String targetStatus) {
         AscriptionStatusType targetStatusType = AscriptionStatusType.valueOf(targetStatus);

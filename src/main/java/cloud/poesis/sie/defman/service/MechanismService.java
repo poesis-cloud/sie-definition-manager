@@ -34,8 +34,8 @@ import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 import net.starlark.java.syntax.Argument;
 import net.starlark.java.syntax.AssignmentStatement;
@@ -173,7 +173,7 @@ public class MechanismService extends AbstractAscriptionService {
      */
     public MechanismEntity findEntityById(UUID id) {
         return mechanismRepo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.MECHANISM, id));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.MECHANISM, id));
     }
 
     @Override

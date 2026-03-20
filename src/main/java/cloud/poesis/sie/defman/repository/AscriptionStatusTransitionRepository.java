@@ -17,12 +17,12 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 public interface AscriptionStatusTransitionRepository
         extends JpaRepository<AscriptionStatusTransitionEntity, UUID> {
 
-        /**
-         * Returns all status transitions for a given ascription ordered by time.
-         *
-         * @param ascriptionId the ascription UUID
-         * @return the matching transition records in chronological order
-         */
+    /**
+     * Returns all status transitions for a given ascription ordered by time.
+     *
+     * @param ascriptionId the ascription UUID
+     * @return the matching transition records in chronological order
+     */
     List<AscriptionStatusTransitionEntity> findAllByAscriptionIdOrderByTimestampAsc(
             UUID ascriptionId);
 }

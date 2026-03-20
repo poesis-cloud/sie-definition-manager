@@ -39,11 +39,11 @@ public class AscriptionService {
      * @param ascriptionId the ascription UUID
      * @return the ascription entity
      * @throws ResourceNotFoundException if no ascription exists with the given
-     *                                      id
+     *                                   id
      */
     @Transactional(value = "transactionManager", readOnly = true)
     public AscriptionEntity getById(UUID ascriptionId) {
         return ascriptionRepository.findById(ascriptionId)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ASCRIPTION, ascriptionId));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ASCRIPTION, ascriptionId));
     }
 }

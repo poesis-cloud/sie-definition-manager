@@ -106,7 +106,7 @@ public class ReceptorService extends AbstractAscriptionService {
      */
     public ReceptorEntity findEntityById(UUID id) {
         return receptorRepo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.RECEPTOR, id));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.RECEPTOR, id));
     }
 
     @Override

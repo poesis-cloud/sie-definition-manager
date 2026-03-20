@@ -23,7 +23,7 @@ public interface ReceptorRepository extends JpaRepository<ReceptorEntity, UUID> 
     /**
      * Returns a page of receptors filtered by lifecycle status.
      *
-     * @param status the lifecycle status to match
+     * @param status   the lifecycle status to match
      * @param pageable pagination parameters
      * @return a page of matching receptor entities
      */

@@ -44,12 +44,12 @@ public class DefinitionService {
      * @param id the definition UUID
      * @return the definition entity
      * @throws ResourceNotFoundException if no definition exists with the given
-     *                                      id
+     *                                   id
      */
     @Transactional(value = "transactionManager", readOnly = true)
     public DefinitionEntity getById(@NonNull UUID id) {
         return definitionRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
+                .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
     }
 
     /**
@@ -87,7 +87,7 @@ public class DefinitionService {
      * @param type         the GSM subject type (used only when creating)
      * @return the resolved or newly created definition entity
      * @throws ResourceNotFoundException if {@code definitionId} is non-null but
-     *                                      not found
+     *                                   not found
      */
     public DefinitionEntity resolveOrCreate(UUID definitionId, DefinitionSubjectType type) {
         if (definitionId != null) {
