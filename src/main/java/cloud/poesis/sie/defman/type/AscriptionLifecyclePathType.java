@@ -20,6 +20,9 @@ import java.util.Set;
  * <p>
  * Services use this type instead of hardcoding transition rules — if the
  * lifecycle evolves, only this enum needs updating.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 public enum AscriptionLifecyclePathType {
 
@@ -49,10 +52,21 @@ public enum AscriptionLifecyclePathType {
         this.to = to;
     }
 
+    /**
+     * Returns the source status of this transition edge.
+     *
+     * @return the source status, or {@code null} for the initial creation
+     *         transition
+     */
     public AscriptionStatusType getFrom() {
         return from;
     }
 
+    /**
+     * Returns the target status of this transition edge.
+     *
+     * @return the target status; never {@code null}
+     */
     public AscriptionStatusType getTo() {
         return to;
     }
@@ -82,6 +96,10 @@ public enum AscriptionLifecyclePathType {
     /**
      * Returns {@code true} if the transition from {@code from} to {@code to}
      * is a valid lifecycle edge.
+     *
+     * @param from the source status
+     * @param to   the target status
+     * @return {@code true} if the edge exists in the lifecycle state machine
      */
     public static boolean isValid(AscriptionStatusType from, AscriptionStatusType to) {
         return Arrays.stream(values())
@@ -90,7 +108,10 @@ public enum AscriptionLifecyclePathType {
 
     /**
      * Returns the set of statuses reachable from {@code from} in one step.
-     * Returns an empty set if no transitions exist.
+     *
+     * @param from the source status
+     * @return an unmodifiable set of reachable target statuses, or an empty
+     *         set if no transitions exist from the given status
      */
     public static Set<AscriptionStatusType> validTargets(AscriptionStatusType from) {
         return VALID_TARGETS.getOrDefault(from, Set.of());
@@ -98,6 +119,9 @@ public enum AscriptionLifecyclePathType {
 
     /**
      * Returns {@code true} if the status is terminal (no outgoing edges).
+     *
+     * @param status the status to check
+     * @return {@code true} if the status has no outgoing transition edges
      */
     public static boolean isTerminal(AscriptionStatusType status) {
         return TERMINAL_STATUSES.contains(status);

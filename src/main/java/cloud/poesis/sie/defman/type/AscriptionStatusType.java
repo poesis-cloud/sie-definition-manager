@@ -1,6 +1,15 @@
 package cloud.poesis.sie.defman.type;
 
-/** Maps to PostgreSQL enum type {@code ascription_status}. */
+/**
+ * Lifecycle stages of a GSM Ascription.
+ *
+ * <p>
+ * Maps to PostgreSQL enum type {@code ascription_status}.
+ * </p>
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 public enum AscriptionStatusType {
     DRAFT,
     PROPOSED,

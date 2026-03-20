@@ -11,6 +11,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Unified response for any GSM ascription.
+ *
+ * @param id           Ascription ID (UUIDv7, time-sortable)
+ * @param definitionId Definition ID — the stable identity this Ascription is
+ *                     ascribed to
+ * @param archetypeId  Definition ID of the typing Archetype
+ * @param statement    statement payload typed by the Archetype's JSON Schema
+ * @param timestamp    authoritative creation timestamp
+ * @param version      governance lineage version ({@code 0} = not yet approved,
+ *                     {@code 1+} = approved)
+ * @param status       lifecycle status
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Relation(collectionRelation = "ascriptionListResponse")
 @Schema(description = "Governed normative snapshot of a Definition")

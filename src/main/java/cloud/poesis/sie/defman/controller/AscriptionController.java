@@ -79,6 +79,9 @@ import jakarta.validation.Valid;
  * {@code subjectType}) and Archetype (with {@code title}), each carrying
  * their own {@code self} link for inline type discrimination without extra
  * round-trips.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @RestController
 @RequestMapping(value = "/api/v1/ascriptions", produces = { MediaTypes.HAL_JSON_VALUE,
@@ -92,6 +95,16 @@ public class AscriptionController extends AbstractController {
     private final AscriptionLifecycleService lifecycleService;
     private final DefinitionService definitionService;
 
+    /**
+     * Constructs the ascription controller with all required services.
+     *
+     * @param serviceRegistry       GSM subject type to service map
+     * @param archetypeService      the archetype service
+     * @param ascriptionService     the base ascription service
+     * @param lifecycleService      the lifecycle transition service
+     * @param definitionService     the definition service
+     * @param dataProtectionService the data protection service
+     */
     public AscriptionController(
             Map<DefinitionSubjectType, AbstractAscriptionService> serviceRegistry,
             ArchetypeService archetypeService,

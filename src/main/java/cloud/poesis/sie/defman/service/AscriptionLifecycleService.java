@@ -17,13 +17,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
+import cloud.poesis.sie.defman.type.PrimitiveType;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -34,6 +35,9 @@ import jakarta.persistence.EntityManager;
  * <p>
  * Sourced from {@code gsm-ascription-lifecycle} state machine diagram.
  * Replaces inline lifecycle logic formerly in {@link AscriptionService}.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Service
 @Transactional("transactionManager")
@@ -153,7 +157,7 @@ public class AscriptionLifecycleService {
 
     private record CascadeTargetEntry(
             AbstractAscriptionService targetService,
-            AscriptionCascadeType cascadeType) {
+            AscriptionStatusTransitionCascadeType cascadeType) {
     }
 
     private final Map<DefinitionSubjectType, AbstractAscriptionService> subtypeByType;
@@ -161,6 +165,15 @@ public class AscriptionLifecycleService {
     private final AscriptionStatusTransitionService transitionService;
     private final EntityManager entityManager;
 
+    /**
+     * Constructs the lifecycle service, building the cascade graph from all
+     * registered subtype services.
+     *
+     * @param subtypeServices   all {@link AbstractAscriptionService}
+     *                          implementations
+     * @param transitionService the status transition service
+     * @param entityManager     the JPA entity manager
+     */
     public AscriptionLifecycleService(
             List<AbstractAscriptionService> subtypeServices,
             AscriptionStatusTransitionService transitionService,
@@ -198,13 +211,17 @@ public class AscriptionLifecycleService {
      * @param ascriptionId the ascription to transition
      * @param targetStatus the requested target status
      * @return the persisted transition record
+     * @throws ResourceNotFoundException if the ascription does not exist
+     * @throws RuleViolationException    if the transition violates state
+     *                                      machine,
+     *                                      referee, or cascade constraints
      */
     public AscriptionStatusTransitionEntity transition(UUID ascriptionId, String targetStatus) {
         AscriptionStatusType targetStatusType = AscriptionStatusType.valueOf(targetStatus);
 
         AscriptionEntity entity = entityManager.find(AscriptionEntity.class, ascriptionId);
         if (entity == null) {
-            throw new GsmResourceNotFoundException("Ascription", ascriptionId);
+            throw new ResourceNotFoundException(PrimitiveType.ASCRIPTION, ascriptionId);
         }
 
         DefinitionSubjectType type = entity.getDefinition().getSubjectType();
@@ -267,6 +284,12 @@ public class AscriptionLifecycleService {
     // TRANSITION QUERIES
     // ======================================================================
 
+    /**
+     * Returns all recorded transitions for an ascription.
+     *
+     * @param ascriptionId the ascription UUID
+     * @return ordered list of status transition entities
+     */
     public List<AscriptionStatusTransitionEntity> getTransitions(UUID ascriptionId) {
         return transitionService.findByAscriptionId(ascriptionId);
     }
@@ -291,14 +314,14 @@ public class AscriptionLifecycleService {
         Set<AscriptionStatusType> allowed = VALID_TRANSITIONS.getOrDefault(
                 from, EnumSet.noneOf(AscriptionStatusType.class));
         if (allowed.isEmpty()) {
-            throw GsmRuleViolationException.of(
-                    GsmRuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
+            throw RuleViolationException.of(
+                    RuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
                     "Ascription " + ascriptionId + " is in terminal state "
                             + from + " and cannot transition to " + to,
                     "ascriptionId", ascriptionId, "fromStatus", from.name(), "toStatus", to.name());
         }
         if (!allowed.contains(to)) {
-            throw GsmRuleViolationException.of(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
+            throw RuleViolationException.of(RuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
                     "Invalid transition from " + from + " to " + to + " for ascription " + ascriptionId,
                     "ascriptionId", ascriptionId, "fromStatus", from.name(), "toStatus", to.name());
         }
@@ -335,8 +358,8 @@ public class AscriptionLifecycleService {
                 for (AscriptionStatusType s : allowed) {
                     allowedNames.add(s.name());
                 }
-                throw GsmRuleViolationException.of(
-                        GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+                throw RuleViolationException.of(
+                        RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
                         "Referee '" + ref.label() + "' (" + ref.reference().getId()
                                 + ") is " + refStatus.name() + ", must be one of " + allowedNames,
                         "fromStatus", from == null ? null : from.name(),
@@ -364,7 +387,7 @@ public class AscriptionLifecycleService {
 
         for (CascadeTargetEntry entry : targetEntries) {
             // Check scope: dependent cascades only fire for specific transitions
-            if (entry.cascadeType() == AscriptionCascadeType.DEPENDENT
+            if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT
                     && !isDependentCascadeApplicable(fromStatus, toStatus)) {
                 continue;
             }
@@ -375,9 +398,9 @@ public class AscriptionLifecycleService {
             for (AscriptionEntity target : targets) {
                 // Cascade evaluation rule 1: target.status must == fromStatus
                 if (target.getStatus() != fromStatus) {
-                    if (entry.cascadeType() == AscriptionCascadeType.CONSTITUTIVE) {
-                        throw GsmRuleViolationException.of(
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                    if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
+                        throw RuleViolationException.of(
+                                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                                 "Constitutive cascade failed: target " + target.getId()
                                         + " (" + entry.targetService().getSubjectType().name()
                                         + ") is " + target.getStatus().name()
@@ -388,14 +411,14 @@ public class AscriptionLifecycleService {
                                 "expectedStatus", fromStatus.name(),
                                 "cascadeType", entry.cascadeType().name());
                     }
-                    if (entry.cascadeType() == AscriptionCascadeType.GOVERNING) {
+                    if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.GOVERNING) {
                         LOG.debug("[{}] Governing cascade skipped: target {} ({}) is {}, expected {}",
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
+                                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
                                 target.getId(), entry.targetService().getSubjectType().name(),
                                 target.getStatus().name(), fromStatus.name());
-                    } else if (entry.cascadeType() == AscriptionCascadeType.DEPENDENT) {
+                    } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
                         LOG.debug("[{}] Dependent cascade skipped: target {} ({}) is {}, expected {}",
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
+                                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
                                 target.getId(), entry.targetService().getSubjectType().name(),
                                 target.getStatus().name(), fromStatus.name());
                     }
@@ -406,20 +429,20 @@ public class AscriptionLifecycleService {
                 DefinitionSubjectType targetType = entry.targetService().getSubjectType();
                 try {
                     validateRefereePreconditions(target, targetType, fromStatus, toStatus);
-                } catch (GsmRuleViolationException e) {
-                    if (entry.cascadeType() == AscriptionCascadeType.CONSTITUTIVE) {
-                        throw GsmRuleViolationException.of(
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                } catch (RuleViolationException e) {
+                    if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
+                        throw RuleViolationException.of(
+                                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                                 "Constitutive cascade blocked: " + e.getMessage(), e,
                                 "cascadeType", entry.cascadeType().name());
                     }
-                    if (entry.cascadeType() == AscriptionCascadeType.GOVERNING) {
+                    if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.GOVERNING) {
                         LOG.debug("[{}] Governing cascade skipped (referee precondition): target {} — {}",
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
+                                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
                                 target.getId(), e.getMessage());
-                    } else if (entry.cascadeType() == AscriptionCascadeType.DEPENDENT) {
+                    } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
                         LOG.debug("[{}] Dependent cascade skipped (referee precondition): target {} — {}",
-                                GsmRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
+                                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
                                 target.getId(), e.getMessage());
                     }
                     continue; // GOVERNING / DEPENDENT: no-op
@@ -464,7 +487,7 @@ public class AscriptionLifecycleService {
                 continue;
             }
             LOG.debug("[{}] Governance convergence: sibling {} ({}) → {}",
-                    GsmRuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE.getType(),
+                    RuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE.getType(),
                     sibling.getId(), siblingStatus.name(), terminalStatus.name());
             recordTransition(sibling, siblingStatus, terminalStatus);
         }
@@ -482,7 +505,7 @@ public class AscriptionLifecycleService {
             if (prev.getId().equals(activating.getId()))
                 continue;
             LOG.debug("[{}] Activation handoff: predecessor {} (ACTIVE → DEPRECATED)",
-                    GsmRuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF.getType(),
+                    RuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF.getType(),
                     prev.getId());
             recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
         }

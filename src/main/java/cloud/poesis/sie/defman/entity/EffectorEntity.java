@@ -18,6 +18,9 @@ import jakarta.persistence.Table;
  * <p>
  * Carries the standard 6-trigger set on the {@code effector} table
  * (see {@link AscriptionEntity} for details).
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
@@ -35,6 +38,15 @@ public class EffectorEntity extends AscriptionEntity {
     protected EffectorEntity() {
     }
 
+    /**
+     * Creates a new Effector ascription for the given mechanism.
+     *
+     * @param definition      the stable identity this effector ascribes to
+     * @param archetype       the typing archetype (EffectorArchetype)
+     * @param statement       the JSON payload for this effector
+     * @param mechanism       the owning mechanism
+     * @param outputArchetype the data archetype this effector produces
+     */
     public EffectorEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
@@ -46,11 +58,21 @@ public class EffectorEntity extends AscriptionEntity {
         this.outputArchetype = Objects.requireNonNull(outputArchetype, "outputArchetype");
     }
 
+    /**
+     * Returns the owning mechanism.
+     *
+     * @return the mechanism, never {@code null}
+     */
     @NonNull
     public MechanismEntity getMechanism() {
         return mechanism;
     }
 
+    /**
+     * Returns the data archetype this effector produces.
+     *
+     * @return the output archetype, never {@code null}
+     */
     @NonNull
     public ArchetypeEntity getOutputArchetype() {
         return outputArchetype;

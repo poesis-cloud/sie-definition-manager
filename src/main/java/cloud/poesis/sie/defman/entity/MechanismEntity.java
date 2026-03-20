@@ -18,6 +18,9 @@ import jakarta.persistence.Table;
  * <p>
  * Carries the standard 6-trigger set on the {@code mechanism} table
  * (see {@link AscriptionEntity} for details).
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
@@ -31,6 +34,14 @@ public class MechanismEntity extends AscriptionEntity {
     protected MechanismEntity() {
     }
 
+    /**
+     * Creates a new Mechanism ascription belonging to the given structure.
+     *
+     * @param definition the stable identity this mechanism ascribes to
+     * @param archetype  the typing archetype for this mechanism
+     * @param statement  the JSON payload containing function, rule, and metadata
+     * @param structure  the owning structure this mechanism constitutes
+     */
     public MechanismEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
@@ -40,6 +51,11 @@ public class MechanismEntity extends AscriptionEntity {
         this.structure = Objects.requireNonNull(structure, "structure");
     }
 
+    /**
+     * Returns the owning structure this mechanism constitutes.
+     *
+     * @return the structure, never {@code null}
+     */
     @NonNull
     public StructureEntity getStructure() {
         return structure;

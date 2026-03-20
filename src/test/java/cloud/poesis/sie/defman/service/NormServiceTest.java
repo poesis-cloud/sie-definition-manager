@@ -28,12 +28,12 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -145,65 +145,65 @@ class NormServiceTest {
 
             @Test
             void disjunction_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard(
                                 "DeploymentProperties.env == \"prod\" "
                                         + "|| DeploymentProperties.env == \"staging\""));
-                assertEquals(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("||"));
                 assertTrue(ex.getMessage().contains("forbidden"));
             }
 
             @Test
             void ternary_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard(
                                 "DeploymentProperties.env == \"prod\" ? true : false"));
-                assertEquals(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("ternary"));
             }
 
             @Test
             void arithmetic_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard("PerformanceProperties.score + 1 > 5"));
-                assertEquals(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("arithmetic"));
             }
 
             @Test
             void crossPropertyComparison_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard(
                                 "PerformanceProperties.actual > PerformanceProperties.budget"));
-                assertEquals(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("cross-property")
                         || ex.getMessage().contains("duplicate axis"));
             }
 
             @Test
             void duplicateAxis_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard(
                                 "DeploymentProperties.env == \"prod\" "
                                         + "&& DeploymentProperties.env == \"staging\""));
-                assertEquals(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("duplicate axis"));
             }
 
             @Test
             void forbiddenFunction_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard("DeploymentProperties.tags.size() > 0"));
-                assertEquals(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("matches()") || ex.getMessage().contains("forbidden"));
             }
 
             @Test
             void syntaxError_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard("DeploymentProperties.env ==== \"prod\""));
-                assertEquals(GsmRuleType.NORM_GUARD_CEL_PARSING, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_CEL_PARSING, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("parse error"));
             }
 
@@ -211,27 +211,27 @@ class NormServiceTest {
 
             @Test
             void inListSingleElement_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard("DeploymentProperties.env in [\"prod\"]"));
-                assertEquals(GsmRuleType.NORM_GUARD_COMPARISON_CONSISTENCY, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_COMPARISON_CONSISTENCY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains(">= 2"));
             }
 
             @Test
             void inListMixedTypes_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard(
                                 "DeploymentProperties.tier in [\"prod\", 1]"));
-                assertEquals(GsmRuleType.NORM_GUARD_COMPARISON_CONSISTENCY, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_COMPARISON_CONSISTENCY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("type-homogeneous"));
             }
 
             @Test
             void inListDuplicates_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuard(
                                 "DeploymentProperties.tier in [\"prod\", \"staging\", \"prod\"]"));
-                assertEquals(GsmRuleType.NORM_GUARD_COMPARISON_CONSISTENCY, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_COMPARISON_CONSISTENCY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Duplicate"));
             }
 
@@ -241,10 +241,10 @@ class NormServiceTest {
             void guardArchetypeNotFound_rejected() {
                 when(archetypeService.findInEffectByTitle("NonExistent")).thenReturn(Optional.empty());
 
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuardReferences(
                                 "NonExistent.environment == \"production\""));
-                assertEquals(GsmRuleType.NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("NonExistent"));
             }
 
@@ -262,10 +262,10 @@ class NormServiceTest {
                 when(archetypeService.findInEffectByTitle("DeploymentProperties"))
                         .thenReturn(Optional.of(archetype));
 
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateGuardReferences(
                                 "DeploymentProperties.nonExistentProp == \"x\""));
-                assertEquals(GsmRuleType.NORM_GUARD_PROPERTY_PATH_RESOLUTION, ex.getRuleType());
+                assertEquals(RuleType.NORM_GUARD_PROPERTY_PATH_RESOLUTION, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("nonExistentProp"));
             }
         }
@@ -275,17 +275,17 @@ class NormServiceTest {
 
             @Test
             void emptyPredicate_rejected() {
-                GsmRuleViolationException ex1 = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex1 = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate(null));
-                assertEquals(GsmRuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex1.getRuleType());
+                assertEquals(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex1.getRuleType());
 
-                GsmRuleViolationException ex2 = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex2 = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate(""));
-                assertEquals(GsmRuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex2.getRuleType());
+                assertEquals(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex2.getRuleType());
 
-                GsmRuleViolationException ex3 = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex3 = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("   "));
-                assertEquals(GsmRuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex3.getRuleType());
+                assertEquals(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex3.getRuleType());
             }
 
             @Test
@@ -366,50 +366,50 @@ class NormServiceTest {
 
             @Test
             void nonDeterministicNow_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("self.lastReview > now()"));
-                assertEquals(GsmRuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("non-deterministic"));
             }
 
             @Test
             void nonDeterministicUuid_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("self.id == uuid()"));
-                assertEquals(GsmRuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("non-deterministic"));
             }
 
             @Test
             void explicitArchetypeName_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("SecurityProperties.tlsEnabled == true"));
-                assertEquals(GsmRuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("self"));
             }
 
             @Test
             void syntaxError_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("self.value >>>= 5"));
-                assertEquals(GsmRuleType.NORM_PREDICATE_CEL_PARSING, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_CEL_PARSING, ex.getRuleType());
             }
 
             // NORM_PREDICATE_AS_BOOLEAN_RESULT
 
             @Test
             void arithmeticTopLevel_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("self.a + self.b"));
-                assertEquals(GsmRuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("arithmetic"));
             }
 
             @Test
             void nonBooleanConstant_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicate("42"));
-                assertEquals(GsmRuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("non-boolean constant"));
             }
 
@@ -425,10 +425,10 @@ class NormServiceTest {
                 ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
                 when(qualifier.getStatement()).thenReturn(schema);
 
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validatePredicatePropertyPaths(
                                 "self.nonExistentField > 0", qualifier));
-                assertEquals(GsmRuleType.NORM_PREDICATE_PROPERTY_PATH_RESOLUTION, ex.getRuleType());
+                assertEquals(RuleType.NORM_PREDICATE_PROPERTY_PATH_RESOLUTION, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("nonExistentField"));
             }
         }
@@ -447,9 +447,9 @@ class NormServiceTest {
             stmt.put("toleranceMode", "INSTANTANEOUS");
             stmt.put("temporalWindow", "PT5M");
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> NormService.validateToleranceModeConsistency(stmt));
-            assertEquals(GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
+            assertEquals(RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("INSTANTANEOUS"));
         }
 
@@ -459,9 +459,9 @@ class NormServiceTest {
             stmt.put("toleranceMode", "AGGREGATED");
             stmt.put("temporalAggregation", "P99");
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> NormService.validateToleranceModeConsistency(stmt));
-            assertEquals(GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
+            assertEquals(RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("AGGREGATED"));
         }
 
@@ -471,9 +471,9 @@ class NormServiceTest {
             stmt.put("toleranceMode", "AGGREGATED");
             stmt.put("temporalWindow", "PT5M");
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> NormService.validateToleranceModeConsistency(stmt));
-            assertEquals(GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
+            assertEquals(RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("AGGREGATED"));
         }
 
@@ -485,9 +485,9 @@ class NormServiceTest {
             stmt.put("temporalAggregation", "P99");
             stmt.put("sustainedThreshold", 0.99);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> NormService.validateToleranceModeConsistency(stmt));
-            assertEquals(GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
+            assertEquals(RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("forbids sustainedThreshold"));
         }
 
@@ -497,9 +497,9 @@ class NormServiceTest {
             stmt.put("toleranceMode", "SUSTAINED");
             stmt.put("temporalWindow", "PT5M");
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> NormService.validateToleranceModeConsistency(stmt));
-            assertEquals(GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
+            assertEquals(RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("SUSTAINED"));
         }
 
@@ -511,9 +511,9 @@ class NormServiceTest {
             stmt.put("temporalAggregation", "AVG");
             stmt.put("sustainedThreshold", 1.5);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> NormService.validateToleranceModeConsistency(stmt));
-            assertEquals(GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
+            assertEquals(RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("[0, 1]"));
         }
     }
@@ -589,7 +589,7 @@ class NormServiceTest {
 
                 assertEquals(1, roles.size());
                 assertTrue(roles.containsKey(DefinitionSubjectType.STRUCTURE));
-                assertEquals(AscriptionCascadeType.GOVERNING,
+                assertEquals(AscriptionStatusTransitionCascadeType.GOVERNING,
                         roles.get(DefinitionSubjectType.STRUCTURE));
             }
         }

@@ -66,6 +66,9 @@ import jakarta.persistence.NamedEntityGraph;
  * <li>{@code tgf_assign_ascription_version} — increments {@code version}
  * when {@code post_status = 'APPROVED'}
  * </ul>
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
@@ -107,6 +110,14 @@ public abstract class AscriptionEntity {
     protected AscriptionEntity() {
     }
 
+    /**
+     * Creates a new Ascription for the given definition, typed by the given
+     * archetype.
+     *
+     * @param definition the stable identity this ascription ascribes to
+     * @param archetype  the archetype that types this ascription
+     * @param statement  the JSON payload ascribed to the element
+     */
     protected AscriptionEntity(
             DefinitionEntity definition, ArchetypeEntity archetype, JsonNode statement) {
         this.definition = Objects.requireNonNull(definition, "definition");
@@ -116,36 +127,72 @@ public abstract class AscriptionEntity {
 
     // ---- accessors ----
 
+    /**
+     * Returns the globally unique identity of this Ascription (UUIDv7).
+     *
+     * @return the ascription id, never {@code null}
+     */
     @NonNull
     public UUID getId() {
         return id;
     }
 
+    /**
+     * Returns the stable Definition this Ascription ascribes to.
+     *
+     * @return the owning definition, never {@code null}
+     */
     @NonNull
     public DefinitionEntity getDefinition() {
         return definition;
     }
 
+    /**
+     * Returns the Archetype that types this Ascription.
+     *
+     * @return the typing archetype, never {@code null}
+     */
     @NonNull
     public ArchetypeEntity getArchetype() {
         return archetype;
     }
 
+    /**
+     * Returns the JSON statement payload ascribed to the governed subject.
+     *
+     * @return the JSONB statement, never {@code null}
+     */
     @NonNull
     public JsonNode getStatement() {
         return statement;
     }
 
+    /**
+     * Returns the authoritative creation timestamp (DB-assigned).
+     *
+     * @return the timestamp, never {@code null}
+     */
     @NonNull
     public Instant getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * Returns the current lifecycle status (trigger-managed).
+     *
+     * @return the ascription status, never {@code null}
+     */
     @NonNull
     public AscriptionStatusType getStatus() {
         return status;
     }
 
+    /**
+     * Returns the governance-validated lineage version (trigger-assigned on
+     * APPROVED).
+     *
+     * @return the version number ({@code 0} before approval, {@code >= 1} after)
+     */
     public int getVersion() {
         return version;
     }

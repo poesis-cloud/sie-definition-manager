@@ -15,6 +15,13 @@ import jakarta.validation.constraints.NotNull;
  * statement schema. FK references (structureId, mechanismId, etc.) are part
  * of the {@code statement} payload and validated against the archetype's
  * JSON Schema.
+ *
+ * @param archetypeId  Definition ID of the typing Archetype
+ * @param statement    JSON payload conforming to the Archetype's schema
+ * @param definitionId optional Definition ID when creating a new Ascription
+ *                     for an existing Definition
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Schema(description = "Creation request for a GSM ascription")
 public record AscriptionCreationDto(

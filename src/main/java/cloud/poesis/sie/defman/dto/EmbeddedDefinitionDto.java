@@ -8,6 +8,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Lightweight projection of a Definition for HAL {@code _embedded} use.
+ *
+ * @param id          Definition ID (stable identity)
+ * @param subjectType GSM structural role
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Relation(value = "definition", collectionRelation = "definitions")
 @Schema(description = "Embedded projection of the governing Definition (stable identity)")

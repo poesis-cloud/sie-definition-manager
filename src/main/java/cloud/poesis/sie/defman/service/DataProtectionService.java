@@ -10,18 +10,21 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.type.RuleType;
 
 /**
  * GSM §8 {@code $gsm:dataProtection} — applies data protection measures
  * (hash, mask, suppression) at two lifecycle phases:
  * <ul>
  * <li><b>atRest</b>: write-time transformation before persistence
- * (called from {@link AbstractAscriptionService#enforceGsmAnnotations})</li>
+ * (called from {@link AbstractAscriptionService#enforceAnnotations})</li>
  * <li><b>inTransit</b>: read-time transformation before API responses
  * (called from controllers)</li>
  * </ul>
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Service
 public class DataProtectionService {
@@ -33,6 +36,11 @@ public class DataProtectionService {
     /**
      * Applies {@code $gsm:dataProtection.atRest} measures to a single
      * statement property. Mutates the statement in place.
+     *
+     * @param dpNode    the {@code $gsm:dataProtection} JSON node from the archetype
+     *                  schema
+     * @param propName  the property name being protected
+     * @param statement the statement object node (mutated in place)
      */
     public void applyAtRestProtection(JsonNode dpNode, String propName, ObjectNode statement) {
         if (dpNode == null || !dpNode.has("atRest")) {
@@ -76,6 +84,12 @@ public class DataProtectionService {
      * Applies {@code $gsm:dataProtection.inTransit} measures to the
      * statement, returning a (possibly deep-copied) result safe for API
      * responses. The original statement is never mutated.
+     *
+     * @param statement       the ascription statement payload
+     * @param archetypeSchema the archetype schema containing
+     *                        {@code $gsm:dataProtection} annotations
+     * @return the transformed statement (deep-copied only when transformation is
+     *         needed)
      */
     public JsonNode applyInTransitProtection(JsonNode statement, JsonNode archetypeSchema) {
         if (archetypeSchema == null) {
@@ -151,6 +165,14 @@ public class DataProtectionService {
     // Shared primitives
     // ======================================================================
 
+    /**
+     * Computes a hex-encoded hash of the given value.
+     *
+     * @param value     the plaintext value to hash
+     * @param algorithm the hash algorithm name (e.g. {@code "SHA-256"})
+     * @return hex-encoded hash string
+     * @throws RuleViolationException if the algorithm is not supported
+     */
     String computeHash(String value, String algorithm) {
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
@@ -161,13 +183,20 @@ public class DataProtectionService {
             }
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {
-            throw GsmRuleViolationException.of(
-                    GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            throw RuleViolationException.of(
+                    RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
                     "keyword", "$gsm:dataProtection", "property", "hash.algorithm");
         }
     }
 
+    /**
+     * Applies a masking transformation to the given value.
+     *
+     * @param value    the plaintext value to mask
+     * @param maskNode the mask configuration node ({@code from}, {@code with})
+     * @return the masked string
+     */
     String applyMask(String value, JsonNode maskNode) {
         String direction = maskNode.get("from").asText();
         JsonNode withNode = maskNode.get("with");

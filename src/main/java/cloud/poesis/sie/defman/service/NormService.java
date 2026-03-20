@@ -21,13 +21,13 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.ast.CelConstant;
@@ -37,6 +37,17 @@ import dev.cel.compiler.CelCompiler;
 import dev.cel.compiler.CelCompilerFactory;
 import jakarta.persistence.EntityManager;
 
+/**
+ * GSM Norm ascription service.
+ *
+ * <p>
+ * Manages lifecycle and persistence of {@link NormEntity} ascriptions
+ * including CEL guard/predicate profile validation (applicability-guard
+ * and property-assertion profiles) and governing cascade from owning Structure.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 @Service
 public class NormService extends AbstractAscriptionService {
 
@@ -57,6 +68,18 @@ public class NormService extends AbstractAscriptionService {
     private final CelCompiler guardCompiler;
     private final CelCompiler predicateCompiler;
 
+    /**
+     * Constructs the Norm service with its required dependencies.
+     *
+     * @param normRepo              the norm repository
+     * @param structureService      the structure service for reference resolution
+     * @param archetypeService      the archetype service for qualifier resolution
+     * @param definitionService     the definition service
+     * @param transitionService     the status transition service
+     * @param ascriptionRepository  the base ascription repository
+     * @param entityManager         the JPA entity manager
+     * @param dataProtectionService the data protection service
+     */
     public NormService(
             NormRepository normRepo,
             StructureService structureService,
@@ -157,8 +180,8 @@ public class NormService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
-        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionCascadeType.GOVERNING);
+    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING);
     }
 
     @Override
@@ -200,7 +223,7 @@ public class NormService extends AbstractAscriptionService {
     /** Package-private for test access. */
     void validatePredicate(String predicate) {
         if (predicate == null || predicate.isBlank()) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            throw RuleViolationException.of(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Predicate must not be empty", "field", "predicate");
         }
         CelExpr ast = parsePredicateCel(predicateCompiler, predicate);
@@ -212,14 +235,14 @@ public class NormService extends AbstractAscriptionService {
     private static CelExpr parseGuardCel(CelCompiler compiler, String expression) {
         CelValidationResult result = compiler.parse(expression);
         if (result.hasError()) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_CEL_PARSING,
+            throw RuleViolationException.of(RuleType.NORM_GUARD_CEL_PARSING,
                     "Guard CEL parse error: " + result.getErrorString(),
                     "field", "guard");
         }
         try {
             return result.getAst().getExpr();
         } catch (CelValidationException e) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_CEL_PARSING,
+            throw RuleViolationException.of(RuleType.NORM_GUARD_CEL_PARSING,
                     "Guard CEL validation error: " + e.getMessage(), e,
                     "field", "guard");
         }
@@ -228,14 +251,14 @@ public class NormService extends AbstractAscriptionService {
     private static CelExpr parsePredicateCel(CelCompiler compiler, String expression) {
         CelValidationResult result = compiler.parse(expression);
         if (result.hasError()) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_CEL_PARSING,
+            throw RuleViolationException.of(RuleType.NORM_PREDICATE_CEL_PARSING,
                     "Predicate CEL parse error: " + result.getErrorString(),
                     "field", "predicate");
         }
         try {
             return result.getAst().getExpr();
         } catch (CelValidationException e) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_CEL_PARSING,
+            throw RuleViolationException.of(RuleType.NORM_PREDICATE_CEL_PARSING,
                     "Predicate CEL validation error: " + e.getMessage(), e,
                     "field", "predicate");
         }
@@ -254,19 +277,19 @@ public class NormService extends AbstractAscriptionService {
                     return;
                 }
                 if ("_||_".equals(fn)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                    throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                             "Guard profile violation: '||' (OR) is forbidden. "
                                     + "The guard must be a pure conjunction. "
                                     + "Use 'in [...]' for set membership instead of OR.",
                             "field", "guard", "construct", fn);
                 }
                 if ("_?_:_".equals(fn)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                    throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                             "Guard profile violation: ternary operator (?:) is forbidden in guard expressions.",
                             "field", "guard", "construct", fn);
                 }
                 if (GUARD_ARITHMETIC_OPS.contains(fn)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                    throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                             "Guard profile violation: arithmetic operators are forbidden in guard expressions.",
                             "field", "guard", "construct", fn);
                 }
@@ -287,7 +310,7 @@ public class NormService extends AbstractAscriptionService {
                 }
                 if (call.target().isPresent()) {
                     if (!GUARD_ALLOWED_FUNCTIONS.contains(fn)) {
-                        throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                        throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                                 "Guard profile violation: only .matches() is allowed as a function call. "
                                         + "Found: ." + fn + "()",
                                 "field", "guard", "construct", fn);
@@ -295,7 +318,7 @@ public class NormService extends AbstractAscriptionService {
                     if (topLevel) {
                         String axis = extractAxis(call.target().get());
                         if (axis != null && !axes.add(axis)) {
-                            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                            throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                                     "Guard profile violation: duplicate axis '" + axis
                                             + "'. At most one predicate per (Archetype, propertyPath).",
                                     "field", "guard", "axis", axis);
@@ -303,7 +326,7 @@ public class NormService extends AbstractAscriptionService {
                     }
                     return;
                 }
-                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                         "Guard profile violation: function call '" + fn
                                 + "' is forbidden. Only comparison operators and .matches() are allowed.",
                         "field", "guard", "construct", fn);
@@ -324,7 +347,7 @@ public class NormService extends AbstractAscriptionService {
             collectAxes(arg, predAxes);
         }
         if (predAxes.size() > 1) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+            throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                     "Guard profile violation: cross-property comparison detected. "
                             + "Each predicate must compare a single property to a literal. "
                             + "Found axes: " + predAxes,
@@ -332,7 +355,7 @@ public class NormService extends AbstractAscriptionService {
         }
         for (String axis : predAxes) {
             if (!axes.add(axis)) {
-                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                         "Guard profile violation: duplicate axis '" + axis
                                 + "'. At most one predicate per (Archetype, propertyPath).",
                         "field", "guard", "axis", axis);
@@ -347,11 +370,11 @@ public class NormService extends AbstractAscriptionService {
                 CelExpr.CelCall call = kind.call();
                 String fn = call.function();
                 if (GUARD_ARITHMETIC_OPS.contains(fn)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                    throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                             "Guard profile violation: arithmetic operators are forbidden in guard expressions.",
                             "field", "guard", "construct", fn);
                 }
-                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+                throw RuleViolationException.of(RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
                         "Guard profile violation: function call '" + fn
                                 + "' is forbidden in guard comparison operands. "
                                 + "Only property references and literals are allowed. "
@@ -423,7 +446,7 @@ public class NormService extends AbstractAscriptionService {
                 CelExpr.CelCall call = kind.call();
                 String fn = call.function();
                 if (PREDICATE_FORBIDDEN_FUNCTIONS.contains(fn)) {
-                    throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION,
+                    throw RuleViolationException.of(RuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION,
                             "Predicate profile violation: non-deterministic functions (now(), uuid()) are forbidden. "
                                     + "Predicate must be deterministic and side-effect-free.",
                             "field", "predicate", "construct", fn);
@@ -443,7 +466,7 @@ public class NormService extends AbstractAscriptionService {
                 if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
                     String rootName = root.exprKind().ident().name();
                     if (!rootName.equals("self") && Character.isUpperCase(rootName.charAt(0))) {
-                        throw GsmRuleViolationException.of(GsmRuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
+                        throw RuleViolationException.of(RuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
                                 "Predicate profile violation: use 'self' as implicit root, "
                                         + "not an explicit Archetype name. "
                                         + "Example: 'self.encryptionLevel' instead of '"
@@ -477,7 +500,7 @@ public class NormService extends AbstractAscriptionService {
         CelExpr.CelList list = listExpr.exprKind().list();
         List<CelExpr> elements = list.elements();
         if (elements.size() < 2) {
-            throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
+            throw RuleViolationException.of(RuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
                     "Guard 'in' list must have >= 2 elements (single value → use '=='). Found: "
                             + elements.size(),
                     "elementCount", elements.size());
@@ -493,14 +516,14 @@ public class NormService extends AbstractAscriptionService {
             if (firstKind == null) {
                 firstKind = kind;
             } else if (kind != firstKind) {
-                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
+                throw RuleViolationException.of(RuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
                         "Guard 'in' list elements must be type-homogeneous. "
                                 + "Mixed types: " + firstKind + " and " + kind,
                         "firstKind", firstKind.name(), "conflictingKind", kind.name());
             }
             String repr = constantToString(c);
             if (!seen.add(repr)) {
-                throw GsmRuleViolationException.of(GsmRuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
+                throw RuleViolationException.of(RuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
                         "Guard 'in' list elements must be unique. Duplicate: " + repr,
                         "duplicate", repr);
             }
@@ -536,8 +559,8 @@ public class NormService extends AbstractAscriptionService {
             // NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION
             Optional<ArchetypeEntity> archetype = archetypeService.findInEffectByTitle(archetypeName);
             if (archetype.isEmpty()) {
-                throw GsmRuleViolationException.of(
-                        GsmRuleType.NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION,
+                throw RuleViolationException.of(
+                        RuleType.NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION,
                         "Guard references Archetype '" + archetypeName
                                 + "' which does not exist as an active Archetype",
                         "archetypeName", archetypeName, "axis", axis);
@@ -545,8 +568,8 @@ public class NormService extends AbstractAscriptionService {
             // NORM_GUARD_PROPERTY_PATH_RESOLUTION
             JsonNode schema = archetype.get().getStatement();
             if (!resolveSchemaProperty(schema, propertyPath)) {
-                throw GsmRuleViolationException.of(
-                        GsmRuleType.NORM_GUARD_PROPERTY_PATH_RESOLUTION,
+                throw RuleViolationException.of(
+                        RuleType.NORM_GUARD_PROPERTY_PATH_RESOLUTION,
                         "Guard references property '" + propertyPath
                                 + "' which does not exist in Archetype '"
                                 + archetypeName + "' schema",
@@ -579,8 +602,8 @@ public class NormService extends AbstractAscriptionService {
                     return; // unknown function — accept (DYN)
                 }
                 if (GUARD_ARITHMETIC_OPS.contains(fn)) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT,
                             "Predicate top-level expression is arithmetic ('"
                                     + fn + "') — must evaluate to bool",
                             "function", fn);
@@ -590,8 +613,8 @@ public class NormService extends AbstractAscriptionService {
             case CONSTANT -> {
                 CelConstant c = kind.constant();
                 if (c.getKind() != CelConstant.Kind.BOOLEAN_VALUE) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT,
                             "Predicate top-level expression is a non-boolean constant ("
                                     + c.getKind() + ") — must evaluate to bool",
                             "constantKind", c.getKind().name());
@@ -619,8 +642,8 @@ public class NormService extends AbstractAscriptionService {
         for (String path : paths) {
             if (!resolveSchemaProperty(schema, path)) {
                 String title = schema.has("title") ? schema.get("title").asText() : "(unknown)";
-                throw GsmRuleViolationException.of(
-                        GsmRuleType.NORM_PREDICATE_PROPERTY_PATH_RESOLUTION,
+                throw RuleViolationException.of(
+                        RuleType.NORM_PREDICATE_PROPERTY_PATH_RESOLUTION,
                         "Predicate references 'self." + path
                                 + "' which does not exist in qualifier Archetype '"
                                 + title + "' schema",
@@ -692,8 +715,8 @@ public class NormService extends AbstractAscriptionService {
         switch (mode) {
             case "INSTANTANEOUS" -> {
                 if (hasWindow || hasAggregation || hasThreshold) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
                             "INSTANTANEOUS mode forbids temporalWindow, temporalAggregation,"
                                     + " and sustainedThreshold",
                             "toleranceMode", mode,
@@ -704,24 +727,24 @@ public class NormService extends AbstractAscriptionService {
             }
             case "AGGREGATED" -> {
                 if (!hasWindow || !hasAggregation) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
                             "AGGREGATED mode requires temporalWindow and temporalAggregation",
                             "toleranceMode", mode,
                             "hasTemporalWindow", hasWindow,
                             "hasTemporalAggregation", hasAggregation);
                 }
                 if (hasThreshold) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
                             "AGGREGATED mode forbids sustainedThreshold",
                             "toleranceMode", mode);
                 }
             }
             case "SUSTAINED" -> {
                 if (!hasWindow || !hasAggregation || !hasThreshold) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
                             "SUSTAINED mode requires temporalWindow, temporalAggregation,"
                                     + " and sustainedThreshold",
                             "toleranceMode", mode,
@@ -731,8 +754,8 @@ public class NormService extends AbstractAscriptionService {
                 }
                 double threshold = statement.get("sustainedThreshold").asDouble();
                 if (threshold < 0.0 || threshold > 1.0) {
-                    throw GsmRuleViolationException.of(
-                            GsmRuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+                    throw RuleViolationException.of(
+                            RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
                             "sustainedThreshold must be in [0, 1]. Found: " + threshold,
                             "toleranceMode", mode, "sustainedThreshold", threshold);
                 }

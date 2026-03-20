@@ -9,10 +9,30 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Spring Security configuration for the Definition Manager.
+ *
+ * <p>
+ * Stateless, CSRF-disabled, JWT-based resource server. OpenAPI, actuator
+ * health/info, and API endpoints are publicly accessible during design phase;
+ * all other paths require authentication. OAuth 2 login is opt-in via
+ * {@code dm.security.oauth2-login-enabled}.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * Builds the security filter chain.
+     *
+     * @param http               the {@link HttpSecurity} builder
+     * @param oauth2LoginEnabled whether OAuth 2 login flow is enabled
+     * @return the configured {@link SecurityFilterChain}
+     * @throws Exception if configuration fails
+     */
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,

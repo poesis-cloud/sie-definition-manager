@@ -18,8 +18,11 @@ package cloud.poesis.sie.defman.type;
  * ProblemDetail</li>
  * <li>{@code description} — natural-language statement of the rule</li>
  * </ul>
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
-public enum GsmRuleType {
+public enum RuleType {
 
     // ====================================================================
     // STRUCTURE — statement validation
@@ -598,23 +601,35 @@ public enum GsmRuleType {
     private final String title;
     private final String description;
 
-    GsmRuleType(String type, String title, String description) {
+    RuleType(String type, String title, String description) {
         this.type = type;
         this.title = title;
         this.description = description;
     }
 
-    /** Stable machine-readable URI ({@code gsm:rules/…}). */
+    /**
+     * Returns the stable machine-readable URI ({@code gsm:rules/…}).
+     *
+     * @return the rule type URI; never {@code null}
+     */
     public String getType() {
         return type;
     }
 
-    /** Short human-readable label for RFC 9457 ProblemDetail. */
+    /**
+     * Returns a short human-readable label for RFC 9457 ProblemDetail.
+     *
+     * @return the rule title; never {@code null}
+     */
     public String getTitle() {
         return title;
     }
 
-    /** Natural-language statement of the rule. */
+    /**
+     * Returns the natural-language statement of the rule.
+     *
+     * @return the rule description; never {@code null}
+     */
     public String getDescription() {
         return description;
     }

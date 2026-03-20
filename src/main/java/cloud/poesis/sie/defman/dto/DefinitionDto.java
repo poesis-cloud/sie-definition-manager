@@ -7,6 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Response for a GSM Definition (stable identity of a governed subject).
+ *
+ * @param id          Definition ID (UUIDv7)
+ * @param subjectType GSM structural role
+ * @param ascriptions ordered Ascription history for this Definition
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Schema(description = "Stable identity of a governed subject")
 public record DefinitionDto(

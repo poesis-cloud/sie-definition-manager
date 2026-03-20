@@ -25,10 +25,10 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -113,9 +113,9 @@ class InteractionServiceTest {
             DefinitionEntity definition = mock(DefinitionEntity.class);
             ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.buildEntity(definition, archetypeRef, statement));
-            assertEquals(GsmRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY, ex.getRuleType());
+            assertEquals(RuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY, ex.getRuleType());
             assertTrue(ex.getMessage().contains("archetype mismatch"));
         }
     }
@@ -193,15 +193,15 @@ class InteractionServiceTest {
             ArchetypeEntity archetype = mock(ArchetypeEntity.class);
             ObjectNode emptyStatement = MAPPER.createObjectNode();
 
-            GsmRuleViolationException ex = assertThrows(
-                    GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
                     () -> service.buildEntity(def, archetype, emptyStatement));
-            assertEquals(GsmRuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("effector"));
         }
 
         @Test
-        void nonGsmSchemaViolation_rejected() {
+        void extensionSchemaViolation_rejected() {
             // Schema with a required tenant-extension property (not GSM-base:
             // effector/receptor)
             ObjectNode schema = MAPPER.createObjectNode();
@@ -219,10 +219,10 @@ class InteractionServiceTest {
 
             ObjectNode statement = MAPPER.createObjectNode(); // missing customField
 
-            GsmRuleViolationException ex = assertThrows(
-                    GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
-            assertEquals(GsmRuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("tenant-extended"));
         }
     }

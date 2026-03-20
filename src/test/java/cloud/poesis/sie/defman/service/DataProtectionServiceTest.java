@@ -16,8 +16,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.type.RuleType;
 
 /**
  * Unit tests for {@link DataProtectionService} — GSM §8
@@ -455,12 +455,12 @@ class DataProtectionServiceTest {
         }
 
         @Test
-        void unsupportedAlgorithm_throwsGsmRuleViolation() {
-            GsmRuleViolationException ex = assertThrows(
-                    GsmRuleViolationException.class,
+        void unsupportedAlgorithm_throwsRuleViolation() {
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
                     () -> service.computeHash("hello", "BOGUS-ALG"));
 
-            assertEquals(GsmRuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     ex.getRuleType());
             assertTrue(ex.getMessage().contains("BOGUS-ALG"));
         }

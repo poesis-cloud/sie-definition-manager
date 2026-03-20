@@ -17,15 +17,26 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
+/**
+ * GSM Interaction ascription service.
+ *
+ * <p>
+ * Manages lifecycle and persistence of {@link InteractionEntity} ascriptions
+ * including effector/receptor archetype compatibility validation and dependent
+ * cascade from referenced Effector and Receptor.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 @Service
 public class InteractionService extends AbstractAscriptionService {
 
@@ -33,6 +44,18 @@ public class InteractionService extends AbstractAscriptionService {
     private final EffectorService effectorService;
     private final ReceptorService receptorService;
 
+    /**
+     * Constructs the Interaction service with its required dependencies.
+     *
+     * @param interactionRepo       the interaction repository
+     * @param effectorService       the effector service for reference resolution
+     * @param receptorService       the receptor service for reference resolution
+     * @param definitionService     the definition service
+     * @param transitionService     the status transition service
+     * @param ascriptionRepository  the base ascription repository
+     * @param entityManager         the JPA entity manager
+     * @param dataProtectionService the data protection service
+     */
     public InteractionService(
             InteractionRepository interactionRepo,
             EffectorService effectorService,
@@ -66,7 +89,7 @@ public class InteractionService extends AbstractAscriptionService {
         UUID effArchDefId = effector.getOutputArchetype().getDefinition().getId();
         UUID recArchDefId = receptor.getInputArchetype().getDefinition().getId();
         if (!effArchDefId.equals(recArchDefId)) {
-            throw GsmRuleViolationException.of(GsmRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
+            throw RuleViolationException.of(RuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
                     "Interaction archetype mismatch: effector output archetype (definition "
                             + effArchDefId + ") is not compatible with receptor input archetype (definition "
                             + recArchDefId + ")",
@@ -120,10 +143,10 @@ public class InteractionService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
+    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
         return Map.of(
-                DefinitionSubjectType.EFFECTOR, AscriptionCascadeType.DEPENDENT,
-                DefinitionSubjectType.RECEPTOR, AscriptionCascadeType.DEPENDENT);
+                DefinitionSubjectType.EFFECTOR, AscriptionStatusTransitionCascadeType.DEPENDENT,
+                DefinitionSubjectType.RECEPTOR, AscriptionStatusTransitionCascadeType.DEPENDENT);
     }
 
     @Override

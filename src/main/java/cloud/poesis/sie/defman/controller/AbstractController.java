@@ -16,17 +16,29 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.GsmInternalException;
-import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.InternalException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
 
+/**
+ * Base controller providing entity-to-DTO mapping and RFC 9457 Problem Detail
+ * exception handling for all GSM REST endpoints.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 public abstract class AbstractController {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractController.class);
 
     private final DataProtectionService dataProtectionService;
 
+    /**
+     * Constructs the abstract controller with shared services.
+     *
+     * @param dataProtectionService the data protection service for in-transit protection
+     */
     protected AbstractController(DataProtectionService dataProtectionService) {
         this.dataProtectionService = dataProtectionService;
     }
@@ -45,6 +57,10 @@ public abstract class AbstractController {
      * The archetype is passed explicitly (already fetched by the caller)
      * rather than navigated via {@code ascription.getArchetype()}, which would
      * trigger a lazy-loading proxy exception.
+     *
+     * @param ascription the ascription entity
+     * @param archetype  the resolved archetype entity
+     * @return the DTO with in-transit data protection applied
      */
     protected AscriptionDto toAscriptionDto(AscriptionEntity ascription, ArchetypeEntity archetype) {
         JsonNode statement = dataProtectionService.applyInTransitProtection(
@@ -59,6 +75,12 @@ public abstract class AbstractController {
                 ascription.getStatus().name());
     }
 
+    /**
+     * Maps a status transition entity to its DTO.
+     *
+     * @param ascriptionStatusTransition the transition entity
+     * @return the transition DTO
+     */
     protected AscriptionStatusTransitionDto toAscriptionStatusTransitionDto(
             AscriptionStatusTransitionEntity ascriptionStatusTransition) {
         return new AscriptionStatusTransitionDto(
@@ -71,12 +93,24 @@ public abstract class AbstractController {
                 ascriptionStatusTransition.getTimestamp());
     }
 
+    /**
+     * Maps a definition entity to an embedded DTO for HAL responses.
+     *
+     * @param definition the definition entity
+     * @return the embedded definition DTO
+     */
     protected EmbeddedDefinitionDto toEmbeddedDefinitionDto(DefinitionEntity definition) {
         return new EmbeddedDefinitionDto(
                 definition.getId(),
                 definition.getSubjectType().getValue());
     }
 
+    /**
+     * Maps an archetype entity to an embedded DTO for HAL responses.
+     *
+     * @param archetype the archetype entity
+     * @return the embedded archetype DTO
+     */
     protected EmbeddedArchetypeDto toEmbeddedArchetypeDto(ArchetypeEntity archetype) {
         return new EmbeddedArchetypeDto(
                 archetype.getId(),
@@ -88,7 +122,13 @@ public abstract class AbstractController {
     // EXCEPTION -> PROBLEM DETAIL MAPPING
     // ========================================================================
 
-    private static HttpStatus resolveHttpStatus(GsmRuleViolationException exception) {
+    /**
+     * Maps a {@link RuleViolationException} to an HTTP status code.
+     *
+     * @param exception the rule violation exception
+     * @return the corresponding HTTP status
+     */
+    private static HttpStatus resolveHttpStatus(RuleViolationException exception) {
         return switch (exception.getRuleType()) {
             case STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
@@ -164,8 +204,8 @@ public abstract class AbstractController {
         };
     }
 
-    @ExceptionHandler(GsmRuleViolationException.class)
-    ProblemDetail handleGsmRuleViolationException(GsmRuleViolationException exception) {
+    @ExceptionHandler(RuleViolationException.class)
+    ProblemDetail handleRuleViolationException(RuleViolationException exception) {
         HttpStatus status = resolveHttpStatus(exception);
         if (status.is5xxServerError()) {
             log.error("{}: {}", exception.getTitle(), exception.getMessage(), exception);
@@ -179,8 +219,8 @@ public abstract class AbstractController {
         return problemDetail;
     }
 
-    @ExceptionHandler(GsmResourceNotFoundException.class)
-    ProblemDetail handleResourceNotFound(GsmResourceNotFoundException exception) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    ProblemDetail handleResourceNotFound(ResourceNotFoundException exception) {
         log.warn("{}: {}", exception.getTitle(), exception.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problemDetail.setTitle(exception.getTitle());
@@ -189,8 +229,8 @@ public abstract class AbstractController {
         return problemDetail;
     }
 
-    @ExceptionHandler(GsmInternalException.class)
-    ProblemDetail handleGsmInternal(GsmInternalException exception) {
+    @ExceptionHandler(InternalException.class)
+    ProblemDetail handleInternalException(InternalException exception) {
         log.error("{}: {}", exception.getTitle(), exception.getMessage(), exception);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());

@@ -16,14 +16,26 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
-import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.PrimitiveType;
 import jakarta.persistence.EntityManager;
 
+/**
+ * GSM Receptor ascription service.
+ *
+ * <p>
+ * Manages lifecycle and persistence of {@link ReceptorEntity} ascriptions
+ * with constitutive cascade from owning Mechanism and dependent cascade
+ * to downstream Interactions.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 @Service
 public class ReceptorService extends AbstractAscriptionService {
 
@@ -31,6 +43,19 @@ public class ReceptorService extends AbstractAscriptionService {
     private final MechanismService mechanismService;
     private final ArchetypeService archetypeService;
 
+    /**
+     * Constructs the Receptor service with its required dependencies.
+     *
+     * @param receptorRepo          the receptor repository
+     * @param mechanismService      the mechanism service for reference resolution
+     * @param archetypeService      the archetype service for data archetype
+     *                              resolution
+     * @param definitionService     the definition service
+     * @param transitionService     the status transition service
+     * @param ascriptionRepository  the base ascription repository
+     * @param entityManager         the JPA entity manager
+     * @param dataProtectionService the data protection service
+     */
     public ReceptorService(
             ReceptorRepository receptorRepo,
             MechanismService mechanismService,
@@ -72,9 +97,16 @@ public class ReceptorService extends AbstractAscriptionService {
         return receptorRepo.save((ReceptorEntity) entity);
     }
 
+    /**
+     * Finds a Receptor entity by its ascription id.
+     *
+     * @param id the ascription UUID
+     * @return the receptor entity
+     * @throws ResourceNotFoundException if no receptor exists with the given id
+     */
     public ReceptorEntity findEntityById(UUID id) {
         return receptorRepo.findById(id)
-                .orElseThrow(() -> new GsmResourceNotFoundException("Receptor", id));
+            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.RECEPTOR, id));
     }
 
     @Override
@@ -108,8 +140,8 @@ public class ReceptorService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
-        return Map.of(DefinitionSubjectType.MECHANISM, AscriptionCascadeType.CONSTITUTIVE);
+    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+        return Map.of(DefinitionSubjectType.MECHANISM, AscriptionStatusTransitionCascadeType.CONSTITUTIVE);
     }
 
     @Override

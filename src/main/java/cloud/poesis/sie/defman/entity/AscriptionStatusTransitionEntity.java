@@ -44,6 +44,9 @@ import jakarta.persistence.Table;
  * <li>{@code tgf_reject_transition_mutation} — BEFORE UPDATE/DELETE: blocks
  * any mutation (rows are append-only)
  * </ul>
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
@@ -75,6 +78,14 @@ public class AscriptionStatusTransitionEntity {
     protected AscriptionStatusTransitionEntity() {
     }
 
+    /**
+     * Creates a new transition record for the given ascription.
+     *
+     * @param ascription the ascription whose lifecycle state changed
+     * @param preStatus  the status before the transition ({@code null} for initial
+     *                   creation)
+     * @param postStatus the status after the transition
+     */
     public AscriptionStatusTransitionEntity(
             AscriptionEntity ascription,
             @Nullable AscriptionStatusType preStatus,
@@ -86,26 +97,51 @@ public class AscriptionStatusTransitionEntity {
 
     // ---- accessors (read-only) ----
 
+    /**
+     * Returns the globally unique identity of this transition record (UUIDv7).
+     *
+     * @return the transition id, never {@code null}
+     */
     @NonNull
     public UUID getId() {
         return id;
     }
 
+    /**
+     * Returns the Ascription whose lifecycle state changed.
+     *
+     * @return the owning ascription, never {@code null}
+     */
     @NonNull
     public AscriptionEntity getAscription() {
         return ascription;
     }
 
+    /**
+     * Returns the status before the transition.
+     *
+     * @return the prior status, or {@code null} for the initial creation entry
+     */
     @Nullable
     public AscriptionStatusType getPreStatus() {
         return preStatus;
     }
 
+    /**
+     * Returns the status after the transition.
+     *
+     * @return the resulting status, never {@code null}
+     */
     @NonNull
     public AscriptionStatusType getPostStatus() {
         return postStatus;
     }
 
+    /**
+     * Returns the authoritative timestamp of this transition (DB-assigned).
+     *
+     * @return the transition timestamp, never {@code null}
+     */
     @NonNull
     public Instant getTimestamp() {
         return timestamp;

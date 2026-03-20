@@ -45,6 +45,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * Schema files are sourced from {@code definition/schemas/gsm-archetypes/}
  * (mapped to classpath via Maven resource directory). Single source of truth:
  * edit schema files, restart — no migration changes needed.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Component
 public class ArchetypeSeedRunner implements ApplicationRunner {
@@ -56,6 +59,14 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
     private final ResourcePatternResolver resolver;
     private final String schemaPattern;
 
+    /**
+     * Constructs the seed runner.
+     *
+     * @param jdbc          JDBC template for raw SQL operations
+     * @param mapper        Jackson mapper for JSON schema parsing
+     * @param resolver      classpath resource resolver
+     * @param schemaPattern glob pattern for GSM archetype schema files
+     */
     public ArchetypeSeedRunner(JdbcTemplate jdbc, ObjectMapper mapper,
             ResourcePatternResolver resolver,
             @Value("${dm.bootstrap.archetype-schema-pattern}") String schemaPattern) {

@@ -18,6 +18,9 @@ import jakarta.persistence.Table;
  * <p>
  * Carries the standard 6-trigger set on the {@code norm} table
  * (see {@link AscriptionEntity} for details).
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
@@ -35,6 +38,17 @@ public class NormEntity extends AscriptionEntity {
     protected NormEntity() {
     }
 
+    /**
+     * Creates a new Norm ascription.
+     *
+     * @param definition the stable identity this norm ascribes to
+     * @param archetype  the typing archetype (NormArchetype)
+     * @param statement  the JSON payload containing guard, predicate, and tolerance
+     *                   settings
+     * @param structure  the authoring structure
+     * @param qualifier  the archetype whose properties are constrained by the
+     *                   predicate
+     */
     public NormEntity(
             DefinitionEntity definition,
             ArchetypeEntity archetype,
@@ -46,11 +60,21 @@ public class NormEntity extends AscriptionEntity {
         this.qualifier = Objects.requireNonNull(qualifier, "qualifier");
     }
 
+    /**
+     * Returns the authoring structure that owns this norm.
+     *
+     * @return the structure, never {@code null}
+     */
     @NonNull
     public StructureEntity getStructure() {
         return structure;
     }
 
+    /**
+     * Returns the qualifier archetype whose properties are constrained.
+     *
+     * @return the qualifier archetype, never {@code null}
+     */
     @NonNull
     public ArchetypeEntity getQualifier() {
         return qualifier;

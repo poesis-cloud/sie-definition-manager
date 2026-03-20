@@ -19,15 +19,27 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
+/**
+ * GSM Directive ascription service.
+ *
+ * <p>
+ * Manages lifecycle and persistence of {@link DirectiveEntity} ascriptions
+ * including Directive consistency validation (verb/modal contradiction
+ * detection)
+ * and governing cascade from owning Structure.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
+ */
 @Service
 public class DirectiveService extends AbstractAscriptionService {
 
@@ -51,6 +63,18 @@ public class DirectiveService extends AbstractAscriptionService {
     private final StructureService structureService;
     private final ArchetypeService archetypeService;
 
+    /**
+     * Constructs the Directive service with its required dependencies.
+     *
+     * @param directiveRepo         the directive repository
+     * @param structureService      the structure service for reference resolution
+     * @param archetypeService      the archetype service for qualifier resolution
+     * @param definitionService     the definition service
+     * @param transitionService     the status transition service
+     * @param ascriptionRepository  the base ascription repository
+     * @param entityManager         the JPA entity manager
+     * @param dataProtectionService the data protection service
+     */
     public DirectiveService(
             DirectiveRepository directiveRepo,
             StructureService structureService,
@@ -130,8 +154,8 @@ public class DirectiveService extends AbstractAscriptionService {
     }
 
     @Override
-    public Map<DefinitionSubjectType, AscriptionCascadeType> getCascadeTargetRoles() {
-        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionCascadeType.GOVERNING);
+    public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+        return Map.of(DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING);
     }
 
     @Override
@@ -182,7 +206,7 @@ public class DirectiveService extends AbstractAscriptionService {
             String sibModal = sibling.getStatement().get("modal").asText();
 
             if (!verb.equals(sibVerb) && CONTRADICTORY_VERB_PAIRS.contains(Set.of(verb, sibVerb))) {
-                throw GsmRuleViolationException.of(GsmRuleType.DIRECTIVE_VERB_COMPATIBILITY,
+                throw RuleViolationException.of(RuleType.DIRECTIVE_VERB_COMPATIBILITY,
                         "Directive contradiction: " + verb + " and " + sibVerb
                                 + " on same qualifier (definition " + qualifierDefId
                                 + ") and purpose (definition " + purposeDefId
@@ -194,7 +218,7 @@ public class DirectiveService extends AbstractAscriptionService {
             }
 
             if (verb.equals(sibVerb) && areModalContradictions(modal, sibModal)) {
-                throw GsmRuleViolationException.of(GsmRuleType.DIRECTIVE_MODAL_COMPATIBILITY,
+                throw RuleViolationException.of(RuleType.DIRECTIVE_MODAL_COMPATIBILITY,
                         "Directive modal contradiction: " + modal + " " + verb
                                 + " vs " + sibModal + " " + sibVerb
                                 + " on same qualifier (definition " + qualifierDefId

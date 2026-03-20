@@ -5,8 +5,11 @@ package cloud.poesis.sie.defman.type;
  *
  * <p>
  * See {@code gsm-ascription-lifecycle} diagram — Inter Transition Rules.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
-public enum AscriptionCascadeType {
+public enum AscriptionStatusTransitionCascadeType {
 
     /**
      * Existential dependency, lifecycle coupling.

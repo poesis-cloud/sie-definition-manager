@@ -13,6 +13,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * Carries the Archetype's identity ({@code title} from the JSON Schema
  * document) so consumers can discriminate statement types without
  * dereferencing the archetype link.
+ *
+ * @param id           Archetype Ascription ID
+ * @param definitionId Archetype Definition ID (stable identity)
+ * @param title        the JSON Schema {@code title} field
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Relation(value = "archetype", collectionRelation = "archetypes")
 @Schema(description = "Embedded projection of the typing Archetype (schema identity)")

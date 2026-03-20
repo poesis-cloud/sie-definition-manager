@@ -36,13 +36,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.GsmInternalException;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.InternalException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -145,7 +145,7 @@ class AbstractAscriptionServiceTest {
             when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of());
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, defId));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
         }
 
         @Test
@@ -170,9 +170,9 @@ class AbstractAscriptionServiceTest {
             when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of(existing));
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                    () -> service.enforceGsmAnnotations(statement, archetype, defId));
-            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
+                    () -> service.enforceAnnotations(statement, archetype, defId));
+            assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
             assertTrue(ex.getMessage().contains("duplicates"));
             assertTrue(ex.getMessage().contains("code"));
         }
@@ -195,7 +195,7 @@ class AbstractAscriptionServiceTest {
             when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
                     any(), any(), eq(defId))).thenReturn(List.of(existing));
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, defId));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
         }
     }
 
@@ -233,9 +233,9 @@ class AbstractAscriptionServiceTest {
             // Missing required field
             ObjectNode statement = MAPPER.createObjectNode();
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
-            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("Statement validation failed"));
         }
 
@@ -251,9 +251,9 @@ class AbstractAscriptionServiceTest {
             // Wrong type: string where integer expected
             ObjectNode statement = MAPPER.createObjectNode().put("count", "not-a-number");
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
-            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("Statement validation failed"));
         }
     }
@@ -364,9 +364,9 @@ class AbstractAscriptionServiceTest {
                 }
             };
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> spyService.validateIdentityBound(newEntity));
-            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION, ex.getRuleType());
+            assertEquals(RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION, ex.getRuleType());
             assertTrue(ex.getMessage().contains("Identity-bound field"));
             assertTrue(ex.getMessage().contains("purpose"));
         }
@@ -455,9 +455,9 @@ class AbstractAscriptionServiceTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            assertEquals(RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
                     ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
             assertTrue(ex.getMessage().contains("RETIRED"));
@@ -472,9 +472,9 @@ class AbstractAscriptionServiceTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            assertEquals(RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
                     ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
         }
@@ -488,9 +488,9 @@ class AbstractAscriptionServiceTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            assertEquals(RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
                     ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
         }
@@ -504,9 +504,9 @@ class AbstractAscriptionServiceTest {
 
             AscriptionEntity entity = mock(AscriptionEntity.class);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateCreationPreconditions(entity));
-            assertEquals(GsmRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            assertEquals(RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
                     ex.getRuleType());
             assertTrue(ex.getMessage().contains("Referee"));
         }
@@ -531,7 +531,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
             ObjectNode statement = MAPPER.createObjectNode().put("budget", 100.0);
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
         }
 
         @Test
@@ -546,9 +546,9 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
             ObjectNode statement = MAPPER.createObjectNode().put("budget", -5.0);
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
+                    () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
+            assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
             assertTrue(ex.getMessage().contains("constraint failed"));
         }
@@ -569,9 +569,9 @@ class AbstractAscriptionServiceTest {
                     .put("min", 10.0)
                     .put("max", 5.0); // violates 2nd expression
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
-                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
-            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
+                    () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
+            assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("$gsm:validation"));
             assertTrue(ex.getMessage().contains("constraint failed"));
         }
@@ -592,7 +592,7 @@ class AbstractAscriptionServiceTest {
                     .put("min", 5.0)
                     .put("max", 10.0);
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
         }
 
         @Test
@@ -602,7 +602,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
             ObjectNode statement = MAPPER.createObjectNode().put("x", "hello");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
         }
     }
 
@@ -625,7 +625,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("ssn", "123-45-6789");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
 
             // Value should be replaced with a hex hash (64 chars for SHA-256)
             String hashed = statement.get("ssn").asText();
@@ -648,7 +648,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("phone", "555-1234");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
 
             // RIGHT direction = keep last 4 visible
             String masked = statement.get("phone").asText();
@@ -672,7 +672,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("card", "4111222233334444");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
 
             // LEFT = keep first 3 visible, mask the rest
             String masked = statement.get("card").asText();
@@ -695,7 +695,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("pin", "12");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
 
             // Value length (2) <= occurrence (4) → mask entirely
             String masked = statement.get("pin").asText();
@@ -714,7 +714,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("secret", "top-secret-value");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
 
             assertTrue(!statement.has("secret") || statement.get("secret").isNull(),
                     "Expected field to be removed or null");
@@ -733,7 +733,7 @@ class AbstractAscriptionServiceTest {
             ObjectNode statement = MAPPER.createObjectNode().put("card", "4111-1111-1111-1111");
 
             assertDoesNotThrow(
-                    () -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+                    () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
         }
 
         @Test
@@ -743,7 +743,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode().put("name", "Alice");
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
             assertTrue(statement.get("name").asText().equals("Alice"));
         }
 
@@ -759,7 +759,7 @@ class AbstractAscriptionServiceTest {
             ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
             ObjectNode statement = MAPPER.createObjectNode(); // ssn not present
 
-            assertDoesNotThrow(() -> service.enforceGsmAnnotations(statement, archetype, UUID.randomUUID()));
+            assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
             assertTrue(!statement.has("ssn"));
         }
     }
@@ -835,15 +835,15 @@ class AbstractAscriptionServiceTest {
     class TranslatePersistenceException {
 
         @Test
-        void mappedConstraint_returnsGsmRuleViolation() {
+        void mappedConstraint_returnsRuleViolation() {
             var cve = new ConstraintViolationException("violation", null, "uq_structure_purpose");
             var dive = new DataIntegrityViolationException("wrapped", cve);
 
             RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
 
-            assertInstanceOf(GsmRuleViolationException.class, result);
-            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-                    ((GsmRuleViolationException) result).getRuleType());
+            assertInstanceOf(RuleViolationException.class, result);
+            assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+                    ((RuleViolationException) result).getRuleType());
         }
 
         @Test
@@ -853,29 +853,29 @@ class AbstractAscriptionServiceTest {
 
             RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
 
-            assertInstanceOf(GsmRuleViolationException.class, result);
-            assertEquals(GsmRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
-                    ((GsmRuleViolationException) result).getRuleType());
+            assertInstanceOf(RuleViolationException.class, result);
+            assertEquals(RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+                    ((RuleViolationException) result).getRuleType());
         }
 
         @Test
-        void unmappedConstraint_returnsGsmInternal() {
+        void unmappedConstraint_returnsInternal() {
             var cve = new ConstraintViolationException("violation", null, "some_unknown_constraint");
             var dive = new DataIntegrityViolationException("wrapped", cve);
 
             RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
 
-            assertInstanceOf(GsmInternalException.class, result);
+            assertInstanceOf(InternalException.class, result);
             assertTrue(result.getMessage().contains("some_unknown_constraint"));
         }
 
         @Test
-        void noConstraintName_returnsGsmInternal() {
+        void noConstraintName_returnsInternal() {
             var dive = new DataIntegrityViolationException("no cause");
 
             RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
 
-            assertInstanceOf(GsmInternalException.class, result);
+            assertInstanceOf(InternalException.class, result);
         }
     }
 }

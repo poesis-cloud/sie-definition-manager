@@ -16,6 +16,9 @@ import jakarta.persistence.EntityManager;
 /**
  * Service for ascription status transitions. Owns
  * {@link AscriptionStatusTransitionRepository}.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Service
 @Transactional("transactionManager")
@@ -24,6 +27,12 @@ public class AscriptionStatusTransitionService {
     private final AscriptionStatusTransitionRepository transitionRepo;
     private final EntityManager entityManager;
 
+    /**
+     * Constructs the service with its required dependencies.
+     *
+     * @param transitionRepo the status transition repository
+     * @param entityManager  the JPA entity manager
+     */
     public AscriptionStatusTransitionService(
             AscriptionStatusTransitionRepository transitionRepo,
             EntityManager entityManager) {
@@ -33,6 +42,11 @@ public class AscriptionStatusTransitionService {
 
     /**
      * Persists a transition record, flushes, and returns the refreshed entity.
+     *
+     * @param entity the ascription being transitioned
+     * @param from   the pre-transition status
+     * @param to     the post-transition status
+     * @return the persisted and refreshed transition entity
      */
     public AscriptionStatusTransitionEntity recordTransition(
             AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
@@ -44,6 +58,13 @@ public class AscriptionStatusTransitionService {
         return transitionRepo.findById(transitionId).orElseThrow();
     }
 
+    /**
+     * Returns all status transitions for an ascription, ordered by timestamp
+     * ascending.
+     *
+     * @param ascriptionId the ascription UUID
+     * @return ordered list of status transition entities
+     */
     @Transactional(value = "transactionManager", readOnly = true)
     public List<AscriptionStatusTransitionEntity> findByAscriptionId(UUID ascriptionId) {
         return transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId);

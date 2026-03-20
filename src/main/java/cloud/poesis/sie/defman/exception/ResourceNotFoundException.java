@@ -4,31 +4,50 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import cloud.poesis.sie.defman.type.PrimitiveType;
+
 /**
  * Exception thrown when a GSM resource lookup by identifier (for example a
  * Definition, Ascription, or other GSM entity) returns no result.
+ *
  * <p>
  * This is the domain-specific runtime exception used by the Definition Plane
  * when a referenced GSM resource cannot be found; API layers are expected to
  * translate it into an HTTP {@code 404 Not Found} response (typically as a
  * problem detail using {@link #getType()}, {@link #getTitle()} and
  * {@link #getExtensions()}).
+ * </p>
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
-public class GsmResourceNotFoundException extends RuntimeException {
+public class ResourceNotFoundException extends RuntimeException {
 
-    private final String resourceType;
+    private final PrimitiveType resourceType;
     private final UUID resourceId;
+
+    /**
+     * Creates a new resource-not-found exception for the given resource type
+     * and identifier.
+     *
+     * @param resourceType canonical primitive type of the missing resource
+     * @param resourceId   unique identifier of the missing resource
+     */
+    public ResourceNotFoundException(PrimitiveType resourceType, UUID resourceId) {
+        super(resourceType.getLabel() + " " + resourceId + " not found");
+        this.resourceType = resourceType;
+        this.resourceId = resourceId;
+    }
 
     /**
      * Returns the GSM resource type that was looked up but not found.
      * <p>
-     * Typical values are logical names such as {@code "Definition"} or
-     * {@code "Ascription"} that identify the missing entity kind.
+     * Typical values are canonical primitive types such as
+     * {@code Definition} or {@code Ascription}.
      *
-     * @return the logical type name of the missing resource, or {@code null} if
-     *         it was not provided
+     * @return the missing primitive type, or {@code null} if it was not provided
      */
-    public String getResourceType() {
+    public PrimitiveType getResourceType() {
         return resourceType;
     }
 
@@ -70,23 +89,17 @@ public class GsmResourceNotFoundException extends RuntimeException {
      * <p>
      * When available, the map includes:
      * <ul>
-     *   <li>{@code "resourceType"} – the logical type of the missing resource</li>
-     *   <li>{@code "resourceId"} – the UUID of the missing resource</li>
+    * <li>{@code "resourceType"} – the human-readable label of the missing resource</li>
+     * <li>{@code "resourceId"} – the UUID of the missing resource</li>
      * </ul>
      * The returned map is immutable.
      *
      * @return an immutable map of extension fields; never {@code null}
      */
-    }
-
-    public String getTitle() {
-        return "Not found";
-    }
-
     public Map<String, Object> getExtensions() {
         Map<String, Object> map = new LinkedHashMap<>();
         if (resourceType != null) {
-            map.put("resourceType", resourceType);
+            map.put("resourceType", resourceType.getLabel());
         }
         if (resourceId != null) {
             map.put("resourceId", resourceId);

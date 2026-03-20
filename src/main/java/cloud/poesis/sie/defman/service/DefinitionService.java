@@ -11,13 +11,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.GsmResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.PrimitiveType;
 
 /**
  * Service for GSM Definition (stable identity) operations.
  * Owns {@link DefinitionRepository}.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @Service
 @Transactional("transactionManager")
@@ -25,14 +29,27 @@ public class DefinitionService {
 
     private final DefinitionRepository definitionRepository;
 
+    /**
+     * Constructs the service with its required repository.
+     *
+     * @param definitionRepository the definition repository
+     */
     public DefinitionService(DefinitionRepository definitionRepository) {
         this.definitionRepository = definitionRepository;
     }
 
+    /**
+     * Retrieves a definition by its unique identifier.
+     *
+     * @param id the definition UUID
+     * @return the definition entity
+     * @throws ResourceNotFoundException if no definition exists with the given
+     *                                      id
+     */
     @Transactional(value = "transactionManager", readOnly = true)
     public DefinitionEntity getById(@NonNull UUID id) {
         return definitionRepository.findById(id)
-                .orElseThrow(() -> new GsmResourceNotFoundException("Definition", id));
+            .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
     }
 
     /**
@@ -52,6 +69,12 @@ public class DefinitionService {
                 .collect(Collectors.toMap(DefinitionEntity::getId, Function.identity()));
     }
 
+    /**
+     * Creates a new definition for the given subject type.
+     *
+     * @param type the GSM structural role of the new definition
+     * @return the persisted definition entity
+     */
     public DefinitionEntity create(DefinitionSubjectType type) {
         return definitionRepository.save(new DefinitionEntity(type));
     }
@@ -59,6 +82,12 @@ public class DefinitionService {
     /**
      * Resolves an existing Definition by id, or creates a new one if
      * definitionId is null.
+     *
+     * @param definitionId the definition UUID, or {@code null} to create a new one
+     * @param type         the GSM subject type (used only when creating)
+     * @return the resolved or newly created definition entity
+     * @throws ResourceNotFoundException if {@code definitionId} is non-null but
+     *                                      not found
      */
     public DefinitionEntity resolveOrCreate(UUID definitionId, DefinitionSubjectType type) {
         if (definitionId != null) {

@@ -39,6 +39,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * Exposes the stable identity layer ({@code /api/v1/definitions}) —
  * Definitions are the immutable referents that persist across Ascription
  * versions. Ascription-level operations live in {@link AscriptionController}.
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 @RestController
 @RequestMapping(value = "/api/v1/definitions", produces = { MediaTypes.HAL_JSON_VALUE,
@@ -49,6 +52,13 @@ public class DefinitionController extends AbstractController {
     private final DefinitionService service;
     private final ArchetypeService archetypeService;
 
+    /**
+     * Constructs the definition controller with its required services.
+     *
+     * @param service               the definition service
+     * @param archetypeService      the archetype service for batch fetching
+     * @param dataProtectionService the data protection service
+     */
     public DefinitionController(
             DefinitionService service,
             ArchetypeService archetypeService,

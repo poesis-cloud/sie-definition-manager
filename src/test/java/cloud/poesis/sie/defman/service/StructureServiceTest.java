@@ -25,11 +25,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,9 +84,9 @@ class StructureServiceTest {
                     List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                     .thenReturn(List.of(existing));
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateActivationUniqueness(entity));
-            assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+            assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
             assertTrue(ex.getMessage().contains("order-processing"));
             assertTrue(ex.getMessage().contains("already in"));
         }
@@ -109,9 +109,9 @@ class StructureServiceTest {
         void emptyPurpose_rejected() {
             StructureEntity entity = stubStructure("", UUID.randomUUID());
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateActivationUniqueness(entity));
-            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("must not be empty"));
         }
 
@@ -119,9 +119,9 @@ class StructureServiceTest {
         void nullPurpose_rejected() {
             StructureEntity entity = stubStructureNoPurpose(UUID.randomUUID());
 
-            GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
                     () -> service.validateActivationUniqueness(entity));
-            assertEquals(GsmRuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("must not be empty"));
         }
 

@@ -13,32 +13,58 @@ package cloud.poesis.sie.defman.type;
  * <p>
  * The lowercase {@link #value} is provided for API-layer compatibility (e.g.,
  * query parameters, OpenAPI type discriminators).
+ *
+ * @author Clément Cazaud
+ * @since 0.1.0
  */
 public enum DefinitionSubjectType {
-    ARCHETYPE("archetype"),
-    STRUCTURE("structure"),
-    MECHANISM("mechanism"),
-    EFFECTOR("effector"),
-    RECEPTOR("receptor"),
-    INTERACTION("interaction"),
-    DIRECTIVE("directive"),
-    NORM("norm");
+    ARCHETYPE(PrimitiveType.ARCHETYPE),
+    STRUCTURE(PrimitiveType.STRUCTURE),
+    MECHANISM(PrimitiveType.MECHANISM),
+    EFFECTOR(PrimitiveType.EFFECTOR),
+    RECEPTOR(PrimitiveType.RECEPTOR),
+    INTERACTION(PrimitiveType.INTERACTION),
+    DIRECTIVE(PrimitiveType.DIRECTIVE),
+    NORM(PrimitiveType.NORM);
 
-    private final String value;
+    private final PrimitiveType primitiveType;
 
-    DefinitionSubjectType(String value) {
-        this.value = value;
+    DefinitionSubjectType(PrimitiveType primitiveType) {
+        this.primitiveType = primitiveType;
     }
 
+    /**
+     * Returns the canonical primitive type backing this subject type.
+     *
+     * @return the backing primitive type; never {@code null}
+     */
+    public PrimitiveType getPrimitiveType() {
+        return primitiveType;
+    }
+
+    /**
+     * Returns the lowercase API-layer representation of this subject type.
+     *
+     * @return the lowercase identifier; never {@code null}
+     */
     public String getValue() {
-        return value;
+        return primitiveType.getValue();
     }
 
-    public static DefinitionSubjectType fromValue(String v) {
-        for (DefinitionSubjectType t : values()) {
-            if (t.value.equals(v))
-                return t;
+    /**
+     * Resolves a {@code DefinitionSubjectType} from its lowercase value.
+     *
+     * @param value the lowercase string to resolve
+     * @return the matching enum constant
+     * @throws IllegalArgumentException if no constant matches {@code value}
+     */
+    public static DefinitionSubjectType fromValue(String value) {
+        PrimitiveType primitiveType = PrimitiveType.fromValue(value);
+        for (DefinitionSubjectType type : values()) {
+            if (type.primitiveType == primitiveType) {
+                return type;
+            }
         }
-        throw new IllegalArgumentException("Unknown definition_subject_type: " + v);
+        throw new IllegalArgumentException("Unknown definition_subject_type: " + value);
     }
 }

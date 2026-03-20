@@ -24,12 +24,12 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -112,7 +112,7 @@ class ReceptorServiceTest {
 
             assertEquals(1, roles.size());
             assertTrue(roles.containsKey(DefinitionSubjectType.MECHANISM));
-            assertEquals(AscriptionCascadeType.CONSTITUTIVE,
+            assertEquals(AscriptionStatusTransitionCascadeType.CONSTITUTIVE,
                     roles.get(DefinitionSubjectType.MECHANISM));
         }
     }
@@ -130,10 +130,10 @@ class ReceptorServiceTest {
             ArchetypeEntity archetype = mock(ArchetypeEntity.class);
             ObjectNode emptyStatement = MAPPER.createObjectNode();
 
-            GsmRuleViolationException ex = assertThrows(
-                    GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
                     () -> service.buildEntity(def, archetype, emptyStatement));
-            assertEquals(GsmRuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("mechanism"));
         }
     }

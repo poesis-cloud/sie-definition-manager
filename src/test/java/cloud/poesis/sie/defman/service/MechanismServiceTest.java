@@ -26,16 +26,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.GsmRuleViolationException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.service.MechanismService.PortSignature;
-import cloud.poesis.sie.defman.type.AscriptionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 import net.starlark.java.syntax.FileOptions;
 import net.starlark.java.syntax.ParserInput;
@@ -154,9 +154,9 @@ class MechanismServiceTest {
                         List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
                         .thenReturn(List.of(existing));
 
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateActivationUniqueness(entity));
-                assertEquals(GsmRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+                assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("UserValidation"));
                 assertTrue(ex.getMessage().contains("already in"));
             }
@@ -187,9 +187,9 @@ class MechanismServiceTest {
 
                 stubGenerativeModeValid(thisDefId);
 
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateActivationUniqueness(entity));
-                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("must not be empty"));
             }
 
@@ -263,7 +263,7 @@ class MechanismServiceTest {
 
                 assertEquals(1, roles.size());
                 assertTrue(roles.containsKey(DefinitionSubjectType.STRUCTURE));
-                assertEquals(AscriptionCascadeType.GOVERNING,
+                assertEquals(AscriptionStatusTransitionCascadeType.GOVERNING,
                         roles.get(DefinitionSubjectType.STRUCTURE));
             }
         }
@@ -629,30 +629,30 @@ class MechanismServiceTest {
 
             @Test
             void nullRule_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule(null));
-                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
             void emptyRule_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule(""));
-                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
             void blankRule_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("   "));
-                assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
             }
 
             @Test
             void invalidSyntax_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("def foo(:::"));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("syntax error"));
             }
         }
@@ -662,54 +662,54 @@ class MechanismServiceTest {
 
             @Test
             void missingOnTrigger_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("sys.emit(\"X\", {})"));
-                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("on("));
             }
 
             @Test
             void onWithNoArgs_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on()
                                 sys.emit("X", {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("one positional string argument"));
             }
 
             @Test
             void onWithVariableArg_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 name = "Foo"
                                 on(name)
                                 sys.emit("X", {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("on(") || ex.getMessage().contains("first"));
             }
 
             @Test
             void onWithEmptyString_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("")
                                 sys.emit("X", {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("empty"));
             }
 
             @Test
             void multipleOnCalls_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("First")
                                 on("Second")
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("exactly one on()"));
             }
         }
@@ -719,13 +719,13 @@ class MechanismServiceTest {
 
             @Test
             void loadStatement_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 load("module.bzl", "helper")
                                 on("X")
                                 sys.emit("Y", {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("load()"));
             }
         }
@@ -735,139 +735,139 @@ class MechanismServiceTest {
 
             @Test
             void sysEmitWithVariableArchetype_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 archetype = "DynamicType"
                                 sys.emit(archetype, {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
             @Test
             void sysCreateWithVariableArchetype_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 name = "SomeType"
                                 sys.create(name, {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
             @Test
             void sysEmitWithNoArgs_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.emit()
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("requires at least one"));
             }
 
             @Test
             void sysModifyWithNoArgs_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.modify()
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("requires at least one"));
             }
 
             @Test
             void sysModifyWithVariableArchetype_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 name = "SomeType"
                                 sys.modify(name, {}, {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
             @Test
             void sysDeleteWithNoArgs_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.delete()
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("requires at least one"));
             }
 
             @Test
             void sysDeleteWithVariableArchetype_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 name = "SomeType"
                                 sys.delete(name, {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
             @Test
             void sysAcquireWithNoArgs_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.acquire()
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("requires at least one"));
             }
 
             @Test
             void sysAcquireWithVariableArchetype_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 name = "SomeType"
                                 sys.acquire(name, {})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
             @Test
             void responseOnNonEmit_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.create("Output", {}, response="Resp")
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("response"));
             }
 
             @Test
             void responseNotStringLiteral_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 resp = "Resp"
                                 sys.emit("Output", {}, response=resp)
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("string literal"));
             }
 
             @Test
             void responseEmpty_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.emit("Output", {}, response="")
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("empty"));
             }
         }
@@ -877,25 +877,25 @@ class MechanismServiceTest {
 
             @Test
             void unknownGlobal_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 result = unknown_func()
                                 sys.emit("Output", {"r": result})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown globals"));
                 assertTrue(ex.getMessage().contains("unknown_func"));
             }
 
             @Test
             void unknownVariable_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.emit("Output", {"val": external_var})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown globals"));
             }
         }
@@ -914,24 +914,24 @@ class MechanismServiceTest {
 
             @Test
             void sysUnknownProperty_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.emit("Output", {"name": sys.name})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown sys property"));
                 assertTrue(ex.getMessage().contains("sys.name"));
             }
 
             @Test
             void sysUnknownProperty_version_rejected() {
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule("""
                                 on("Input")
                                 sys.emit("Output", {"v": sys.version})
                                 """));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("Unknown sys property"));
             }
         }
@@ -954,9 +954,9 @@ class MechanismServiceTest {
                 for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
                     sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
                 }
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule(sb.toString()));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("execution budget"));
                 assertTrue(ex.getMessage().contains(String.valueOf(MechanismService.MAX_RULE_STATEMENTS)));
             }
@@ -967,9 +967,9 @@ class MechanismServiceTest {
                 for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
                     sb.append("    sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
                 }
-                GsmRuleViolationException ex = assertThrows(GsmRuleViolationException.class,
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
                         () -> service.validateStarlarkRule(sb.toString()));
-                assertEquals(GsmRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
                 assertTrue(ex.getMessage().contains("execution budget"));
             }
         }
@@ -983,7 +983,7 @@ class MechanismServiceTest {
     class StatementCompliance {
 
         @Test
-        void nonGsmSchemaViolation_rejected() {
+        void extensionSchemaViolation_rejected() {
             // Schema with a required tenant-extension property (not GSM-base:
             // structure/function/rule)
             ObjectNode schema = MAPPER.createObjectNode();
@@ -1002,10 +1002,10 @@ class MechanismServiceTest {
 
             ObjectNode statement = MAPPER.createObjectNode(); // missing customField
 
-            GsmRuleViolationException ex = assertThrows(
-                    GsmRuleViolationException.class,
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
                     () -> service.validateStatement(statement, archetype));
-            assertEquals(GsmRuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+            assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
             assertTrue(ex.getMessage().contains("tenant-extended"));
         }
     }
