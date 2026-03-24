@@ -1,24 +1,28 @@
 package cloud.poesis.sie.defman.entity;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.util.Objects;
-import org.springframework.lang.NonNull;
 
 /**
  * Interaction — causal coupling between Mechanisms. Extends AscriptionEntity.
  *
- * <p>Carries the standard 6-trigger set on the {@code interaction} table (see {@link
+ * <p>
+ * Carries the standard 6-trigger set on the {@code interaction} table (see
+ * {@link
  * AscriptionEntity} for details).
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
-@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "interaction")
 public class InteractionEntity extends AscriptionEntity {
@@ -31,16 +35,17 @@ public class InteractionEntity extends AscriptionEntity {
   @JoinColumn(name = "receptor_id", nullable = false, updatable = false)
   private ReceptorEntity receptor;
 
-  protected InteractionEntity() {}
+  protected InteractionEntity() {
+  }
 
   /**
    * Creates a new Interaction coupling an effector to a receptor.
    *
    * @param definition the stable identity this interaction ascribes to
-   * @param archetype the typing archetype for this interaction
-   * @param statement the JSON payload for this interaction
-   * @param effector the emitting endpoint
-   * @param receptor the receiving endpoint
+   * @param archetype  the typing archetype for this interaction
+   * @param statement  the JSON payload for this interaction
+   * @param effector   the emitting endpoint
+   * @param receptor   the receiving endpoint
    */
   public InteractionEntity(
       DefinitionEntity definition,

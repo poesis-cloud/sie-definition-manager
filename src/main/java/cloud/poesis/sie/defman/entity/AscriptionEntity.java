@@ -1,7 +1,16 @@
 package cloud.poesis.sie.defman.entity;
 
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.lang.NonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,12 +22,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedAttributeNode;
 import jakarta.persistence.NamedEntityGraph;
-import java.time.Instant;
-import java.util.Objects;
-import java.util.UUID;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import org.springframework.lang.NonNull;
 
 /**
  * Abstract base for all 9 GSM class tables.
@@ -73,7 +76,6 @@ import org.springframework.lang.NonNull;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 @NamedEntityGraph(name = "ascription-with-refs", attributeNodes = { @NamedAttributeNode("definition"),

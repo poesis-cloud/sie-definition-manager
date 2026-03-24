@@ -1,24 +1,27 @@
 package cloud.poesis.sie.defman.entity;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.util.Objects;
-import org.springframework.lang.NonNull;
 
 /**
  * Directive — identity-level normative constraint. Extends AscriptionEntity.
  *
- * <p>Carries the standard 6-trigger set on the {@code directive} table (see {@link
+ * <p>
+ * Carries the standard 6-trigger set on the {@code directive} table (see {@link
  * AscriptionEntity} for details).
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
-@SuppressWarnings("null") // JPA lifecycle: fields are always populated when accessed
 @Entity
 @Table(name = "directive")
 public class DirectiveEntity extends AscriptionEntity {
@@ -35,17 +38,20 @@ public class DirectiveEntity extends AscriptionEntity {
   @JoinColumn(name = "purpose_id", nullable = false, updatable = false)
   private StructureEntity purpose;
 
-  protected DirectiveEntity() {}
+  protected DirectiveEntity() {
+  }
 
   /**
    * Creates a new Directive ascription.
    *
    * @param definition the stable identity this directive ascribes to
-   * @param archetype the typing archetype (DirectiveArchetype)
-   * @param statement the JSON payload containing modal, verb, and governance grammar
-   * @param structure the authoring structure
-   * @param qualifier the archetype defining the viability dimension being governed
-   * @param purpose the purposed structure targeted by this directive
+   * @param archetype  the typing archetype (DirectiveArchetype)
+   * @param statement  the JSON payload containing modal, verb, and governance
+   *                   grammar
+   * @param structure  the authoring structure
+   * @param qualifier  the archetype defining the viability dimension being
+   *                   governed
+   * @param purpose    the purposed structure targeted by this directive
    */
   public DirectiveEntity(
       DefinitionEntity definition,

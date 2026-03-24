@@ -2,15 +2,18 @@ package cloud.poesis.sie.defman.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
+
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 class DefinitionEntityTest {
 
@@ -62,7 +65,7 @@ class DefinitionEntityTest {
   @Test
   void equals_differentClass() {
     DefinitionEntity a = new DefinitionEntity(DefinitionSubjectType.STRUCTURE);
-    assertFalse(a.equals("string"));
+    assertNotEquals("string", a);
   }
 
   @Test

@@ -4,30 +4,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.afford;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
-import cloud.poesis.sie.defman.dto.AscriptionDto;
-import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.AscriptionEntity;
-import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.service.AbstractAscriptionService;
-import cloud.poesis.sie.defman.service.ArchetypeService;
-import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.DataProtectionService;
-import cloud.poesis.sie.defman.service.DefinitionService;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -37,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -58,6 +35,32 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
+import cloud.poesis.sie.defman.dto.AscriptionDto;
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.AscriptionEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.service.AbstractAscriptionService;
+import cloud.poesis.sie.defman.service.ArchetypeService;
+import cloud.poesis.sie.defman.service.AscriptionService;
+import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.DefinitionService;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 /**
  * Unified REST controller for all GSM ascription types.
@@ -97,7 +100,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Tag(name = "Ascriptions", description = "CRUD for GSM ascriptions")
 public class AscriptionController extends AbstractController {
 
-    private final Map<DefinitionSubjectType, AbstractAscriptionService> serviceRegistry;
+    private final Map<DefinitionSubjectType, AbstractAscriptionService<? extends AscriptionEntity>> serviceRegistry;
     private final ArchetypeService archetypeService;
     private final AscriptionService ascriptionService;
     private final DefinitionService definitionService;
@@ -114,7 +117,7 @@ public class AscriptionController extends AbstractController {
      * @param objectMapper          Jackson object mapper
      */
     public AscriptionController(
-            Map<DefinitionSubjectType, AbstractAscriptionService> serviceRegistry,
+            Map<DefinitionSubjectType, AbstractAscriptionService<? extends AscriptionEntity>> serviceRegistry,
             ArchetypeService archetypeService,
             AscriptionService ascriptionService,
             DefinitionService definitionService,
@@ -141,7 +144,7 @@ public class AscriptionController extends AbstractController {
     public ResponseEntity<EntityModel<AscriptionDto>> create(
             @Valid @RequestBody AscriptionCreationDto request) {
         var resolution = archetypeService.resolveForCreation(request.getArchetypeId());
-        AbstractAscriptionService subtypeService = requireService(resolution.subjectType());
+        AbstractAscriptionService<? extends AscriptionEntity> subtypeService = requireService(resolution.subjectType());
         AscriptionEntity entity = subtypeService.create(
                 resolution.archetype(), request.getStatement(), request.getDefinitionId());
         DefinitionEntity definition = definitionService.getById(entity.getDefinition().getId());
@@ -182,7 +185,7 @@ public class AscriptionController extends AbstractController {
             @ParameterObject @PageableDefault(size = 20) Pageable pageable,
             HttpServletRequest request) {
         DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);
-        AbstractAscriptionService subtypeService = requireService(subjectType);
+        AbstractAscriptionService<? extends AscriptionEntity> subtypeService = requireService(subjectType);
 
         // Extract statement.* filter params
         Map<String, String> statementFilters = extractStatementFilters(request);
@@ -238,8 +241,8 @@ public class AscriptionController extends AbstractController {
     // DISPATCH HELPER
     // ========================================================================
 
-    private AbstractAscriptionService requireService(DefinitionSubjectType type) {
-        AbstractAscriptionService svc = serviceRegistry.get(type);
+    private AbstractAscriptionService<? extends AscriptionEntity> requireService(DefinitionSubjectType type) {
+        AbstractAscriptionService<? extends AscriptionEntity> svc = serviceRegistry.get(type);
         if (svc == null) {
             throw new IllegalStateException("No service registered for type: " + type);
         }

@@ -2,6 +2,7 @@ package cloud.poesis.sie.defman.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -11,24 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.AscriptionEntity;
-import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.service.AbstractAscriptionService;
-import cloud.poesis.sie.defman.service.ArchetypeService;
-import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.DataProtectionService;
-import cloud.poesis.sie.defman.service.DefinitionService;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,6 +33,21 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.AscriptionEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.service.AbstractAscriptionService;
+import cloud.poesis.sie.defman.service.ArchetypeService;
+import cloud.poesis.sie.defman.service.AscriptionService;
+import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.DefinitionService;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+
 @WebMvcTest(AscriptionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AscriptionControllerTest {
@@ -55,6 +59,7 @@ class AscriptionControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
+    @SuppressWarnings("rawtypes")
     private Map<DefinitionSubjectType, AbstractAscriptionService> serviceRegistry;
 
     @MockitoBean
@@ -120,7 +125,6 @@ class AscriptionControllerTest {
                 .thenAnswer(inv -> inv.getArgument(0));
     }
 
-    @SuppressWarnings("unchecked")
     private <T extends AscriptionEntity> T ascriptionEntity(Class<T> type) {
         DefinitionEntity def = ascriptionEntity.getDefinition();
         T entity = mock(type);
@@ -150,9 +154,9 @@ class AscriptionControllerTest {
                     archetypeEntity, DefinitionSubjectType.STRUCTURE);
             when(archetypeService.resolveForCreation(archetypeId)).thenReturn(resolution);
 
-            AbstractAscriptionService structureService = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> structureService = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(structureService);
-            when(structureService.create(eq(archetypeEntity), any(), any())).thenReturn(ascriptionEntity);
+            doReturn(ascriptionEntity).when(structureService).create(eq(archetypeEntity), any(), any());
             when(definitionService.getById(definitionId)).thenReturn(definitionEntity);
             when(archetypeService.findEntityById(archetypeEntity.getId())).thenReturn(archetypeEntity);
 
@@ -187,9 +191,9 @@ class AscriptionControllerTest {
                     archetypeEntity, DefinitionSubjectType.STRUCTURE);
             when(archetypeService.resolveForCreation(archetypeId)).thenReturn(resolution);
 
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
-            when(svc.create(eq(archetypeEntity), any(), eq(existingDefId))).thenReturn(ascriptionEntity);
+            doReturn(ascriptionEntity).when(svc).create(eq(archetypeEntity), any(), eq(existingDefId));
             when(definitionService.getById(definitionId)).thenReturn(definitionEntity);
             when(archetypeService.findEntityById(archetypeEntity.getId())).thenReturn(archetypeEntity);
 
@@ -273,12 +277,12 @@ class AscriptionControllerTest {
 
         @Test
         void list_byType_returns200WithPageMetadata() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
 
             Page<StructureEntity> page = new PageImpl<>(
                     List.of(ascriptionEntity(StructureEntity.class)), PageRequest.of(0, 20), 1);
-            when(svc.findAll(any(Pageable.class))).thenReturn((Page) page);
+            doReturn(page).when(svc).findAll(any(Pageable.class));
             Map<UUID, ArchetypeEntity> archetypeMap = Map.of(archetypeEntity.getId(), archetypeEntity);
             when(archetypeService.getByIds(any())).thenReturn(archetypeMap);
 
@@ -292,12 +296,11 @@ class AscriptionControllerTest {
 
         @Test
         void list_withStatusFilter_delegatesToFindAllByStatus() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
 
             Page<AscriptionEntity> emptyPage = Page.empty(PageRequest.of(0, 20));
-            when(svc.findAllByStatus(eq(AscriptionStatusType.ACTIVE), any(Pageable.class)))
-                    .thenReturn((Page) emptyPage);
+            doReturn(emptyPage).when(svc).findAllByStatus(eq(AscriptionStatusType.ACTIVE), any(Pageable.class));
 
             mockMvc
                     .perform(
@@ -311,9 +314,9 @@ class AscriptionControllerTest {
 
         @Test
         void list_emptyPage_returns200WithEmptyContent() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.ARCHETYPE)).thenReturn(svc);
-            when(svc.findAll(any(Pageable.class))).thenReturn((Page) Page.empty(PageRequest.of(0, 20)));
+            doReturn(Page.empty(PageRequest.of(0, 20))).when(svc).findAll(any(Pageable.class));
 
             mockMvc
                     .perform(
@@ -324,11 +327,10 @@ class AscriptionControllerTest {
 
         @Test
         void list_withArchetypeFilter_resolvesById() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
             when(archetypeService.findEntityById(archetypeDefId)).thenReturn(archetypeEntity);
-            when(svc.findAllFiltered(any(), any(), any(), any(Pageable.class)))
-                    .thenReturn((Page) Page.empty(PageRequest.of(0, 20)));
+            doReturn(Page.empty(PageRequest.of(0, 20))).when(svc).findAllFiltered(any(), any(), any(), any(Pageable.class));
 
             mockMvc
                     .perform(
@@ -341,12 +343,11 @@ class AscriptionControllerTest {
 
         @Test
         void list_withArchetypeFilterByTitle_resolvesByTitle() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
             when(archetypeService.findInEffectByTitle("TestArchetype"))
                     .thenReturn(Optional.of(archetypeEntity));
-            when(svc.findAllFiltered(any(), any(), any(), any(Pageable.class)))
-                    .thenReturn((Page) Page.empty(PageRequest.of(0, 20)));
+            doReturn(Page.empty(PageRequest.of(0, 20))).when(svc).findAllFiltered(any(), any(), any(), any(Pageable.class));
 
             mockMvc
                     .perform(
@@ -402,7 +403,7 @@ class AscriptionControllerTest {
 
         @Test
         void list_withStatementFiltersButNoArchetype_returns400() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
 
             mockMvc
@@ -416,7 +417,7 @@ class AscriptionControllerTest {
 
         @Test
         void list_withNonQueryableProperty_returns400() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
 
             // purpose is not $gsm:queryable in our mock archetype statement
@@ -445,7 +446,7 @@ class AscriptionControllerTest {
 
         @Test
         void list_withQueryableProperty_passes() throws Exception {
-            AbstractAscriptionService svc = mock(AbstractAscriptionService.class);
+            AbstractAscriptionService<?> svc = mock(AbstractAscriptionService.class);
             when(serviceRegistry.get(DefinitionSubjectType.STRUCTURE)).thenReturn(svc);
 
             ObjectNode archStmt = objectMapper.createObjectNode();
@@ -460,8 +461,7 @@ class AscriptionControllerTest {
             when(localArch.getDefinition()).thenReturn(localArchDef);
             when(archetypeService.findInEffectByTitle("TestArchetype"))
                     .thenReturn(Optional.of(localArch));
-            when(svc.findAllFiltered(any(), any(), any(), any(Pageable.class)))
-                    .thenReturn((Page) Page.empty(PageRequest.of(0, 20)));
+            doReturn(Page.empty(PageRequest.of(0, 20))).when(svc).findAllFiltered(any(), any(), any(), any(Pageable.class));
 
             mockMvc
                     .perform(

@@ -2,16 +2,19 @@ package cloud.poesis.sie.defman.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.lang.reflect.Field;
 import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 class AscriptionEntityTest {
 
@@ -103,6 +106,6 @@ class AscriptionEntityTest {
     DefinitionEntity def = mock(DefinitionEntity.class);
     ArchetypeEntity arch = mock(ArchetypeEntity.class);
     ArchetypeEntity a = new ArchetypeEntity(def, arch, MAPPER.createObjectNode());
-    assertFalse(a.equals("string"));
+    assertNotEquals("string", a);
   }
 }

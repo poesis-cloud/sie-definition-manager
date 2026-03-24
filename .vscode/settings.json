@@ -18,5 +18,16 @@
         "!Select sequence",
         "!Split sequence",
         "!Join sequence"
+    ],
+    // Map GSM archetype schemas to the local Archetype meta-schema so
+    // VS Code validates them instead of failing on the gsm:// URI scheme.
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "definition/schemas/gsm-archetypes/*.schema.json",
+                "!definition/schemas/gsm-archetypes/Archetype.schema.json"
+            ],
+            "url": "./definition/schemas/gsm-archetypes/Archetype.schema.json"
+        }
     ]
 }
