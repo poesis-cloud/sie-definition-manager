@@ -293,6 +293,7 @@
             </includes>
             <excludes>
               <exclude>target/**</exclude>
+              <exclude>ops/helm/templates/**</exclude>
             </excludes>
             <prettier>
               <prettierVersion>3.3.3</prettierVersion>
@@ -311,18 +312,7 @@
                 <prettierVersion>3.3.3</prettierVersion>
               </prettier>
             </format>
-            <format>
-              <!-- prettier-plugin-dockerfile uses legacy prettier 2.x plugin API -->
-              <includes>
-                <include>Dockerfile</include>
-              </includes>
-              <prettier>
-                <devDependencies>
-                  <prettier>2.8.8</prettier>
-                  <prettier-plugin-dockerfile>1.0.2</prettier-plugin-dockerfile>
-                </devDependencies>
-              </prettier>
-            </format>
+
           </formats>
         </configuration>
       </plugin>

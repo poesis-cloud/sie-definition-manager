@@ -18,7 +18,8 @@ class MechanismEntityTest {
     StructureEntity struct = mock(StructureEntity.class);
 
     MechanismEntity entity =
-        new MechanismEntity(def, arch, MAPPER.createObjectNode().put("function", "validate"), struct);
+        new MechanismEntity(
+            def, arch, MAPPER.createObjectNode().put("function", "validate"), struct);
     assertEquals(struct, entity.getStructure());
   }
 

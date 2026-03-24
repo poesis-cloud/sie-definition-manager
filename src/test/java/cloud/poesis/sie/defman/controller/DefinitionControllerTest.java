@@ -35,217 +35,213 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class DefinitionControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private DefinitionService definitionService;
+  @MockitoBean private DefinitionService definitionService;
 
-    @MockitoBean
-    private DataProtectionService dataProtectionService;
+  @MockitoBean private DataProtectionService dataProtectionService;
 
-    private UUID defId;
-    private DefinitionEntity definitionEntity;
-    private ArchetypeEntity archetypeEntity;
+  private UUID defId;
+  private DefinitionEntity definitionEntity;
+  private ArchetypeEntity archetypeEntity;
 
-    @BeforeEach
-    void setUp() {
-        defId = UUID.randomUUID();
+  @BeforeEach
+  void setUp() {
+    defId = UUID.randomUUID();
 
-        lenient()
-                .when(dataProtectionService.applyInTransitProtection(any(), any()))
-                .thenAnswer(inv -> inv.getArgument(0));
+    lenient()
+        .when(dataProtectionService.applyInTransitProtection(any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
 
-        // Archetype mock
-        DefinitionEntity archetypeDefEntity = mock(DefinitionEntity.class);
-        when(archetypeDefEntity.getId()).thenReturn(UUID.randomUUID());
+    // Archetype mock
+    DefinitionEntity archetypeDefEntity = mock(DefinitionEntity.class);
+    when(archetypeDefEntity.getId()).thenReturn(UUID.randomUUID());
 
-        ObjectNode archetypeStatement = objectMapper.createObjectNode();
-        archetypeStatement.put("title", "TestArchetype");
+    ObjectNode archetypeStatement = objectMapper.createObjectNode();
+    archetypeStatement.put("title", "TestArchetype");
 
-        archetypeEntity = mock(ArchetypeEntity.class);
-        when(archetypeEntity.getId()).thenReturn(UUID.randomUUID());
-        when(archetypeEntity.getStatement()).thenReturn(archetypeStatement);
-        when(archetypeEntity.getDefinition()).thenReturn(archetypeDefEntity);
+    archetypeEntity = mock(ArchetypeEntity.class);
+    when(archetypeEntity.getId()).thenReturn(UUID.randomUUID());
+    when(archetypeEntity.getStatement()).thenReturn(archetypeStatement);
+    when(archetypeEntity.getDefinition()).thenReturn(archetypeDefEntity);
 
-        definitionEntity = mock(DefinitionEntity.class);
-        when(definitionEntity.getId()).thenReturn(defId);
-        when(definitionEntity.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+    definitionEntity = mock(DefinitionEntity.class);
+    when(definitionEntity.getId()).thenReturn(defId);
+    when(definitionEntity.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+  }
+
+  private AscriptionEntity mockAscription(UUID id, int version, AscriptionStatusType status) {
+    AscriptionEntity asc = mock(AscriptionEntity.class);
+    DefinitionEntity ascDef = mock(DefinitionEntity.class);
+    when(ascDef.getId()).thenReturn(defId);
+    when(asc.getId()).thenReturn(id);
+    when(asc.getDefinition()).thenReturn(ascDef);
+    when(asc.getArchetype()).thenReturn(archetypeEntity);
+    when(asc.getStatement()).thenReturn(objectMapper.createObjectNode().put("purpose", "test"));
+    when(asc.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
+    when(asc.getVersion()).thenReturn(version);
+    when(asc.getStatus()).thenReturn(status);
+    return asc;
+  }
+
+  // ========================================================================
+  // GET BY ID
+  // ========================================================================
+
+  @Nested
+  class GetByIdTests {
+
+    @Test
+    void getById_returnsDefinitionWithSelfLink() throws Exception {
+      when(definitionEntity.getAscriptions()).thenReturn(List.of());
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+
+      mockMvc
+          .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(defId.toString()))
+          .andExpect(jsonPath("$.subjectType").value("STRUCTURE"))
+          .andExpect(jsonPath("$._links.self.href").exists())
+          .andExpect(jsonPath("$._links.version-history.href").exists());
     }
 
-    private AscriptionEntity mockAscription(UUID id, int version, AscriptionStatusType status) {
-        AscriptionEntity asc = mock(AscriptionEntity.class);
-        DefinitionEntity ascDef = mock(DefinitionEntity.class);
-        when(ascDef.getId()).thenReturn(defId);
-        when(asc.getId()).thenReturn(id);
-        when(asc.getDefinition()).thenReturn(ascDef);
-        when(asc.getArchetype()).thenReturn(archetypeEntity);
-        when(asc.getStatement()).thenReturn(objectMapper.createObjectNode().put("purpose", "test"));
-        when(asc.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
-        when(asc.getVersion()).thenReturn(version);
-        when(asc.getStatus()).thenReturn(status);
-        return asc;
+    @Test
+    void getById_withAscriptions_hasFirstLastLatestVersionLinks() throws Exception {
+      UUID oldestId = UUID.randomUUID();
+      UUID newestId = UUID.randomUUID();
+      // desc timestamp order: newest first
+      AscriptionEntity newest = mockAscription(newestId, 2, AscriptionStatusType.ACTIVE);
+      AscriptionEntity oldest = mockAscription(oldestId, 1, AscriptionStatusType.RETIRED);
+
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(newest, oldest));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+
+      mockMvc
+          .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$._links.first.href").exists())
+          .andExpect(jsonPath("$._links.last.href").exists())
+          .andExpect(jsonPath("$._links.latest-version.href").exists());
     }
 
-    // ========================================================================
-    // GET BY ID
-    // ========================================================================
+    @Test
+    void getById_withAllV0Ascriptions_omitsLatestVersionLink() throws Exception {
+      UUID ascId = UUID.randomUUID();
+      AscriptionEntity draft = mockAscription(ascId, 0, AscriptionStatusType.DRAFT);
 
-    @Nested
-    class GetByIdTests {
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(draft));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
-        @Test
-        void getById_returnsDefinitionWithSelfLink() throws Exception {
-            when(definitionEntity.getAscriptions()).thenReturn(List.of());
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+      mockMvc
+          .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$._links.first.href").exists())
+          .andExpect(jsonPath("$._links.last.href").exists())
+          .andExpect(jsonPath("$._links.latest-version").doesNotExist());
+    }
+  }
 
-            mockMvc
-                    .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(defId.toString()))
-                    .andExpect(jsonPath("$.subjectType").value("STRUCTURE"))
-                    .andExpect(jsonPath("$._links.self.href").exists())
-                    .andExpect(jsonPath("$._links.version-history.href").exists());
-        }
+  // ========================================================================
+  // LIST ASCRIPTIONS
+  // ========================================================================
 
-        @Test
-        void getById_withAscriptions_hasFirstLastLatestVersionLinks() throws Exception {
-            UUID oldestId = UUID.randomUUID();
-            UUID newestId = UUID.randomUUID();
-            // desc timestamp order: newest first
-            AscriptionEntity newest = mockAscription(newestId, 2, AscriptionStatusType.ACTIVE);
-            AscriptionEntity oldest = mockAscription(oldestId, 1, AscriptionStatusType.RETIRED);
+  @Nested
+  class ListAscriptionsTests {
 
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(newest, oldest));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+    @Test
+    void listAscriptions_returnsAllWithSelfLink() throws Exception {
+      AscriptionEntity asc = mockAscription(UUID.randomUUID(), 1, AscriptionStatusType.ACTIVE);
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(asc));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
-            mockMvc
-                    .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._links.first.href").exists())
-                    .andExpect(jsonPath("$._links.last.href").exists())
-                    .andExpect(jsonPath("$._links.latest-version.href").exists());
-        }
-
-        @Test
-        void getById_withAllV0Ascriptions_omitsLatestVersionLink() throws Exception {
-            UUID ascId = UUID.randomUUID();
-            AscriptionEntity draft = mockAscription(ascId, 0, AscriptionStatusType.DRAFT);
-
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(draft));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._links.first.href").exists())
-                    .andExpect(jsonPath("$._links.last.href").exists())
-                    .andExpect(jsonPath("$._links.latest-version").doesNotExist());
-        }
+      mockMvc
+          .perform(get("/api/v1/definitions/{id}/ascriptions", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$._embedded.ascriptions", hasSize(1)))
+          .andExpect(jsonPath("$._embedded.ascriptions[0]._links.self.href").exists())
+          .andExpect(jsonPath("$._links.self.href").exists());
     }
 
-    // ========================================================================
-    // LIST ASCRIPTIONS
-    // ========================================================================
+    @Test
+    void listAscriptions_withMinVersionFilter_filtersCorrectly() throws Exception {
+      AscriptionEntity v0 = mockAscription(UUID.randomUUID(), 0, AscriptionStatusType.DRAFT);
+      AscriptionEntity v1 = mockAscription(UUID.randomUUID(), 1, AscriptionStatusType.ACTIVE);
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(v1, v0));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
-    @Nested
-    class ListAscriptionsTests {
-
-        @Test
-        void listAscriptions_returnsAllWithSelfLink() throws Exception {
-            AscriptionEntity asc = mockAscription(UUID.randomUUID(), 1, AscriptionStatusType.ACTIVE);
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(asc));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(get("/api/v1/definitions/{id}/ascriptions", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._embedded.ascriptions", hasSize(1)))
-                    .andExpect(jsonPath("$._embedded.ascriptions[0]._links.self.href").exists())
-                    .andExpect(jsonPath("$._links.self.href").exists());
-        }
-
-        @Test
-        void listAscriptions_withMinVersionFilter_filtersCorrectly() throws Exception {
-            AscriptionEntity v0 = mockAscription(UUID.randomUUID(), 0, AscriptionStatusType.DRAFT);
-            AscriptionEntity v1 = mockAscription(UUID.randomUUID(), 1, AscriptionStatusType.ACTIVE);
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(v1, v0));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(
-                            get("/api/v1/definitions/{id}/ascriptions", defId)
-                                    .param("minVersion", "1")
-                                    .accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._embedded.ascriptions", hasSize(1)));
-        }
-
-        @Test
-        void listAscriptions_emptyList_returnsEmptyCollection() throws Exception {
-            when(definitionEntity.getAscriptions()).thenReturn(List.of());
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(get("/api/v1/definitions/{id}/ascriptions", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk());
-        }
+      mockMvc
+          .perform(
+              get("/api/v1/definitions/{id}/ascriptions", defId)
+                  .param("minVersion", "1")
+                  .accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$._embedded.ascriptions", hasSize(1)));
     }
 
-    // ========================================================================
-    // GET LATEST ASCRIPTION
-    // ========================================================================
+    @Test
+    void listAscriptions_emptyList_returnsEmptyCollection() throws Exception {
+      when(definitionEntity.getAscriptions()).thenReturn(List.of());
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
-    @Nested
-    class GetLatestAscriptionTests {
-
-        @Test
-        void getLatestAscription_returnsActiveAscription() throws Exception {
-            UUID ascId = UUID.randomUUID();
-            AscriptionEntity active = mockAscription(ascId, 1, AscriptionStatusType.ACTIVE);
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(active));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(
-                            get("/api/v1/definitions/{id}/ascriptions/latest", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(ascId.toString()))
-                    .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$._links.self.href").exists())
-                    .andExpect(jsonPath("$._links.describedby.href").exists())
-                    .andExpect(jsonPath("$._links.type.href").exists())
-                    .andExpect(jsonPath("$._links.collection.href").exists())
-                    .andExpect(jsonPath("$._links.create-form.href").exists());
-        }
-
-        @Test
-        void getLatestAscription_prefersDeprecatedWhenNoActive() throws Exception {
-            UUID ascId = UUID.randomUUID();
-            AscriptionEntity depr = mockAscription(ascId, 1, AscriptionStatusType.DEPRECATED);
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(depr));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(
-                            get("/api/v1/definitions/{id}/ascriptions/latest", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("DEPRECATED"));
-        }
-
-        @Test
-        void getLatestAscription_noInEffect_returns404() throws Exception {
-            AscriptionEntity draft = mockAscription(UUID.randomUUID(), 0, AscriptionStatusType.DRAFT);
-            when(definitionEntity.getAscriptions()).thenReturn(List.of(draft));
-            when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-            mockMvc
-                    .perform(
-                            get("/api/v1/definitions/{id}/ascriptions/latest", defId).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isNotFound());
-        }
+      mockMvc
+          .perform(get("/api/v1/definitions/{id}/ascriptions", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk());
     }
+  }
+
+  // ========================================================================
+  // GET LATEST ASCRIPTION
+  // ========================================================================
+
+  @Nested
+  class GetLatestAscriptionTests {
+
+    @Test
+    void getLatestAscription_returnsActiveAscription() throws Exception {
+      UUID ascId = UUID.randomUUID();
+      AscriptionEntity active = mockAscription(ascId, 1, AscriptionStatusType.ACTIVE);
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(active));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+
+      mockMvc
+          .perform(
+              get("/api/v1/definitions/{id}/ascriptions/latest", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(ascId.toString()))
+          .andExpect(jsonPath("$.status").value("ACTIVE"))
+          .andExpect(jsonPath("$._links.self.href").exists())
+          .andExpect(jsonPath("$._links.describedby.href").exists())
+          .andExpect(jsonPath("$._links.type.href").exists())
+          .andExpect(jsonPath("$._links.collection.href").exists())
+          .andExpect(jsonPath("$._links.create-form.href").exists());
+    }
+
+    @Test
+    void getLatestAscription_prefersDeprecatedWhenNoActive() throws Exception {
+      UUID ascId = UUID.randomUUID();
+      AscriptionEntity depr = mockAscription(ascId, 1, AscriptionStatusType.DEPRECATED);
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(depr));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+
+      mockMvc
+          .perform(
+              get("/api/v1/definitions/{id}/ascriptions/latest", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.status").value("DEPRECATED"));
+    }
+
+    @Test
+    void getLatestAscription_noInEffect_returns404() throws Exception {
+      AscriptionEntity draft = mockAscription(UUID.randomUUID(), 0, AscriptionStatusType.DRAFT);
+      when(definitionEntity.getAscriptions()).thenReturn(List.of(draft));
+      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
+
+      mockMvc
+          .perform(
+              get("/api/v1/definitions/{id}/ascriptions/latest", defId).accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isNotFound());
+    }
+  }
 }

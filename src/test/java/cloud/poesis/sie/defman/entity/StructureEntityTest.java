@@ -17,7 +17,8 @@ class StructureEntityTest {
     ArchetypeEntity arch = mock(ArchetypeEntity.class);
 
     StructureEntity entity =
-        new StructureEntity(def, arch, MAPPER.createObjectNode().put("purpose", "order-processing"));
+        new StructureEntity(
+            def, arch, MAPPER.createObjectNode().put("purpose", "order-processing"));
     assertNotNull(entity);
   }
 

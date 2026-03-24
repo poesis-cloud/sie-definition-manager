@@ -1,23 +1,18 @@
 package cloud.poesis.sie.defman.entity;
 
-import java.util.Objects;
-
-import org.springframework.lang.NonNull;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Objects;
+import org.springframework.lang.NonNull;
 
 /**
  * Receptor — input endpoint of a Mechanism. Extends AscriptionEntity.
  *
- * <p>
- * Carries the standard 6-trigger set on the {@code receptor} table (see
- * {@link AscriptionEntity}
+ * <p>Carries the standard 6-trigger set on the {@code receptor} table (see {@link AscriptionEntity}
  * for details).
  *
  * @author Clément Cazaud
@@ -35,16 +30,15 @@ public class ReceptorEntity extends AscriptionEntity {
   @JoinColumn(name = "input_archetype_id", nullable = false, updatable = false)
   private ArchetypeEntity inputArchetype;
 
-  protected ReceptorEntity() {
-  }
+  protected ReceptorEntity() {}
 
   /**
    * Creates a new Receptor ascription for the given mechanism.
    *
-   * @param definition     the stable identity this receptor ascribes to
-   * @param archetype      the typing archetype (ReceptorArchetype)
-   * @param statement      the JSON payload for this receptor
-   * @param mechanism      the owning mechanism
+   * @param definition the stable identity this receptor ascribes to
+   * @param archetype the typing archetype (ReceptorArchetype)
+   * @param statement the JSON payload for this receptor
+   * @param mechanism the owning mechanism
    * @param inputArchetype the data archetype this receptor consumes
    */
   public ReceptorEntity(

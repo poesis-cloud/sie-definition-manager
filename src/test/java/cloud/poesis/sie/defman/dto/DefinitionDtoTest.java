@@ -8,12 +8,12 @@ import org.junit.jupiter.api.Test;
 
 class DefinitionDtoTest {
 
-    @Test
-    void constructorAndGetters() {
-        UUID id = UUID.randomUUID();
-        DefinitionDto dto = new DefinitionDto(id, DefinitionSubjectType.ARCHETYPE);
+  @Test
+  void constructorAndGetters() {
+    UUID id = UUID.randomUUID();
+    DefinitionDto dto = new DefinitionDto(id, DefinitionSubjectType.ARCHETYPE);
 
-        assertEquals(id, dto.getId());
-        assertEquals(DefinitionSubjectType.ARCHETYPE, dto.getSubjectType());
-    }
+    assertEquals(id, dto.getId());
+    assertEquals(DefinitionSubjectType.ARCHETYPE, dto.getSubjectType());
+  }
 }

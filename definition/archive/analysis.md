@@ -58,7 +58,7 @@ reject any base Archetype schema that uses `additionalProperties: false`.
 
 When a tenant sends a statement containing extension fields (e.g., `costCenter`
 from `MyStructureArchetype` extending `StructureArchetype`), DM must know which
-*specific* allOf-variant Archetype to validate against.
+_specific_ allOf-variant Archetype to validate against.
 
 The pipeline Effector is typed by the base Archetype (`StructureArchetype`)
 — it knows nothing about `costCenter`. Three options evaluated:
@@ -170,8 +170,8 @@ types compilation.
   4. Optionally create Mechanism(s) for custom compilation logic.
   5. Create Interactions wiring Receptor → Mechanism(s) → Effector.
   6. Add to pipeline Interface.
-  All of these are Ascriptions — governed, reviewed, activatable through the
-  standard lifecycle.
+     All of these are Ascriptions — governed, reviewed, activatable through the
+     standard lifecycle.
 
 **Verdict**: This is the correct design. Receptor and Effector carry the
 specific Archetype — typing is structural, not envelope-overridden. The
@@ -227,7 +227,7 @@ How does the base Mechanism know which fields are "base" vs "extension"?
 
 Under Option C, it doesn't need to. The base Mechanism handles what its own
 rule handles (base fields) and passes through everything else. The allOf chain
-is the *Archetype author's* concern, not the *Mechanism's* concern. The
+is the _Archetype author's_ concern, not the _Mechanism's_ concern. The
 Mechanism sees a JSON payload; it processes the fields it knows; the rest
 survives.
 
@@ -368,7 +368,8 @@ Yes — and it MUST be. `DataProtectionArchetype` extends only `Archetype`
 (the meta-Archetype, the seed). Its allOf chain is:
 
 ```json
-{ "$id": "DataProtectionArchetype",
+{
+  "$id": "DataProtectionArchetype",
   "allOf": [{ "$ref": "Archetype" }],
   "properties": {
     "dataClassification": { "type": "string" },
@@ -401,11 +402,11 @@ This means:
 
 **The base schema question resolved**:
 
-| Pattern | Base | Rooted at | Goal |
-|---|---|---|---|
-| Structural subtype | Single GSM structural base | StructureArchetype, MechanismArchetype, etc. | Refine a structural kind |
-| Facet | `Archetype` (the seed) | `Archetype` | Define cross-cutting properties |
-| Structural + facet | Both | Multi-branch allOf: one branch → structural base, other branches → facets | Compose concerns |
+| Pattern            | Base                       | Rooted at                                                                 | Goal                            |
+| ------------------ | -------------------------- | ------------------------------------------------------------------------- | ------------------------------- |
+| Structural subtype | Single GSM structural base | StructureArchetype, MechanismArchetype, etc.                              | Refine a structural kind        |
+| Facet              | `Archetype` (the seed)     | `Archetype`                                                               | Define cross-cutting properties |
+| Structural + facet | Both                       | Multi-branch allOf: one branch → structural base, other branches → facets | Compose concerns                |
 
 **The convergence rule refined**:
 
@@ -452,25 +453,25 @@ not a compilation artifact.
 
 ## Summary comparison: Option B vs Option C
 
-| Concern | Option B (envelope archetypeId) | Option C (Receptor/Effector per Archetype) |
-|---|---|---|
-| Typing discriminator | `archetypeId` in request envelope | Receptor.inputArchetype / Effector.outputArchetype |
-| Receptor autonomy | **Bypassed** — envelope overrides Receptor's Archetype | **Preserved** — Receptor IS the type authority |
-| Mechanism autonomy | Mechanism receives data not fully typed by its Receptor | Mechanism receives only Receptor-typed data |
-| Base vs extension diffing | DM must introspect allOf to diff base vs extension | Unnecessary — Mechanism handles what it knows, rest passes through |
-| Pipeline ordering (depth-N) | DM must infer ordering from allOf depth | Explicit: Interaction topology = execution order |
-| Facet handling | `archetypeId` must resolve multi-branch allOf | Facets are governance vocabulary, not pipeline targets |
-| Pipeline discovery | Client must know `archetypeId` out-of-band | Client discovers types via pipeline Interface Effectors |
-| Tenant setup complexity | Create Archetype only | Create Archetype + Receptor + Effector + Interactions + Interface update |
-| Bootstrap simplicity | Simpler — less entities to seed | More entities, but all structurally coherent |
-| GSM conceptual integrity | Receptor role is partly decorative | Receptor and Effector are first-class structural contracts |
+| Concern                     | Option B (envelope archetypeId)                         | Option C (Receptor/Effector per Archetype)                               |
+| --------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Typing discriminator        | `archetypeId` in request envelope                       | Receptor.inputArchetype / Effector.outputArchetype                       |
+| Receptor autonomy           | **Bypassed** — envelope overrides Receptor's Archetype  | **Preserved** — Receptor IS the type authority                           |
+| Mechanism autonomy          | Mechanism receives data not fully typed by its Receptor | Mechanism receives only Receptor-typed data                              |
+| Base vs extension diffing   | DM must introspect allOf to diff base vs extension      | Unnecessary — Mechanism handles what it knows, rest passes through       |
+| Pipeline ordering (depth-N) | DM must infer ordering from allOf depth                 | Explicit: Interaction topology = execution order                         |
+| Facet handling              | `archetypeId` must resolve multi-branch allOf           | Facets are governance vocabulary, not pipeline targets                   |
+| Pipeline discovery          | Client must know `archetypeId` out-of-band              | Client discovers types via pipeline Interface Effectors                  |
+| Tenant setup complexity     | Create Archetype only                                   | Create Archetype + Receptor + Effector + Interactions + Interface update |
+| Bootstrap simplicity        | Simpler — less entities to seed                         | More entities, but all structurally coherent                             |
+| GSM conceptual integrity    | Receptor role is partly decorative                      | Receptor and Effector are first-class structural contracts               |
 
 **Recommendation**: Option C. The additional structural entities (Receptor
 
 - Effector per tenant Archetype) are a real cost, but they preserve the
-conceptual integrity of the Receptor/Effector/Mechanism model. Option B
-reduces the Receptor to a decorative label — the real typing authority is the
-envelope `archetypeId`, which bypasses the structural model.
+  conceptual integrity of the Receptor/Effector/Mechanism model. Option B
+  reduces the Receptor to a decorative label — the real typing authority is the
+  envelope `archetypeId`, which bypasses the structural model.
 
 The Mechanism autonomy argument is decisive: a Mechanism MUST NOT handle data
 whose type is not fully identified by its own Receptor's Archetype schema.
@@ -705,10 +706,10 @@ those composed Archetypes.
 
 **Blast radius comparison**:
 
-| Change | Affected Archetypes | Affected Ascriptions |
-|---|---|---|
-| Structural subtype: add required field to `ComplianceStructureArchetype` | `GDPRStructureArchetype`, `SOC2StructureArchetype` (descendants) | All Structures typed by descendants |
-| Facet: add required field to `DataProtectionArchetype` | ALL composed Archetypes across ALL structural kinds | All Structures + Mechanisms + Interfaces whose Archetype chain includes `DataProtection` |
+| Change                                                                   | Affected Archetypes                                              | Affected Ascriptions                                                                     |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Structural subtype: add required field to `ComplianceStructureArchetype` | `GDPRStructureArchetype`, `SOC2StructureArchetype` (descendants) | All Structures typed by descendants                                                      |
+| Facet: add required field to `DataProtectionArchetype`                   | ALL composed Archetypes across ALL structural kinds              | All Structures + Mechanisms + Interfaces whose Archetype chain includes `DataProtection` |
 
 Facet evolution has **cross-kind blast radius** — it's not scoped to Structures
 or Mechanisms but crosses structural boundaries. This is inherent to the
@@ -731,6 +732,7 @@ schema), DM's compilation pipeline for Archetype itself must compute:
 
 3. **Recompilation feasibility**: for each affected Ascription, can the
    preserved `statement` satisfy the new facet schema? Two categories:
+
    - **Auto-satisfiable**: the new field has a default or is derivable
      (Mechanism can compute it from existing statement data).
    - **Statement amendment required**: the new field is required and not

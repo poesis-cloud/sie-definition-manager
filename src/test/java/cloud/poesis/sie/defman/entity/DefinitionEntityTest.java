@@ -7,13 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
-
 import org.junit.jupiter.api.Test;
-
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 
 class DefinitionEntityTest {
 

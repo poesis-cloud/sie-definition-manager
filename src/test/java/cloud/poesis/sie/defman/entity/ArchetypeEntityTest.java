@@ -16,7 +16,8 @@ class ArchetypeEntityTest {
     DefinitionEntity def = mock(DefinitionEntity.class);
     ArchetypeEntity arch = mock(ArchetypeEntity.class);
 
-    ArchetypeEntity entity = new ArchetypeEntity(def, arch, MAPPER.createObjectNode().put("title", "TestArchetype"));
+    ArchetypeEntity entity =
+        new ArchetypeEntity(def, arch, MAPPER.createObjectNode().put("title", "TestArchetype"));
     assertNotNull(entity);
   }
 

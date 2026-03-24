@@ -30,11 +30,7 @@ class AscriptionStatusTransitionDtoTest {
   void nullPreStatus() {
     AscriptionStatusTransitionDto dto =
         new AscriptionStatusTransitionDto(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            null,
-            AscriptionStatusType.DRAFT,
-            Instant.now());
+            UUID.randomUUID(), UUID.randomUUID(), null, AscriptionStatusType.DRAFT, Instant.now());
     assertNull(dto.getPreStatus());
   }
 }

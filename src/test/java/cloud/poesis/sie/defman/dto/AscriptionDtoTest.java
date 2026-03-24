@@ -11,19 +11,19 @@ import org.junit.jupiter.api.Test;
 
 class AscriptionDtoTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @Test
-    void constructorAndGetters() {
-        UUID id = UUID.randomUUID();
-        ObjectNode stmt = MAPPER.createObjectNode().put("key", "val");
-        Instant ts = Instant.now();
-        AscriptionDto dto = new AscriptionDto(id, stmt, ts, 3, AscriptionStatusType.ACTIVE);
+  @Test
+  void constructorAndGetters() {
+    UUID id = UUID.randomUUID();
+    ObjectNode stmt = MAPPER.createObjectNode().put("key", "val");
+    Instant ts = Instant.now();
+    AscriptionDto dto = new AscriptionDto(id, stmt, ts, 3, AscriptionStatusType.ACTIVE);
 
-        assertEquals(id, dto.getId());
-        assertEquals("val", dto.getStatement().get("key").asText());
-        assertEquals(ts, dto.getTimestamp());
-        assertEquals(3, dto.getVersion());
-        assertEquals(AscriptionStatusType.ACTIVE, dto.getStatus());
-    }
+    assertEquals(id, dto.getId());
+    assertEquals("val", dto.getStatement().get("key").asText());
+    assertEquals(ts, dto.getTimestamp());
+    assertEquals(3, dto.getVersion());
+    assertEquals(AscriptionStatusType.ACTIVE, dto.getStatus());
+  }
 }

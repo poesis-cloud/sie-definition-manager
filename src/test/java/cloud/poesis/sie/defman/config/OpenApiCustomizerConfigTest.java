@@ -21,426 +21,437 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 
-@SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings({"rawtypes", "unchecked"})
 class OpenApiCustomizerConfigTest {
 
-    private GlobalOpenApiCustomizer customizer;
+  private GlobalOpenApiCustomizer customizer;
 
-    @BeforeEach
-    void setUp() {
-        customizer = new OpenApiCustomizerConfig().linksSchemaCustomizer();
+  @BeforeEach
+  void setUp() {
+    customizer = new OpenApiCustomizerConfig().linksSchemaCustomizer();
+  }
+
+  private OpenAPI openApiWithSchemas(Map<String, Schema> schemas) {
+    Components components = new Components();
+    components.setSchemas(new LinkedHashMap<>(schemas));
+    OpenAPI api = new OpenAPI();
+    api.setComponents(components);
+    return api;
+  }
+
+  // ========================================================================
+  // RENAME SCHEMAS
+  // ========================================================================
+
+  @Nested
+  class RenameTests {
+
+    @Test
+    void renamesEntityModelAscriptionToAscription() {
+      ObjectSchema original = new ObjectSchema();
+      original.addProperty("id", new StringSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("EntityModelAscription", original);
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      assertThat(api.getComponents().getSchemas()).containsKey("Ascription");
+      assertThat(api.getComponents().getSchemas()).doesNotContainKey("EntityModelAscription");
     }
 
-    private OpenAPI openApiWithSchemas(Map<String, Schema> schemas) {
-        Components components = new Components();
-        components.setSchemas(new LinkedHashMap<>(schemas));
-        OpenAPI api = new OpenAPI();
-        api.setComponents(components);
-        return api;
+    @Test
+    void renamesAllKnownWrappers() {
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("EntityModelAscription", new ObjectSchema());
+      schemas.put("EntityModelDefinition", new ObjectSchema());
+      schemas.put("EntityModelAscriptionStatusTransition", new ObjectSchema());
+      schemas.put("CollectionModelEntityModelAscription", new ObjectSchema());
+      schemas.put("CollectionModelEntityModelAscriptionStatusTransition", new ObjectSchema());
+      schemas.put("PagedModelEntityModelAscription", new ObjectSchema());
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      Map<String, Schema> result = api.getComponents().getSchemas();
+      assertThat(result).containsKey("Ascription");
+      assertThat(result).containsKey("Definition");
+      assertThat(result).containsKey("AscriptionStatusTransition");
+      assertThat(result).containsKey("AscriptionCollection");
+      assertThat(result).containsKey("AscriptionStatusTransitionCollection");
+      assertThat(result).containsKey("AscriptionPage");
     }
 
-    // ========================================================================
-    // RENAME SCHEMAS
-    // ========================================================================
+    @Test
+    void rewritesRefPointersInOtherSchemas() {
+      Schema<?> refSchema = new Schema<>();
+      refSchema.set$ref("#/components/schemas/EntityModelAscription");
 
-    @Nested
-    class RenameTests {
+      ObjectSchema container = new ObjectSchema();
+      container.addProperty("item", refSchema);
 
-        @Test
-        void renamesEntityModelAscriptionToAscription() {
-            ObjectSchema original = new ObjectSchema();
-            original.addProperty("id", new StringSchema());
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("EntityModelAscription", new ObjectSchema());
+      schemas.put("Container", container);
 
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("EntityModelAscription", original);
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
 
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            assertThat(api.getComponents().getSchemas()).containsKey("Ascription");
-            assertThat(api.getComponents().getSchemas()).doesNotContainKey("EntityModelAscription");
-        }
-
-        @Test
-        void renamesAllKnownWrappers() {
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("EntityModelAscription", new ObjectSchema());
-            schemas.put("EntityModelDefinition", new ObjectSchema());
-            schemas.put("EntityModelAscriptionStatusTransition", new ObjectSchema());
-            schemas.put("CollectionModelEntityModelAscription", new ObjectSchema());
-            schemas.put("CollectionModelEntityModelAscriptionStatusTransition", new ObjectSchema());
-            schemas.put("PagedModelEntityModelAscription", new ObjectSchema());
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Map<String, Schema> result = api.getComponents().getSchemas();
-            assertThat(result).containsKey("Ascription");
-            assertThat(result).containsKey("Definition");
-            assertThat(result).containsKey("AscriptionStatusTransition");
-            assertThat(result).containsKey("AscriptionCollection");
-            assertThat(result).containsKey("AscriptionStatusTransitionCollection");
-            assertThat(result).containsKey("AscriptionPage");
-        }
-
-        @Test
-        void rewritesRefPointersInOtherSchemas() {
-            Schema<?> refSchema = new Schema<>();
-            refSchema.set$ref("#/components/schemas/EntityModelAscription");
-
-            ObjectSchema container = new ObjectSchema();
-            container.addProperty("item", refSchema);
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("EntityModelAscription", new ObjectSchema());
-            schemas.put("Container", container);
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema itemProp = (Schema) api.getComponents().getSchemas().get("Container").getProperties().get("item");
-            assertThat(itemProp.get$ref()).isEqualTo("#/components/schemas/Ascription");
-        }
-
-        @Test
-        void rewritesRefInPathResponses() {
-            Schema<?> responseSchema = new Schema<>();
-            responseSchema.set$ref("#/components/schemas/EntityModelAscription");
-
-            MediaType mt = new MediaType();
-            mt.setSchema(responseSchema);
-            Content content = new Content();
-            content.addMediaType("application/hal+json", mt);
-
-            ApiResponse response = new ApiResponse();
-            response.setContent(content);
-            ApiResponses responses = new ApiResponses();
-            responses.addApiResponse("200", response);
-
-            Operation op = new Operation();
-            op.setResponses(responses);
-            PathItem path = new PathItem();
-            path.setGet(op);
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("EntityModelAscription", new ObjectSchema());
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            api.setPaths(new Paths());
-            api.getPaths().addPathItem("/api/v1/ascriptions/{id}", path);
-
-            customizer.customise(api);
-
-            String updatedRef = api.getPaths()
-                    .get("/api/v1/ascriptions/{id}")
-                    .getGet()
-                    .getResponses()
-                    .get("200")
-                    .getContent()
-                    .get("application/hal+json")
-                    .getSchema()
-                    .get$ref();
-            assertThat(updatedRef).isEqualTo("#/components/schemas/Ascription");
-        }
+      Schema itemProp =
+          (Schema) api.getComponents().getSchemas().get("Container").getProperties().get("item");
+      assertThat(itemProp.get$ref()).isEqualTo("#/components/schemas/Ascription");
     }
 
-    // ========================================================================
-    // STRIP ADDITIONAL PROPERTIES
-    // ========================================================================
+    @Test
+    void rewritesRefInPathResponses() {
+      Schema<?> responseSchema = new Schema<>();
+      responseSchema.set$ref("#/components/schemas/EntityModelAscription");
 
-    @Nested
-    class StripAdditionalPropertiesTests {
+      MediaType mt = new MediaType();
+      mt.setSchema(responseSchema);
+      Content content = new Content();
+      content.addMediaType("application/hal+json", mt);
 
-        @Test
-        void stripsEmptySchemaAdditionalProperties() {
-            ObjectSchema schema = new ObjectSchema();
-            schema.addProperty("id", new StringSchema());
-            schema.setAdditionalProperties(new Schema<>()); // empty schema
+      ApiResponse response = new ApiResponse();
+      response.setContent(content);
+      ApiResponses responses = new ApiResponses();
+      responses.addApiResponse("200", response);
 
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("SomeSchema", schema);
+      Operation op = new Operation();
+      op.setResponses(responses);
+      PathItem path = new PathItem();
+      path.setGet(op);
 
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("EntityModelAscription", new ObjectSchema());
 
-            assertThat(api.getComponents().getSchemas().get("SomeSchema").getAdditionalProperties())
-                    .isNull();
-        }
+      OpenAPI api = openApiWithSchemas(schemas);
+      api.setPaths(new Paths());
+      api.getPaths().addPathItem("/api/v1/ascriptions/{id}", path);
 
-        @Test
-        void stripsTrueAdditionalProperties() {
-            ObjectSchema schema = new ObjectSchema();
-            schema.setAdditionalProperties(Boolean.TRUE);
+      customizer.customise(api);
 
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("SomeSchema", schema);
+      String updatedRef =
+          api.getPaths()
+              .get("/api/v1/ascriptions/{id}")
+              .getGet()
+              .getResponses()
+              .get("200")
+              .getContent()
+              .get("application/hal+json")
+              .getSchema()
+              .get$ref();
+      assertThat(updatedRef).isEqualTo("#/components/schemas/Ascription");
+    }
+  }
 
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
+  // ========================================================================
+  // STRIP ADDITIONAL PROPERTIES
+  // ========================================================================
 
-            assertThat(api.getComponents().getSchemas().get("SomeSchema").getAdditionalProperties())
-                    .isNull();
-        }
+  @Nested
+  class StripAdditionalPropertiesTests {
 
-        @Test
-        void preservesNonEmptyAdditionalProperties() {
-            ObjectSchema addProp = new ObjectSchema();
-            addProp.setType("string");
+    @Test
+    void stripsEmptySchemaAdditionalProperties() {
+      ObjectSchema schema = new ObjectSchema();
+      schema.addProperty("id", new StringSchema());
+      schema.setAdditionalProperties(new Schema<>()); // empty schema
 
-            ObjectSchema schema = new ObjectSchema();
-            schema.setAdditionalProperties(addProp);
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("SomeSchema", schema);
 
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("SomeSchema", schema);
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
 
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            assertThat(api.getComponents().getSchemas().get("SomeSchema").getAdditionalProperties())
-                    .isNotNull();
-        }
-
-        @Test
-        void stripsRecursivelyInProperties() {
-            ObjectSchema nested = new ObjectSchema();
-            nested.setAdditionalProperties(new Schema<>()); // empty
-            nested.addProperty("name", new StringSchema());
-
-            ObjectSchema parent = new ObjectSchema();
-            parent.addProperty("child", nested);
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("Parent", parent);
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema childSchema = (Schema) api.getComponents().getSchemas().get("Parent").getProperties().get("child");
-            assertThat(childSchema.getAdditionalProperties()).isNull();
-        }
+      assertThat(api.getComponents().getSchemas().get("SomeSchema").getAdditionalProperties())
+          .isNull();
     }
 
-    // ========================================================================
-    // INLINE HATEOAS INFRASTRUCTURE
-    // ========================================================================
+    @Test
+    void stripsTrueAdditionalProperties() {
+      ObjectSchema schema = new ObjectSchema();
+      schema.setAdditionalProperties(Boolean.TRUE);
 
-    @Nested
-    class InlineHateoasTests {
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("SomeSchema", schema);
 
-        @Test
-        void inlinesLinksForAscription() {
-            ObjectSchema ascription = new ObjectSchema();
-            ascription.addProperty("id", new StringSchema());
-            ascription.addProperty("_links", new ObjectSchema());
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
 
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("Ascription", ascription);
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema links = (Schema) api.getComponents().getSchemas().get("Ascription").getProperties().get("_links");
-            assertThat(links.getProperties())
-                    .containsKeys("self", "describedby", "type", "collection", "create-form");
-        }
-
-        @Test
-        void inlinesLinksForDefinition() {
-            ObjectSchema definition = new ObjectSchema();
-            definition.addProperty("id", new StringSchema());
-            definition.addProperty("_links", new ObjectSchema());
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("Definition", definition);
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema links = (Schema) api.getComponents().getSchemas().get("Definition").getProperties().get("_links");
-            assertThat(links.getProperties())
-                    .containsKeys("self", "first", "last", "latest-version", "version-history");
-        }
-
-        @Test
-        void inlinesLinksForAscriptionStatusTransition() {
-            ObjectSchema transition = new ObjectSchema();
-            transition.addProperty("id", new StringSchema());
-            transition.addProperty("_links", new ObjectSchema());
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("AscriptionStatusTransition", transition);
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema links = (Schema) api.getComponents()
-                    .getSchemas()
-                    .get("AscriptionStatusTransition")
-                    .getProperties()
-                    .get("_links");
-            assertThat(links.getProperties())
-                    .containsKeys(
-                            "self", "collection", "up", "first", "last", "previous", "next", "create-form");
-        }
-
-        @Test
-        void rebuildEmbeddedForCollectionSchemas() {
-            ObjectSchema collection = new ObjectSchema();
-            collection.addProperty("_embedded", new ObjectSchema());
-            collection.addProperty("_links", new ObjectSchema());
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("AscriptionCollection", collection);
-            schemas.put("Ascription", new ObjectSchema());
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema embedded = (Schema) api.getComponents()
-                    .getSchemas()
-                    .get("AscriptionCollection")
-                    .getProperties()
-                    .get("_embedded");
-            assertThat(embedded.getProperties()).containsKey("ascriptions");
-        }
-
-        @Test
-        void inlinesPageMetadataForAscriptionPage() {
-            ObjectSchema page = new ObjectSchema();
-            page.addProperty("_links", new ObjectSchema());
-            page.addProperty("_embedded", new ObjectSchema());
-            page.addProperty("page", new Schema<>().$ref("#/components/schemas/PageMetadata"));
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("AscriptionPage", page);
-            schemas.put("PageMetadata", new ObjectSchema());
-            schemas.put("Ascription", new ObjectSchema());
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            Schema pageSchema = (Schema) api.getComponents().getSchemas().get("AscriptionPage").getProperties()
-                    .get("page");
-            assertThat(pageSchema.getProperties())
-                    .containsKeys("size", "totalElements", "totalPages", "number");
-        }
-
-        @Test
-        void removesStandaloneInfrastructureSchemas() {
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("Links", new ObjectSchema());
-            schemas.put("Link", new ObjectSchema());
-            schemas.put("PageMetadata", new ObjectSchema());
-            schemas.put("SomeOther", new ObjectSchema());
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            assertThat(api.getComponents().getSchemas())
-                    .doesNotContainKeys("Links", "Link", "PageMetadata")
-                    .containsKey("SomeOther");
-        }
+      assertThat(api.getComponents().getSchemas().get("SomeSchema").getAdditionalProperties())
+          .isNull();
     }
 
-    // ========================================================================
-    // HAL-FORMS VARIANTS
-    // ========================================================================
+    @Test
+    void preservesNonEmptyAdditionalProperties() {
+      ObjectSchema addProp = new ObjectSchema();
+      addProp.setType("string");
 
-    @Nested
-    class HalFormsVariantTests {
+      ObjectSchema schema = new ObjectSchema();
+      schema.setAdditionalProperties(addProp);
 
-        @Test
-        void createsHalFormsVariantForAscriptionPage() {
-            ObjectSchema page = new ObjectSchema();
-            page.addProperty("_links", new ObjectSchema());
-            page.addProperty("_embedded", new ObjectSchema());
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("SomeSchema", schema);
 
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("AscriptionPage", page);
-            schemas.put("Ascription", new ObjectSchema());
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
 
-            OpenAPI api = openApiWithSchemas(schemas);
-            customizer.customise(api);
-
-            assertThat(api.getComponents().getSchemas()).containsKey("AscriptionPageHalForms");
-            Schema variant = api.getComponents().getSchemas().get("AscriptionPageHalForms");
-            assertThat(variant.getAllOf()).hasSize(2);
-        }
-
-        @Test
-        void rewritesHalFormsPathRefsToVariant() {
-            Schema<?> responseSchema = new Schema<>();
-            responseSchema.set$ref("#/components/schemas/AscriptionPage");
-
-            MediaType mt = new MediaType();
-            mt.setSchema(responseSchema);
-            Content content = new Content();
-            content.addMediaType("application/palgrave-hal-forms+json", mt);
-
-            ApiResponse response = new ApiResponse();
-            response.setContent(content);
-            ApiResponses responses = new ApiResponses();
-            responses.addApiResponse("200", response);
-
-            Operation op = new Operation();
-            op.setResponses(responses);
-            PathItem path = new PathItem();
-            path.setGet(op);
-
-            ObjectSchema page = new ObjectSchema();
-            page.addProperty("_links", new ObjectSchema());
-            page.addProperty("_embedded", new ObjectSchema());
-
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("AscriptionPage", page);
-            schemas.put("Ascription", new ObjectSchema());
-
-            OpenAPI api = openApiWithSchemas(schemas);
-            api.setPaths(new Paths());
-            api.getPaths().addPathItem("/api/v1/ascriptions", path);
-
-            customizer.customise(api);
-
-            String updatedRef = api.getPaths()
-                    .get("/api/v1/ascriptions")
-                    .getGet()
-                    .getResponses()
-                    .get("200")
-                    .getContent()
-                    .get("application/palgrave-hal-forms+json")
-                    .getSchema()
-                    .get$ref();
-            assertThat(updatedRef).isEqualTo("#/components/schemas/AscriptionPageHalForms");
-        }
+      assertThat(api.getComponents().getSchemas().get("SomeSchema").getAdditionalProperties())
+          .isNotNull();
     }
 
-    // ========================================================================
-    // EDGE CASES
-    // ========================================================================
+    @Test
+    void stripsRecursivelyInProperties() {
+      ObjectSchema nested = new ObjectSchema();
+      nested.setAdditionalProperties(new Schema<>()); // empty
+      nested.addProperty("name", new StringSchema());
 
-    @Nested
-    class EdgeCaseTests {
+      ObjectSchema parent = new ObjectSchema();
+      parent.addProperty("child", nested);
 
-        @Test
-        void handlesNullComponentsSchemas() {
-            OpenAPI api = new OpenAPI();
-            api.setComponents(new Components()); // no schemas
-            customizer.customise(api); // should not throw
-        }
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("Parent", parent);
 
-        @Test
-        void handlesNullComponents() {
-            OpenAPI api = new OpenAPI(); // no components at all
-            customizer.customise(api); // should not throw
-        }
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
 
-        @Test
-        void handlesNullPaths() {
-            Map<String, Schema> schemas = new LinkedHashMap<>();
-            schemas.put("EntityModelAscription", new ObjectSchema());
-            OpenAPI api = openApiWithSchemas(schemas);
-            // paths is null
-            customizer.customise(api); // should not throw
-        }
+      Schema childSchema =
+          (Schema) api.getComponents().getSchemas().get("Parent").getProperties().get("child");
+      assertThat(childSchema.getAdditionalProperties()).isNull();
     }
+  }
+
+  // ========================================================================
+  // INLINE HATEOAS INFRASTRUCTURE
+  // ========================================================================
+
+  @Nested
+  class InlineHateoasTests {
+
+    @Test
+    void inlinesLinksForAscription() {
+      ObjectSchema ascription = new ObjectSchema();
+      ascription.addProperty("id", new StringSchema());
+      ascription.addProperty("_links", new ObjectSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("Ascription", ascription);
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      Schema links =
+          (Schema) api.getComponents().getSchemas().get("Ascription").getProperties().get("_links");
+      assertThat(links.getProperties())
+          .containsKeys("self", "describedby", "type", "collection", "create-form");
+    }
+
+    @Test
+    void inlinesLinksForDefinition() {
+      ObjectSchema definition = new ObjectSchema();
+      definition.addProperty("id", new StringSchema());
+      definition.addProperty("_links", new ObjectSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("Definition", definition);
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      Schema links =
+          (Schema) api.getComponents().getSchemas().get("Definition").getProperties().get("_links");
+      assertThat(links.getProperties())
+          .containsKeys("self", "first", "last", "latest-version", "version-history");
+    }
+
+    @Test
+    void inlinesLinksForAscriptionStatusTransition() {
+      ObjectSchema transition = new ObjectSchema();
+      transition.addProperty("id", new StringSchema());
+      transition.addProperty("_links", new ObjectSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("AscriptionStatusTransition", transition);
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      Schema links =
+          (Schema)
+              api.getComponents()
+                  .getSchemas()
+                  .get("AscriptionStatusTransition")
+                  .getProperties()
+                  .get("_links");
+      assertThat(links.getProperties())
+          .containsKeys(
+              "self", "collection", "up", "first", "last", "previous", "next", "create-form");
+    }
+
+    @Test
+    void rebuildEmbeddedForCollectionSchemas() {
+      ObjectSchema collection = new ObjectSchema();
+      collection.addProperty("_embedded", new ObjectSchema());
+      collection.addProperty("_links", new ObjectSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("AscriptionCollection", collection);
+      schemas.put("Ascription", new ObjectSchema());
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      Schema embedded =
+          (Schema)
+              api.getComponents()
+                  .getSchemas()
+                  .get("AscriptionCollection")
+                  .getProperties()
+                  .get("_embedded");
+      assertThat(embedded.getProperties()).containsKey("ascriptions");
+    }
+
+    @Test
+    void inlinesPageMetadataForAscriptionPage() {
+      ObjectSchema page = new ObjectSchema();
+      page.addProperty("_links", new ObjectSchema());
+      page.addProperty("_embedded", new ObjectSchema());
+      page.addProperty("page", new Schema<>().$ref("#/components/schemas/PageMetadata"));
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("AscriptionPage", page);
+      schemas.put("PageMetadata", new ObjectSchema());
+      schemas.put("Ascription", new ObjectSchema());
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      Schema pageSchema =
+          (Schema)
+              api.getComponents().getSchemas().get("AscriptionPage").getProperties().get("page");
+      assertThat(pageSchema.getProperties())
+          .containsKeys("size", "totalElements", "totalPages", "number");
+    }
+
+    @Test
+    void removesStandaloneInfrastructureSchemas() {
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("Links", new ObjectSchema());
+      schemas.put("Link", new ObjectSchema());
+      schemas.put("PageMetadata", new ObjectSchema());
+      schemas.put("SomeOther", new ObjectSchema());
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      assertThat(api.getComponents().getSchemas())
+          .doesNotContainKeys("Links", "Link", "PageMetadata")
+          .containsKey("SomeOther");
+    }
+  }
+
+  // ========================================================================
+  // HAL-FORMS VARIANTS
+  // ========================================================================
+
+  @Nested
+  class HalFormsVariantTests {
+
+    @Test
+    void createsHalFormsVariantForAscriptionPage() {
+      ObjectSchema page = new ObjectSchema();
+      page.addProperty("_links", new ObjectSchema());
+      page.addProperty("_embedded", new ObjectSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("AscriptionPage", page);
+      schemas.put("Ascription", new ObjectSchema());
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      customizer.customise(api);
+
+      assertThat(api.getComponents().getSchemas()).containsKey("AscriptionPageHalForms");
+      Schema variant = api.getComponents().getSchemas().get("AscriptionPageHalForms");
+      assertThat(variant.getAllOf()).hasSize(2);
+    }
+
+    @Test
+    void rewritesHalFormsPathRefsToVariant() {
+      Schema<?> responseSchema = new Schema<>();
+      responseSchema.set$ref("#/components/schemas/AscriptionPage");
+
+      MediaType mt = new MediaType();
+      mt.setSchema(responseSchema);
+      Content content = new Content();
+      content.addMediaType("application/palgrave-hal-forms+json", mt);
+
+      ApiResponse response = new ApiResponse();
+      response.setContent(content);
+      ApiResponses responses = new ApiResponses();
+      responses.addApiResponse("200", response);
+
+      Operation op = new Operation();
+      op.setResponses(responses);
+      PathItem path = new PathItem();
+      path.setGet(op);
+
+      ObjectSchema page = new ObjectSchema();
+      page.addProperty("_links", new ObjectSchema());
+      page.addProperty("_embedded", new ObjectSchema());
+
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("AscriptionPage", page);
+      schemas.put("Ascription", new ObjectSchema());
+
+      OpenAPI api = openApiWithSchemas(schemas);
+      api.setPaths(new Paths());
+      api.getPaths().addPathItem("/api/v1/ascriptions", path);
+
+      customizer.customise(api);
+
+      String updatedRef =
+          api.getPaths()
+              .get("/api/v1/ascriptions")
+              .getGet()
+              .getResponses()
+              .get("200")
+              .getContent()
+              .get("application/palgrave-hal-forms+json")
+              .getSchema()
+              .get$ref();
+      assertThat(updatedRef).isEqualTo("#/components/schemas/AscriptionPageHalForms");
+    }
+  }
+
+  // ========================================================================
+  // EDGE CASES
+  // ========================================================================
+
+  @Nested
+  class EdgeCaseTests {
+
+    @Test
+    void handlesNullComponentsSchemas() {
+      OpenAPI api = new OpenAPI();
+      api.setComponents(new Components()); // no schemas
+      customizer.customise(api); // should not throw
+    }
+
+    @Test
+    void handlesNullComponents() {
+      OpenAPI api = new OpenAPI(); // no components at all
+      customizer.customise(api); // should not throw
+    }
+
+    @Test
+    void handlesNullPaths() {
+      Map<String, Schema> schemas = new LinkedHashMap<>();
+      schemas.put("EntityModelAscription", new ObjectSchema());
+      OpenAPI api = openApiWithSchemas(schemas);
+      // paths is null
+      customizer.customise(api); // should not throw
+    }
+  }
 }

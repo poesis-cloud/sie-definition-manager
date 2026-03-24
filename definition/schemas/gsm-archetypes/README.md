@@ -22,16 +22,16 @@ All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "g
 
 ## Schemas
 
-| Schema | GSM Class | Sealed | Tenant-Extensible | Identity-bound fields |
-| -------- | ----------- | -------- | ------------------- | ---------------------- |
-| `Structure.schema.json` | Structure | No | Yes (`allOf`) | `purpose` |
-| `Mechanism.schema.json` | Mechanism | No | Yes (`allOf`) | `structure`, `function` |
-| `Effector.schema.json` | Effector | No | Yes (`allOf`) | `mechanism`, `archetype` |
-| `Receptor.schema.json` | Receptor | No | Yes (`allOf`) | `mechanism`, `archetype` |
-| `Interaction.schema.json` | Interaction | No | Yes (`allOf`) | `effector`, `receptor` |
-| `Archetype.schema.json` | Archetype | Yes | No | `title` (DM-enforced) |
-| `Directive.schema.json` | Directive | Yes | No | `structure`, `qualifier`, `purpose` |
-| `Norm.schema.json` | Norm | Yes | No | `structure`, `qualifier`, `predicate` |
+| Schema                    | GSM Class   | Sealed | Tenant-Extensible | Identity-bound fields                 |
+| ------------------------- | ----------- | ------ | ----------------- | ------------------------------------- |
+| `Structure.schema.json`   | Structure   | No     | Yes (`allOf`)     | `purpose`                             |
+| `Mechanism.schema.json`   | Mechanism   | No     | Yes (`allOf`)     | `structure`, `function`               |
+| `Effector.schema.json`    | Effector    | No     | Yes (`allOf`)     | `mechanism`, `archetype`              |
+| `Receptor.schema.json`    | Receptor    | No     | Yes (`allOf`)     | `mechanism`, `archetype`              |
+| `Interaction.schema.json` | Interaction | No     | Yes (`allOf`)     | `effector`, `receptor`                |
+| `Archetype.schema.json`   | Archetype   | Yes    | No                | `title` (DM-enforced)                 |
+| `Directive.schema.json`   | Directive   | Yes    | No                | `structure`, `qualifier`, `purpose`   |
+| `Norm.schema.json`        | Norm        | Yes    | No                | `structure`, `qualifier`, `predicate` |
 
 **Extensible** schemas use `unevaluatedProperties: false` (allows `allOf` additions).
 **Sealed** schemas use `additionalProperties: false` and carry `$gsm:sealed: true`.
@@ -40,11 +40,11 @@ All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "g
 
 A single Archetype construct serves three distinct relational roles across the GSM class model, differentiated not by class hierarchy or table structure, but by which FK column references it:
 
-| Role | FK Column | Where | Structural base required? |
-| ------ | ----------- | ------- | -------------------------- |
-| **Typing** | `archetype_id` | Every Ascription | Yes — allOf chain must converge to exactly one GSM base (determines `DefinitionSubjectType`) |
-| **Qualifier** | `qualifier_id` | Directive, Norm | No — rootless (facet) archetypes allowed; defines the viability dimension being governed |
-| **Data** | `output_archetype_id` / `input_archetype_id` | Effector, Receptor | No — rootless archetypes allowed; declares the information type a port emits/consumes |
+| Role          | FK Column                                    | Where              | Structural base required?                                                                    |
+| ------------- | -------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
+| **Typing**    | `archetype_id`                               | Every Ascription   | Yes — allOf chain must converge to exactly one GSM base (determines `DefinitionSubjectType`) |
+| **Qualifier** | `qualifier_id`                               | Directive, Norm    | No — rootless (facet) archetypes allowed; defines the viability dimension being governed     |
+| **Data**      | `output_archetype_id` / `input_archetype_id` | Effector, Receptor | No — rootless archetypes allowed; declares the information type a port emits/consumes        |
 
 **Why one construct and one table suffice**: all three roles share the same identity model (Definition + Ascription lifecycle), the same schema validation surface (JSON Schema + `$gsm:*` vocabulary), and the same governance process (authoring → review → activation). The roles differ only in referential position (which FK column) and in structural-base requirement (typing requires a base; qualifier and data do not). Splitting into separate entities would duplicate the entire Ascription lifecycle, schema validation, and vocabulary infrastructure for no semantic gain.
 
@@ -52,7 +52,7 @@ The allOf chain presence/absence IS the discriminant: DM enforces structural-bas
 
 ## `$gsm:*` Schema Vocabulary
 
-Archetype schemas carry `$gsm:*` vocabulary keywords — schema-level declarations that instruct DM *how* to govern Ascription data beyond structural typing. They form the **governance contract** between Archetypes and DM.
+Archetype schemas carry `$gsm:*` vocabulary keywords — schema-level declarations that instruct DM _how_ to govern Ascription data beyond structural typing. They form the **governance contract** between Archetypes and DM.
 
 DM introspects vocabulary keywords at **Archetype authoring time** (validates well-formedness, provisions infrastructure) and enforces them at **Ascription authoring time** (validates data). No runtime behavior — pure definition-plane governance signals.
 
@@ -60,14 +60,14 @@ Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema**
 
 ### Sealed vocabulary keywords (GSM-defined, DM-implemented)
 
-| Keyword | Scope | DM Behavior | PostgreSQL Mechanism |
-| --------- | ------- | ------------- | --------------------- |
-| `$gsm:sealed` | Archetype (top-level) | Rejects tenant `allOf` extension | Authoring-time validation |
-| `$gsm:identityBound` | Cross-version (same Definition) | Rejects Ascription if value differs from first | Authoring-time validation |
-| `$gsm:queryable` | Query optimization | Auto-provisions JSONB path index | Expression index or GIN |
-| `$gsm:unique` | Cross-Definition (same Archetype) | Enforces uniqueness among in-effect Ascriptions | Partial unique expression index |
-| `$gsm:dataProtection` | Data protection | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time |
-| `$gsm:validation` | Intra-Ascription | Evaluates CEL CHECK constraints at authoring | Authoring-time validation |
+| Keyword               | Scope                             | DM Behavior                                                                             | PostgreSQL Mechanism            |
+| --------------------- | --------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------- |
+| `$gsm:sealed`         | Archetype (top-level)             | Rejects tenant `allOf` extension                                                        | Authoring-time validation       |
+| `$gsm:identityBound`  | Cross-version (same Definition)   | Rejects Ascription if value differs from first                                          | Authoring-time validation       |
+| `$gsm:queryable`      | Query optimization                | Auto-provisions JSONB path index                                                        | Expression index or GIN         |
+| `$gsm:unique`         | Cross-Definition (same Archetype) | Enforces uniqueness among in-effect Ascriptions                                         | Partial unique expression index |
+| `$gsm:dataProtection` | Data protection                   | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time     |
+| `$gsm:validation`     | Intra-Ascription                  | Evaluates CEL CHECK constraints at authoring                                            | Authoring-time validation       |
 
 ### `$gsm:sealed: true`
 
@@ -89,7 +89,7 @@ Constraints:
 
 ### `$gsm:unique: true`
 
-Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. Different from `$gsm:identityBound` (same Definition) — `$gsm:unique` constrains across *all* Definitions of the same Archetype.
+Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. Different from `$gsm:identityBound` (same Definition) — `$gsm:unique` constrains across _all_ Definitions of the same Archetype.
 
 DM provisions: `CREATE UNIQUE INDEX ON ascription ((statement->>'prop')) WHERE archetype_id = X AND status IN ('ACTIVE','DEPRECATED')`.
 
@@ -197,9 +197,7 @@ Tenant-defined Archetypes extending a base schema:
 {
   "$schema": "gsm://archetypes/Archetype/v1",
   "title": "CostCenterProperties",
-  "allOf": [
-    { "$ref": "gsm://archetypes/Structure/v1" }
-  ],
+  "allOf": [{ "$ref": "gsm://archetypes/Structure/v1" }],
   "properties": {
     "costCenter": {
       "type": "string",
@@ -219,9 +217,7 @@ Tenant-defined Archetypes extending a base schema:
       }
     }
   },
-  "$gsm:validation": [
-    "this.costCenter.matches('^[A-Z]{2,4}-[0-9]{4}$')"
-  ]
+  "$gsm:validation": ["this.costCenter.matches('^[A-Z]{2,4}-[0-9]{4}$')"]
 }
 ```
 
@@ -262,19 +258,19 @@ The mapping from domain classification to GSM treatments is a **domain governanc
 
 `$gsm:dataProtection` is organized by **lifecycle phase** — when protection applies — not by measure type. Two phases cover the complete data lifecycle:
 
-| Phase | Scope | Description |
-| ------- | ------- | ------------- |
-| `atRest` | Persisted JSONB | How data is stored in the `statement` column |
+| Phase       | Scope                    | Description                                                                                       |
+| ----------- | ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `atRest`    | Persisted JSONB          | How data is stored in the `statement` column                                                      |
 | `inTransit` | All non-persisted output | How data appears in API responses, domain events, streams, logs, traces, metrics, and diagnostics |
 
 Each phase independently declares at most **one** of four uniform measures:
 
-| Measure | Semantics |
-| --------- | ----------- |
-| `encryption` | Reversible AES-256-GCM envelope encryption. DM encrypts/decrypts transparently |
-| `hash` | Irreversible one-way salted hash. Original value permanently destroyed |
-| `mask` | Partial masking — visible from LEFT/RIGHT, replacement character × occurrence |
-| `suppression` | Complete omission — field absent from output |
+| Measure       | Semantics                                                                      |
+| ------------- | ------------------------------------------------------------------------------ |
+| `encryption`  | Reversible AES-256-GCM envelope encryption. DM encrypts/decrypts transparently |
+| `hash`        | Irreversible one-way salted hash. Original value permanently destroyed         |
+| `mask`        | Partial masking — visible from LEFT/RIGHT, replacement character × occurrence  |
+| `suppression` | Complete omission — field absent from output                                   |
 
 **No auto-cascade**: declaring `atRest` does NOT imply any `inTransit` treatment. Each phase must be explicitly declared. This is deliberate — the author decides exactly which treatment applies at each lifecycle point.
 
@@ -301,12 +297,12 @@ Encryption is **transparent** — DM encrypts at write time and decrypts at read
 
 For non-transparent measures (hash, mask, suppression), schema compatibility rules apply uniformly across all phases:
 
-| Measure | Property type restriction | Schema constraint restrictions |
-| --------- | -------------------------- | ------------------------------- |
-| `encryption` | None | None (transparent — DM encrypts/decrypts internally) |
-| `hash` | `type` MUST be `"string"` | MUST NOT have `enum`, `const`, `pattern`, `format`, `maxLength` |
-| `mask` | `type` MUST be `"string"` | MUST NOT have `enum`, `const`, `pattern`, `format` |
-| `suppression` | None | Property MUST NOT be in parent's `required` array |
+| Measure       | Property type restriction | Schema constraint restrictions                                  |
+| ------------- | ------------------------- | --------------------------------------------------------------- |
+| `encryption`  | None                      | None (transparent — DM encrypts/decrypts internally)            |
+| `hash`        | `type` MUST be `"string"` | MUST NOT have `enum`, `const`, `pattern`, `format`, `maxLength` |
+| `mask`        | `type` MUST be `"string"` | MUST NOT have `enum`, `const`, `pattern`, `format`              |
+| `suppression` | None                      | Property MUST NOT be in parent's `required` array               |
 
 **Rationale**: hashes are hex digests, masked values contain replacement characters — both violate constraints designed for cleartext. Suppression omits the field entirely — required fields cannot be omitted. Encryption is transparent: DM validates cleartext before encrypting and returns cleartext after decrypting, so the property's full schema always applies.
 
@@ -314,13 +310,13 @@ For non-transparent measures (hash, mask, suppression), schema compatibility rul
 
 `atRest` determines what data is available to transit phases. Not all measure combinations are semantically valid:
 
-| `atRest` measure | Allowed `inTransit` | Reason |
-| ------------------ | --------------------- | -------- |
-| `encryption` | Any measure or absent | DM decrypts → full cleartext available for any transit treatment |
-| `hash` | `suppression` only, or absent | Stored value is a hash digest — encrypting, masking, or re-hashing a hash is semantically meaningless |
-| `mask` | `suppression` only, or absent | Stored value is already degraded — further transformation is meaningless |
-| `suppression` | MUST be absent | No data exists — nothing to process |
-| Absent | Any measure or absent | Cleartext stored — all transit measures available |
+| `atRest` measure | Allowed `inTransit`           | Reason                                                                                                |
+| ---------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `encryption`     | Any measure or absent         | DM decrypts → full cleartext available for any transit treatment                                      |
+| `hash`           | `suppression` only, or absent | Stored value is a hash digest — encrypting, masking, or re-hashing a hash is semantically meaningless |
+| `mask`           | `suppression` only, or absent | Stored value is already degraded — further transformation is meaningless                              |
+| `suppression`    | MUST be absent                | No data exists — nothing to process                                                                   |
+| Absent           | Any measure or absent         | Cleartext stored — all transit measures available                                                     |
 
 DM enforces these rules at Archetype authoring time. Violations are rejected.
 
@@ -328,13 +324,13 @@ DM enforces these rules at Archetype authoring time. Violations are rejected.
 
 PostgreSQL indexes operate on persisted JSONB values. Only `atRest` affects queryability:
 
-| `atRest` measure | `$gsm:queryable` | Reason |
-| ------------------ | ------------------- | -------- |
-| `encryption` | **Forbidden** | Ciphertext is non-deterministic (GCM nonce) — cannot be indexed |
-| `hash` | Allowed | DM hashes query inputs to match stored hashes |
-| `mask` | **Forbidden** | Masked value cannot match query inputs |
-| `suppression` | **Forbidden** | No data to index |
-| Absent | Allowed | Cleartext stored — index works normally |
+| `atRest` measure | `$gsm:queryable` | Reason                                                          |
+| ---------------- | ---------------- | --------------------------------------------------------------- |
+| `encryption`     | **Forbidden**    | Ciphertext is non-deterministic (GCM nonce) — cannot be indexed |
+| `hash`           | Allowed          | DM hashes query inputs to match stored hashes                   |
+| `mask`           | **Forbidden**    | Masked value cannot match query inputs                          |
+| `suppression`    | **Forbidden**    | No data to index                                                |
+| Absent           | Allowed          | Cleartext stored — index works normally                         |
 
 ### GSM meta-schema (`$gsm:dataProtection` detail)
 
@@ -440,7 +436,7 @@ All `$gsm:*` vocabulary keyword schemas are defined in [`Archetype.schema.json`]
 
 ### Protection measures
 
-The four measures are uniform across all phases. Phase determines *when* the measure applies; the measure determines *what transformation* is performed.
+The four measures are uniform across all phases. Phase determines _when_ the measure applies; the measure determines _what transformation_ is performed.
 
 #### `encryption` — Envelope encryption
 
@@ -448,10 +444,10 @@ Replaces the property value with **ciphertext** (reversible by DM). DM encrypts 
 
 **Fields**:
 
-| Field | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `algorithm` | enum | No | `"AES-256-GCM"` | Authenticated encryption algorithm |
-| `keyRetention` | integer | No | — | Days before automatic key destruction (crypto-shredding) |
+| Field          | Type    | Required | Default         | Description                                              |
+| -------------- | ------- | -------- | --------------- | -------------------------------------------------------- |
+| `algorithm`    | enum    | No       | `"AES-256-GCM"` | Authenticated encryption algorithm                       |
+| `keyRetention` | integer | No       | —               | Days before automatic key destruction (crypto-shredding) |
 
 **Algorithm**: `AES-256-GCM` (sealed enum). Authenticated encryption — confidentiality + integrity in one operation. Implemented via `javax.crypto.Cipher` with `"AES/GCM/NoPadding"` — zero external dependencies.
 
@@ -473,10 +469,10 @@ Replaces the property value with **ciphertext** (reversible by DM). DM encrypts 
 
 **Phase-specific semantics**:
 
-| Phase | Behavior |
-| ------- | ---------- |
-| `atRest` | Statement value stored as ciphertext in JSONB. DM decrypts transparently at read time — consumers always see cleartext. `$gsm:queryable` is forbidden (ciphertext not indexable). |
-| `inTransit` | Output contains field-level encrypted value. Consumer requires a shared key to decrypt. |
+| Phase       | Behavior                                                                                                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `atRest`    | Statement value stored as ciphertext in JSONB. DM decrypts transparently at read time — consumers always see cleartext. `$gsm:queryable` is forbidden (ciphertext not indexable). |
+| `inTransit` | Output contains field-level encrypted value. Consumer requires a shared key to decrypt.                                                                                           |
 
 **Minimal declaration** (all defaults):
 
@@ -492,17 +488,17 @@ Replaces the property value with a **salted hash** (irreversible). The original 
 
 **Fields**:
 
-| Field | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `algorithm` | enum | No | `"SHA-256"` | Hash algorithm |
+| Field       | Type | Required | Default     | Description    |
+| ----------- | ---- | -------- | ----------- | -------------- |
+| `algorithm` | enum | No       | `"SHA-256"` | Hash algorithm |
 
 **Supported algorithms** (sealed enum, all `java.security.MessageDigest`, zero external deps):
 
-| Algorithm | Output size | Use case |
-| ----------- | ------------- | ---------- |
-| `SHA-256` | 256 bits | Standard — fast, universally supported |
-| `SHA-512` | 512 bits | Higher collision resistance for large datasets |
-| `SHA3-256` | 256 bits | NIST post-quantum hedge, Java 9+ native |
+| Algorithm  | Output size | Use case                                       |
+| ---------- | ----------- | ---------------------------------------------- |
+| `SHA-256`  | 256 bits    | Standard — fast, universally supported         |
+| `SHA-512`  | 512 bits    | Higher collision resistance for large datasets |
+| `SHA3-256` | 256 bits    | NIST post-quantum hedge, Java 9+ native        |
 
 **Salting**: DM always applies a per-tenant salt (generated and stored by DM, never exposed to tenants). Transparent prevention of rainbow-table attacks.
 
@@ -510,10 +506,10 @@ Replaces the property value with a **salted hash** (irreversible). The original 
 
 **Phase-specific semantics**:
 
-| Phase | Behavior |
-| ------- | ---------- |
-| `atRest` | Statement value replaced with salted hash in JSONB. Cleartext permanently destroyed. `$gsm:queryable` is allowed (DM hashes query inputs to match stored hashes). |
-| `inTransit` | Output contains hash of the (potentially decrypted) value. Enables correlation without exposing cleartext. |
+| Phase       | Behavior                                                                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `atRest`    | Statement value replaced with salted hash in JSONB. Cleartext permanently destroyed. `$gsm:queryable` is allowed (DM hashes query inputs to match stored hashes). |
+| `inTransit` | Output contains hash of the (potentially decrypted) value. Enables correlation without exposing cleartext.                                                        |
 
 **Use cases by phase**:
 
@@ -526,19 +522,19 @@ Shows a portion of the value (visible from LEFT or RIGHT) and replaces the rest 
 
 **Fields**:
 
-| Field | Type | Required | Default | Description |
-| ------- | ------ | ---------- | --------- | ------------- |
-| `from` | enum | Yes | — | `"LEFT"` or `"RIGHT"` — which end of the value to keep visible |
-| `with.character` | string | No | `"*"` | Single replacement character |
-| `with.occurrence` | integer | Yes | — | Number of characters to keep visible (1–16) |
+| Field             | Type    | Required | Default | Description                                                    |
+| ----------------- | ------- | -------- | ------- | -------------------------------------------------------------- |
+| `from`            | enum    | Yes      | —       | `"LEFT"` or `"RIGHT"` — which end of the value to keep visible |
+| `with.character`  | string  | No       | `"*"`   | Single replacement character                                   |
+| `with.occurrence` | integer | Yes      | —       | Number of characters to keep visible (1–16)                    |
 
 **Implementation**: deterministic character substitution — no regex.
 
-| Input | from | with | Output |
-| ------- | ------ | ------ | -------- |
-| `"4111111111111111"` | `RIGHT` | `{ "occurrence": 4 }` | `"************1111"` |
-| `"john.doe@acme.com"` | `LEFT` | `{ "occurrence": 4 }` | `"john**************"` |
-| `"abc"` | `RIGHT` | `{ "occurrence": 4 }` | `"***"` (value shorter than `with.occurrence` — DM masks entire value) |
+| Input                 | from    | with                  | Output                                                                 |
+| --------------------- | ------- | --------------------- | ---------------------------------------------------------------------- |
+| `"4111111111111111"`  | `RIGHT` | `{ "occurrence": 4 }` | `"************1111"`                                                   |
+| `"john.doe@acme.com"` | `LEFT`  | `{ "occurrence": 4 }` | `"john**************"`                                                 |
+| `"abc"`               | `RIGHT` | `{ "occurrence": 4 }` | `"***"` (value shorter than `with.occurrence` — DM masks entire value) |
 
 **Type restriction**: `mask` only works on strings. DM rejects `mask` at authoring time if property `type` is not `"string"`. Credit card numbers, phone numbers, etc. MUST be typed as `"string"` if they need masking.
 
@@ -546,10 +542,10 @@ Shows a portion of the value (visible from LEFT or RIGHT) and replaces the rest 
 
 **Phase-specific semantics**:
 
-| Phase | Behavior |
-| ------- | ---------- |
-| `atRest` | Masked value stored in JSONB. Original cleartext permanently replaced. `$gsm:queryable` forbidden (masked value cannot match query inputs). |
-| `inTransit` | Output contains masked value. |
+| Phase       | Behavior                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `atRest`    | Masked value stored in JSONB. Original cleartext permanently replaced. `$gsm:queryable` forbidden (masked value cannot match query inputs). |
+| `inTransit` | Output contains masked value.                                                                                                               |
 
 #### `suppression` — Field omission
 
@@ -565,9 +561,9 @@ DM **silently omits** the field from output. The field does not exist in the out
 
 **Phase-specific semantics**:
 
-| Phase | Behavior |
-| ------- | ---------- |
-| `atRest` | Field not stored in JSONB. Data never enters the database. |
+| Phase       | Behavior                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `atRest`    | Field not stored in JSONB. Data never enters the database.                                                        |
 | `inTransit` | Field omitted from all non-persisted output (API responses, events, streams, logs, traces, metrics, diagnostics). |
 
 ### Domain composition example
@@ -589,7 +585,12 @@ Example: an ITIP domain classifying "PII", "Credential", and non-sensitive data:
             "keyRetention": 1095
           }
         },
-        "inTransit": { "mask": { "from": "LEFT", "with": { "character": "*", "occurrence": 3 } } }
+        "inTransit": {
+          "mask": {
+            "from": "LEFT",
+            "with": { "character": "*", "occurrence": 3 }
+          }
+        }
       }
     },
     "email": {

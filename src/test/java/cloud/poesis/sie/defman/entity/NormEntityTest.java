@@ -18,8 +18,7 @@ class NormEntityTest {
     StructureEntity struct = mock(StructureEntity.class);
     ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
 
-    NormEntity entity =
-        new NormEntity(def, arch, MAPPER.createObjectNode(), struct, qualifier);
+    NormEntity entity = new NormEntity(def, arch, MAPPER.createObjectNode(), struct, qualifier);
     assertEquals(struct, entity.getStructure());
     assertEquals(qualifier, entity.getQualifier());
   }
