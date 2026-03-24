@@ -31,179 +31,179 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefinitionServiceTest {
 
-  @Mock private DefinitionRepository definitionRepository;
+    @Mock
+    private DefinitionRepository definitionRepository;
 
-  private DefinitionService service;
+    private DefinitionService service;
 
-  @BeforeEach
-  void setUp() {
-    service = new DefinitionService(definitionRepository);
-  }
-
-  private static DefinitionEntity stubDefinition(
-      UUID id, DefinitionSubjectType type, boolean withAscriptions) {
-    DefinitionEntity entity = mock(DefinitionEntity.class);
-    org.mockito.Mockito.lenient().when(entity.getId()).thenReturn(id);
-    org.mockito.Mockito.lenient().when(entity.getSubjectType()).thenReturn(type);
-    if (withAscriptions) {
-      when(entity.getAscriptions()).thenReturn(List.of(mock(AscriptionEntity.class)));
-    } else {
-      when(entity.getAscriptions()).thenReturn(Collections.emptyList());
-    }
-    return entity;
-  }
-
-  @Nested
-  class GetById {
-
-    @Test
-    void returnsEntity_whenFoundWithAscriptions() {
-      UUID id = UUID.randomUUID();
-      DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.STRUCTURE, true);
-      when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
-
-      DefinitionEntity result = service.getById(id);
-
-      assertNotNull(result);
-      assertEquals(entity, result);
+    @BeforeEach
+    void setUp() {
+        service = new DefinitionService(definitionRepository);
     }
 
-    @Test
-    void throwsResourceNotFound_whenNotFound() {
-      UUID id = UUID.randomUUID();
-      when(definitionRepository.findById(id)).thenReturn(Optional.empty());
-
-      assertThrows(ResourceNotFoundException.class, () -> service.getById(id));
+    private static DefinitionEntity stubDefinition(
+            UUID id, DefinitionSubjectType type, boolean withAscriptions) {
+        DefinitionEntity entity = mock(DefinitionEntity.class);
+        org.mockito.Mockito.lenient().when(entity.getId()).thenReturn(id);
+        org.mockito.Mockito.lenient().when(entity.getSubjectType()).thenReturn(type);
+        if (withAscriptions) {
+            when(entity.getAscriptions()).thenReturn(List.of(mock(AscriptionEntity.class)));
+        } else {
+            when(entity.getAscriptions()).thenReturn(Collections.emptyList());
+        }
+        return entity;
     }
 
-    @Test
-    void throwsRuleViolation_whenNoAscriptions() {
-      UUID id = UUID.randomUUID();
-      DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.STRUCTURE, false);
-      when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
+    @Nested
+    class GetById {
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.getById(id));
-      assertEquals(RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, ex.getRuleType());
-    }
-  }
+        @Test
+        void returnsEntity_whenFoundWithAscriptions() {
+            UUID id = UUID.randomUUID();
+            DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.STRUCTURE, true);
+            when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
 
-  @Nested
-  class GetByIdWithArchetypes {
+            DefinitionEntity result = service.getById(id);
 
-    @Test
-    void returnsEntity_whenFoundWithAscriptions() {
-      UUID id = UUID.randomUUID();
-      DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.ARCHETYPE, true);
-      when(definitionRepository.findWithAscriptionArchetypesById(id))
-          .thenReturn(Optional.of(entity));
+            assertNotNull(result);
+            assertEquals(entity, result);
+        }
 
-      DefinitionEntity result = service.getByIdWithArchetypes(id);
+        @Test
+        void throwsResourceNotFound_whenNotFound() {
+            UUID id = UUID.randomUUID();
+            when(definitionRepository.findById(id)).thenReturn(Optional.empty());
 
-      assertNotNull(result);
-      assertEquals(entity, result);
-    }
+            assertThrows(ResourceNotFoundException.class, () -> service.getById(id));
+        }
 
-    @Test
-    void throwsResourceNotFound_whenNotFound() {
-      UUID id = UUID.randomUUID();
-      when(definitionRepository.findWithAscriptionArchetypesById(id)).thenReturn(Optional.empty());
+        @Test
+        void throwsRuleViolation_whenNoAscriptions() {
+            UUID id = UUID.randomUUID();
+            DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.STRUCTURE, false);
+            when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
 
-      assertThrows(ResourceNotFoundException.class, () -> service.getByIdWithArchetypes(id));
+            RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.getById(id));
+            assertEquals(RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, ex.getRuleType());
+        }
     }
 
-    @Test
-    void throwsRuleViolation_whenNoAscriptions() {
-      UUID id = UUID.randomUUID();
-      DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.MECHANISM, false);
-      when(definitionRepository.findWithAscriptionArchetypesById(id))
-          .thenReturn(Optional.of(entity));
+    @Nested
+    class GetByIdWithArchetypes {
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.getByIdWithArchetypes(id));
-      assertEquals(RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, ex.getRuleType());
-    }
-  }
+        @Test
+        void returnsEntity_whenFoundWithAscriptions() {
+            UUID id = UUID.randomUUID();
+            DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.ARCHETYPE, true);
+            when(definitionRepository.findWithAscriptionArchetypesById(id))
+                    .thenReturn(Optional.of(entity));
 
-  @Nested
-  class GetByIds {
+            DefinitionEntity result = service.getByIdWithArchetypes(id);
 
-    @Test
-    void returnsMappedEntities() {
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      DefinitionEntity e1 = mock(DefinitionEntity.class);
-      when(e1.getId()).thenReturn(id1);
-      DefinitionEntity e2 = mock(DefinitionEntity.class);
-      when(e2.getId()).thenReturn(id2);
-      when(definitionRepository.findAllById(any())).thenReturn(List.of(e1, e2));
+            assertNotNull(result);
+            assertEquals(entity, result);
+        }
 
-      Map<UUID, DefinitionEntity> result = service.getByIds(List.of(id1, id2));
+        @Test
+        void throwsResourceNotFound_whenNotFound() {
+            UUID id = UUID.randomUUID();
+            when(definitionRepository.findWithAscriptionArchetypesById(id)).thenReturn(Optional.empty());
 
-      assertEquals(2, result.size());
-      assertEquals(e1, result.get(id1));
-      assertEquals(e2, result.get(id2));
-    }
+            assertThrows(ResourceNotFoundException.class, () -> service.getByIdWithArchetypes(id));
+        }
 
-    @Test
-    void returnsEmptyMap_whenNoResults() {
-      when(definitionRepository.findAllById(any())).thenReturn(Collections.emptyList());
+        @Test
+        void throwsRuleViolation_whenNoAscriptions() {
+            UUID id = UUID.randomUUID();
+            DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.MECHANISM, false);
+            when(definitionRepository.findWithAscriptionArchetypesById(id))
+                    .thenReturn(Optional.of(entity));
 
-      Map<UUID, DefinitionEntity> result = service.getByIds(List.of(UUID.randomUUID()));
-
-      assertTrue(result.isEmpty());
-    }
-  }
-
-  @Nested
-  class Create {
-
-    @Test
-    void savesAndReturnsEntity() {
-      DefinitionEntity saved = new DefinitionEntity(DefinitionSubjectType.NORM);
-      when(definitionRepository.save(any(DefinitionEntity.class))).thenReturn(saved);
-
-      DefinitionEntity result = service.create(DefinitionSubjectType.NORM);
-
-      assertNotNull(result);
-      assertEquals(DefinitionSubjectType.NORM, result.getSubjectType());
-      verify(definitionRepository).save(any(DefinitionEntity.class));
-    }
-  }
-
-  @Nested
-  class ResolveOrCreate {
-
-    @Test
-    void resolvesExisting_whenIdProvided() {
-      UUID id = UUID.randomUUID();
-      DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.DIRECTIVE, true);
-      when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
-
-      DefinitionEntity result = service.resolveOrCreate(id, DefinitionSubjectType.DIRECTIVE);
-
-      assertEquals(entity, result);
+            RuleViolationException ex = assertThrows(RuleViolationException.class,
+                    () -> service.getByIdWithArchetypes(id));
+            assertEquals(RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, ex.getRuleType());
+        }
     }
 
-    @Test
-    void throwsResourceNotFound_whenIdProvidedButNotFound() {
-      UUID id = UUID.randomUUID();
-      when(definitionRepository.findById(id)).thenReturn(Optional.empty());
+    @Nested
+    class GetByIds {
 
-      assertThrows(
-          ResourceNotFoundException.class,
-          () -> service.resolveOrCreate(id, DefinitionSubjectType.STRUCTURE));
+        @Test
+        void returnsMappedEntities() {
+            UUID id1 = UUID.randomUUID();
+            UUID id2 = UUID.randomUUID();
+            DefinitionEntity e1 = mock(DefinitionEntity.class);
+            when(e1.getId()).thenReturn(id1);
+            DefinitionEntity e2 = mock(DefinitionEntity.class);
+            when(e2.getId()).thenReturn(id2);
+            when(definitionRepository.findAllById(any())).thenReturn(List.of(e1, e2));
+
+            Map<UUID, DefinitionEntity> result = service.getByIds(List.of(id1, id2));
+
+            assertEquals(2, result.size());
+            assertEquals(e1, result.get(id1));
+            assertEquals(e2, result.get(id2));
+        }
+
+        @Test
+        void returnsEmptyMap_whenNoResults() {
+            when(definitionRepository.findAllById(any())).thenReturn(Collections.emptyList());
+
+            Map<UUID, DefinitionEntity> result = service.getByIds(List.of(UUID.randomUUID()));
+
+            assertTrue(result.isEmpty());
+        }
     }
 
-    @Test
-    void createsNew_whenIdIsNull() {
-      DefinitionEntity saved = new DefinitionEntity(DefinitionSubjectType.INTERACTION);
-      when(definitionRepository.save(any(DefinitionEntity.class))).thenReturn(saved);
+    @Nested
+    class Create {
 
-      DefinitionEntity result = service.resolveOrCreate(null, DefinitionSubjectType.INTERACTION);
+        @Test
+        void savesAndReturnsEntity() {
+            DefinitionEntity saved = new DefinitionEntity(DefinitionSubjectType.NORM);
+            when(definitionRepository.save(any(DefinitionEntity.class))).thenReturn(saved);
 
-      assertNotNull(result);
-      verify(definitionRepository).save(any(DefinitionEntity.class));
+            DefinitionEntity result = service.create(DefinitionSubjectType.NORM);
+
+            assertNotNull(result);
+            assertEquals(DefinitionSubjectType.NORM, result.getSubjectType());
+            verify(definitionRepository).save(any(DefinitionEntity.class));
+        }
     }
-  }
+
+    @Nested
+    class ResolveOrCreate {
+
+        @Test
+        void resolvesExisting_whenIdProvided() {
+            UUID id = UUID.randomUUID();
+            DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.DIRECTIVE, true);
+            when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+            DefinitionEntity result = service.resolveOrCreate(id, DefinitionSubjectType.DIRECTIVE);
+
+            assertEquals(entity, result);
+        }
+
+        @Test
+        void throwsResourceNotFound_whenIdProvidedButNotFound() {
+            UUID id = UUID.randomUUID();
+            when(definitionRepository.findById(id)).thenReturn(Optional.empty());
+
+            assertThrows(
+                    ResourceNotFoundException.class,
+                    () -> service.resolveOrCreate(id, DefinitionSubjectType.STRUCTURE));
+        }
+
+        @Test
+        void createsNew_whenIdIsNull() {
+            DefinitionEntity saved = new DefinitionEntity(DefinitionSubjectType.INTERACTION);
+            when(definitionRepository.save(any(DefinitionEntity.class))).thenReturn(saved);
+
+            DefinitionEntity result = service.resolveOrCreate(null, DefinitionSubjectType.INTERACTION);
+
+            assertNotNull(result);
+            verify(definitionRepository).save(any(DefinitionEntity.class));
+        }
+    }
 }

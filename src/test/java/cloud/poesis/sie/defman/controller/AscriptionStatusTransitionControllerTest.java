@@ -37,172 +37,176 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class AscriptionStatusTransitionControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-  @MockitoBean private AscriptionLifecycleService lifecycleService;
+    @MockitoBean
+    private AscriptionLifecycleService lifecycleService;
 
-  @MockitoBean private DataProtectionService dataProtectionService;
+    @MockitoBean
+    private DataProtectionService dataProtectionService;
 
-  private UUID ascriptionId;
-  private UUID transitionId;
-  private AscriptionStatusTransitionEntity transitionEntity;
+    private UUID ascriptionId;
+    private UUID transitionId;
+    private AscriptionStatusTransitionEntity transitionEntity;
 
-  @BeforeEach
-  void setUp() {
-    ascriptionId = UUID.randomUUID();
-    transitionId = UUID.randomUUID();
+    @BeforeEach
+    void setUp() {
+        ascriptionId = UUID.randomUUID();
+        transitionId = UUID.randomUUID();
 
-    lenient()
-        .when(dataProtectionService.applyInTransitProtection(any(), any()))
-        .thenAnswer(inv -> inv.getArgument(0));
+        lenient()
+                .when(dataProtectionService.applyInTransitProtection(any(), any()))
+                .thenAnswer(inv -> inv.getArgument(0));
 
-    AscriptionEntity parentAscription = mock(AscriptionEntity.class);
-    when(parentAscription.getId()).thenReturn(ascriptionId);
+        AscriptionEntity parentAscription = mock(AscriptionEntity.class);
+        when(parentAscription.getId()).thenReturn(ascriptionId);
 
-    transitionEntity = mock(AscriptionStatusTransitionEntity.class);
-    when(transitionEntity.getId()).thenReturn(transitionId);
-    when(transitionEntity.getAscription()).thenReturn(parentAscription);
-    when(transitionEntity.getPreStatus()).thenReturn(null);
-    when(transitionEntity.getPostStatus()).thenReturn(AscriptionStatusType.DRAFT);
-    when(transitionEntity.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
-  }
-
-  // ========================================================================
-  // GET TRANSITIONS
-  // ========================================================================
-
-  @Nested
-  class GetTransitionsTests {
-
-    @Test
-    void getTransitions_returnsCollectionWithLinks() throws Exception {
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
-
-      mockMvc
-          .perform(
-              get("/api/v1/ascriptions/{id}/transitions", ascriptionId).accept(MediaTypes.HAL_JSON))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(1)))
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.self.href").exists())
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.collection.href")
-                  .exists())
-          .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.up.href").exists())
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.first.href").exists())
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.last.href").exists())
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.create-form.href")
-                  .exists());
+        transitionEntity = mock(AscriptionStatusTransitionEntity.class);
+        when(transitionEntity.getId()).thenReturn(transitionId);
+        when(transitionEntity.getAscription()).thenReturn(parentAscription);
+        when(transitionEntity.getPreStatus()).thenReturn(null);
+        when(transitionEntity.getPostStatus()).thenReturn(AscriptionStatusType.DRAFT);
+        when(transitionEntity.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
     }
 
-    @Test
-    void getTransitions_multipleTransitions_hasPrevNextLinks() throws Exception {
-      UUID t2Id = UUID.randomUUID();
-      AscriptionStatusTransitionEntity t2 = mock(AscriptionStatusTransitionEntity.class);
-      AscriptionEntity parent2 = mock(AscriptionEntity.class);
-      when(parent2.getId()).thenReturn(ascriptionId);
-      when(t2.getId()).thenReturn(t2Id);
-      when(t2.getAscription()).thenReturn(parent2);
-      when(t2.getPreStatus()).thenReturn(AscriptionStatusType.DRAFT);
-      when(t2.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
-      when(t2.getTimestamp()).thenReturn(Instant.parse("2025-01-02T00:00:00Z"));
+    // ========================================================================
+    // GET TRANSITIONS
+    // ========================================================================
 
-      when(lifecycleService.getTransitions(ascriptionId))
-          .thenReturn(List.of(transitionEntity, t2));
+    @Nested
+    class GetTransitionsTests {
 
-      mockMvc
-          .perform(
-              get("/api/v1/ascriptions/{id}/transitions", ascriptionId).accept(MediaTypes.HAL_JSON))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(2)))
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.next.href").exists())
-          .andExpect(
-              jsonPath("$._embedded.ascriptionStatusTransitions[1]._links.previous.href")
-                  .exists());
-    }
-  }
+        @Test
+        void getTransitions_returnsCollectionWithLinks() throws Exception {
+            when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
-  // ========================================================================
-  // GET SINGLE TRANSITION
-  // ========================================================================
+            mockMvc
+                    .perform(
+                            get("/api/v1/ascriptions/{id}/transitions", ascriptionId).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(1)))
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.self.href").exists())
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.collection.href")
+                                    .exists())
+                    .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.up.href").exists())
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.first.href").exists())
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.last.href").exists())
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.create-form.href")
+                                    .exists());
+        }
 
-  @Nested
-  class GetTransitionTests {
+        @Test
+        void getTransitions_multipleTransitions_hasPrevNextLinks() throws Exception {
+            UUID t2Id = UUID.randomUUID();
+            AscriptionStatusTransitionEntity t2 = mock(AscriptionStatusTransitionEntity.class);
+            AscriptionEntity parent2 = mock(AscriptionEntity.class);
+            when(parent2.getId()).thenReturn(ascriptionId);
+            when(t2.getId()).thenReturn(t2Id);
+            when(t2.getAscription()).thenReturn(parent2);
+            when(t2.getPreStatus()).thenReturn(AscriptionStatusType.DRAFT);
+            when(t2.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
+            when(t2.getTimestamp()).thenReturn(Instant.parse("2025-01-02T00:00:00Z"));
 
-    @Test
-    void getTransition_returnsWithNavigationLinks() throws Exception {
-      when(lifecycleService.getTransition(transitionId, ascriptionId))
-          .thenReturn(Optional.of(transitionEntity));
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+            when(lifecycleService.getTransitions(ascriptionId))
+                    .thenReturn(List.of(transitionEntity, t2));
 
-      mockMvc
-          .perform(
-              get("/api/v1/ascriptions/{id}/transitions/{transitionId}", ascriptionId, transitionId)
-                  .accept(MediaTypes.HAL_JSON))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$.postStatus").value("DRAFT"))
-          .andExpect(jsonPath("$._links.self.href").exists())
-          .andExpect(jsonPath("$._links.up.href").exists());
-    }
-
-    @Test
-    void getTransition_notFound_returns404() throws Exception {
-      UUID badId = UUID.randomUUID();
-      when(lifecycleService.getTransition(badId, ascriptionId)).thenReturn(Optional.empty());
-
-      mockMvc
-          .perform(
-              get("/api/v1/ascriptions/{id}/transitions/{transitionId}", ascriptionId, badId)
-                  .accept(MediaTypes.HAL_JSON))
-          .andExpect(status().isNotFound());
-    }
-  }
-
-  // ========================================================================
-  // TRANSITION (POST)
-  // ========================================================================
-
-  @Nested
-  class TransitionTests {
-
-    @Test
-    void transition_returns201WithLocationAndBody() throws Exception {
-      when(lifecycleService.transition(ascriptionId, "PROPOSED")).thenReturn(transitionEntity);
-      when(transitionEntity.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
-
-      ObjectNode body = objectMapper.createObjectNode();
-      body.put("targetStatus", "PROPOSED");
-
-      mockMvc
-          .perform(
-              post("/api/v1/ascriptions/{id}/transitions", ascriptionId)
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .accept(MediaTypes.HAL_JSON)
-                  .content(objectMapper.writeValueAsString(body)))
-          .andExpect(status().isCreated())
-          .andExpect(header().exists("Location"))
-          .andExpect(jsonPath("$.postStatus").value("PROPOSED"))
-          .andExpect(jsonPath("$._links.self.href").exists());
+            mockMvc
+                    .perform(
+                            get("/api/v1/ascriptions/{id}/transitions", ascriptionId).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(2)))
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[0]._links.next.href").exists())
+                    .andExpect(
+                            jsonPath("$._embedded.ascriptionStatusTransitions[1]._links.previous.href")
+                                    .exists());
+        }
     }
 
-    @Test
-    void transition_missingTargetStatus_returns400() throws Exception {
-      ObjectNode body = objectMapper.createObjectNode();
+    // ========================================================================
+    // GET SINGLE TRANSITION
+    // ========================================================================
 
-      mockMvc
-          .perform(
-              post("/api/v1/ascriptions/{id}/transitions", ascriptionId)
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .accept(MediaTypes.HAL_JSON)
-                  .content(objectMapper.writeValueAsString(body)))
-          .andExpect(status().isBadRequest());
+    @Nested
+    class GetTransitionTests {
+
+        @Test
+        void getTransition_returnsWithNavigationLinks() throws Exception {
+            when(lifecycleService.getTransition(transitionId, ascriptionId))
+                    .thenReturn(Optional.of(transitionEntity));
+            when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+
+            mockMvc
+                    .perform(
+                            get("/api/v1/ascriptions/{id}/transitions/{transitionId}", ascriptionId, transitionId)
+                                    .accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.postStatus").value("DRAFT"))
+                    .andExpect(jsonPath("$._links.self.href").exists())
+                    .andExpect(jsonPath("$._links.up.href").exists());
+        }
+
+        @Test
+        void getTransition_notFound_returns404() throws Exception {
+            UUID badId = UUID.randomUUID();
+            when(lifecycleService.getTransition(badId, ascriptionId)).thenReturn(Optional.empty());
+
+            mockMvc
+                    .perform(
+                            get("/api/v1/ascriptions/{id}/transitions/{transitionId}", ascriptionId, badId)
+                                    .accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isNotFound());
+        }
     }
-  }
+
+    // ========================================================================
+    // TRANSITION (POST)
+    // ========================================================================
+
+    @Nested
+    class TransitionTests {
+
+        @Test
+        void transition_returns201WithLocationAndBody() throws Exception {
+            when(lifecycleService.transition(ascriptionId, "PROPOSED")).thenReturn(transitionEntity);
+            when(transitionEntity.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
+            when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+
+            ObjectNode body = objectMapper.createObjectNode();
+            body.put("targetStatus", "PROPOSED");
+
+            mockMvc
+                    .perform(
+                            post("/api/v1/ascriptions/{id}/transitions", ascriptionId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaTypes.HAL_JSON)
+                                    .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().exists("Location"))
+                    .andExpect(jsonPath("$.postStatus").value("PROPOSED"))
+                    .andExpect(jsonPath("$._links.self.href").exists());
+        }
+
+        @Test
+        void transition_missingTargetStatus_returns400() throws Exception {
+            ObjectNode body = objectMapper.createObjectNode();
+
+            mockMvc
+                    .perform(
+                            post("/api/v1/ascriptions/{id}/transitions", ascriptionId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaTypes.HAL_JSON)
+                                    .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
 }

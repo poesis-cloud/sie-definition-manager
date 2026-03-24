@@ -27,114 +27,114 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AscriptionStatusTransitionServiceTest {
 
-  @Mock private AscriptionStatusTransitionRepository transitionRepo;
+    @Mock
+    private AscriptionStatusTransitionRepository transitionRepo;
 
-  @Mock private EntityManager entityManager;
+    @Mock
+    private EntityManager entityManager;
 
-  private AscriptionStatusTransitionService service;
+    private AscriptionStatusTransitionService service;
 
-  @BeforeEach
-  void setUp() {
-    service = new AscriptionStatusTransitionService(transitionRepo, entityManager);
-  }
-
-  @Nested
-  class RecordTransition {
-
-    @Test
-    void savesFlushesDetachesAndRefetches() {
-      AscriptionEntity ascription = mock(AscriptionEntity.class);
-      AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
-      UUID transitionId = UUID.randomUUID();
-      when(saved.getId()).thenReturn(transitionId);
-
-      AscriptionStatusTransitionEntity refetched = mock(AscriptionStatusTransitionEntity.class);
-      when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class))).thenReturn(saved);
-      when(transitionRepo.findById(transitionId)).thenReturn(Optional.of(refetched));
-
-      AscriptionStatusTransitionEntity result =
-          service.recordTransition(ascription, null, AscriptionStatusType.DRAFT);
-
-      assertEquals(refetched, result);
-      verify(entityManager).flush();
-      verify(entityManager).detach(saved);
-      verify(transitionRepo).findById(transitionId);
+    @BeforeEach
+    void setUp() {
+        service = new AscriptionStatusTransitionService(transitionRepo, entityManager);
     }
 
-    @Test
-    void throwsWhenRefetchFails() {
-      AscriptionEntity ascription = mock(AscriptionEntity.class);
-      AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
-      UUID transitionId = UUID.randomUUID();
-      when(saved.getId()).thenReturn(transitionId);
-      when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class))).thenReturn(saved);
-      when(transitionRepo.findById(transitionId)).thenReturn(Optional.empty());
+    @Nested
+    class RecordTransition {
 
-      assertThrows(
-          NoSuchElementException.class,
-          () ->
-              service.recordTransition(
-                  ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED));
-    }
-  }
+        @Test
+        void savesFlushesDetachesAndRefetches() {
+            AscriptionEntity ascription = mock(AscriptionEntity.class);
+            AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
+            UUID transitionId = UUID.randomUUID();
+            when(saved.getId()).thenReturn(transitionId);
 
-  @Nested
-  class FindByAscriptionId {
+            AscriptionStatusTransitionEntity refetched = mock(AscriptionStatusTransitionEntity.class);
+            when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class))).thenReturn(saved);
+            when(transitionRepo.findById(transitionId)).thenReturn(Optional.of(refetched));
 
-    @Test
-    void returnsOrderedList() {
-      UUID ascriptionId = UUID.randomUUID();
-      List<AscriptionStatusTransitionEntity> expected =
-          List.of(mock(AscriptionStatusTransitionEntity.class));
-      when(transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId))
-          .thenReturn(expected);
+            AscriptionStatusTransitionEntity result = service.recordTransition(ascription, null,
+                    AscriptionStatusType.DRAFT);
 
-      List<AscriptionStatusTransitionEntity> result = service.findByAscriptionId(ascriptionId);
+            assertEquals(refetched, result);
+            verify(entityManager).flush();
+            verify(entityManager).detach(saved);
+            verify(transitionRepo).findById(transitionId);
+        }
 
-      assertEquals(expected, result);
-    }
+        @Test
+        void throwsWhenRefetchFails() {
+            AscriptionEntity ascription = mock(AscriptionEntity.class);
+            AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
+            UUID transitionId = UUID.randomUUID();
+            when(saved.getId()).thenReturn(transitionId);
+            when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class))).thenReturn(saved);
+            when(transitionRepo.findById(transitionId)).thenReturn(Optional.empty());
 
-    @Test
-    void returnsEmptyListWhenNone() {
-      UUID ascriptionId = UUID.randomUUID();
-      when(transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId))
-          .thenReturn(List.of());
-
-      List<AscriptionStatusTransitionEntity> result = service.findByAscriptionId(ascriptionId);
-
-      assertTrue(result.isEmpty());
-    }
-  }
-
-  @Nested
-  class FindByIdAndAscriptionId {
-
-    @Test
-    void returnsOptionalWhenFound() {
-      UUID transitionId = UUID.randomUUID();
-      UUID ascriptionId = UUID.randomUUID();
-      AscriptionStatusTransitionEntity entity = mock(AscriptionStatusTransitionEntity.class);
-      when(transitionRepo.findByIdAndAscriptionId(transitionId, ascriptionId))
-          .thenReturn(Optional.of(entity));
-
-      Optional<AscriptionStatusTransitionEntity> result =
-          service.findByIdAndAscriptionId(transitionId, ascriptionId);
-
-      assertTrue(result.isPresent());
-      assertEquals(entity, result.get());
+            assertThrows(
+                    NoSuchElementException.class,
+                    () -> service.recordTransition(
+                            ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED));
+        }
     }
 
-    @Test
-    void returnsEmptyWhenNotFound() {
-      UUID transitionId = UUID.randomUUID();
-      UUID ascriptionId = UUID.randomUUID();
-      when(transitionRepo.findByIdAndAscriptionId(transitionId, ascriptionId))
-          .thenReturn(Optional.empty());
+    @Nested
+    class FindByAscriptionId {
 
-      Optional<AscriptionStatusTransitionEntity> result =
-          service.findByIdAndAscriptionId(transitionId, ascriptionId);
+        @Test
+        void returnsOrderedList() {
+            UUID ascriptionId = UUID.randomUUID();
+            List<AscriptionStatusTransitionEntity> expected = List.of(mock(AscriptionStatusTransitionEntity.class));
+            when(transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId))
+                    .thenReturn(expected);
 
-      assertTrue(result.isEmpty());
+            List<AscriptionStatusTransitionEntity> result = service.findByAscriptionId(ascriptionId);
+
+            assertEquals(expected, result);
+        }
+
+        @Test
+        void returnsEmptyListWhenNone() {
+            UUID ascriptionId = UUID.randomUUID();
+            when(transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId))
+                    .thenReturn(List.of());
+
+            List<AscriptionStatusTransitionEntity> result = service.findByAscriptionId(ascriptionId);
+
+            assertTrue(result.isEmpty());
+        }
     }
-  }
+
+    @Nested
+    class FindByIdAndAscriptionId {
+
+        @Test
+        void returnsOptionalWhenFound() {
+            UUID transitionId = UUID.randomUUID();
+            UUID ascriptionId = UUID.randomUUID();
+            AscriptionStatusTransitionEntity entity = mock(AscriptionStatusTransitionEntity.class);
+            when(transitionRepo.findByIdAndAscriptionId(transitionId, ascriptionId))
+                    .thenReturn(Optional.of(entity));
+
+            Optional<AscriptionStatusTransitionEntity> result = service.findByIdAndAscriptionId(transitionId,
+                    ascriptionId);
+
+            assertTrue(result.isPresent());
+            assertEquals(entity, result.get());
+        }
+
+        @Test
+        void returnsEmptyWhenNotFound() {
+            UUID transitionId = UUID.randomUUID();
+            UUID ascriptionId = UUID.randomUUID();
+            when(transitionRepo.findByIdAndAscriptionId(transitionId, ascriptionId))
+                    .thenReturn(Optional.empty());
+
+            Optional<AscriptionStatusTransitionEntity> result = service.findByIdAndAscriptionId(transitionId,
+                    ascriptionId);
+
+            assertTrue(result.isEmpty());
+        }
+    }
 }

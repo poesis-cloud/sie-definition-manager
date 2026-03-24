@@ -51,630 +51,606 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class MechanismServiceTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private MechanismRepository mechanismRepo;
+    @Mock
+    private MechanismRepository mechanismRepo;
 
-  @Mock private EffectorRepository effectorRepo;
+    @Mock
+    private EffectorRepository effectorRepo;
 
-  @Mock private ReceptorRepository receptorRepo;
+    @Mock
+    private ReceptorRepository receptorRepo;
 
-  @Mock private StructureService structureService;
+    @Mock
+    private StructureService structureService;
 
-  @Mock private ArchetypeService archetypeService;
+    @Mock
+    private ArchetypeService archetypeService;
 
-  @Mock private DefinitionService definitionService;
+    @Mock
+    private DefinitionService definitionService;
 
-  @Mock private AscriptionStatusTransitionService transitionService;
+    @Mock
+    private AscriptionStatusTransitionService transitionService;
 
-  @Mock private EntityManager entityManager;
+    @Mock
+    private EntityManager entityManager;
 
-  private MechanismService service;
+    private MechanismService service;
 
-  @BeforeEach
-  void setUp() {
-    service =
-        new MechanismService(
-            mechanismRepo,
-            structureService,
-            archetypeService,
-            effectorRepo,
-            receptorRepo,
-            definitionService,
-            transitionService,
-            mock(AscriptionRepository.class),
-            entityManager,
-            mock(DataProtectionService.class));
-  }
-
-  // ========================================================================
-  // Helpers
-  // ========================================================================
-
-  private void stubGenerativeModeValid(UUID mechanismDefId) {
-    // Generative mode: has rule → skip port check
-  }
-
-  private MechanismEntity stubMechanism(String function, UUID structureDefId, UUID defId) {
-    DefinitionEntity def = mock(DefinitionEntity.class);
-    when(def.getId()).thenReturn(defId);
-
-    DefinitionEntity structureDef = mock(DefinitionEntity.class);
-    when(structureDef.getId()).thenReturn(structureDefId);
-
-    StructureEntity structure = mock(StructureEntity.class);
-    when(structure.getDefinition()).thenReturn(structureDef);
-
-    ObjectNode stmt = MAPPER.createObjectNode();
-    stmt.put("function", function);
-    stmt.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
-
-    MechanismEntity entity = mock(MechanismEntity.class);
-    when(entity.getId()).thenReturn(UUID.randomUUID());
-    when(entity.getDefinition()).thenReturn(def);
-    when(entity.getStatement()).thenReturn(stmt);
-    when(entity.getStructure()).thenReturn(structure);
-
-    return entity;
-  }
-
-  private StarlarkFile parse(String rule) {
-    return StarlarkFile.parse(ParserInput.fromString(rule, "<test>"), FileOptions.DEFAULT);
-  }
-
-  private Set<PortSignature> uniqueSignatures(String rule) {
-    return Set.copyOf(service.collectPortSignatures(parse(rule)));
-  }
-
-  // ========================================================================
-  // Activation
-  // ========================================================================
-
-  @Nested
-  class Activation {
-
-    @Nested
-    class FunctionUniqueness {
-
-      @Test
-      void uniqueFunction_valid() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID thisDefId = UUID.randomUUID();
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
-
-        stubGenerativeModeValid(thisDefId);
-
-        when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
-
-      @Test
-      void duplicateFunction_differentDefinition_rejected() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID thisDefId = UUID.randomUUID();
-        UUID otherDefId = UUID.randomUUID();
-
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
-        MechanismEntity existing = stubMechanism("UserValidation", structureDefId, otherDefId);
-
-        stubGenerativeModeValid(thisDefId);
-
-        when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of(existing));
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-        assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("UserValidation"));
-        assertTrue(ex.getMessage().contains("already in"));
-      }
-
-      @Test
-      void sameFunction_sameDefinition_valid() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID defId = UUID.randomUUID();
-
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId, defId);
-        MechanismEntity existing = stubMechanism("UserValidation", structureDefId, defId);
-
-        stubGenerativeModeValid(defId);
-
-        when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of(existing));
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
-
-      @Test
-      void emptyFunction_rejected() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID thisDefId = UUID.randomUUID();
-        MechanismEntity entity = stubMechanism("", structureDefId, thisDefId);
-
-        stubGenerativeModeValid(thisDefId);
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("must not be empty"));
-      }
-
-      @Test
-      void differentFunction_valid() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID thisDefId = UUID.randomUUID();
-        UUID otherDefId = UUID.randomUUID();
-
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
-        MechanismEntity existing = stubMechanism("PaymentRouting", structureDefId, otherDefId);
-
-        stubGenerativeModeValid(thisDefId);
-
-        when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of(existing));
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
-
-      @Test
-      void differentStructure_sameFunctionAllowed() {
-        UUID structureDefId1 = UUID.randomUUID();
-        UUID thisDefId = UUID.randomUUID();
-
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId1, thisDefId);
-
-        stubGenerativeModeValid(thisDefId);
-
-        when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId1,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
+    @BeforeEach
+    void setUp() {
+        service = new MechanismService(
+                mechanismRepo,
+                structureService,
+                archetypeService,
+                effectorRepo,
+                receptorRepo,
+                definitionService,
+                transitionService,
+                mock(AscriptionRepository.class),
+                entityManager,
+                mock(DataProtectionService.class));
     }
 
-    @Nested
-    class LifecycleDescriptors {
+    // ========================================================================
+    // Helpers
+    // ========================================================================
 
-      @Test
-      void identityBound_structureAndFunction() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID defId = UUID.randomUUID();
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId, defId);
-
-        var values = service.getIdentityBoundValues(entity);
-
-        assertEquals(structureDefId, values.get("structure"));
-        assertEquals("UserValidation", values.get("function"));
-      }
-
-      @Test
-      void refereeReferences_structure() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID defId = UUID.randomUUID();
-        MechanismEntity entity = stubMechanism("UserValidation", structureDefId, defId);
-
-        var refs = service.getRefereeReferences(entity);
-
-        assertEquals(1, refs.size());
-        assertEquals("structure", refs.get(0).label());
-      }
-
-      @Test
-      void cascadeRoles_governingFromStructure() {
-        var roles = service.getCascadeTargetRoles();
-
-        assertEquals(1, roles.size());
-        assertTrue(roles.containsKey(DefinitionSubjectType.STRUCTURE));
-        assertEquals(
-            AscriptionStatusTransitionCascadeType.GOVERNING,
-            roles.get(DefinitionSubjectType.STRUCTURE));
-      }
-    }
-  }
-
-  // ========================================================================
-  // PortDerivation
-  // ========================================================================
-
-  @Nested
-  class PortDerivation {
-
-    @Nested
-    class TriggerReceptor {
-
-      @Test
-      void onTrigger_producesReceptor() {
-        List<PortSignature> sigs =
-            service.collectPortSignatures(
-                parse(
-                    """
-                        on("AlertEvent")
-                        sys.emit("NotificationEvent", {"level": "warn"})
-                        """));
-
-        assertTrue(
-            sigs.stream()
-                .anyMatch(
-                    s ->
-                        "receptor".equals(s.direction())
-                            && "AlertEvent".equals(s.archetypeName())));
-      }
-
-      @Test
-      void onAssigned_producesReceptor() {
-        List<PortSignature> sigs =
-            service.collectPortSignatures(
-                parse(
-                    """
-                        evt = on("IncomingOrder")
-                        sys.emit("OrderAck", {"ok": True})
-                        """));
-
-        assertTrue(
-            sigs.stream()
-                .anyMatch(
-                    s ->
-                        "receptor".equals(s.direction())
-                            && "IncomingOrder".equals(s.archetypeName())));
-      }
+    private void stubGenerativeModeValid(UUID mechanismDefId) {
+        // Generative mode: has rule → skip port check
     }
 
+    private MechanismEntity stubMechanism(String function, UUID structureDefId, UUID defId) {
+        DefinitionEntity def = mock(DefinitionEntity.class);
+        when(def.getId()).thenReturn(defId);
+
+        DefinitionEntity structureDef = mock(DefinitionEntity.class);
+        when(structureDef.getId()).thenReturn(structureDefId);
+
+        StructureEntity structure = mock(StructureEntity.class);
+        when(structure.getDefinition()).thenReturn(structureDef);
+
+        ObjectNode stmt = MAPPER.createObjectNode();
+        stmt.put("function", function);
+        stmt.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+
+        MechanismEntity entity = mock(MechanismEntity.class);
+        when(entity.getId()).thenReturn(UUID.randomUUID());
+        when(entity.getDefinition()).thenReturn(def);
+        when(entity.getStatement()).thenReturn(stmt);
+        when(entity.getStructure()).thenReturn(structure);
+
+        return entity;
+    }
+
+    private StarlarkFile parse(String rule) {
+        return StarlarkFile.parse(ParserInput.fromString(rule, "<test>"), FileOptions.DEFAULT);
+    }
+
+    private Set<PortSignature> uniqueSignatures(String rule) {
+        return Set.copyOf(service.collectPortSignatures(parse(rule)));
+    }
+
+    // ========================================================================
+    // Activation
+    // ========================================================================
+
     @Nested
-    class SysCallEffectors {
+    class Activation {
 
-      @Test
-      void sysEmit_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.emit("OutputEvent", {"data": 1})
-                        """);
+        @Nested
+        class FunctionUniqueness {
 
-        assertTrue(sigs.contains(new PortSignature("effector", "OutputEvent")));
-      }
+            @Test
+            void uniqueFunction_valid() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID thisDefId = UUID.randomUUID();
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
 
-      @Test
-      void sysCreate_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.create("NewRecord", {"id": "x"})
-                        """);
+                stubGenerativeModeValid(thisDefId);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "NewRecord")));
-      }
+                when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
+                        structureDefId,
+                        List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+                        .thenReturn(List.of());
 
-      @Test
-      void sysModify_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.modify("ExistingRecord", {"id": "x"}, {"val": 42})
-                        """);
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
+            }
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ExistingRecord")));
-      }
+            @Test
+            void duplicateFunction_differentDefinition_rejected() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID thisDefId = UUID.randomUUID();
+                UUID otherDefId = UUID.randomUUID();
 
-      @Test
-      void sysDelete_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.delete("OldRecord", {"id": "x"})
-                        """);
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
+                MechanismEntity existing = stubMechanism("UserValidation", structureDefId, otherDefId);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "OldRecord")));
-      }
+                stubGenerativeModeValid(thisDefId);
 
-      @Test
-      void sysAcquire_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.acquire("ReadTarget", {"id": "x"})
-                        """);
+                when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
+                        structureDefId,
+                        List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+                        .thenReturn(List.of(existing));
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ReadTarget")));
-      }
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
+                assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("UserValidation"));
+                assertTrue(ex.getMessage().contains("already in"));
+            }
 
-      @Test
-      void allSysMethods_eachProducesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.emit("A", {})
-                        sys.create("B", {})
-                        sys.modify("C", {}, {})
-                        sys.delete("D", {})
-                        sys.acquire("E", {})
-                        """);
+            @Test
+            void sameFunction_sameDefinition_valid() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID defId = UUID.randomUUID();
 
-        for (String name : List.of("A", "B", "C", "D", "E")) {
-          assertTrue(
-              sigs.contains(new PortSignature("effector", name)), "Expected effector for " + name);
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId, defId);
+                MechanismEntity existing = stubMechanism("UserValidation", structureDefId, defId);
+
+                stubGenerativeModeValid(defId);
+
+                when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
+                        structureDefId,
+                        List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+                        .thenReturn(List.of(existing));
+
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
+            }
+
+            @Test
+            void emptyFunction_rejected() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID thisDefId = UUID.randomUUID();
+                MechanismEntity entity = stubMechanism("", structureDefId, thisDefId);
+
+                stubGenerativeModeValid(thisDefId);
+
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("must not be empty"));
+            }
+
+            @Test
+            void differentFunction_valid() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID thisDefId = UUID.randomUUID();
+                UUID otherDefId = UUID.randomUUID();
+
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
+                MechanismEntity existing = stubMechanism("PaymentRouting", structureDefId, otherDefId);
+
+                stubGenerativeModeValid(thisDefId);
+
+                when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
+                        structureDefId,
+                        List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+                        .thenReturn(List.of(existing));
+
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
+            }
+
+            @Test
+            void differentStructure_sameFunctionAllowed() {
+                UUID structureDefId1 = UUID.randomUUID();
+                UUID thisDefId = UUID.randomUUID();
+
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId1, thisDefId);
+
+                stubGenerativeModeValid(thisDefId);
+
+                when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
+                        structureDefId1,
+                        List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+                        .thenReturn(List.of());
+
+                assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
+            }
         }
-      }
+
+        @Nested
+        class LifecycleDescriptors {
+
+            @Test
+            void identityBound_structureAndFunction() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID defId = UUID.randomUUID();
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId, defId);
+
+                var values = service.getIdentityBoundValues(entity);
+
+                assertEquals(structureDefId, values.get("structure"));
+                assertEquals("UserValidation", values.get("function"));
+            }
+
+            @Test
+            void refereeReferences_structure() {
+                UUID structureDefId = UUID.randomUUID();
+                UUID defId = UUID.randomUUID();
+                MechanismEntity entity = stubMechanism("UserValidation", structureDefId, defId);
+
+                var refs = service.getRefereeReferences(entity);
+
+                assertEquals(1, refs.size());
+                assertEquals("structure", refs.get(0).label());
+            }
+
+            @Test
+            void cascadeRoles_governingFromStructure() {
+                var roles = service.getCascadeTargetRoles();
+
+                assertEquals(1, roles.size());
+                assertTrue(roles.containsKey(DefinitionSubjectType.STRUCTURE));
+                assertEquals(
+                        AscriptionStatusTransitionCascadeType.GOVERNING,
+                        roles.get(DefinitionSubjectType.STRUCTURE));
+            }
+        }
     }
 
+    // ========================================================================
+    // PortDerivation
+    // ========================================================================
+
     @Nested
-    class ClosedLoopReceptor {
+    class PortDerivation {
 
-      @Test
-      void assignedSysCreate_producesEffectorAndReceptor() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        result = sys.create("NewRecord", {"id": "x"})
-                        """);
+        @Nested
+        class TriggerReceptor {
 
-        assertTrue(sigs.contains(new PortSignature("effector", "NewRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "NewRecord")));
-      }
+            @Test
+            void onTrigger_producesReceptor() {
+                List<PortSignature> sigs = service.collectPortSignatures(
+                        parse(
+                                """
+                                        on("AlertEvent")
+                                        sys.emit("NotificationEvent", {"level": "warn"})
+                                        """));
 
-      @Test
-      void assignedSysModify_producesEffectorAndReceptor() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        result = sys.modify("ExistingRecord", {"id": "x"}, {"val": 1})
-                        """);
+                assertTrue(
+                        sigs.stream()
+                                .anyMatch(
+                                        s -> "receptor".equals(s.direction())
+                                                && "AlertEvent".equals(s.archetypeName())));
+            }
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ExistingRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "ExistingRecord")));
-      }
+            @Test
+            void onAssigned_producesReceptor() {
+                List<PortSignature> sigs = service.collectPortSignatures(
+                        parse(
+                                """
+                                        evt = on("IncomingOrder")
+                                        sys.emit("OrderAck", {"ok": True})
+                                        """));
 
-      @Test
-      void unassignedSysCreate_noFeedbackReceptor() {
-        List<PortSignature> sigs =
-            service.collectPortSignatures(
-                parse(
-                    """
-                        on("Trigger")
-                        sys.create("NewRecord", {"id": "x"})
-                        """));
+                assertTrue(
+                        sigs.stream()
+                                .anyMatch(
+                                        s -> "receptor".equals(s.direction())
+                                                && "IncomingOrder".equals(s.archetypeName())));
+            }
+        }
 
-        long receptorCount =
-            sigs.stream()
-                .filter(
-                    s -> "receptor".equals(s.direction()) && "NewRecord".equals(s.archetypeName()))
-                .count();
-        assertEquals(
-            0, receptorCount, "Unassigned sys.create should not produce feedback receptor");
-      }
+        @Nested
+        class SysCallEffectors {
+
+            @Test
+            void sysEmit_producesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.emit("OutputEvent", {"data": 1})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "OutputEvent")));
+            }
+
+            @Test
+            void sysCreate_producesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.create("NewRecord", {"id": "x"})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "NewRecord")));
+            }
+
+            @Test
+            void sysModify_producesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.modify("ExistingRecord", {"id": "x"}, {"val": 42})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "ExistingRecord")));
+            }
+
+            @Test
+            void sysDelete_producesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.delete("OldRecord", {"id": "x"})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "OldRecord")));
+            }
+
+            @Test
+            void sysAcquire_producesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.acquire("ReadTarget", {"id": "x"})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "ReadTarget")));
+            }
+
+            @Test
+            void allSysMethods_eachProducesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.emit("A", {})
+                                sys.create("B", {})
+                                sys.modify("C", {}, {})
+                                sys.delete("D", {})
+                                sys.acquire("E", {})
+                                """);
+
+                for (String name : List.of("A", "B", "C", "D", "E")) {
+                    assertTrue(
+                            sigs.contains(new PortSignature("effector", name)), "Expected effector for " + name);
+                }
+            }
+        }
+
+        @Nested
+        class ClosedLoopReceptor {
+
+            @Test
+            void assignedSysCreate_producesEffectorAndReceptor() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                result = sys.create("NewRecord", {"id": "x"})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "NewRecord")));
+                assertTrue(sigs.contains(new PortSignature("receptor", "NewRecord")));
+            }
+
+            @Test
+            void assignedSysModify_producesEffectorAndReceptor() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                result = sys.modify("ExistingRecord", {"id": "x"}, {"val": 1})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "ExistingRecord")));
+                assertTrue(sigs.contains(new PortSignature("receptor", "ExistingRecord")));
+            }
+
+            @Test
+            void unassignedSysCreate_noFeedbackReceptor() {
+                List<PortSignature> sigs = service.collectPortSignatures(
+                        parse(
+                                """
+                                        on("Trigger")
+                                        sys.create("NewRecord", {"id": "x"})
+                                        """));
+
+                long receptorCount = sigs.stream()
+                        .filter(
+                                s -> "receptor".equals(s.direction()) && "NewRecord".equals(s.archetypeName()))
+                        .count();
+                assertEquals(
+                        0, receptorCount, "Unassigned sys.create should not produce feedback receptor");
+            }
+        }
+
+        @Nested
+        class ResponseKeywordReceptor {
+
+            @Test
+            void sysEmitWithResponse_producesResponseReceptor() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.emit("Request", {}, response="ResponseType")
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "Request")));
+                assertTrue(sigs.contains(new PortSignature("receptor", "ResponseType")));
+            }
+        }
+
+        @Nested
+        class ForLoopPorts {
+
+            @Test
+            void sysCallInsideForLoop_producesEffector() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Batch")
+                                items = [1, 2, 3]
+                                for item in items:
+                                    sys.emit("ItemEvent", {"item": item})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "ItemEvent")));
+            }
+
+            @Test
+            void assignedSysCallInForLoop_producesClosedLoop() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Batch")
+                                items = [1, 2, 3]
+                                for item in items:
+                                    result = sys.create("ItemRecord", {"item": item})
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("effector", "ItemRecord")));
+                assertTrue(sigs.contains(new PortSignature("receptor", "ItemRecord")));
+            }
+        }
+
+        @Nested
+        class CombinedSignatures {
+
+            @Test
+            void complexRule_allPortTypes() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                evt = on("PaymentRequest")
+                                record = sys.create("PaymentRecord", {"amount": 100})
+                                sys.emit("PaymentProcessed", {"status": "ok"})
+                                sys.emit("ExternalNotify", {}, response="NotifyAck")
+                                """);
+
+                assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRequest")));
+                assertTrue(sigs.contains(new PortSignature("effector", "PaymentRecord")));
+                assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRecord")));
+                assertTrue(sigs.contains(new PortSignature("effector", "PaymentProcessed")));
+                assertTrue(sigs.contains(new PortSignature("effector", "ExternalNotify")));
+                assertTrue(sigs.contains(new PortSignature("receptor", "NotifyAck")));
+            }
+
+            @Test
+            void complexRule_correctCounts() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                evt = on("PaymentRequest")
+                                record = sys.create("PaymentRecord", {"amount": 100})
+                                sys.emit("PaymentProcessed", {"status": "ok"})
+                                """);
+
+                long effectors = sigs.stream().filter(s -> "effector".equals(s.direction())).count();
+                long receptors = sigs.stream().filter(s -> "receptor".equals(s.direction())).count();
+
+                assertEquals(2, effectors, "PaymentRecord + PaymentProcessed effectors");
+                assertEquals(2, receptors, "PaymentRequest trigger + PaymentRecord feedback receptors");
+            }
+        }
+
+        @Nested
+        class Deduplication {
+
+            @Test
+            void duplicateEffectors_deduplicatedInUniqueSet() {
+                Set<PortSignature> sigs = uniqueSignatures(
+                        """
+                                on("Trigger")
+                                sys.emit("SameEvent", {"a": 1})
+                                sys.emit("SameEvent", {"b": 2})
+                                """);
+
+                long effectorCount = sigs.stream()
+                        .filter(
+                                s -> "effector".equals(s.direction()) && "SameEvent".equals(s.archetypeName()))
+                        .count();
+                assertEquals(1, effectorCount, "Duplicate effectors should be deduplicated");
+            }
+        }
     }
 
-    @Nested
-    class ResponseKeywordReceptor {
-
-      @Test
-      void sysEmitWithResponse_producesResponseReceptor() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.emit("Request", {}, response="ResponseType")
-                        """);
-
-        assertTrue(sigs.contains(new PortSignature("effector", "Request")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "ResponseType")));
-      }
-    }
+    // ========================================================================
+    // Starlark
+    // ========================================================================
 
     @Nested
-    class ForLoopPorts {
+    class Starlark {
 
-      @Test
-      void sysCallInsideForLoop_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Batch")
-                        items = [1, 2, 3]
-                        for item in items:
-                            sys.emit("ItemEvent", {"item": item})
-                        """);
+        @Nested
+        class ValidRules {
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ItemEvent")));
-      }
-
-      @Test
-      void assignedSysCallInForLoop_producesClosedLoop() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Batch")
-                        items = [1, 2, 3]
-                        for item in items:
-                            result = sys.create("ItemRecord", {"item": item})
-                        """);
-
-        assertTrue(sigs.contains(new PortSignature("effector", "ItemRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "ItemRecord")));
-      }
-    }
-
-    @Nested
-    class CombinedSignatures {
-
-      @Test
-      void complexRule_allPortTypes() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        evt = on("PaymentRequest")
-                        record = sys.create("PaymentRecord", {"amount": 100})
-                        sys.emit("PaymentProcessed", {"status": "ok"})
-                        sys.emit("ExternalNotify", {}, response="NotifyAck")
-                        """);
-
-        assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRequest")));
-        assertTrue(sigs.contains(new PortSignature("effector", "PaymentRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRecord")));
-        assertTrue(sigs.contains(new PortSignature("effector", "PaymentProcessed")));
-        assertTrue(sigs.contains(new PortSignature("effector", "ExternalNotify")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "NotifyAck")));
-      }
-
-      @Test
-      void complexRule_correctCounts() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        evt = on("PaymentRequest")
-                        record = sys.create("PaymentRecord", {"amount": 100})
-                        sys.emit("PaymentProcessed", {"status": "ok"})
-                        """);
-
-        long effectors = sigs.stream().filter(s -> "effector".equals(s.direction())).count();
-        long receptors = sigs.stream().filter(s -> "receptor".equals(s.direction())).count();
-
-        assertEquals(2, effectors, "PaymentRecord + PaymentProcessed effectors");
-        assertEquals(2, receptors, "PaymentRequest trigger + PaymentRecord feedback receptors");
-      }
-    }
-
-    @Nested
-    class Deduplication {
-
-      @Test
-      void duplicateEffectors_deduplicatedInUniqueSet() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                        on("Trigger")
-                        sys.emit("SameEvent", {"a": 1})
-                        sys.emit("SameEvent", {"b": 2})
-                        """);
-
-        long effectorCount =
-            sigs.stream()
-                .filter(
-                    s -> "effector".equals(s.direction()) && "SameEvent".equals(s.archetypeName()))
-                .count();
-        assertEquals(1, effectorCount, "Duplicate effectors should be deduplicated");
-      }
-    }
-  }
-
-  // ========================================================================
-  // Starlark
-  // ========================================================================
-
-  @Nested
-  class Starlark {
-
-    @Nested
-    class ValidRules {
-
-      @Test
-      void minimalRule_onTriggerOnly() {
-        String rule =
-            """
+            @Test
+            void minimalRule_onTriggerOnly() {
+                String rule = """
                         on("AlertEvent")
                         sys.emit("NotificationEvent", {"level": "warn"})
                         """;
-        String trigger = service.validateStarlarkRule(rule);
-        assertEquals("AlertEvent", trigger);
-      }
+                String trigger = service.validateStarlarkRule(rule);
+                assertEquals("AlertEvent", trigger);
+            }
 
-      @Test
-      void onWithAssignment() {
-        String rule =
-            """
+            @Test
+            void onWithAssignment() {
+                String rule = """
                         evt = on("IncomingOrder")
                         sys.create("OrderRecord", {"id": uuid7(), "data": evt})
                         """;
-        String trigger = service.validateStarlarkRule(rule);
-        assertEquals("IncomingOrder", trigger);
-      }
+                String trigger = service.validateStarlarkRule(rule);
+                assertEquals("IncomingOrder", trigger);
+            }
 
-      @Test
-      void multipleSysCalls() {
-        String rule =
-            """
+            @Test
+            void multipleSysCalls() {
+                String rule = """
                         evt = on("PaymentRequest")
                         result = sys.create("PaymentRecord", {"amount": evt})
                         sys.emit("PaymentProcessed", {"status": "ok"})
                         sys.modify("AccountBalance", {"id": "x"}, {"delta": 100})
                         """;
-        String trigger = service.validateStarlarkRule(rule);
-        assertEquals("PaymentRequest", trigger);
-      }
+                String trigger = service.validateStarlarkRule(rule);
+                assertEquals("PaymentRequest", trigger);
+            }
 
-      @Test
-      void withConditionalLogic() {
-        String rule =
-            """
+            @Test
+            void withConditionalLogic() {
+                String rule = """
                         evt = on("ValidationRequest")
                         if evt:
                             sys.emit("ValidationOk", {"valid": True})
                         """;
-        String trigger = service.validateStarlarkRule(rule);
-        assertEquals("ValidationRequest", trigger);
-      }
+                String trigger = service.validateStarlarkRule(rule);
+                assertEquals("ValidationRequest", trigger);
+            }
 
-      @Test
-      void withForLoop() {
-        String rule =
-            """
+            @Test
+            void withForLoop() {
+                String rule = """
                         evt = on("BatchInput")
                         items = [1, 2, 3]
                         for item in items:
                             sys.emit("ItemProcessed", {"item": item})
                         """;
-        assertEquals("BatchInput", service.validateStarlarkRule(rule));
-      }
+                assertEquals("BatchInput", service.validateStarlarkRule(rule));
+            }
 
-      @Test
-      void withLocalVariables() {
-        String rule =
-            """
+            @Test
+            void withLocalVariables() {
+                String rule = """
                         evt = on("SomeEvent")
                         x = 42
                         name = "hello"
                         sys.emit("Result", {"val": x, "name": name})
                         """;
-        assertEquals("SomeEvent", service.validateStarlarkRule(rule));
-      }
+                assertEquals("SomeEvent", service.validateStarlarkRule(rule));
+            }
 
-      @Test
-      void withBuiltinFunctions() {
-        String rule =
-            """
+            @Test
+            void withBuiltinFunctions() {
+                String rule = """
                         evt = on("Input")
                         length = len("hello")
                         items = sorted([3, 1, 2])
                         sys.emit("Output", {"len": length, "items": items})
                         """;
-        assertEquals("Input", service.validateStarlarkRule(rule));
-      }
+                assertEquals("Input", service.validateStarlarkRule(rule));
+            }
 
-      @Test
-      void withHostFunctions() {
-        String rule =
-            """
+            @Test
+            void withHostFunctions() {
+                String rule = """
                         evt = on("Input")
                         ts = now()
                         id = uuid7()
@@ -682,13 +658,12 @@ class MechanismServiceTest {
                         found = search("[0-9]+", "abc123")
                         sys.emit("Output", {"ts": ts, "id": id})
                         """;
-        assertEquals("Input", service.validateStarlarkRule(rule));
-      }
+                assertEquals("Input", service.validateStarlarkRule(rule));
+            }
 
-      @Test
-      void allSysMethods() {
-        String rule =
-            """
+            @Test
+            void allSysMethods() {
+                String rule = """
                         on("Trigger")
                         sys.emit("A", {})
                         sys.create("B", {})
@@ -696,795 +671,747 @@ class MechanismServiceTest {
                         sys.delete("D", {})
                         sys.acquire("E", {})
                         """;
-        assertEquals("Trigger", service.validateStarlarkRule(rule));
-      }
-    }
+                assertEquals("Trigger", service.validateStarlarkRule(rule));
+            }
+        }
 
-    @Nested
-    class SyntaxErrors {
+        @Nested
+        class SyntaxErrors {
 
-      @Test
-      void nullRule_rejected() {
-        RuleViolationException ex =
-            assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(null));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
+            @Test
+            void nullRule_rejected() {
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
+                        () -> service.validateStarlarkRule(null));
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            }
 
-      @Test
-      void emptyRule_rejected() {
-        RuleViolationException ex =
-            assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(""));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
+            @Test
+            void emptyRule_rejected() {
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
+                        () -> service.validateStarlarkRule(""));
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            }
 
-      @Test
-      void blankRule_rejected() {
-        RuleViolationException ex =
-            assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule("   "));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
+            @Test
+            void blankRule_rejected() {
+                RuleViolationException ex = assertThrows(RuleViolationException.class,
+                        () -> service.validateStarlarkRule("   "));
+                assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            }
 
-      @Test
-      void invalidSyntax_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateStarlarkRule("def foo(:::"));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("syntax error"));
-      }
-    }
+            @Test
+            void invalidSyntax_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class, () -> service.validateStarlarkRule("def foo(:::"));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("syntax error"));
+            }
+        }
 
-    @Nested
-    class OnTriggerViolations {
+        @Nested
+        class OnTriggerViolations {
 
-      @Test
-      void missingOnTrigger_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateStarlarkRule("sys.emit(\"X\", {})"));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("on("));
-      }
+            @Test
+            void missingOnTrigger_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule("sys.emit(\"X\", {})"));
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("on("));
+            }
 
-      @Test
-      void onWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on()
-                                sys.emit("X", {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("one positional string argument"));
-      }
+            @Test
+            void onWithNoArgs_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on()
+                                        sys.emit("X", {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("one positional string argument"));
+            }
 
-      @Test
-      void onWithVariableArg_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                name = "Foo"
-                                on(name)
-                                sys.emit("X", {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("on(") || ex.getMessage().contains("first"));
-      }
+            @Test
+            void onWithVariableArg_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        name = "Foo"
+                                        on(name)
+                                        sys.emit("X", {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("on(") || ex.getMessage().contains("first"));
+            }
 
-      @Test
-      void onWithEmptyString_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("")
-                                sys.emit("X", {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("empty"));
-      }
+            @Test
+            void onWithEmptyString_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("")
+                                        sys.emit("X", {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("empty"));
+            }
 
-      @Test
-      void multipleOnCalls_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("First")
-                                on("Second")
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("exactly one on()"));
-      }
-    }
+            @Test
+            void multipleOnCalls_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("First")
+                                        on("Second")
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("exactly one on()"));
+            }
+        }
 
-    @Nested
-    class LoadForbidden {
+        @Nested
+        class LoadForbidden {
 
-      @Test
-      void loadStatement_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                load("module.bzl", "helper")
-                                on("X")
-                                sys.emit("Y", {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("load()"));
-      }
-    }
+            @Test
+            void loadStatement_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        load("module.bzl", "helper")
+                                        on("X")
+                                        sys.emit("Y", {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("load()"));
+            }
+        }
 
-    @Nested
-    class SysCallValidation {
+        @Nested
+        class SysCallValidation {
 
-      @Test
-      void sysEmitWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                archetype = "DynamicType"
-                                sys.emit(archetype, {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
+            @Test
+            void sysEmitWithVariableArchetype_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        archetype = "DynamicType"
+                                        sys.emit(archetype, {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("string literal"));
+            }
 
-      @Test
-      void sysCreateWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                name = "SomeType"
-                                sys.create(name, {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
+            @Test
+            void sysCreateWithVariableArchetype_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        name = "SomeType"
+                                        sys.create(name, {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("string literal"));
+            }
 
-      @Test
-      void sysEmitWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.emit()
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
-      }
+            @Test
+            void sysEmitWithNoArgs_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.emit()
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("requires at least one"));
+            }
 
-      @Test
-      void sysModifyWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.modify()
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
-      }
+            @Test
+            void sysModifyWithNoArgs_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.modify()
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("requires at least one"));
+            }
 
-      @Test
-      void sysModifyWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                name = "SomeType"
-                                sys.modify(name, {}, {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
+            @Test
+            void sysModifyWithVariableArchetype_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        name = "SomeType"
+                                        sys.modify(name, {}, {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("string literal"));
+            }
 
-      @Test
-      void sysDeleteWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.delete()
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
-      }
+            @Test
+            void sysDeleteWithNoArgs_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.delete()
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("requires at least one"));
+            }
 
-      @Test
-      void sysDeleteWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                name = "SomeType"
-                                sys.delete(name, {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
+            @Test
+            void sysDeleteWithVariableArchetype_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        name = "SomeType"
+                                        sys.delete(name, {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("string literal"));
+            }
 
-      @Test
-      void sysAcquireWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.acquire()
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
-      }
+            @Test
+            void sysAcquireWithNoArgs_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.acquire()
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("requires at least one"));
+            }
 
-      @Test
-      void sysAcquireWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                name = "SomeType"
-                                sys.acquire(name, {})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
+            @Test
+            void sysAcquireWithVariableArchetype_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        name = "SomeType"
+                                        sys.acquire(name, {})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("string literal"));
+            }
 
-      @Test
-      void responseOnNonEmit_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.create("Output", {}, response="Resp")
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("response"));
-      }
+            @Test
+            void responseOnNonEmit_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.create("Output", {}, response="Resp")
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("response"));
+            }
 
-      @Test
-      void responseNotStringLiteral_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                resp = "Resp"
-                                sys.emit("Output", {}, response=resp)
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
+            @Test
+            void responseNotStringLiteral_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        resp = "Resp"
+                                        sys.emit("Output", {}, response=resp)
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("string literal"));
+            }
 
-      @Test
-      void responseEmpty_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.emit("Output", {}, response="")
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("empty"));
-      }
-    }
+            @Test
+            void responseEmpty_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.emit("Output", {}, response="")
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("empty"));
+            }
+        }
 
-    @Nested
-    class UnknownGlobals {
+        @Nested
+        class UnknownGlobals {
 
-      @Test
-      void unknownGlobal_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                result = unknown_func()
-                                sys.emit("Output", {"r": result})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("Unknown globals"));
-        assertTrue(ex.getMessage().contains("unknown_func"));
-      }
+            @Test
+            void unknownGlobal_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        result = unknown_func()
+                                        sys.emit("Output", {"r": result})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("Unknown globals"));
+                assertTrue(ex.getMessage().contains("unknown_func"));
+            }
 
-      @Test
-      void unknownVariable_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.emit("Output", {"val": external_var})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("Unknown globals"));
-      }
-    }
+            @Test
+            void unknownVariable_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.emit("Output", {"val": external_var})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("Unknown globals"));
+            }
+        }
 
-    @Nested
-    class SysIdProperty {
+        @Nested
+        class SysIdProperty {
 
-      @Test
-      void sysId_valid() {
-        String rule =
-            """
+            @Test
+            void sysId_valid() {
+                String rule = """
                         on("Input")
                         sys.emit("Output", {"mechanismId": sys.id})
                         """;
-        assertEquals("Input", service.validateStarlarkRule(rule));
-      }
+                assertEquals("Input", service.validateStarlarkRule(rule));
+            }
 
-      @Test
-      void sysUnknownProperty_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.emit("Output", {"name": sys.name})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("Unknown sys property"));
-        assertTrue(ex.getMessage().contains("sys.name"));
-      }
+            @Test
+            void sysUnknownProperty_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.emit("Output", {"name": sys.name})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("Unknown sys property"));
+                assertTrue(ex.getMessage().contains("sys.name"));
+            }
 
-      @Test
-      void sysUnknownProperty_version_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                on("Input")
-                                sys.emit("Output", {"v": sys.version})
-                                """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("Unknown sys property"));
-      }
+            @Test
+            void sysUnknownProperty_version_rejected() {
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class,
+                        () -> service.validateStarlarkRule(
+                                """
+                                        on("Input")
+                                        sys.emit("Output", {"v": sys.version})
+                                        """));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("Unknown sys property"));
+            }
+        }
+
+        @Nested
+        class ExecutionBudget {
+
+            @Test
+            void withinBudget_valid() {
+                StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
+                for (int i = 0; i < 199; i++) {
+                    sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+                }
+                assertEquals("Trigger", service.validateStarlarkRule(sb.toString()));
+            }
+
+            @Test
+            void exceedsBudget_rejected() {
+                StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
+                for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
+                    sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+                }
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("execution budget"));
+                assertTrue(ex.getMessage().contains(String.valueOf(MechanismService.MAX_RULE_STATEMENTS)));
+            }
+
+            @Test
+            void forLoopBody_countsTowardBudget() {
+                StringBuilder sb = new StringBuilder("on(\"Trigger\")\nfor x in range(1):\n");
+                for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
+                    sb.append("    sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+                }
+                RuleViolationException ex = assertThrows(
+                        RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
+                assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
+                assertTrue(ex.getMessage().contains("execution budget"));
+            }
+        }
     }
+
+    // ========================================================================
+    // Statement Compliance (non-GSM extension schema)
+    // ========================================================================
 
     @Nested
-    class ExecutionBudget {
+    class StatementCompliance {
 
-      @Test
-      void withinBudget_valid() {
-        StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
-        for (int i = 0; i < 199; i++) {
-          sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
-        }
-        assertEquals("Trigger", service.validateStarlarkRule(sb.toString()));
-      }
+        @Test
+        void extensionSchemaViolation_rejected() {
+            // Schema with a required tenant-extension property (not GSM-base:
+            // structure/function/rule)
+            ObjectNode schema = MAPPER.createObjectNode();
+            schema.put("title", "ExtMech");
+            schema.put("type", "object");
+            ObjectNode props = schema.putObject("properties");
+            props.set("customField", MAPPER.createObjectNode().put("type", "integer"));
+            schema.putArray("required").add("customField");
 
-      @Test
-      void exceedsBudget_rejected() {
-        StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
-        for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
-          sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+            DefinitionEntity archDef = mock(DefinitionEntity.class);
+            when(archDef.getId()).thenReturn(UUID.randomUUID());
+            cloud.poesis.sie.defman.entity.ArchetypeEntity archetype = mock(
+                    cloud.poesis.sie.defman.entity.ArchetypeEntity.class);
+            when(archetype.getStatement()).thenReturn(schema);
+            when(archetype.getDefinition()).thenReturn(archDef);
+
+            ObjectNode statement = MAPPER.createObjectNode(); // missing customField
+
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+            assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+            assertTrue(ex.getMessage().contains("tenant-extended"));
         }
-        RuleViolationException ex =
+    }
+
+    // ========================================================================
+    // BuildEntity
+    // ========================================================================
+
+    @Nested
+    class BuildEntity {
+
+        @Test
+        void validStatement_returnsEntity() {
+            UUID structDefId = UUID.randomUUID();
+            StructureEntity structure = mock(StructureEntity.class);
+            when(structureService.findEntityById(structDefId)).thenReturn(structure);
+
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("structure", structDefId.toString());
+            stmt.put("function", "UserValidation");
+            stmt.put("rule", "on(\"Input\")\nsys.emit(\"Output\", {})");
+
+            MechanismEntity result = service.buildEntity(def, archetype, stmt);
+            assertNotNull(result);
+            assertEquals(def, result.getDefinition());
+            assertEquals(structure, result.getStructure());
+        }
+
+        @Test
+        void missingStructure_rejected() {
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("function", "X");
+            stmt.put("rule", "on(\"A\")\nsys.emit(\"B\", {})");
+
+            assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
+        }
+
+        @Test
+        void structureNotFound_rejected() {
+            UUID structDefId = UUID.randomUUID();
+            when(structureService.findEntityById(structDefId))
+                    .thenThrow(new ResourceNotFoundException(PrimitiveType.STRUCTURE, structDefId));
+
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("structure", structDefId.toString());
+            stmt.put("function", "X");
+            stmt.put("rule", "on(\"A\")\nsys.emit(\"B\", {})");
+
             assertThrows(
-                RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("execution budget"));
-        assertTrue(ex.getMessage().contains(String.valueOf(MechanismService.MAX_RULE_STATEMENTS)));
-      }
-
-      @Test
-      void forLoopBody_countsTowardBudget() {
-        StringBuilder sb = new StringBuilder("on(\"Trigger\")\nfor x in range(1):\n");
-        for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
-          sb.append("    sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+                    ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));
         }
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("execution budget"));
-      }
+
+        @Test
+        void invalidRule_rejected() {
+            UUID structDefId = UUID.randomUUID();
+            StructureEntity structure = mock(StructureEntity.class);
+            when(structureService.findEntityById(structDefId)).thenReturn(structure);
+
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("structure", structDefId.toString());
+            stmt.put("function", "X");
+            stmt.put("rule", "bad syntax $$@!");
+
+            assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
+        }
     }
-  }
 
-  // ========================================================================
-  // Statement Compliance (non-GSM extension schema)
-  // ========================================================================
+    // ========================================================================
+    // FindEntityById
+    // ========================================================================
 
-  @Nested
-  class StatementCompliance {
+    @Nested
+    class FindEntityByIdTests {
+
+        @Test
+        void found_returnsEntity() {
+            UUID id = UUID.randomUUID();
+            MechanismEntity entity = mock(MechanismEntity.class);
+            when(mechanismRepo.findById(id)).thenReturn(Optional.of(entity));
+
+            assertEquals(entity, service.findEntityById(id));
+        }
+
+        @Test
+        void notFound_throwsResourceNotFound() {
+            UUID id = UUID.randomUUID();
+            when(mechanismRepo.findById(id)).thenReturn(Optional.empty());
+
+            assertThrows(ResourceNotFoundException.class, () -> service.findEntityById(id));
+        }
+    }
+
+    // ========================================================================
+    // FindCascadeTargetsFrom
+    // ========================================================================
+
+    @Nested
+    class FindCascadeTargetsFromTests {
+
+        @Test
+        void structureSource_delegatesToRepo() {
+            UUID sourceId = UUID.randomUUID();
+            MechanismEntity m1 = mock(MechanismEntity.class);
+            when(mechanismRepo.findAllByStructureId(sourceId)).thenReturn(List.of(m1));
+
+            var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, sourceId);
+            assertEquals(1, result.size());
+            assertEquals(m1, result.get(0));
+        }
+
+        @Test
+        void nonStructureSource_returnsEmpty() {
+            UUID sourceId = UUID.randomUUID();
+            var result = service.findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, sourceId);
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    // ========================================================================
+    // AfterCreate (port auto-derivation)
+    // ========================================================================
+
+    @Nested
+    class AfterCreate {
+
+        @Test
+        void derivesEffectorAndReceptor() {
+            UUID mechDefId = UUID.randomUUID();
+            DefinitionEntity mechDef = mock(DefinitionEntity.class);
+            when(mechDef.getId()).thenReturn(mechDefId);
+
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("rule", "on(\"InputType\")\nsys.emit(\"OutputType\", {})");
+
+            MechanismEntity mechanism = mock(MechanismEntity.class);
+            when(mechanism.getStatement()).thenReturn(stmt);
+            when(mechanism.getDefinition()).thenReturn(mechDef);
+
+            // Stub base typing archetypes
+            ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
+            ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
+            when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
+                    .thenReturn(effArchetype);
+            when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
+                    .thenReturn(recArchetype);
+
+            // Stub data archetypes
+            ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
+            ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
+            when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
+            when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
+
+            // No existing ports
+            when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+            when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+            // Stub new definitions
+            DefinitionEntity effDef = mock(DefinitionEntity.class);
+            DefinitionEntity recDef = mock(DefinitionEntity.class);
+            when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
+            when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+
+            // Stub save
+            EffectorEntity savedEff = mock(EffectorEntity.class);
+            when(savedEff.getId()).thenReturn(UUID.randomUUID());
+            when(savedEff.getStatement()).thenReturn(stmt);
+            when(effectorRepo.save(any(EffectorEntity.class))).thenReturn(savedEff);
+
+            ReceptorEntity savedRec = mock(ReceptorEntity.class);
+            when(savedRec.getId()).thenReturn(UUID.randomUUID());
+            when(savedRec.getStatement()).thenReturn(stmt);
+            when(receptorRepo.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+
+            service.afterCreate(mechanism);
+
+            verify(effectorRepo).save(any(EffectorEntity.class));
+            verify(receptorRepo).save(any(ReceptorEntity.class));
+        }
+
+        @Test
+        void baseArchetypesMissing_skips() {
+            UUID mechDefId = UUID.randomUUID();
+            DefinitionEntity mechDef = mock(DefinitionEntity.class);
+            when(mechDef.getId()).thenReturn(mechDefId);
+
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+
+            MechanismEntity mechanism = mock(MechanismEntity.class);
+            when(mechanism.getStatement()).thenReturn(stmt);
+            when(mechanism.getDefinition()).thenReturn(mechDef);
+
+            when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(null);
+            when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(null);
+
+            // Should not throw — just skips
+            assertDoesNotThrow(() -> service.afterCreate(mechanism));
+        }
+
+        @Test
+        void dataArchetypeNotFound_skipsPort() {
+            UUID mechDefId = UUID.randomUUID();
+            DefinitionEntity mechDef = mock(DefinitionEntity.class);
+            when(mechDef.getId()).thenReturn(mechDefId);
+
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("rule", "on(\"MissingType\")\nsys.emit(\"AlsoMissing\", {})");
+
+            MechanismEntity mechanism = mock(MechanismEntity.class);
+            when(mechanism.getStatement()).thenReturn(stmt);
+            when(mechanism.getDefinition()).thenReturn(mechDef);
+
+            ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
+            ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
+            when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
+                    .thenReturn(effArchetype);
+            when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
+                    .thenReturn(recArchetype);
+
+            when(archetypeService.findInEffectBySchemaTitle("MissingType")).thenReturn(null);
+            when(archetypeService.findInEffectBySchemaTitle("AlsoMissing")).thenReturn(null);
+
+            when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+            when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+            assertDoesNotThrow(() -> service.afterCreate(mechanism));
+        }
+
+        @Test
+        void existingPortDefinition_reused() {
+            UUID mechDefId = UUID.randomUUID();
+            DefinitionEntity mechDef = mock(DefinitionEntity.class);
+            when(mechDef.getId()).thenReturn(mechDefId);
+
+            ObjectNode stmt = MAPPER.createObjectNode();
+            stmt.put("rule", "on(\"InputType\")\nsys.emit(\"OutputType\", {})");
+
+            MechanismEntity mechanism = mock(MechanismEntity.class);
+            when(mechanism.getStatement()).thenReturn(stmt);
+            when(mechanism.getDefinition()).thenReturn(mechDef);
+
+            ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
+            ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
+            when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
+                    .thenReturn(effArchetype);
+            when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
+                    .thenReturn(recArchetype);
+
+            ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
+            ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
+            when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
+            when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
+
+            // Existing effector with matching data archetype → reuse definition
+            UUID outputDefId = outputType.getDefinition().getId();
+            DefinitionEntity existingEffDef = mock(DefinitionEntity.class);
+            EffectorEntity existingEff = mock(EffectorEntity.class);
+            ArchetypeEntity existingOutputArch = mock(ArchetypeEntity.class);
+            DefinitionEntity existingOutputDef = mock(DefinitionEntity.class);
+            when(existingOutputDef.getId()).thenReturn(outputDefId);
+            when(existingOutputArch.getDefinition()).thenReturn(existingOutputDef);
+            when(existingEff.getDefinition()).thenReturn(existingEffDef);
+            when(existingEff.getOutputArchetype()).thenReturn(existingOutputArch);
+            List<EffectorEntity> existingEffectors = List.of(existingEff);
+            when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(existingEffectors);
+
+            when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+            DefinitionEntity recDef = mock(DefinitionEntity.class);
+            when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+
+            EffectorEntity savedEff = mock(EffectorEntity.class);
+            when(savedEff.getId()).thenReturn(UUID.randomUUID());
+            when(savedEff.getStatement()).thenReturn(stmt);
+            when(effectorRepo.save(any(EffectorEntity.class))).thenReturn(savedEff);
+
+            ReceptorEntity savedRec = mock(ReceptorEntity.class);
+            when(savedRec.getId()).thenReturn(UUID.randomUUID());
+            when(savedRec.getStatement()).thenReturn(stmt);
+            when(receptorRepo.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+
+            service.afterCreate(mechanism);
+
+            // Effector should use existing definition, not create new
+            verify(effectorRepo).save(any(EffectorEntity.class));
+        }
+
+        private ArchetypeEntity mockArchetypeWithTitle(String title) {
+            UUID defId = UUID.randomUUID();
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            when(def.getId()).thenReturn(defId);
+            ArchetypeEntity arch = mock(ArchetypeEntity.class);
+            when(arch.getDefinition()).thenReturn(def);
+            ObjectNode schema = MAPPER.createObjectNode().put("title", title);
+            when(arch.getStatement()).thenReturn(schema);
+            return arch;
+        }
+    }
+
+    // ========================================================================
+    // GetSubjectType / GetRepository
+    // ========================================================================
 
     @Test
-    void extensionSchemaViolation_rejected() {
-      // Schema with a required tenant-extension property (not GSM-base:
-      // structure/function/rule)
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "ExtMech");
-      schema.put("type", "object");
-      ObjectNode props = schema.putObject("properties");
-      props.set("customField", MAPPER.createObjectNode().put("type", "integer"));
-      schema.putArray("required").add("customField");
-
-      DefinitionEntity archDef = mock(DefinitionEntity.class);
-      when(archDef.getId()).thenReturn(UUID.randomUUID());
-      cloud.poesis.sie.defman.entity.ArchetypeEntity archetype =
-          mock(cloud.poesis.sie.defman.entity.ArchetypeEntity.class);
-      when(archetype.getStatement()).thenReturn(schema);
-      when(archetype.getDefinition()).thenReturn(archDef);
-
-      ObjectNode statement = MAPPER.createObjectNode(); // missing customField
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("tenant-extended"));
+    void getSubjectType_returnsMechanism() {
+        assertEquals(DefinitionSubjectType.MECHANISM, service.getSubjectType());
     }
-  }
-
-  // ========================================================================
-  // BuildEntity
-  // ========================================================================
-
-  @Nested
-  class BuildEntity {
-
-    @Test
-    void validStatement_returnsEntity() {
-      UUID structDefId = UUID.randomUUID();
-      StructureEntity structure = mock(StructureEntity.class);
-      when(structureService.findEntityById(structDefId)).thenReturn(structure);
-
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("structure", structDefId.toString());
-      stmt.put("function", "UserValidation");
-      stmt.put("rule", "on(\"Input\")\nsys.emit(\"Output\", {})");
-
-      MechanismEntity result = service.buildEntity(def, archetype, stmt);
-      assertNotNull(result);
-      assertEquals(def, result.getDefinition());
-      assertEquals(structure, result.getStructure());
-    }
-
-    @Test
-    void missingStructure_rejected() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("function", "X");
-      stmt.put("rule", "on(\"A\")\nsys.emit(\"B\", {})");
-
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
-    }
-
-    @Test
-    void structureNotFound_rejected() {
-      UUID structDefId = UUID.randomUUID();
-      when(structureService.findEntityById(structDefId))
-          .thenThrow(new ResourceNotFoundException(PrimitiveType.STRUCTURE, structDefId));
-
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("structure", structDefId.toString());
-      stmt.put("function", "X");
-      stmt.put("rule", "on(\"A\")\nsys.emit(\"B\", {})");
-
-      assertThrows(
-          ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));
-    }
-
-    @Test
-    void invalidRule_rejected() {
-      UUID structDefId = UUID.randomUUID();
-      StructureEntity structure = mock(StructureEntity.class);
-      when(structureService.findEntityById(structDefId)).thenReturn(structure);
-
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("structure", structDefId.toString());
-      stmt.put("function", "X");
-      stmt.put("rule", "bad syntax $$@!");
-
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
-    }
-  }
-
-  // ========================================================================
-  // FindEntityById
-  // ========================================================================
-
-  @Nested
-  class FindEntityByIdTests {
-
-    @Test
-    void found_returnsEntity() {
-      UUID id = UUID.randomUUID();
-      MechanismEntity entity = mock(MechanismEntity.class);
-      when(mechanismRepo.findById(id)).thenReturn(Optional.of(entity));
-
-      assertEquals(entity, service.findEntityById(id));
-    }
-
-    @Test
-    void notFound_throwsResourceNotFound() {
-      UUID id = UUID.randomUUID();
-      when(mechanismRepo.findById(id)).thenReturn(Optional.empty());
-
-      assertThrows(ResourceNotFoundException.class, () -> service.findEntityById(id));
-    }
-  }
-
-  // ========================================================================
-  // FindCascadeTargetsFrom
-  // ========================================================================
-
-  @Nested
-  class FindCascadeTargetsFromTests {
-
-    @Test
-    void structureSource_delegatesToRepo() {
-      UUID sourceId = UUID.randomUUID();
-      MechanismEntity m1 = mock(MechanismEntity.class);
-      when(mechanismRepo.findAllByStructureId(sourceId)).thenReturn(List.of(m1));
-
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, sourceId);
-      assertEquals(1, result.size());
-      assertEquals(m1, result.get(0));
-    }
-
-    @Test
-    void nonStructureSource_returnsEmpty() {
-      UUID sourceId = UUID.randomUUID();
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, sourceId);
-      assertTrue(result.isEmpty());
-    }
-  }
-
-  // ========================================================================
-  // AfterCreate (port auto-derivation)
-  // ========================================================================
-
-  @Nested
-  class AfterCreate {
-
-    @Test
-    void derivesEffectorAndReceptor() {
-      UUID mechDefId = UUID.randomUUID();
-      DefinitionEntity mechDef = mock(DefinitionEntity.class);
-      when(mechDef.getId()).thenReturn(mechDefId);
-
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"InputType\")\nsys.emit(\"OutputType\", {})");
-
-      MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanism.getStatement()).thenReturn(stmt);
-      when(mechanism.getDefinition()).thenReturn(mechDef);
-
-      // Stub base typing archetypes
-      ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
-          .thenReturn(effArchetype);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
-          .thenReturn(recArchetype);
-
-      // Stub data archetypes
-      ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
-      ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
-      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
-      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
-
-      // No existing ports
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-
-      // Stub new definitions
-      DefinitionEntity effDef = mock(DefinitionEntity.class);
-      DefinitionEntity recDef = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
-
-      // Stub save
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(stmt);
-      when(effectorRepo.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(stmt);
-      when(receptorRepo.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      service.afterCreate(mechanism);
-
-      verify(effectorRepo).save(any(EffectorEntity.class));
-      verify(receptorRepo).save(any(ReceptorEntity.class));
-    }
-
-    @Test
-    void baseArchetypesMissing_skips() {
-      UUID mechDefId = UUID.randomUUID();
-      DefinitionEntity mechDef = mock(DefinitionEntity.class);
-      when(mechDef.getId()).thenReturn(mechDefId);
-
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
-
-      MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanism.getStatement()).thenReturn(stmt);
-      when(mechanism.getDefinition()).thenReturn(mechDef);
-
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(null);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(null);
-
-      // Should not throw — just skips
-      assertDoesNotThrow(() -> service.afterCreate(mechanism));
-    }
-
-    @Test
-    void dataArchetypeNotFound_skipsPort() {
-      UUID mechDefId = UUID.randomUUID();
-      DefinitionEntity mechDef = mock(DefinitionEntity.class);
-      when(mechDef.getId()).thenReturn(mechDefId);
-
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"MissingType\")\nsys.emit(\"AlsoMissing\", {})");
-
-      MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanism.getStatement()).thenReturn(stmt);
-      when(mechanism.getDefinition()).thenReturn(mechDef);
-
-      ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
-          .thenReturn(effArchetype);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
-          .thenReturn(recArchetype);
-
-      when(archetypeService.findInEffectBySchemaTitle("MissingType")).thenReturn(null);
-      when(archetypeService.findInEffectBySchemaTitle("AlsoMissing")).thenReturn(null);
-
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.afterCreate(mechanism));
-    }
-
-    @Test
-    void existingPortDefinition_reused() {
-      UUID mechDefId = UUID.randomUUID();
-      DefinitionEntity mechDef = mock(DefinitionEntity.class);
-      when(mechDef.getId()).thenReturn(mechDefId);
-
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"InputType\")\nsys.emit(\"OutputType\", {})");
-
-      MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanism.getStatement()).thenReturn(stmt);
-      when(mechanism.getDefinition()).thenReturn(mechDef);
-
-      ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
-          .thenReturn(effArchetype);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
-          .thenReturn(recArchetype);
-
-      ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
-      ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
-      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
-      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
-
-      // Existing effector with matching data archetype → reuse definition
-      UUID outputDefId = outputType.getDefinition().getId();
-      DefinitionEntity existingEffDef = mock(DefinitionEntity.class);
-      EffectorEntity existingEff = mock(EffectorEntity.class);
-      ArchetypeEntity existingOutputArch = mock(ArchetypeEntity.class);
-      DefinitionEntity existingOutputDef = mock(DefinitionEntity.class);
-      when(existingOutputDef.getId()).thenReturn(outputDefId);
-      when(existingOutputArch.getDefinition()).thenReturn(existingOutputDef);
-      when(existingEff.getDefinition()).thenReturn(existingEffDef);
-      when(existingEff.getOutputArchetype()).thenReturn(existingOutputArch);
-      List<EffectorEntity> existingEffectors = List.of(existingEff);
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(existingEffectors);
-
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      DefinitionEntity recDef = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
-
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(stmt);
-      when(effectorRepo.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(stmt);
-      when(receptorRepo.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      service.afterCreate(mechanism);
-
-      // Effector should use existing definition, not create new
-      verify(effectorRepo).save(any(EffectorEntity.class));
-    }
-
-    private ArchetypeEntity mockArchetypeWithTitle(String title) {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
-      ArchetypeEntity arch = mock(ArchetypeEntity.class);
-      when(arch.getDefinition()).thenReturn(def);
-      ObjectNode schema = MAPPER.createObjectNode().put("title", title);
-      when(arch.getStatement()).thenReturn(schema);
-      return arch;
-    }
-  }
-
-  // ========================================================================
-  // GetSubjectType / GetRepository
-  // ========================================================================
-
-  @Test
-  void getSubjectType_returnsMechanism() {
-    assertEquals(DefinitionSubjectType.MECHANISM, service.getSubjectType());
-  }
 }

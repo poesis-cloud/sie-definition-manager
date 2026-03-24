@@ -36,263 +36,262 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * Tests Effector lifecycle descriptors: identity-bound values, referee references, cascade target
+ * Tests Effector lifecycle descriptors: identity-bound values, referee
+ * references, cascade target
  * roles, buildEntity, findEntityById, and findCascadeTargetsFrom.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class EffectorServiceTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private EffectorRepository effectorRepo;
+    @Mock
+    private EffectorRepository effectorRepo;
 
-  @Mock private MechanismService mechanismService;
+    @Mock
+    private MechanismService mechanismService;
 
-  @Mock private ArchetypeService archetypeService;
+    @Mock
+    private ArchetypeService archetypeService;
 
-  private EffectorService service;
+    private EffectorService service;
 
-  @BeforeEach
-  void setUp() {
-    service =
-        new EffectorService(
-            effectorRepo,
-            mechanismService,
-            archetypeService,
-            mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionRepository.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
-  }
-
-  // ========================================================================
-  // Identity-bound values
-  // ========================================================================
-
-  @Nested
-  class IdentityBound {
-
-    @Test
-    void mechanismAndArchetypeExtracted() {
-      UUID mechDefId = UUID.randomUUID();
-      UUID archDefId = UUID.randomUUID();
-
-      EffectorEntity entity = stubEffector(mechDefId, archDefId);
-
-      Map<String, Object> values = service.getIdentityBoundValues(entity);
-
-      assertEquals(mechDefId, values.get("mechanism"));
-      assertEquals(archDefId, values.get("archetype"));
-    }
-  }
-
-  // ========================================================================
-  // Referee references
-  // ========================================================================
-
-  @Nested
-  class RefereeReferences {
-
-    @Test
-    void referencesArchetypeOnly() {
-      UUID mechDefId = UUID.randomUUID();
-      UUID archDefId = UUID.randomUUID();
-
-      EffectorEntity entity = stubEffector(mechDefId, archDefId);
-
-      var refs = service.getRefereeReferences(entity);
-
-      assertEquals(1, refs.size());
-      assertEquals("archetype", refs.get(0).label());
-    }
-  }
-
-  // ========================================================================
-  // Cascade target roles
-  // ========================================================================
-
-  @Nested
-  class CascadeRoles {
-
-    @Test
-    void constitutiveFromMechanism() {
-      var roles = service.getCascadeTargetRoles();
-
-      assertEquals(1, roles.size());
-      assertTrue(roles.containsKey(DefinitionSubjectType.MECHANISM));
-      assertEquals(
-          AscriptionStatusTransitionCascadeType.CONSTITUTIVE,
-          roles.get(DefinitionSubjectType.MECHANISM));
-    }
-  }
-
-  // ========================================================================
-  // buildEntity — happy path
-  // ========================================================================
-
-  @Nested
-  class BuildEntity {
-
-    @Test
-    void validStatement_buildsEntity() {
-      UUID mechId = UUID.randomUUID();
-      UUID dataArchId = UUID.randomUUID();
-
-      MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanismService.findEntityById(mechId)).thenReturn(mechanism);
-
-      ArchetypeEntity dataArchetype = mock(ArchetypeEntity.class);
-      when(archetypeService.findEntityById(dataArchId)).thenReturn(dataArchetype);
-
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("mechanism", mechId.toString());
-      statement.put("archetype", dataArchId.toString());
-
-      DefinitionEntity definition = mock(DefinitionEntity.class);
-      ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
-
-      EffectorEntity result = service.buildEntity(definition, archetypeRef, statement);
-
-      assertNotNull(result);
+    @BeforeEach
+    void setUp() {
+        service = new EffectorService(
+                effectorRepo,
+                mechanismService,
+                archetypeService,
+                mock(DefinitionService.class),
+                mock(AscriptionStatusTransitionService.class),
+                mock(AscriptionRepository.class),
+                mock(EntityManager.class),
+                mock(DataProtectionService.class));
     }
 
-    @Test
-    void missingMechanism_rejected() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode emptyStatement = MAPPER.createObjectNode();
+    // ========================================================================
+    // Identity-bound values
+    // ========================================================================
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("mechanism"));
+    @Nested
+    class IdentityBound {
+
+        @Test
+        void mechanismAndArchetypeExtracted() {
+            UUID mechDefId = UUID.randomUUID();
+            UUID archDefId = UUID.randomUUID();
+
+            EffectorEntity entity = stubEffector(mechDefId, archDefId);
+
+            Map<String, Object> values = service.getIdentityBoundValues(entity);
+
+            assertEquals(mechDefId, values.get("mechanism"));
+            assertEquals(archDefId, values.get("archetype"));
+        }
     }
 
-    @Test
-    void missingArchetype_rejected() {
-      UUID mechId = UUID.randomUUID();
-      MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanismService.findEntityById(mechId)).thenReturn(mechanism);
+    // ========================================================================
+    // Referee references
+    // ========================================================================
 
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("mechanism", mechId.toString());
-      // archetype field missing
+    @Nested
+    class RefereeReferences {
 
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+        @Test
+        void referencesArchetypeOnly() {
+            UUID mechDefId = UUID.randomUUID();
+            UUID archDefId = UUID.randomUUID();
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(def, archetypeRef, statement));
-      assertEquals(RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("archetype"));
+            EffectorEntity entity = stubEffector(mechDefId, archDefId);
+
+            var refs = service.getRefereeReferences(entity);
+
+            assertEquals(1, refs.size());
+            assertEquals("archetype", refs.get(0).label());
+        }
     }
 
-    @Test
-    void invalidUuid_rejected() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("mechanism", "not-a-uuid");
+    // ========================================================================
+    // Cascade target roles
+    // ========================================================================
 
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+    @Nested
+    class CascadeRoles {
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(def, archetypeRef, statement));
-      assertEquals(RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-    }
-  }
+        @Test
+        void constitutiveFromMechanism() {
+            var roles = service.getCascadeTargetRoles();
 
-  // ========================================================================
-  // findEntityById
-  // ========================================================================
-
-  @Nested
-  class FindEntityById {
-
-    @Test
-    void found_returnsEntity() {
-      UUID id = UUID.randomUUID();
-      EffectorEntity entity = mock(EffectorEntity.class);
-      when(effectorRepo.findById(id)).thenReturn(Optional.of(entity));
-
-      assertSame(entity, service.findEntityById(id));
+            assertEquals(1, roles.size());
+            assertTrue(roles.containsKey(DefinitionSubjectType.MECHANISM));
+            assertEquals(
+                    AscriptionStatusTransitionCascadeType.CONSTITUTIVE,
+                    roles.get(DefinitionSubjectType.MECHANISM));
+        }
     }
 
-    @Test
-    void notFound_throws() {
-      UUID id = UUID.randomUUID();
-      when(effectorRepo.findById(id)).thenReturn(Optional.empty());
+    // ========================================================================
+    // buildEntity — happy path
+    // ========================================================================
 
-      assertThrows(ResourceNotFoundException.class, () -> service.findEntityById(id));
+    @Nested
+    class BuildEntity {
+
+        @Test
+        void validStatement_buildsEntity() {
+            UUID mechId = UUID.randomUUID();
+            UUID dataArchId = UUID.randomUUID();
+
+            MechanismEntity mechanism = mock(MechanismEntity.class);
+            when(mechanismService.findEntityById(mechId)).thenReturn(mechanism);
+
+            ArchetypeEntity dataArchetype = mock(ArchetypeEntity.class);
+            when(archetypeService.findEntityById(dataArchId)).thenReturn(dataArchetype);
+
+            ObjectNode statement = MAPPER.createObjectNode();
+            statement.put("mechanism", mechId.toString());
+            statement.put("archetype", dataArchId.toString());
+
+            DefinitionEntity definition = mock(DefinitionEntity.class);
+            ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+
+            EffectorEntity result = service.buildEntity(definition, archetypeRef, statement);
+
+            assertNotNull(result);
+        }
+
+        @Test
+        void missingMechanism_rejected() {
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+            ObjectNode emptyStatement = MAPPER.createObjectNode();
+
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
+                    () -> service.buildEntity(def, archetype, emptyStatement));
+            assertEquals(RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertTrue(ex.getMessage().contains("mechanism"));
+        }
+
+        @Test
+        void missingArchetype_rejected() {
+            UUID mechId = UUID.randomUUID();
+            MechanismEntity mechanism = mock(MechanismEntity.class);
+            when(mechanismService.findEntityById(mechId)).thenReturn(mechanism);
+
+            ObjectNode statement = MAPPER.createObjectNode();
+            statement.put("mechanism", mechId.toString());
+            // archetype field missing
+
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
+                    () -> service.buildEntity(def, archetypeRef, statement));
+            assertEquals(RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+            assertTrue(ex.getMessage().contains("archetype"));
+        }
+
+        @Test
+        void invalidUuid_rejected() {
+            ObjectNode statement = MAPPER.createObjectNode();
+            statement.put("mechanism", "not-a-uuid");
+
+            DefinitionEntity def = mock(DefinitionEntity.class);
+            ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+
+            RuleViolationException ex = assertThrows(
+                    RuleViolationException.class,
+                    () -> service.buildEntity(def, archetypeRef, statement));
+            assertEquals(RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        }
     }
-  }
 
-  // ========================================================================
-  // findCascadeTargetsFrom
-  // ========================================================================
+    // ========================================================================
+    // findEntityById
+    // ========================================================================
 
-  @Nested
-  class FindCascadeTargetsFrom {
+    @Nested
+    class FindEntityById {
 
-    @Test
-    void mechanismType_delegatesToRepo() {
-      UUID sourceId = UUID.randomUUID();
-      EffectorEntity e = mock(EffectorEntity.class);
-      when(effectorRepo.findAllByMechanismId(sourceId)).thenReturn(List.of(e));
+        @Test
+        void found_returnsEntity() {
+            UUID id = UUID.randomUUID();
+            EffectorEntity entity = mock(EffectorEntity.class);
+            when(effectorRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, sourceId);
+            assertSame(entity, service.findEntityById(id));
+        }
 
-      assertEquals(1, result.size());
+        @Test
+        void notFound_throws() {
+            UUID id = UUID.randomUUID();
+            when(effectorRepo.findById(id)).thenReturn(Optional.empty());
+
+            assertThrows(ResourceNotFoundException.class, () -> service.findEntityById(id));
+        }
     }
 
-    @Test
-    void otherType_returnsEmpty() {
-      var result =
-          service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
+    // ========================================================================
+    // findCascadeTargetsFrom
+    // ========================================================================
 
-      assertTrue(result.isEmpty());
+    @Nested
+    class FindCascadeTargetsFrom {
+
+        @Test
+        void mechanismType_delegatesToRepo() {
+            UUID sourceId = UUID.randomUUID();
+            EffectorEntity e = mock(EffectorEntity.class);
+            when(effectorRepo.findAllByMechanismId(sourceId)).thenReturn(List.of(e));
+
+            var result = service.findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, sourceId);
+
+            assertEquals(1, result.size());
+        }
+
+        @Test
+        void otherType_returnsEmpty() {
+            var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
+
+            assertTrue(result.isEmpty());
+        }
     }
-  }
 
-  // ========================================================================
-  // getSubjectType and getRepository
-  // ========================================================================
+    // ========================================================================
+    // getSubjectType and getRepository
+    // ========================================================================
 
-  @Nested
-  class MetadataAccessors {
+    @Nested
+    class MetadataAccessors {
 
-    @Test
-    void subjectType_isEffector() {
-      assertEquals(DefinitionSubjectType.EFFECTOR, service.getSubjectType());
+        @Test
+        void subjectType_isEffector() {
+            assertEquals(DefinitionSubjectType.EFFECTOR, service.getSubjectType());
+        }
     }
-  }
 
-  // ========================================================================
-  // Helpers
-  // ========================================================================
+    // ========================================================================
+    // Helpers
+    // ========================================================================
 
-  private EffectorEntity stubEffector(UUID mechDefId, UUID archDefId) {
-    DefinitionEntity mechDef = mock(DefinitionEntity.class);
-    when(mechDef.getId()).thenReturn(mechDefId);
-    MechanismEntity mechanism = mock(MechanismEntity.class);
-    when(mechanism.getDefinition()).thenReturn(mechDef);
+    private EffectorEntity stubEffector(UUID mechDefId, UUID archDefId) {
+        DefinitionEntity mechDef = mock(DefinitionEntity.class);
+        when(mechDef.getId()).thenReturn(mechDefId);
+        MechanismEntity mechanism = mock(MechanismEntity.class);
+        when(mechanism.getDefinition()).thenReturn(mechDef);
 
-    DefinitionEntity archDef = mock(DefinitionEntity.class);
-    when(archDef.getId()).thenReturn(archDefId);
-    ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-    when(archetype.getDefinition()).thenReturn(archDef);
+        DefinitionEntity archDef = mock(DefinitionEntity.class);
+        when(archDef.getId()).thenReturn(archDefId);
+        ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+        when(archetype.getDefinition()).thenReturn(archDef);
 
-    EffectorEntity entity = mock(EffectorEntity.class);
-    when(entity.getMechanism()).thenReturn(mechanism);
-    when(entity.getOutputArchetype()).thenReturn(archetype);
+        EffectorEntity entity = mock(EffectorEntity.class);
+        when(entity.getMechanism()).thenReturn(mechanism);
+        when(entity.getOutputArchetype()).thenReturn(archetype);
 
-    return entity;
-  }
+        return entity;
+    }
 }
