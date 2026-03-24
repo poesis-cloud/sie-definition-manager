@@ -221,9 +221,9 @@ Cost: **2 queries** (page + batch archetype IN). The batch fetch eliminates the 
 
 ## Where to start
 
-- GSM model: `definition/gsm.puml`
-- DSM model (companion): `../sie-description-manager/definition/dsm.puml`
-- Supervision information model: `../sie-supervision/definition/sie-supervision-information-model.puml`
+- GSM model: `def/gsm.puml`
+- DSM model (companion): `../sie-description-manager/def/dsm.puml`
+- Supervision information model: `../sie-supervision/def/sie-supervision-information-model.puml`
 - SIE overview: `../README.md`
 
 ## Governance examples — Directive → Norm by element type

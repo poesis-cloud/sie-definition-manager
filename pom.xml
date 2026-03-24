@@ -150,7 +150,7 @@
         <directory>src/main/resources</directory>
       </resource>
       <resource>
-        <directory>definition/schemas</directory>
+        <directory>def/schemas</directory>
         <targetPath>schemas</targetPath>
       </resource>
     </resources>
@@ -276,7 +276,7 @@
           <json>
             <includes>
               <include>src/**/*.json</include>
-              <include>definition/**/*.json</include>
+              <include>def/**/*.json</include>
             </includes>
             <jackson/>
           </json>
