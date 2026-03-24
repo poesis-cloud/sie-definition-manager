@@ -37,6 +37,8 @@ jobs:
           cache: maven
       - name: Build jar
         run: mvn -B -DskipTests package
+      - name: Generate SBOM
+        run: mvn -B cyclonedx:makeAggregateBom
       - name: Build image
         run: docker build -t ghcr.io/${{ github.repository_owner }}/sie-definition-manager:${{ github.sha }} .
       - name: Login GHCR
@@ -47,8 +49,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
         run: docker push ghcr.io/${{ github.repository_owner }}/sie-definition-manager:${{ github.sha }}
-      - name: Generate SBOM
-        run: mvn -B -DskipTests verify
       - name: Sign image (keyless)
         uses: sigstore/cosign-installer@v3
       - name: Cosign sign

@@ -1,27 +1,22 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/StructureArchetype/v1",
-  "title": "StructureArchetype",
-  "description": "Schema for Structure Ascriptions — the foundational aggregate. Defines the Structure's purpose: its identity discriminator and governance address. DM input = DM output (1:1). Tenant-defined archetypes extending Structure MUST reference this schema via allOf.",
-  "type": "object",
-  "examples": [
-    {
-      "purpose": "payment-processing"
-    },
-    {
-      "purpose": "order-management"
-    }
-  ],
-  "required": [
-    "purpose"
-  ],
-  "properties": {
-    "purpose": {
-      "type": "string",
-      "minLength": 1,
-      "$gsm:identityBound": true,
-      "description": "The Structure's raison d'être. Globally unique among in-effect Structures — serves as both identity discriminator and governance address. Directives reference the purpose via their purpose field."
+  "$schema" : "gsm://archetypes/Archetype/v1",
+  "$id" : "gsm://archetypes/StructureArchetype/v1",
+  "title" : "StructureArchetype",
+  "description" : "Schema for Structure Ascriptions — the foundational aggregate. Defines the Structure's purpose: its identity discriminator and governance address. DM input = DM output (1:1). Tenant-defined archetypes extending Structure MUST reference this schema via allOf.",
+  "type" : "object",
+  "examples" : [ {
+    "purpose" : "payment-processing"
+  }, {
+    "purpose" : "order-management"
+  } ],
+  "required" : [ "purpose" ],
+  "properties" : {
+    "purpose" : {
+      "type" : "string",
+      "minLength" : 1,
+      "$gsm:identityBound" : true,
+      "description" : "The Structure's raison d'être. Globally unique among in-effect Structures — serves as both identity discriminator and governance address. Directives reference the purpose via their purpose field."
     }
   },
-  "unevaluatedProperties": false
+  "unevaluatedProperties" : false
 }

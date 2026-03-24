@@ -25,6 +25,7 @@ jobs:
           name: dm-test-reports
           path: |
             target/surefire-reports
+            target/failsafe-reports
             target/site/jacoco
             target/bom.json
 

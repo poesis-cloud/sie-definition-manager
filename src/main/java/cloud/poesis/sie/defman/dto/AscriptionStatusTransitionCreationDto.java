@@ -10,18 +10,20 @@ import jakarta.validation.constraints.NotNull;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-@Schema(name = "AscriptionStatusTransitionCreation", description = "Request to transition an ascription to a new lifecycle status")
+@Schema(
+    name = "AscriptionStatusTransitionCreation",
+    description = "Request to transition an ascription to a new lifecycle status")
 public class AscriptionStatusTransitionCreationDto {
 
-    @Schema(description = "Target lifecycle status")
-    @NotNull
-    private final AscriptionStatusType targetStatus;
+  @Schema(description = "Target lifecycle status")
+  @NotNull
+  private final AscriptionStatusType targetStatus;
 
-    public AscriptionStatusTransitionCreationDto(AscriptionStatusType targetStatus) {
-        this.targetStatus = targetStatus;
-    }
+  public AscriptionStatusTransitionCreationDto(AscriptionStatusType targetStatus) {
+    this.targetStatus = targetStatus;
+  }
 
-    public AscriptionStatusType getTargetStatus() {
-        return targetStatus;
-    }
+  public AscriptionStatusType getTargetStatus() {
+    return targetStatus;
+  }
 }
