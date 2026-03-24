@@ -8,6 +8,8 @@ spring:
         url: ${DB_URL:jdbc:postgresql://localhost:5432/sie_definition}
         username: ${DB_USER:sie}
         password: ${DB_PASSWORD:change-me}
+    hateoas:
+        use-hal-as-default-json-media-type: true
     jpa:
         hibernate:
             ddl-auto: validate
@@ -53,7 +55,7 @@ otel:
             endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
 
 springdoc:
-    enable-hateoas: false
+    enable-hateoas: true
 
 dm:
     bootstrap:

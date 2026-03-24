@@ -1,5 +1,6 @@
 package cloud.poesis.sie.defman.dto;
 
+import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,16 +17,40 @@ import jakarta.validation.constraints.NotNull;
  * of the {@code statement} payload and validated against the archetype's
  * JSON Schema.
  *
- * @param archetypeId  Definition ID of the typing Archetype
- * @param statement    JSON payload conforming to the Archetype's schema
- * @param definitionId optional Definition ID when creating a new Ascription
- *                     for an existing Definition
  * @author Clément Cazaud
  * @since 1.0.0
  */
-@Schema(description = "Creation request for a GSM ascription")
-public record AscriptionCreationDto(
-        @Schema(description = "Definition ID of the typing Archetype") @NotNull UUID archetypeId,
-        @Schema(description = "JSON payload conforming to the Archetype's schema. Query the Archetype ascription to discover the expected structure.", implementation = Object.class) @NotNull JsonNode statement,
-        @Schema(description = "Optional: set for new ascription of existing definition") UUID definitionId) {
+@Schema(name = "AscriptionCreation", description = "Creation request for a GSM ascription")
+public class AscriptionCreationDto {
+
+    @Schema(description = "Definition ID of the typing Archetype")
+    @NotNull
+    private final UUID archetypeId;
+
+    @Schema(description = "JSON payload conforming to the Archetype's schema. "
+            + "Query the Archetype ascription to discover the expected structure.",
+            implementation = Map.class)
+    @NotNull
+    private final JsonNode statement;
+
+    @Schema(description = "Optional: set for new ascription of existing definition")
+    private final UUID definitionId;
+
+    public AscriptionCreationDto(UUID archetypeId, JsonNode statement, UUID definitionId) {
+        this.archetypeId = archetypeId;
+        this.statement = statement;
+        this.definitionId = definitionId;
+    }
+
+    public UUID getArchetypeId() {
+        return archetypeId;
+    }
+
+    public JsonNode getStatement() {
+        return statement;
+    }
+
+    public UUID getDefinitionId() {
+        return definitionId;
+    }
 }

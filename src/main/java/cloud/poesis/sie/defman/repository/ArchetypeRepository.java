@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
@@ -20,16 +19,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public interface ArchetypeRepository extends JpaRepository<ArchetypeEntity, UUID> {
-
-    /**
-     * Returns a page of archetypes filtered by lifecycle status.
-     *
-     * @param status   the lifecycle status to match
-     * @param pageable pagination parameters
-     * @return a page of matching archetype entities
-     */
-    Page<ArchetypeEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
+public interface ArchetypeRepository extends AbstractAscriptionRepository<ArchetypeEntity> {
 
     /**
      * Returns all archetypes filtered by lifecycle status.
@@ -55,26 +45,6 @@ public interface ArchetypeRepository extends JpaRepository<ArchetypeEntity, UUID
      * @return the matching archetype entities
      */
     List<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses);
-
-    /**
-     * Returns all archetype ascriptions for a given definition ordered by
-     * recency.
-     *
-     * @param definitionId the definition UUID
-     * @return the matching archetype entities ordered by timestamp descending
-     */
-    List<ArchetypeEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
-
-    /**
-     * Returns all archetype ascriptions for a given definition filtered by
-     * lifecycle statuses.
-     *
-     * @param definitionId the definition UUID
-     * @param statuses     the lifecycle statuses to match
-     * @return the matching archetype entities
-     */
-    List<ArchetypeEntity> findAllByDefinitionIdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     /**
      * Returns the in-effect archetype with the given schema title.

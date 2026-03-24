@@ -48,9 +48,17 @@ Environment files:
 
 - Use `.env` for checked-in non-secret defaults.
 - Use `.env.dev` for machine-local dev secrets and overrides.
-- To enable social OAuth providers, run with profile `social`
+- To enable social OAuth providers, set `DM_OAUTH2_LOGIN_ENABLED=true` in `.env.dev`
+  and supply the registration env vars (Spring Boot relaxed binding):
 
-  (e.g. `SPRING_PROFILES_ACTIVE=social`) and set provider client IDs/secrets.
+  ```
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_ID=...
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_SECRET=...
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=...
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=...
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_ID=...
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_SECRET=...
+  ```
 
 Deployment values structure:
 
@@ -80,6 +88,25 @@ Default profile is:
 - `DM_RELIABILITY_MODE=alo-idempotent`
 
 This keeps v1 cost-effective while preserving a path to stricter producer transaction settings when needed.
+
+### POST endpoint idempotency
+
+Neither POST endpoint is idempotent — by design:
+
+- **`POST /ascriptions`**: not idempotent. Submitting the same payload twice
+  creates two distinct Ascription rows (each with its own UUIDv7 `id`). This
+  is intentional: GSM's governance convergence pattern handles duplicates —
+  approving one Ascription auto-terminates siblings (DRAFT → ABANDONED,
+  PROPOSED → REJECTED), so duplicate drafts are harmless and self-cleaning.
+- **`POST /ascriptions/{id}/transitions`**: not idempotent, but naturally
+  guarded by the state machine. The first call succeeds; a duplicate call with
+  the same `postStatus` fails because the Ascription's `status` has already
+  advanced past the `preStatus` — the transition path is no longer valid
+  (409 Conflict).
+
+Clients should treat both endpoints as non-idempotent and avoid blind retries.
+If at-least-once delivery introduces duplicate drafts, governance convergence
+resolves them without manual intervention.
 
 ## GSM — the Generative System Model
 

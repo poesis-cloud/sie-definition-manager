@@ -73,6 +73,11 @@ dev-up:
 	@echo "Now run: make run-api"
 
 dev-down:
+	@PID=$$(lsof -ti :8080 2>/dev/null); \
+	if [[ -n "$$PID" ]]; then \
+		kill $$PID 2>/dev/null || true; \
+		echo "Stopped process on port 8080 (PID $$PID)"; \
+	fi
 	@if [[ -f "$(PORT_FORWARD_PID_FILE)" ]]; then \
 		xargs -r kill < "$(PORT_FORWARD_PID_FILE)" 2>/dev/null || true; \
 		rm -f "$(PORT_FORWARD_PID_FILE)"; \

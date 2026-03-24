@@ -1,6 +1,7 @@
 package cloud.poesis.sie.defman.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,4 +26,14 @@ public interface AscriptionStatusTransitionRepository
      */
     List<AscriptionStatusTransitionEntity> findAllByAscriptionIdOrderByTimestampAsc(
             UUID ascriptionId);
+
+    /**
+     * Returns a single transition by its ID, scoped to the given ascription.
+     *
+     * @param id           the transition UUID
+     * @param ascriptionId the owning ascription UUID
+     * @return the matching transition record, if any
+     */
+    Optional<AscriptionStatusTransitionEntity> findByIdAndAscriptionId(
+            UUID id, UUID ascriptionId);
 }

@@ -2,6 +2,7 @@ package cloud.poesis.sie.defman.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -68,5 +69,18 @@ public class AscriptionStatusTransitionService {
     @Transactional(value = "transactionManager", readOnly = true)
     public List<AscriptionStatusTransitionEntity> findByAscriptionId(UUID ascriptionId) {
         return transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId);
+    }
+
+    /**
+     * Returns a single transition by its ID, scoped to the given ascription.
+     *
+     * @param transitionId the transition UUID
+     * @param ascriptionId the owning ascription UUID
+     * @return the matching transition entity
+     */
+    @Transactional(value = "transactionManager", readOnly = true)
+    public Optional<AscriptionStatusTransitionEntity> findByIdAndAscriptionId(
+            UUID transitionId, UUID ascriptionId) {
+        return transitionRepo.findByIdAndAscriptionId(transitionId, ascriptionId);
     }
 }

@@ -12,3 +12,6 @@ target/
 # Dev environment overrides
 .env.dev
 .settings/
+
+# Dev environment setup generated files
+.dev-port-forwards.pids

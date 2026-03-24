@@ -54,7 +54,7 @@ public enum PrimitiveType {
      */
     public static PrimitiveType fromValue(String value) {
         for (PrimitiveType type : values()) {
-            if (type.value.equals(value)) {
+            if (type.value.equalsIgnoreCase(value)) {
                 return type;
             }
         }

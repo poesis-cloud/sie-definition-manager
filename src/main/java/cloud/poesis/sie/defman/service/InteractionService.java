@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +20,7 @@ import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -38,7 +40,7 @@ import jakarta.persistence.EntityManager;
  * @since 1.0.0
  */
 @Service
-public class InteractionService extends AbstractAscriptionService {
+public class InteractionService extends AbstractAscriptionService<InteractionEntity> {
 
     private final InteractionRepository interactionRepo;
     private final EffectorService effectorService;
@@ -77,7 +79,12 @@ public class InteractionService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    protected AbstractAscriptionRepository<InteractionEntity> getRepository() {
+        return interactionRepo;
+    }
+
+    @Override
+    public InteractionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         UUID effectorId = extractRequiredUuid(statement, "effector");
         EffectorEntity effector = effectorService.findEntityById(effectorId);
 
@@ -103,33 +110,6 @@ public class InteractionService extends AbstractAscriptionService {
                 statement,
                 effector,
                 receptor);
-    }
-
-    @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return interactionRepo.save((InteractionEntity) entity);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return interactionRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return interactionRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return interactionRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return interactionRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----

@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,6 +24,7 @@ import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -49,7 +51,7 @@ import jakarta.persistence.EntityManager;
  * @since 1.0.0
  */
 @Service
-public class NormService extends AbstractAscriptionService {
+public class NormService extends AbstractAscriptionService<NormEntity> {
 
     // ======================================================================
     // CEL profile constants (from CelProfileValidator)
@@ -107,7 +109,12 @@ public class NormService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    protected AbstractAscriptionRepository<NormEntity> getRepository() {
+        return normRepo;
+    }
+
+    @Override
+    public NormEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         // GSM: validate CEL profiles before building entity
         if (statement.has("guard")) {
             validateGuard(statement.get("guard").asText());
@@ -140,33 +147,6 @@ public class NormService extends AbstractAscriptionService {
                 statement,
                 structure,
                 qualifier);
-    }
-
-    @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return normRepo.save((NormEntity) entity);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return normRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return normRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return normRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return normRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----

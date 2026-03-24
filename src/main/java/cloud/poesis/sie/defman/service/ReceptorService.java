@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,6 +19,7 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -37,7 +39,7 @@ import jakarta.persistence.EntityManager;
  * @since 1.0.0
  */
 @Service
-public class ReceptorService extends AbstractAscriptionService {
+public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
 
     private final ReceptorRepository receptorRepo;
     private final MechanismService mechanismService;
@@ -77,7 +79,12 @@ public class ReceptorService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    protected AbstractAscriptionRepository<ReceptorEntity> getRepository() {
+        return receptorRepo;
+    }
+
+    @Override
+    public ReceptorEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         UUID mechanismId = extractRequiredUuid(statement, "mechanism");
         MechanismEntity mechanism = mechanismService.findEntityById(mechanismId);
 
@@ -92,11 +99,6 @@ public class ReceptorService extends AbstractAscriptionService {
                 dataArchetype);
     }
 
-    @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return receptorRepo.save((ReceptorEntity) entity);
-    }
-
     /**
      * Finds a Receptor entity by its ascription id.
      *
@@ -107,28 +109,6 @@ public class ReceptorService extends AbstractAscriptionService {
     public ReceptorEntity findEntityById(UUID id) {
         return receptorRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.RECEPTOR, id));
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return receptorRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return receptorRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return receptorRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return receptorRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----

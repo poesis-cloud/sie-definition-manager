@@ -68,9 +68,9 @@ class AbstractControllerTest {
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
             // Password should be hashed (64 hex chars for SHA-256)
-            String hashed = dto.statement().get("password").asText();
+            String hashed = dto.getStatement().get("password").asText();
             assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex hash, got: " + hashed);
-            assertEquals("test-service", dto.statement().get("name").asText());
+            assertEquals("test-service", dto.getStatement().get("name").asText());
         }
 
         @Test
@@ -94,7 +94,7 @@ class AbstractControllerTest {
 
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
-            String masked = dto.statement().get("phone").asText();
+            String masked = dto.getStatement().get("phone").asText();
             assertTrue(masked.endsWith("1234"), "Expected last 4 chars visible, got: " + masked);
             assertTrue(masked.contains("*"), "Expected masking characters, got: " + masked);
         }
@@ -119,8 +119,8 @@ class AbstractControllerTest {
 
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
-            assertNull(dto.statement().get("secret"));
-            assertEquals("prod", dto.statement().get("env").asText());
+            assertNull(dto.getStatement().get("secret"));
+            assertEquals("prod", dto.getStatement().get("env").asText());
         }
 
         @Test
@@ -157,7 +157,7 @@ class AbstractControllerTest {
 
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
-            assertEquals("test-service", dto.statement().get("name").asText());
+            assertEquals("test-service", dto.getStatement().get("name").asText());
         }
 
         @Test
@@ -178,7 +178,7 @@ class AbstractControllerTest {
 
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
-            assertEquals("already-hashed-at-rest-value", dto.statement().get("ssn").asText());
+            assertEquals("already-hashed-at-rest-value", dto.getStatement().get("ssn").asText());
         }
 
         @Test
@@ -193,7 +193,7 @@ class AbstractControllerTest {
 
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
-            assertEquals("s3cret", dto.statement().get("password").asText());
+            assertEquals("s3cret", dto.getStatement().get("password").asText());
         }
 
         @Test
@@ -214,8 +214,8 @@ class AbstractControllerTest {
 
             AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
-            assertNull(dto.statement().get("password"));
-            assertEquals("test", dto.statement().get("name").asText());
+            assertNull(dto.getStatement().get("password"));
+            assertEquals("test", dto.getStatement().get("name").asText());
         }
     }
 

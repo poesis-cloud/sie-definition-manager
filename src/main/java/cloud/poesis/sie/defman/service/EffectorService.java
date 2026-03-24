@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +20,7 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -37,7 +39,7 @@ import jakarta.persistence.EntityManager;
  * @since 1.0.0
  */
 @Service
-public class EffectorService extends AbstractAscriptionService {
+public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
 
     private final EffectorRepository effectorRepo;
     private final MechanismService mechanismService;
@@ -77,7 +79,12 @@ public class EffectorService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    protected AbstractAscriptionRepository<EffectorEntity> getRepository() {
+        return effectorRepo;
+    }
+
+    @Override
+    public EffectorEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         UUID mechanismId = extractRequiredUuid(statement, "mechanism");
         MechanismEntity mechanism = mechanismService.findEntityById(mechanismId);
 
@@ -92,11 +99,6 @@ public class EffectorService extends AbstractAscriptionService {
                 dataArchetype);
     }
 
-    @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return effectorRepo.save((EffectorEntity) entity);
-    }
-
     /**
      * Finds an Effector entity by its ascription id.
      *
@@ -107,28 +109,6 @@ public class EffectorService extends AbstractAscriptionService {
     public EffectorEntity findEntityById(UUID id) {
         return effectorRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.EFFECTOR, id));
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return effectorRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return effectorRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return effectorRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return effectorRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----

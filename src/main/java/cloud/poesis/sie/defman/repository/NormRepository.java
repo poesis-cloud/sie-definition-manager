@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -17,34 +16,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public interface NormRepository extends JpaRepository<NormEntity, UUID> {
-
-    /**
-     * Returns a page of norms filtered by lifecycle status.
-     *
-     * @param status   the lifecycle status to match
-     * @param pageable pagination parameters
-     * @return a page of matching norm entities
-     */
-    Page<NormEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
-
-    /**
-     * Returns all norms for a given definition ordered by recency.
-     *
-     * @param definitionId the definition UUID
-     * @return the matching norm entities ordered by timestamp descending
-     */
-    List<NormEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
-
-    /**
-     * Returns all norms for a given definition filtered by lifecycle statuses.
-     *
-     * @param definitionId the definition UUID
-     * @param statuses     the lifecycle statuses to match
-     * @return the matching norm entities
-     */
-    List<NormEntity> findAllByDefinitionIdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatusType> statuses);
+public interface NormRepository extends AbstractAscriptionRepository<NormEntity> {
 
     /**
      * Returns a page of norms authored by a specific structure.

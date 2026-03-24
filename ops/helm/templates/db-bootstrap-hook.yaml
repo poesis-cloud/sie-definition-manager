@@ -152,6 +152,13 @@ spec:
                 exit 0
               fi
 
+              echo "Ensuring pgcrypto extension exists..."
+              psql -v ON_ERROR_STOP=1 \
+                -h "definitiondatabase" \
+                -U {{ .Values.dbBootstrap.adminUser | quote }} \
+                -d {{ .Values.dbBootstrap.database | quote }} \
+                -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
               dm_user_sql=$(printf '%s' "$DB_USER" | sed "s/'/''/g")
               dm_password_sql=$(printf '%s' "$DB_PASSWORD" | sed "s/'/''/g")
 

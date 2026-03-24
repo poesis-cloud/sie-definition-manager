@@ -69,12 +69,10 @@ public abstract class AbstractController {
                 ascription.getStatement(), archetype.getStatement());
         return new AscriptionDto(
                 ascription.getId(),
-                ascription.getDefinition().getId(),
-                ascription.getArchetype().getId(),
                 statement,
                 ascription.getTimestamp(),
                 ascription.getVersion(),
-                ascription.getStatus().name());
+                ascription.getStatus());
     }
 
     /**
@@ -88,10 +86,8 @@ public abstract class AbstractController {
         return new AscriptionStatusTransitionDto(
                 ascriptionStatusTransition.getId(),
                 ascriptionStatusTransition.getAscription().getId(),
-                ascriptionStatusTransition.getPreStatus() != null
-                        ? ascriptionStatusTransition.getPreStatus().name()
-                        : null,
-                ascriptionStatusTransition.getPostStatus().name(),
+                ascriptionStatusTransition.getPreStatus(),
+                ascriptionStatusTransition.getPostStatus(),
                 ascriptionStatusTransition.getTimestamp());
     }
 
@@ -104,7 +100,7 @@ public abstract class AbstractController {
     protected DefinitionDto mapEntityToDefinitionDto(DefinitionEntity definition) {
         return new DefinitionDto(
                 definition.getId(),
-                definition.getSubjectType().getValue());
+                definition.getSubjectType());
     }
 
     // ========================================================================
@@ -126,6 +122,14 @@ public abstract class AbstractController {
         return constructProblemDetail(HttpStatus.NOT_FOUND, exception.getMessage(), exception.getTitle(),
                 exception.getType(),
                 exception.getExtensions());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ProblemDetail mapIllegalArgumentExceptionToProblemDetail(IllegalArgumentException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, exception.getMessage());
+        problemDetail.setTitle("Invalid request parameter");
+        return problemDetail;
     }
 
     @ExceptionHandler(Exception.class)

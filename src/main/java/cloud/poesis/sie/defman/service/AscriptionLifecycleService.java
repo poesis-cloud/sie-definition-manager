@@ -156,11 +156,11 @@ public class AscriptionLifecycleService {
     // ======================================================================
 
     private record CascadeTargetEntry(
-            AbstractAscriptionService targetService,
+            AbstractAscriptionService<?> targetService,
             AscriptionStatusTransitionCascadeType cascadeType) {
     }
 
-    private final Map<DefinitionSubjectType, AbstractAscriptionService> subtypeByType;
+    private final Map<DefinitionSubjectType, AbstractAscriptionService<?>> subtypeByType;
     private final Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeTargetsBySourceType;
     private final AscriptionStatusTransitionService transitionService;
     private final EntityManager entityManager;
@@ -175,23 +175,23 @@ public class AscriptionLifecycleService {
      * @param entityManager     the JPA entity manager
      */
     public AscriptionLifecycleService(
-            List<AbstractAscriptionService> subtypeServices,
+            List<AbstractAscriptionService<?>> subtypeServices,
             AscriptionStatusTransitionService transitionService,
             EntityManager entityManager) {
         this.transitionService = transitionService;
         this.entityManager = entityManager;
 
         // Build subtype lookup map
-        Map<DefinitionSubjectType, AbstractAscriptionService> byType = new EnumMap<>(
+        Map<DefinitionSubjectType, AbstractAscriptionService<?>> byType = new EnumMap<>(
                 DefinitionSubjectType.class);
-        for (AbstractAscriptionService svc : subtypeServices) {
+        for (AbstractAscriptionService<?> svc : subtypeServices) {
             byType.put(svc.getSubjectType(), svc);
         }
         this.subtypeByType = Map.copyOf(byType);
 
         // Build cascade graph (inverted from target declarations)
         Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeMap = new EnumMap<>(DefinitionSubjectType.class);
-        for (AbstractAscriptionService svc : subtypeServices) {
+        for (AbstractAscriptionService<?> svc : subtypeServices) {
             for (var entry : svc.getCascadeTargetRoles().entrySet()) {
                 cascadeMap.computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
                         .add(new CascadeTargetEntry(svc, entry.getValue()));
@@ -241,7 +241,7 @@ public class AscriptionLifecycleService {
 
         // 3b. Subtype-specific activation hook
         if (targetStatusType == AscriptionStatusType.ACTIVE) {
-            AbstractAscriptionService svc = subtypeByType.get(type);
+            AbstractAscriptionService<?> svc = subtypeByType.get(type);
             if (svc != null) {
                 svc.onActivation(entity);
             }
@@ -249,7 +249,7 @@ public class AscriptionLifecycleService {
 
         // 3c. Subtype-specific deactivation hook (leaving in-effect)
         if (IN_EFFECT.contains(currentStatus) && !IN_EFFECT.contains(targetStatusType)) {
-            AbstractAscriptionService svc = subtypeByType.get(type);
+            AbstractAscriptionService<?> svc = subtypeByType.get(type);
             if (svc != null) {
                 svc.onDeactivation(entity);
             }
@@ -294,12 +294,24 @@ public class AscriptionLifecycleService {
         return transitionService.findByAscriptionId(ascriptionId);
     }
 
+    /**
+     * Returns a single transition by its ID, scoped to the given ascription.
+     *
+     * @param transitionId the transition UUID
+     * @param ascriptionId the owning ascription UUID
+     * @return the matching transition entity, if present
+     */
+    public java.util.Optional<AscriptionStatusTransitionEntity> getTransition(
+            UUID transitionId, UUID ascriptionId) {
+        return transitionService.findByIdAndAscriptionId(transitionId, ascriptionId);
+    }
+
     // ======================================================================
     // Activation uniqueness validation
     // ======================================================================
 
     private void validateActivationUniqueness(AscriptionEntity entity, DefinitionSubjectType type) {
-        AbstractAscriptionService subtypeService = subtypeByType.get(type);
+        AbstractAscriptionService<?> subtypeService = subtypeByType.get(type);
         if (subtypeService != null) {
             subtypeService.validateActivationUniqueness(entity);
         }
@@ -335,7 +347,7 @@ public class AscriptionLifecycleService {
             AscriptionEntity entity, DefinitionSubjectType type,
             AscriptionStatusType from, AscriptionStatusType to) {
 
-        AbstractAscriptionService subtypeService = subtypeByType.get(type);
+        AbstractAscriptionService<?> subtypeService = subtypeByType.get(type);
         if (subtypeService == null) {
             return;
         }
@@ -469,7 +481,7 @@ public class AscriptionLifecycleService {
 
     private void handleApproval(DefinitionSubjectType type, AscriptionEntity approved) {
         UUID definitionId = approved.getDefinition().getId();
-        AbstractAscriptionService svc = subtypeByType.get(type);
+        AbstractAscriptionService<?> svc = subtypeByType.get(type);
         if (svc == null)
             return;
 
@@ -495,7 +507,7 @@ public class AscriptionLifecycleService {
 
     private void handleActivation(DefinitionSubjectType type, AscriptionEntity activating) {
         UUID definitionId = activating.getDefinition().getId();
-        AbstractAscriptionService svc = subtypeByType.get(type);
+        AbstractAscriptionService<?> svc = subtypeByType.get(type);
         if (svc == null)
             return;
 

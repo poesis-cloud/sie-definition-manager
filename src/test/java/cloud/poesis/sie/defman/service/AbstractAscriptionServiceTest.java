@@ -39,6 +39,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -64,7 +65,7 @@ class AbstractAscriptionServiceTest {
     private EntityManager entityManager;
 
     /** Minimal concrete subclass for testing package-private base methods. */
-    private AbstractAscriptionService service;
+    private AbstractAscriptionService<AscriptionEntity> service;
 
     // Configurable responses for abstract methods
     private List<AscriptionEntity> existingAscriptions = List.of();
@@ -73,12 +74,17 @@ class AbstractAscriptionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AbstractAscriptionService(
+        service = new AbstractAscriptionService<>(
                 definitionService, transitionService, ascriptionRepo,
                 entityManager, new DataProtectionService()) {
             @Override
             public DefinitionSubjectType getSubjectType() {
                 return DefinitionSubjectType.STRUCTURE;
+            }
+
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+                return null;
             }
 
             @Override
@@ -92,22 +98,22 @@ class AbstractAscriptionServiceTest {
             }
 
             @Override
-            public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
+            public Page<AscriptionEntity> findAll(Pageable pageable) {
                 return null;
             }
 
             @Override
-            public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
+            public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
                 return null;
             }
 
             @Override
-            public List<? extends AscriptionEntity> findAllByDefinitionId(UUID id) {
+            public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
                 return existingAscriptions;
             }
 
             @Override
-            public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(UUID id,
+            public List<AscriptionEntity> findAllByDefinitionIdAndStatus(UUID id,
                     Collection<AscriptionStatusType> s) {
                 return List.of();
             }
@@ -316,12 +322,17 @@ class AbstractAscriptionServiceTest {
             final Map<String, Object> oldValues = Map.of("purpose", "old-purpose");
             final Map<String, Object> newValues = Map.of("purpose", "new-purpose");
 
-            AbstractAscriptionService spyService = new AbstractAscriptionService(
+            AbstractAscriptionService<AscriptionEntity> spyService = new AbstractAscriptionService<>(
                     definitionService, transitionService, ascriptionRepo,
                     entityManager, new DataProtectionService()) {
                 @Override
                 public DefinitionSubjectType getSubjectType() {
                     return DefinitionSubjectType.STRUCTURE;
+                }
+
+                @Override
+                protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+                    return null;
                 }
 
                 @Override
@@ -335,22 +346,22 @@ class AbstractAscriptionServiceTest {
                 }
 
                 @Override
-                public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
+                public Page<AscriptionEntity> findAll(Pageable pageable) {
                     return null;
                 }
 
                 @Override
-                public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
+                public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
                     return null;
                 }
 
                 @Override
-                public List<? extends AscriptionEntity> findAllByDefinitionId(UUID id) {
+                public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
                     return existingAscriptions;
                 }
 
                 @Override
-                public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(UUID id,
+                public List<AscriptionEntity> findAllByDefinitionIdAndStatus(UUID id,
                         Collection<AscriptionStatusType> s) {
                     return List.of();
                 }

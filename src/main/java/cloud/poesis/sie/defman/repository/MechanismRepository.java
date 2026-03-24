@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -18,16 +17,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public interface MechanismRepository extends JpaRepository<MechanismEntity, UUID> {
-
-    /**
-     * Returns a page of mechanisms filtered by lifecycle status.
-     *
-     * @param status   the lifecycle status to match
-     * @param pageable pagination parameters
-     * @return a page of matching mechanism entities
-     */
-    Page<MechanismEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable);
+public interface MechanismRepository extends AbstractAscriptionRepository<MechanismEntity> {
 
     /**
      * Returns a page of mechanisms filtered by a set of lifecycle statuses.
@@ -37,25 +27,6 @@ public interface MechanismRepository extends JpaRepository<MechanismEntity, UUID
      * @return a page of matching mechanism entities
      */
     Page<MechanismEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses, Pageable pageable);
-
-    /**
-     * Returns all mechanisms for a given definition ordered by recency.
-     *
-     * @param definitionId the definition UUID
-     * @return the matching mechanism entities ordered by timestamp descending
-     */
-    List<MechanismEntity> findAllByDefinitionIdOrderByTimestampDesc(UUID definitionId);
-
-    /**
-     * Returns all mechanisms for a given definition filtered by lifecycle
-     * statuses.
-     *
-     * @param definitionId the definition UUID
-     * @param statuses     the lifecycle statuses to match
-     * @return the matching mechanism entities
-     */
-    List<MechanismEntity> findAllByDefinitionIdAndStatusIn(
-            UUID definitionId, Collection<AscriptionStatusType> statuses);
 
     /**
      * Returns a page of mechanisms belonging to a specific structure.

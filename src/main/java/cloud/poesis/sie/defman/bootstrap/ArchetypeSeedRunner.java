@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,6 +51,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @since 1.0.0
  */
 @Component
+@ConditionalOnProperty(name = "dm.bootstrap.enabled", havingValue = "true", matchIfMissing = true)
 public class ArchetypeSeedRunner implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(ArchetypeSeedRunner.class);

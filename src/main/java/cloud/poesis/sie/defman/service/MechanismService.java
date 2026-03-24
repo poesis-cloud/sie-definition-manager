@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,6 +30,7 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -67,7 +69,7 @@ import net.starlark.java.syntax.SyntaxError;
  * @since 1.0.0
  */
 @Service
-public class MechanismService extends AbstractAscriptionService {
+public class MechanismService extends AbstractAscriptionService<MechanismEntity> {
 
     // ======================================================================
     // Starlark validation constants (from StarlarkRuleValidator)
@@ -143,7 +145,12 @@ public class MechanismService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    protected AbstractAscriptionRepository<MechanismEntity> getRepository() {
+        return mechanismRepo;
+    }
+
+    @Override
+    public MechanismEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         UUID structureId = extractRequiredUuid(statement, "structure");
         StructureEntity structure = structureService.findEntityById(structureId);
 
@@ -159,11 +166,6 @@ public class MechanismService extends AbstractAscriptionService {
         return entity;
     }
 
-    @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return mechanismRepo.save((MechanismEntity) entity);
-    }
-
     /**
      * Finds a Mechanism entity by its ascription id.
      *
@@ -174,28 +176,6 @@ public class MechanismService extends AbstractAscriptionService {
     public MechanismEntity findEntityById(UUID id) {
         return mechanismRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.MECHANISM, id));
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return mechanismRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return mechanismRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return mechanismRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return mechanismRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ---- Lifecycle descriptors ----

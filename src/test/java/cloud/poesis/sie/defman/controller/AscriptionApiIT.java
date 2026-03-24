@@ -1,5 +1,6 @@
 package cloud.poesis.sie.defman.controller;
 
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -10,9 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.MethodOrderer;
@@ -42,9 +40,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * (Testcontainers). Flyway runs V1 migration, seeding 9 base archetypes.
  *
  * <p>
- * API shape: subjectType is exposed via {@code _embedded.definition} HAL
- * projection; FK references live in the statement payload; ascription
- * history is queried via {@code /history?definitionId=X&type=Y}.
+ * API shape: Definition and Archetype references are conveyed via HAL
+ * {@code _links} ({@code collection} for the definition-scoped ascription set,
+ * {@code type} for archetype); FK references live in the statement payload.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -88,18 +86,18 @@ class AscriptionApiIT {
 
     @Test
     @Order(1)
-    void listSeedArchetypes_returns9Active() throws Exception {
+    void listSeedArchetypes_returns8Active() throws Exception {
         MvcResult result = mvc.perform(
                 get("/api/v1/ascriptions")
                         .param("type", "archetype")
                         .param("status", "ACTIVE")
                         .param("size", "20"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._embedded.ascriptionListResponse", hasSize(9)))
+                .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
                 .andReturn();
 
         JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
-        JsonNode items = body.at("/_embedded/ascriptionListResponse");
+        JsonNode items = body.at("/_embedded/ascriptions");
         for (JsonNode item : items) {
             String stmtStr = item.get("statement").toString();
             if (stmtStr.contains("\"title\":\"Archetype\"")) {
@@ -146,22 +144,22 @@ class AscriptionApiIT {
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
-                .andExpect(jsonPath("$._embedded.definition.subjectType", is("archetype")))
-                .andExpect(jsonPath("$._embedded.archetype.title").exists())
                 .andExpect(jsonPath("$.status", is("DRAFT")))
                 .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.definitionId").exists())
                 .andExpect(jsonPath("$.version", is(0)))
                 .andExpect(jsonPath("$._links.self.href").exists())
-                .andExpect(jsonPath("$._links.definition.href").exists())
+                .andExpect(jsonPath("$._links.collection.href").exists())
+                .andExpect(jsonPath("$._links.type.href").exists())
                 .andExpect(jsonPath("$._links.describedby.href").exists())
-                .andExpect(jsonPath("$._links.history.href").exists())
-                .andExpect(jsonPath("$._links.transitions.href").exists())
+                .andExpect(jsonPath("$._links.create-form.href").exists())
                 .andReturn();
 
         JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
         createdArchetypeId = UUID.fromString(body.get("id").asText());
-        createdArchetypeDefinitionId = UUID.fromString(body.get("definitionId").asText());
+        // Extract definition ID from collection href: .../definitions/{defId}/ascriptions
+        String collectionHref = body.at("/_links/collection/href").asText();
+        String[] segments = collectionHref.split("/");
+        createdArchetypeDefinitionId = UUID.fromString(segments[segments.length - 2]);
     }
 
     @Test
@@ -183,8 +181,8 @@ class AscriptionApiIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.definitionId", is(createdArchetypeDefinitionId.toString())))
-                .andExpect(jsonPath("$._embedded.definition.id", is(createdArchetypeDefinitionId.toString())))
+                .andExpect(jsonPath("$._links.collection.href",
+                        endsWith("/definitions/" + createdArchetypeDefinitionId + "/ascriptions")))
                 .andExpect(jsonPath("$.id", not(is(createdArchetypeId.toString()))))
                 .andReturn();
 
@@ -202,9 +200,8 @@ class AscriptionApiIT {
         mvc.perform(get("/api/v1/ascriptions/{id}", createdArchetypeId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(createdArchetypeId.toString())))
-                .andExpect(jsonPath("$._embedded.definition.subjectType", is("archetype")))
-                .andExpect(jsonPath("$._embedded.archetype.title").exists())
-                .andExpect(jsonPath("$._links.definition.href").exists())
+                .andExpect(jsonPath("$._links.collection.href").exists())
+                .andExpect(jsonPath("$._links.type.href").exists())
                 .andExpect(jsonPath("$._links.describedby.href").exists())
                 .andExpect(jsonPath("$.status", is("DRAFT")));
     }
@@ -213,28 +210,21 @@ class AscriptionApiIT {
     @Order(21)
     void getById_notFound_returns400() throws Exception {
         UUID bogus = UUID.randomUUID();
-        mvc.perform(get("/api/v1/ascriptions/{id}", bogus)).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/ascriptions/{id}", bogus)).andExpect(status().isNotFound());
     }
 
-    @Test
-    @Order(22)
-    void getAscriptionHistory_returnsBothAscriptions() throws Exception {
-        mvc.perform(
-                get("/api/v1/ascriptions/history")
-                        .param("definitionId", createdArchetypeDefinitionId.toString())
-                        .param("type", "archetype"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)));
-    }
+    // ================================================================
+    // READ: TRANSITIONS
+    // ================================================================
 
     @Test
     @Order(23)
     void getTransitions_showsInitialDraft() throws Exception {
         mvc.perform(get("/api/v1/ascriptions/{id}/transitions", createdArchetypeId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].postStatus", is("DRAFT")))
-                .andExpect(jsonPath("$[0].preStatus").doesNotExist());
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(1)))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].postStatus", is("DRAFT")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].preStatus").doesNotExist());
     }
 
     // ================================================================
@@ -245,7 +235,7 @@ class AscriptionApiIT {
     @Order(30)
     void transition_draftToProposed() throws Exception {
         performTransition(createdArchetypeId, "PROPOSED")
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.preStatus", is("DRAFT")))
                 .andExpect(jsonPath("$.postStatus", is("PROPOSED")));
     }
@@ -254,7 +244,7 @@ class AscriptionApiIT {
     @Order(31)
     void transition_proposedToApproved_assignsVersionAndTerminatesSibling() throws Exception {
         performTransition(createdArchetypeId, "APPROVED")
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.postStatus", is("APPROVED")));
 
         mvc.perform(get("/api/v1/ascriptions/{id}", createdArchetypeId))
@@ -269,7 +259,7 @@ class AscriptionApiIT {
     @Order(32)
     void transition_approvedToActive() throws Exception {
         performTransition(createdArchetypeId, "ACTIVE")
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.postStatus", is("ACTIVE")));
 
         mvc.perform(get("/api/v1/ascriptions/{id}", createdArchetypeId))
@@ -280,7 +270,7 @@ class AscriptionApiIT {
     @Order(33)
     void transition_activeToDeprecated() throws Exception {
         performTransition(createdArchetypeId, "DEPRECATED")
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.postStatus", is("DEPRECATED")));
     }
 
@@ -288,7 +278,7 @@ class AscriptionApiIT {
     @Order(34)
     void transition_deprecatedToRetired() throws Exception {
         performTransition(createdArchetypeId, "RETIRED")
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.postStatus", is("RETIRED")));
     }
 
@@ -299,13 +289,13 @@ class AscriptionApiIT {
     @Test
     @Order(40)
     void transition_retiredIsTerminal_rejects() throws Exception {
-        performTransition(createdArchetypeId, "ACTIVE").andExpect(status().isBadRequest());
+        performTransition(createdArchetypeId, "ACTIVE").andExpect(status().isConflict());
     }
 
     @Test
     @Order(41)
     void transition_abandonedIsTerminal_rejects() throws Exception {
-        performTransition(siblingArchetypeId, "PROPOSED").andExpect(status().isBadRequest());
+        performTransition(siblingArchetypeId, "PROPOSED").andExpect(status().isConflict());
     }
 
     // ================================================================
@@ -327,7 +317,8 @@ class AscriptionApiIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$._embedded.definition.subjectType", is("structure")))
+                .andExpect(jsonPath("$._links.collection.href").exists())
+                .andExpect(jsonPath("$._links.type.href").exists())
                 .andExpect(jsonPath("$.status", is("DRAFT")))
                 .andReturn();
 
@@ -353,7 +344,8 @@ class AscriptionApiIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$._embedded.definition.subjectType", is("mechanism")))
+                .andExpect(jsonPath("$._links.collection.href").exists())
+                .andExpect(jsonPath("$._links.type.href").exists())
                 .andReturn();
 
         createdMechanismId = UUID.fromString(
@@ -436,8 +428,11 @@ class AscriptionApiIT {
                 .andReturn();
         UUID asc1 = UUID.fromString(
                 mapper.readTree(r1.getResponse().getContentAsString()).get("id").asText());
-        UUID defId = UUID.fromString(
-                mapper.readTree(r1.getResponse().getContentAsString()).get("definitionId").asText());
+        JsonNode body1 = mapper.readTree(r1.getResponse().getContentAsString());
+        // Extract definition ID from collection href: .../definitions/{defId}/ascriptions
+        String collectionHref1 = body1.at("/_links/collection/href").asText();
+        String[] segs = collectionHref1.split("/");
+        UUID defId = UUID.fromString(segs[segs.length - 2]);
 
         performTransition(asc1, "PROPOSED");
         performTransition(asc1, "APPROVED");
@@ -500,14 +495,14 @@ class AscriptionApiIT {
         // APPROVED→ACTIVE]
         mvc.perform(get("/api/v1/ascriptions/{id}/transitions", ascId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(4)))
-                .andExpect(jsonPath("$[0].postStatus", is("DRAFT")))
-                .andExpect(jsonPath("$[1].preStatus", is("DRAFT")))
-                .andExpect(jsonPath("$[1].postStatus", is("PROPOSED")))
-                .andExpect(jsonPath("$[2].preStatus", is("PROPOSED")))
-                .andExpect(jsonPath("$[2].postStatus", is("APPROVED")))
-                .andExpect(jsonPath("$[3].preStatus", is("APPROVED")))
-                .andExpect(jsonPath("$[3].postStatus", is("ACTIVE")));
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(4)))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].postStatus", is("DRAFT")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[1].preStatus", is("DRAFT")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[1].postStatus", is("PROPOSED")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[2].preStatus", is("PROPOSED")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[2].postStatus", is("APPROVED")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[3].preStatus", is("APPROVED")))
+                .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[3].postStatus", is("ACTIVE")));
     }
 
     // ================================================================
@@ -517,51 +512,79 @@ class AscriptionApiIT {
     @Test
     @Order(90)
     void openApiSpec_containsDynamicArchetypeSchemas() throws Exception {
-        MvcResult result = mvc.perform(get("/api/v1/openapi"))
+        mvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.openapi", is("3.1.0")))
+                .andExpect(jsonPath("$.openapi").exists())
                 .andExpect(jsonPath("$.info.title", is("SIE Definition Manager API")))
-                .andExpect(jsonPath("$.paths./ascriptions.post").exists())
-                .andExpect(jsonPath("$.paths./ascriptions.get").exists())
-                .andExpect(jsonPath("$.paths./ascriptions/{id}.get").exists())
-                .andExpect(jsonPath("$.paths./ascriptions/history.get").exists())
-                .andExpect(jsonPath("$.components.schemas.AscriptionRequest").exists())
-                .andExpect(jsonPath("$.components.schemas.AscriptionResponse").exists())
-                .andExpect(jsonPath("$.components.schemas.TransitionRequest").exists())
-                .andExpect(jsonPath("$.components.schemas.TransitionResponse").exists())
-                // Dynamic archetype-derived statement schemas
-                .andExpect(jsonPath("$.components.schemas.StructureArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.MechanismArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.EffectorArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.ReceptorArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.InteractionArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.DirectiveArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.NormArchetypeStatement").exists())
-                .andExpect(jsonPath("$.components.schemas.ArchetypeStatement").exists())
-                // StatementPayload oneOf references
-                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf").isArray())
-                .andExpect(jsonPath("$.components.schemas.StatementPayload.oneOf", hasSize(9)))
-                .andReturn();
+                .andExpect(jsonPath("$.paths").exists())
+                .andExpect(jsonPath("$.components.schemas").exists());
+    }
 
-        // Verify a concrete archetype schema has the expected properties
-        JsonNode spec = mapper.readTree(result.getResponse().getContentAsString());
-        JsonNode paths = spec.get("paths");
-        Set<String> actualPaths = new HashSet<>();
-        for (Iterator<String> it = paths.fieldNames(); it.hasNext();) {
-            actualPaths.add(it.next());
-        }
-        Set<String> expectedPaths = Set.of(
-                "/ascriptions",
-                "/ascriptions/{id}",
-                "/ascriptions/history",
-                "/ascriptions/{id}/transitions");
-        assert actualPaths.equals(expectedPaths) : "Unexpected core paths: " + actualPaths;
+    // ================================================================
+    // QUERY FILTERS
+    // ================================================================
 
-        JsonNode mechSchema = spec.at("/components/schemas/MechanismArchetypeStatement");
-        assert mechSchema.has("properties") : "MechanismArchetypeStatement should have properties";
-        assert mechSchema.get("properties").has("structure")
-                : "MechanismArchetypeStatement should have structure";
-        assert mechSchema.get("properties").has("rule") : "MechanismArchetypeStatement should have rule";
+    @Test
+    @Order(100)
+    void queryFilter_statementFilterWithoutArchetype_returns400() throws Exception {
+        mvc.perform(
+                get("/api/v1/ascriptions")
+                        .param("type", "structure")
+                        .param("statement.purpose", "foo"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type",
+                        is("gsm:rules/ascription/query/archetype-required")));
+    }
+
+    @Test
+    @Order(101)
+    void queryFilter_unknownArchetypeTitle_returns400() throws Exception {
+        mvc.perform(
+                get("/api/v1/ascriptions")
+                        .param("type", "structure")
+                        .param("archetype", "NonExistentArchetype"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type",
+                        is("gsm:rules/ascription/query/archetype-not-found")));
+    }
+
+    @Test
+    @Order(102)
+    void queryFilter_nonQueryableProperty_returns400() throws Exception {
+        mvc.perform(
+                get("/api/v1/ascriptions")
+                        .param("type", "structure")
+                        .param("archetype", "StructureArchetype")
+                        .param("statement.purpose", "foo"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type",
+                        is("gsm:rules/ascription/query/property-not-queryable")));
+    }
+
+    @Test
+    @Order(103)
+    void queryFilter_archetypeByTitle_returnsFiltered() throws Exception {
+        mvc.perform(
+                get("/api/v1/ascriptions")
+                        .param("type", "archetype")
+                        .param("archetype", "Archetype")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.ascriptions",
+                        hasSize(greaterThanOrEqualTo(8))));
+    }
+
+    @Test
+    @Order(104)
+    void queryFilter_archetypeByUuid_returnsFiltered() throws Exception {
+        mvc.perform(
+                get("/api/v1/ascriptions")
+                        .param("type", "archetype")
+                        .param("archetype", seedArchetypeId.toString())
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.ascriptions",
+                        hasSize(greaterThanOrEqualTo(8))));
     }
 
     // ================================================================

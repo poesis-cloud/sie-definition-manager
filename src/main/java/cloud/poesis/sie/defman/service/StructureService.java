@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,6 +19,7 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -36,7 +38,7 @@ import jakarta.persistence.EntityManager;
  * @since 1.0.0
  */
 @Service
-public class StructureService extends AbstractAscriptionService {
+public class StructureService extends AbstractAscriptionService<StructureEntity> {
 
     private final StructureRepository structureRepo;
 
@@ -67,13 +69,13 @@ public class StructureService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-        return new StructureEntity(definition, archetypeRef, statement);
+    protected AbstractAscriptionRepository<StructureEntity> getRepository() {
+        return structureRepo;
     }
 
     @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return structureRepo.save((StructureEntity) entity);
+    public StructureEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+        return new StructureEntity(definition, archetypeRef, statement);
     }
 
     /**
@@ -86,28 +88,6 @@ public class StructureService extends AbstractAscriptionService {
     public StructureEntity findEntityById(UUID id) {
         return structureRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.STRUCTURE, id));
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return structureRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return structureRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return structureRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return structureRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     @Override

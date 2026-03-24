@@ -2,21 +2,34 @@ package cloud.poesis.sie.defman.dto;
 
 import java.util.UUID;
 
-import org.springframework.hateoas.server.core.Relation;
-
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Response for a GSM Definition (stable identity of a governed subject).
  *
- * @param id          Definition ID (UUIDv7)
- * @param subjectType GSM structural role
  * @author Clément Cazaud
  * @since 1.0.0
  */
-@Relation(value = "definition", collectionRelation = "definitions")
-@Schema(description = "Stable identity of a governed subject")
-public record DefinitionDto(
-        @Schema(description = "Definition ID (UUIDv7)") UUID id,
-        @Schema(description = "GSM structural role (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") String subjectType) {
+@Schema(name = "Definition", description = "Stable identity of a governed subject")
+public class DefinitionDto {
+
+    @Schema(description = "Definition ID (UUIDv7)")
+    private final UUID id;
+
+    @Schema(description = "GSM structural role")
+    private final DefinitionSubjectType subjectType;
+
+    public DefinitionDto(UUID id, DefinitionSubjectType subjectType) {
+        this.id = id;
+        this.subjectType = subjectType;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public DefinitionSubjectType getSubjectType() {
+        return subjectType;
+    }
 }

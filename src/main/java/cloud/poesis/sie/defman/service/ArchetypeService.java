@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,7 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
@@ -55,7 +57,7 @@ import jakarta.persistence.EntityManager;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeService extends AbstractAscriptionService {
+public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity> {
 
     /** Maps schema title to DefinitionSubjectType for base archetypes. */
     private static final Map<String, DefinitionSubjectType> SCHEMA_TITLE_TO_SUBJECT_TYPE = Map.of(
@@ -145,7 +147,12 @@ public class ArchetypeService extends AbstractAscriptionService {
     }
 
     @Override
-    public AscriptionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    protected AbstractAscriptionRepository<ArchetypeEntity> getRepository() {
+        return archetypeRepo;
+    }
+
+    @Override
+    public ArchetypeEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
         if (statement == null || !statement.isObject()) {
             throw RuleViolationException.of(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
                     "Archetype statement must be a JSON object", "field", "statement");
@@ -158,33 +165,6 @@ public class ArchetypeService extends AbstractAscriptionService {
         validateArchetypeAnnotations(statement, definition.getId());
 
         return new ArchetypeEntity(definition, archetypeRef, statement);
-    }
-
-    @Override
-    public AscriptionEntity save(AscriptionEntity entity) {
-        return archetypeRepo.save((ArchetypeEntity) entity);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAll(Pageable pageable) {
-        return archetypeRepo.findAll(pageable);
-    }
-
-    @Override
-    public Page<? extends AscriptionEntity> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
-        return archetypeRepo.findAllByStatus(status, pageable);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionId(UUID definitionId) {
-        return archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    }
-
-    @Override
-    public List<? extends AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID definitionId,
-            Collection<AscriptionStatusType> statuses) {
-        return archetypeRepo.findAllByDefinitionIdAndStatusIn(definitionId, statuses);
     }
 
     // ======================================================================
@@ -396,7 +376,8 @@ public class ArchetypeService extends AbstractAscriptionService {
             return;
         }
 
-        List<IndexSpec> specs = collectIndexSpecs(properties, archetypeDefId, schemaTitle);
+        String tableName = resolveTableName(archetype);
+        List<IndexSpec> specs = collectIndexSpecs(properties, archetypeDefId, schemaTitle, tableName);
 
         for (IndexSpec spec : specs) {
             try {
@@ -423,7 +404,8 @@ public class ArchetypeService extends AbstractAscriptionService {
             return;
         }
 
-        List<IndexSpec> specs = collectIndexSpecs(properties, archetypeDefId, schemaTitle);
+        String tableName = resolveTableName(archetype);
+        List<IndexSpec> specs = collectIndexSpecs(properties, archetypeDefId, schemaTitle, tableName);
 
         for (IndexSpec spec : specs) {
             String dropDdl = "DROP INDEX IF EXISTS " + spec.indexName();
@@ -437,7 +419,7 @@ public class ArchetypeService extends AbstractAscriptionService {
     }
 
     private List<IndexSpec> collectIndexSpecs(
-            JsonNode properties, UUID archetypeDefId, String schemaTitle) {
+            JsonNode properties, UUID archetypeDefId, String schemaTitle, String tableName) {
 
         List<IndexSpec> specs = new ArrayList<>();
         String sanitizedTitle = sanitizeIdentifier(schemaTitle);
@@ -459,11 +441,11 @@ public class ArchetypeService extends AbstractAscriptionService {
                 if ("GIN".equals(indexType)) {
                     jsonbPath = "(statement->'" + escapeJsonbKey(propName) + "')";
                     ddl = "CREATE INDEX IF NOT EXISTS " + indexName
-                            + " ON ascription USING GIN (" + jsonbPath + ")"
+                            + " ON " + tableName + " USING GIN (" + jsonbPath + ")"
                             + " WHERE archetype_id = " + archetypeIdLiteral;
                 } else {
                     ddl = "CREATE INDEX IF NOT EXISTS " + indexName
-                            + " ON ascription (" + jsonbPath + ")"
+                            + " ON " + tableName + " (" + jsonbPath + ")"
                             + " WHERE archetype_id = " + archetypeIdLiteral;
                 }
 
@@ -476,7 +458,7 @@ public class ArchetypeService extends AbstractAscriptionService {
                 String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
 
                 String ddl = "CREATE UNIQUE INDEX IF NOT EXISTS " + indexName
-                        + " ON ascription (" + jsonbPath + ")"
+                        + " ON " + tableName + " (" + jsonbPath + ")"
                         + " WHERE archetype_id = " + archetypeIdLiteral
                         + " AND status IN ('ACTIVE','DEPRECATED')";
 
@@ -498,6 +480,11 @@ public class ArchetypeService extends AbstractAscriptionService {
 
     private static boolean hasAnnotation(JsonNode node, String annotation) {
         return node.has(annotation) && node.get(annotation).asBoolean(false);
+    }
+
+    private String resolveTableName(ArchetypeEntity archetype) {
+        DefinitionSubjectType subjectType = resolveSubjectType(archetype);
+        return subjectType.name().toLowerCase();
     }
 
     // ========================================================================
