@@ -81,8 +81,7 @@ public class DefinitionController extends AbstractController {
     @GetMapping("/{id}")
     @Operation(summary = "Get definition by ID", description = "Returns the definition with links to its ascriptions.")
     @ApiResponse(responseCode = "200", description = "Definition found")
-    @ApiResponse(responseCode = "404", description = "Definition not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Definition not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public EntityModel<DefinitionDto> getById(
             @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id) {
         DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);
@@ -92,7 +91,8 @@ public class DefinitionController extends AbstractController {
         EntityModel<DefinitionDto> model = EntityModel.of(Objects.requireNonNull(response),
                 linkTo(DefinitionController.class).slash(id).withSelfRel());
         if (ascriptions != null && !ascriptions.isEmpty()) {
-            // Ascriptions ordered desc by timestamp — first=oldest (last elem), last=newest (first elem)
+            // Ascriptions ordered desc by timestamp — first=oldest (last elem), last=newest
+            // (first elem)
             model.add(linkTo(AscriptionController.class)
                     .slash(ascriptions.get(ascriptions.size() - 1).getId()).withRel("first"));
             model.add(linkTo(AscriptionController.class)
@@ -123,17 +123,14 @@ public class DefinitionController extends AbstractController {
      * @return ascription list with HAL links
      */
     @GetMapping("/{id}/ascriptions")
-    @Operation(summary = "List ascriptions for a definition",
-            description = "Returns ascription versions for this definition. "
-                    + "Use minVersion=1 to retrieve only governance-approved versions (version-history).")
+    @Operation(summary = "List ascriptions for a definition", description = "Returns ascription versions for this definition. "
+            + "Use minVersion=1 to retrieve only governance-approved versions (version-history).")
     @ApiResponse(responseCode = "200", description = "Ascription list")
-    @ApiResponse(responseCode = "404", description = "Definition not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Definition not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public CollectionModel<EntityModel<AscriptionDto>> listAscriptions(
             @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id,
             @Parameter(description = "Minimum version filter (inclusive). "
-                    + "Use 1 to exclude unapproved drafts.")
-            @RequestParam(required = false) Integer minVersion) {
+                    + "Use 1 to exclude unapproved drafts.") @RequestParam(required = false) Integer minVersion) {
         DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);
         List<AscriptionEntity> ascriptions = entity.getAscriptions();
         if (minVersion != null) {
@@ -164,11 +161,9 @@ public class DefinitionController extends AbstractController {
      * @return the latest in-effect ascription
      */
     @GetMapping("/{id}/ascriptions/latest")
-    @Operation(summary = "Get the latest in-effect ascription",
-            description = "Returns the most recent ascription with ACTIVE or DEPRECATED status for this definition.")
+    @Operation(summary = "Get the latest in-effect ascription", description = "Returns the most recent ascription with ACTIVE or DEPRECATED status for this definition.")
     @ApiResponse(responseCode = "200", description = "Latest in-effect ascription")
-    @ApiResponse(responseCode = "404", description = "Definition or in-effect ascription not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Definition or in-effect ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public EntityModel<AscriptionDto> getLatestAscription(
             @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id) {
         DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);

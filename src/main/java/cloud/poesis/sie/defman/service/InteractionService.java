@@ -84,7 +84,8 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
     }
 
     @Override
-    public InteractionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
+    public InteractionEntity buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef,
+            JsonNode statement) {
         UUID effectorId = extractRequiredUuid(statement, "effector");
         EffectorEntity effector = effectorService.findEntityById(effectorId);
 

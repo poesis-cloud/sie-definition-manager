@@ -1,6 +1,5 @@
 package cloud.poesis.sie.defman.repository;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -8,7 +7,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import cloud.poesis.sie.defman.entity.NormEntity;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
 
 /**
  * Spring Data JPA repository for {@link NormEntity} (the {@code norm} table).

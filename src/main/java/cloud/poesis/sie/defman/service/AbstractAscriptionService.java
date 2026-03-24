@@ -325,7 +325,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
     /**
      * Returns a page of ascriptions filtered by archetype, statement properties,
-     * and optionally by status. Used for {@code $gsm:queryable} statement filtering.
+     * and optionally by status. Used for {@code $gsm:queryable} statement
+     * filtering.
      *
      * @param archetypeDefinitionId the archetype's Definition UUID
      * @param statementFilters      map of property name → value (strict equality)

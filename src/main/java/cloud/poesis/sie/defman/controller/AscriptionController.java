@@ -145,10 +145,8 @@ public class AscriptionController extends AbstractController {
     @PostMapping
     @Operation(summary = "Create an ascription", description = "Creates a new ascription. The archetypeId determines the GSM type; statement must conform to the archetype's JSON Schema.")
     @ApiResponse(responseCode = "201", description = "Ascription created")
-    @ApiResponse(responseCode = "400", description = "Validation error (schema, identity-bound, referee precondition)",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "409", description = "Conflict (duplicate identity)",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error (schema, identity-bound, referee precondition)", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "Conflict (duplicate identity)", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<EntityModel<AscriptionDto>> create(
             @Valid @RequestBody AscriptionCreationDto request) {
         var resolution = archetypeService.resolveForCreation(request.getArchetypeId());
@@ -172,8 +170,7 @@ public class AscriptionController extends AbstractController {
     @GetMapping("/{id}")
     @Operation(summary = "Get ascription by ID")
     @ApiResponse(responseCode = "200", description = "Ascription found")
-    @ApiResponse(responseCode = "404", description = "Ascription not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public EntityModel<AscriptionDto> getById(
             @Parameter(description = "Ascription ID") @PathVariable UUID id) {
         AscriptionEntity entity = ascriptionService.getById(id);
@@ -187,12 +184,10 @@ public class AscriptionController extends AbstractController {
      * Explicit-fetch design — see README.md § "Batch fetch pattern".
      */
     @GetMapping
-    @Operation(summary = "List ascriptions (paginated)",
-            description = "Filter by subject type and optionally by status, archetype, "
-                    + "and queryable statement properties (statement.{prop}=value).")
+    @Operation(summary = "List ascriptions (paginated)", description = "Filter by subject type and optionally by status, archetype, "
+            + "and queryable statement properties (statement.{prop}=value).")
     @ApiResponse(responseCode = "200", description = "Paged list of ascriptions")
-    @ApiResponse(responseCode = "400", description = "Invalid type, status, or query filter",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid type, status, or query filter", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public PagedModel<EntityModel<AscriptionDto>> list(
             @Parameter(description = "GSM subject type (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") @RequestParam String type,
             @Parameter(description = "Optional lifecycle status filter") @RequestParam(required = false) AscriptionStatusType status,
@@ -240,14 +235,10 @@ public class AscriptionController extends AbstractController {
      * property. IANA {@code describedby} (RFC 6892) link target.
      */
     @GetMapping(value = "/{id}/schema", produces = "application/schema+json")
-    @Operation(summary = "Get the composed schema for this ascription",
-            description = "Returns the Ascription envelope schema with the typing Archetype's JSON Schema "
-                    + "inlined as the statement property.")
-    @ApiResponse(responseCode = "200", description = "JSON Schema document",
-            content = @Content(mediaType = "application/schema+json",
-                    schema = @Schema(type = "object", description = "JSON Schema document (draft 2020-12)")))
-    @ApiResponse(responseCode = "404", description = "Ascription not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @Operation(summary = "Get the composed schema for this ascription", description = "Returns the Ascription envelope schema with the typing Archetype's JSON Schema "
+            + "inlined as the statement property.")
+    @ApiResponse(responseCode = "200", description = "JSON Schema document", content = @Content(mediaType = "application/schema+json", schema = @Schema(type = "object", description = "JSON Schema document (draft 2020-12)")))
+    @ApiResponse(responseCode = "404", description = "Ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public JsonNode getSchema(
             @Parameter(description = "Ascription ID") @PathVariable UUID id) {
         AscriptionEntity entity = ascriptionService.getById(id);
@@ -260,8 +251,7 @@ public class AscriptionController extends AbstractController {
     @GetMapping("/{id}/transitions")
     @Operation(summary = "Get transition audit trail")
     @ApiResponse(responseCode = "200", description = "Ordered transition records")
-    @ApiResponse(responseCode = "404", description = "Ascription not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public CollectionModel<EntityModel<AscriptionStatusTransitionDto>> getTransitions(
             @Parameter(description = "Ascription ID") @PathVariable UUID id) {
         List<AscriptionStatusTransitionEntity> transitions = lifecycleService.getTransitions(id);
@@ -280,8 +270,7 @@ public class AscriptionController extends AbstractController {
     @GetMapping("/{id}/transitions/{transitionId}")
     @Operation(summary = "Get a single transition record")
     @ApiResponse(responseCode = "200", description = "Transition record")
-    @ApiResponse(responseCode = "404", description = "Ascription or transition not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Ascription or transition not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public EntityModel<AscriptionStatusTransitionDto> getTransition(
             @Parameter(description = "Ascription ID") @PathVariable UUID id,
             @Parameter(description = "Transition ID") @PathVariable UUID transitionId) {
@@ -309,10 +298,8 @@ public class AscriptionController extends AbstractController {
     @PostMapping("/{id}/transitions")
     @Operation(summary = "Transition ascription to a new status")
     @ApiResponse(responseCode = "201", description = "Transition recorded")
-    @ApiResponse(responseCode = "400", description = "Invalid transition",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "404", description = "Ascription not found",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid transition", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "Ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<EntityModel<AscriptionStatusTransitionDto>> transition(
             @Parameter(description = "Ascription ID") @PathVariable UUID id,
             @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {

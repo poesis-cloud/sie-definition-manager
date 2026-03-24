@@ -156,7 +156,8 @@ class AscriptionApiIT {
 
         JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
         createdArchetypeId = UUID.fromString(body.get("id").asText());
-        // Extract definition ID from collection href: .../definitions/{defId}/ascriptions
+        // Extract definition ID from collection href:
+        // .../definitions/{defId}/ascriptions
         String collectionHref = body.at("/_links/collection/href").asText();
         String[] segments = collectionHref.split("/");
         createdArchetypeDefinitionId = UUID.fromString(segments[segments.length - 2]);
@@ -429,7 +430,8 @@ class AscriptionApiIT {
         UUID asc1 = UUID.fromString(
                 mapper.readTree(r1.getResponse().getContentAsString()).get("id").asText());
         JsonNode body1 = mapper.readTree(r1.getResponse().getContentAsString());
-        // Extract definition ID from collection href: .../definitions/{defId}/ascriptions
+        // Extract definition ID from collection href:
+        // .../definitions/{defId}/ascriptions
         String collectionHref1 = body1.at("/_links/collection/href").asText();
         String[] segs = collectionHref1.split("/");
         UUID defId = UUID.fromString(segs[segs.length - 2]);
