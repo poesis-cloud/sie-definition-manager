@@ -41,7 +41,7 @@ jobs:
       - name: OWASP dependency check
         run: mvn -B org.owasp:dependency-check-maven:check
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           scan-ref: .
