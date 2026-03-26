@@ -7,7 +7,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
-import org.springframework.lang.NonNull;
 
 /**
  * Interaction — causal coupling between Mechanisms. Extends AscriptionEntity.
@@ -57,7 +56,6 @@ public class InteractionEntity extends AscriptionEntity {
    *
    * @return the effector, never {@code null}
    */
-  @NonNull
   public EffectorEntity getEffector() {
     return effector;
   }
@@ -67,7 +65,6 @@ public class InteractionEntity extends AscriptionEntity {
    *
    * @return the receptor, never {@code null}
    */
-  @NonNull
   public ReceptorEntity getReceptor() {
     return receptor;
   }

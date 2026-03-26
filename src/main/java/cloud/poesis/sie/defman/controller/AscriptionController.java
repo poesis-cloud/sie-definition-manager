@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,7 +48,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -357,7 +355,7 @@ public class AscriptionController extends AbstractController {
     UUID ascriptionId = entity.getId();
     UUID definitionId = entity.getDefinition().getId();
     UUID archetypeDefinitionId = archetype.getDefinition().getId();
-    EntityModel<AscriptionDto> model = EntityModel.of(Objects.requireNonNull(dto));
+    EntityModel<AscriptionDto> model = EntityModel.of(dto);
     model.add(selfLinkFor(ascriptionId));
     model.add(describedbyLinkFor(ascriptionId));
     model.add(typeLinkFor(archetypeDefinitionId));
@@ -381,8 +379,7 @@ public class AscriptionController extends AbstractController {
         new PagedModel.PageMetadata(
             page.getSize(), page.getNumber(),
             page.getTotalElements(), page.getTotalPages());
-    PagedModel<EntityModel<AscriptionDto>> model =
-        PagedModel.of(Objects.requireNonNull(content), metadata);
+    PagedModel<EntityModel<AscriptionDto>> model = PagedModel.of(content, metadata);
     model.add(listSelfLink(type, status, archetype, statementFilters, page.getPageable()));
     return model;
   }
@@ -391,7 +388,7 @@ public class AscriptionController extends AbstractController {
   // LINK BUILDERS
   // ========================================================================
 
-  private @NonNull Link selfLinkFor(UUID ascriptionId) {
+  private Link selfLinkFor(UUID ascriptionId) {
     return linkTo(methodOn(AscriptionController.class).getById(ascriptionId)).withSelfRel();
   }
 
@@ -400,37 +397,35 @@ public class AscriptionController extends AbstractController {
    * per-instance Archetype schema inlined as the {@code statement} property ({@code
    * application/schema+json}).
    */
-  private @NonNull Link describedbyLinkFor(UUID ascriptionId) {
+  private Link describedbyLinkFor(UUID ascriptionId) {
     return linkTo(AscriptionController.class)
-        .slash(Objects.requireNonNull(ascriptionId))
+        .slash(ascriptionId)
         .slash("schema")
         .withRel("describedby");
   }
 
   /** IANA RFC 6903 §6 {@code type} — the typing Archetype Definition. */
-  private @NonNull Link typeLinkFor(UUID archetypeDefinitionId) {
-    return linkTo(DefinitionController.class)
-        .slash(Objects.requireNonNull(archetypeDefinitionId))
-        .withRel("type");
+  private Link typeLinkFor(UUID archetypeDefinitionId) {
+    return linkTo(DefinitionController.class).slash(archetypeDefinitionId).withRel("type");
   }
 
   /**
    * IANA RFC 6573 {@code collection} — the ascription collection for this ascription's parent
    * Definition.
    */
-  private @NonNull Link collectionLinkFor(UUID definitionId) {
+  private Link collectionLinkFor(UUID definitionId) {
     return linkTo(DefinitionController.class)
-        .slash(Objects.requireNonNull(definitionId))
+        .slash(definitionId)
         .slash("ascriptions")
         .withRel("collection");
   }
 
   /** RFC 6861 {@code create-form} — the endpoint that accepts new ascriptions. */
-  private @NonNull Link createFormLinkFor() {
+  private Link createFormLinkFor() {
     return linkTo(AscriptionController.class).withRel("create-form");
   }
 
-  private @NonNull Link listSelfLink(
+  private Link listSelfLink(
       String type,
       String status,
       String archetype,
@@ -439,7 +434,7 @@ public class AscriptionController extends AbstractController {
     var builder =
         linkTo(AscriptionController.class)
             .toUriComponentsBuilder()
-            .queryParam("type", Objects.requireNonNull(type))
+            .queryParam("type", type)
             .queryParam("page", pageable.getPageNumber())
             .queryParam("size", pageable.getPageSize());
     if (status != null) {

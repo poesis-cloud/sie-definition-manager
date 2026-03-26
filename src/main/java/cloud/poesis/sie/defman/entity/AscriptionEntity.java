@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.springframework.lang.NonNull;
 
 /**
  * Abstract base for all 9 GSM class tables.
@@ -116,7 +115,6 @@ public abstract class AscriptionEntity {
    *
    * @return the ascription id, never {@code null}
    */
-  @NonNull
   public UUID getId() {
     return id;
   }
@@ -126,7 +124,6 @@ public abstract class AscriptionEntity {
    *
    * @return the owning definition, never {@code null}
    */
-  @NonNull
   public DefinitionEntity getDefinition() {
     return definition;
   }
@@ -136,7 +133,6 @@ public abstract class AscriptionEntity {
    *
    * @return the typing archetype, never {@code null}
    */
-  @NonNull
   public ArchetypeEntity getArchetype() {
     return archetype;
   }
@@ -146,7 +142,6 @@ public abstract class AscriptionEntity {
    *
    * @return the JSONB statement, never {@code null}
    */
-  @NonNull
   public JsonNode getStatement() {
     return statement;
   }
@@ -156,7 +151,6 @@ public abstract class AscriptionEntity {
    *
    * @return the timestamp, never {@code null}
    */
-  @NonNull
   public Instant getTimestamp() {
     return timestamp;
   }
@@ -166,7 +160,6 @@ public abstract class AscriptionEntity {
    *
    * @return the ascription status, never {@code null}
    */
-  @NonNull
   public AscriptionStatusType getStatus() {
     return status;
   }

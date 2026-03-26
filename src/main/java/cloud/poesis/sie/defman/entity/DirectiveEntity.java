@@ -7,7 +7,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
-import org.springframework.lang.NonNull;
 
 /**
  * Directive — identity-level normative constraint. Extends AscriptionEntity.
@@ -64,7 +63,6 @@ public class DirectiveEntity extends AscriptionEntity {
    *
    * @return the structure, never {@code null}
    */
-  @NonNull
   public StructureEntity getStructure() {
     return structure;
   }
@@ -74,7 +72,6 @@ public class DirectiveEntity extends AscriptionEntity {
    *
    * @return the qualifier archetype, never {@code null}
    */
-  @NonNull
   public ArchetypeEntity getQualifier() {
     return qualifier;
   }
@@ -84,7 +81,6 @@ public class DirectiveEntity extends AscriptionEntity {
    *
    * @return the purpose structure, never {@code null}
    */
-  @NonNull
   public StructureEntity getPurpose() {
     return purpose;
   }

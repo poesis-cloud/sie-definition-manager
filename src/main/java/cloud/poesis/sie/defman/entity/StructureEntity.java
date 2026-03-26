@@ -8,7 +8,6 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.util.Collections;
 import java.util.List;
-import org.springframework.lang.NonNull;
 
 /**
  * Structure — the foundational aggregate. Extends AscriptionEntity.
@@ -46,7 +45,6 @@ public class StructureEntity extends AscriptionEntity {
    *
    * @return an unmodifiable list of mechanisms, never {@code null}
    */
-  @NonNull
   public List<MechanismEntity> getMechanisms() {
     return Collections.unmodifiableList(mechanisms);
   }

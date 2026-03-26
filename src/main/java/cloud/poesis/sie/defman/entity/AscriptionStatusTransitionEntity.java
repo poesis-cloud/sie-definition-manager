@@ -15,7 +15,6 @@ import java.util.UUID;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 /**
@@ -93,7 +92,6 @@ public class AscriptionStatusTransitionEntity {
    *
    * @return the transition id, never {@code null}
    */
-  @NonNull
   public UUID getId() {
     return id;
   }
@@ -103,7 +101,6 @@ public class AscriptionStatusTransitionEntity {
    *
    * @return the owning ascription, never {@code null}
    */
-  @NonNull
   public AscriptionEntity getAscription() {
     return ascription;
   }
@@ -123,7 +120,6 @@ public class AscriptionStatusTransitionEntity {
    *
    * @return the resulting status, never {@code null}
    */
-  @NonNull
   public AscriptionStatusType getPostStatus() {
     return postStatus;
   }
@@ -133,7 +129,6 @@ public class AscriptionStatusTransitionEntity {
    *
    * @return the transition timestamp, never {@code null}
    */
-  @NonNull
   public Instant getTimestamp() {
     return timestamp;
   }

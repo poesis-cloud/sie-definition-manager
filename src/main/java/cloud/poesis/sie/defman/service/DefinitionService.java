@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +44,7 @@ public class DefinitionService {
    * @throws ResourceNotFoundException if no definition exists with the given id
    */
   @Transactional(value = "transactionManager", readOnly = true)
-  public DefinitionEntity getById(@NonNull UUID id) {
+  public DefinitionEntity getById(UUID id) {
     DefinitionEntity entity =
         definitionRepository
             .findById(id)
@@ -69,7 +68,7 @@ public class DefinitionService {
    * @throws ResourceNotFoundException if no definition exists with the given id
    */
   @Transactional(value = "transactionManager", readOnly = true)
-  public DefinitionEntity getByIdWithArchetypes(@NonNull UUID id) {
+  public DefinitionEntity getByIdWithArchetypes(UUID id) {
     DefinitionEntity entity =
         definitionRepository
             .findWithAscriptionArchetypesById(id)

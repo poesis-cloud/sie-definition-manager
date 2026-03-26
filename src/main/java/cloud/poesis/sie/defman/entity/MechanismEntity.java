@@ -7,7 +7,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
-import org.springframework.lang.NonNull;
 
 /**
  * Mechanism — logical causal unit. Extends AscriptionEntity.
@@ -50,7 +49,6 @@ public class MechanismEntity extends AscriptionEntity {
    *
    * @return the structure, never {@code null}
    */
-  @NonNull
   public StructureEntity getStructure() {
     return structure;
   }

@@ -7,7 +7,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
-import org.springframework.lang.NonNull;
 
 /**
  * Effector — output endpoint of a Mechanism. Extends AscriptionEntity.
@@ -57,7 +56,6 @@ public class EffectorEntity extends AscriptionEntity {
    *
    * @return the mechanism, never {@code null}
    */
-  @NonNull
   public MechanismEntity getMechanism() {
     return mechanism;
   }
@@ -67,7 +65,6 @@ public class EffectorEntity extends AscriptionEntity {
    *
    * @return the output archetype, never {@code null}
    */
-  @NonNull
   public ArchetypeEntity getOutputArchetype() {
     return outputArchetype;
   }

@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.springframework.lang.NonNull;
 
 /**
  * Stable identity of a governed subject in GSM.
@@ -78,7 +77,6 @@ public class DefinitionEntity {
    *
    * @return the definition id, never {@code null}
    */
-  @NonNull
   public UUID getId() {
     return id;
   }
@@ -88,7 +86,6 @@ public class DefinitionEntity {
    *
    * @return the subject type, never {@code null}
    */
-  @NonNull
   public DefinitionSubjectType getSubjectType() {
     return subjectType;
   }
@@ -98,7 +95,6 @@ public class DefinitionEntity {
    *
    * @return the ascription list, never {@code null}
    */
-  @NonNull
   public List<AscriptionEntity> getAscriptions() {
     return ascriptions;
   }

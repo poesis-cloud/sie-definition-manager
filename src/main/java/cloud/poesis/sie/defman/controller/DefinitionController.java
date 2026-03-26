@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -30,7 +29,6 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -88,15 +86,13 @@ public class DefinitionController extends AbstractController {
       description = "Definition not found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public EntityModel<DefinitionDto> getById(
-      @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id) {
+      @Parameter(description = "Definition ID") @PathVariable UUID id) {
     DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);
     DefinitionDto response = new DefinitionDto(entity.getId(), entity.getSubjectType());
     List<AscriptionEntity> ascriptions = entity.getAscriptions();
 
     EntityModel<DefinitionDto> model =
-        EntityModel.of(
-            Objects.requireNonNull(response),
-            linkTo(DefinitionController.class).slash(id).withSelfRel());
+        EntityModel.of(response, linkTo(DefinitionController.class).slash(id).withSelfRel());
     if (ascriptions != null && !ascriptions.isEmpty()) {
       // Ascriptions ordered desc by timestamp — first=oldest (last elem), last=newest
       // (first elem)
@@ -142,7 +138,7 @@ public class DefinitionController extends AbstractController {
       description = "Definition not found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public CollectionModel<EntityModel<AscriptionDto>> listAscriptions(
-      @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id,
+      @Parameter(description = "Definition ID") @PathVariable UUID id,
       @Parameter(
               description =
                   "Minimum version filter (inclusive). " + "Use 1 to exclude unapproved drafts.")
@@ -188,7 +184,7 @@ public class DefinitionController extends AbstractController {
       description = "Definition or in-effect ascription not found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public EntityModel<AscriptionDto> getLatestAscription(
-      @Parameter(description = "Definition ID") @PathVariable @NonNull UUID id) {
+      @Parameter(description = "Definition ID") @PathVariable UUID id) {
     DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);
     List<AscriptionEntity> ascriptions = entity.getAscriptions();
     int latestIndex = -1;
