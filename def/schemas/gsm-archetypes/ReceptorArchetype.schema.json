@@ -1,27 +1,32 @@
 {
-  "$schema" : "gsm://archetypes/Archetype/v1",
-  "$id" : "gsm://archetypes/ReceptorArchetype/v1",
-  "title" : "ReceptorArchetype",
-  "description" : "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Receptor via allOf to add domain-specific port vocabulary while inheriting the base port schema.",
-  "type" : "object",
-  "examples" : [ {
-    "mechanism" : "019cc49a-dc5a-799b-8f0b-3d951621a86f",
-    "archetype" : "019cc49a-dc5a-7a45-a4d5-15b6033b2a62"
-  } ],
-  "required" : [ "mechanism", "archetype" ],
-  "properties" : {
-    "mechanism" : {
-      "type" : "string",
-      "format" : "uuid",
-      "$gsm:identityBound" : true,
-      "description" : "ID reference to the owning Mechanism. A Receptor cannot exist without a Mechanism."
+  "$schema": "gsm://archetypes/Archetype/v1",
+  "$id": "gsm://archetypes/ReceptorArchetype/v1",
+  "title": "ReceptorArchetype",
+  "description": "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Receptor via allOf to add domain-specific port vocabulary while inheriting the base port schema.",
+  "type": "object",
+  "examples": [
+    {
+      "mechanism": "019cc49a-dc5a-799b-8f0b-3d951621a86f",
+      "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62"
+    }
+  ],
+  "required": [
+    "mechanism",
+    "archetype"
+  ],
+  "properties": {
+    "mechanism": {
+      "type": "string",
+      "format": "uuid",
+      "$gsm:identityBound": true,
+      "description": "ID reference to the owning Mechanism. A Receptor cannot exist without a Mechanism."
     },
-    "archetype" : {
-      "type" : "string",
-      "format" : "uuid",
-      "$gsm:identityBound" : true,
-      "description" : "ID reference to the data Archetype that types the Receptor's input payload. To change the data type, author a new Definition."
+    "archetype": {
+      "type": "string",
+      "format": "uuid",
+      "$gsm:identityBound": true,
+      "description": "ID reference to the data Archetype that types the Receptor's input payload. To change the data type, author a new Definition."
     }
   },
-  "unevaluatedProperties" : false
+  "unevaluatedProperties": false
 }
