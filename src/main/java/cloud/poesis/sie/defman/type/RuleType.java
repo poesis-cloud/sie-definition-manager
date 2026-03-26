@@ -116,23 +116,26 @@ public enum RuleType {
           + "in the governed scope."),
 
   // ====================================================================
-  // MECHANISM — sys.effect() chain arity and argument constraints
+  // MECHANISM — sys.* fluent API arity and chain constraints
   // ====================================================================
 
-  MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY(
-      "gsm:rules/mechanism/rule/sys-effect-method-arity",
-      "Mechanism rule sys.effect() method arity",
+  MECHANISM_RULE_SYS_FLUENT_API_ARITY(
+      "gsm:rules/mechanism/rule/sys-fluent-api-arity",
+      "Mechanism rule sys.* fluent API method arity",
       "sys.effect() requires 1-2 positional arguments (archetype "
-          + "title, optional data payload). Chain methods .by(), "
-          + ".receive(), .on() each require exactly 1 positional "
-          + "argument (archetype title as string literal)."),
+          + "title, optional data payload). sys.receive() requires "
+          + "exactly 1 positional argument (archetype title). "
+          + "Chain methods .by(), .receive(), .on() each require "
+          + "exactly 1 positional argument (archetype title as "
+          + "string literal)."),
 
-  MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID(
-      "gsm:rules/mechanism/rule/sys-effect-chain-invalid",
-      "Mechanism rule sys.effect() chain invalid",
-      "sys.effect() chain must follow the pattern: "
-          + "effect → [by] → [receive → [on]]. Each method may appear "
-          + "at most once. No other methods are allowed on the chain."),
+  MECHANISM_RULE_SYS_FLUENT_API(
+      "gsm:rules/mechanism/rule/sys-fluent-api",
+      "Mechanism rule sys.* fluent API chain invalid",
+      "sys.effect() chain must follow: effect → [by] → [receive → [on]]. "
+          + "sys.receive() chain must follow: receive → [on]. "
+          + "Each method may appear at most once. No other methods are "
+          + "allowed on either chain."),
 
   // ====================================================================
   // EFFECTOR — statement validation and reference integrity

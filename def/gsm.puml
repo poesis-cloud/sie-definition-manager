@@ -2205,8 +2205,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statement.rule` MUST be syntactically valid Starlark
       (parseable by the Starlark parser).
     - `statement.rule` MUST begin with exactly one
-      `on("...")` call as its first executable statement.
-    - The `on()` argument MUST be a string literal resolving to a defined
+      `sys.receive("...")` call as its first executable statement.
+    - The `sys.receive()` argument MUST be a string literal resolving to a defined
       Archetype in the governed scope.
     - String literals in `sys.effect()` calls (first argument = archetype name)
       MUST be string literals (enables static analysis and Effector/Receptor
@@ -2215,7 +2215,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       in the governed scope.
     - Dict literals in `sys.effect()` data arg SHOULD conform to the
       target Archetype schema (best-effort for dynamic values).
-    - Only `sys`, injected host functions (`on`, `now`, `uuid7`,
+    - Only `sys`, injected host functions (`now`, `uuid7`,
       `fullmatch`, `search`), and Starlark built-ins are allowed globals.
       Any other global → error.
     - No `load()` statements.
@@ -2254,9 +2254,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getEffectors()` → auto-derived from `statement.rule` AST
     - `getReceptors()` → auto-derived from `statement.rule` AST
     - *Receptor derivation (inputs)*
-      - `on("ArchetypeName")` — MUST be the first executable statement.
+      - `sys.receive("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
         Auto-derives a Receptor typed by the named Archetype.
+      - `sys.receive("ArchetypeName").on("ReceptorPortArch")` — qualifies the
+        trigger Receptor port type (resolved to a tenant ReceptorArchetype extension).
       - `.receive("FeedbackArch")` chain on a `sys.effect()` call
         auto-derives a feedback Receptor (closed-loop).
     - *Effector derivation (outputs)*
@@ -2277,12 +2279,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - **Rule API contract (STARLARK)**
         The rule body executes within a sandboxed Starlark environment
         that exposes exactly: the `sys` namespace, injected host functions
-        (`on`, `now`, `uuid7`, `fullmatch`, `search`), and Starlark
+        (`now`, `uuid7`, `fullmatch`, `search`), and Starlark
         built-ins. No other globals are permitted.
         - *`sys` namespace*
           - `sys.id` — read-only property: the Mechanism's `id`.
+          - `sys.receive("ArchetypeName")` — event trigger declaration.
+            MUST be the first executable statement. Returns the event payload.
+            Optional `.on("ReceptorPortArch")` qualifies the trigger
+            Receptor port type.
           - `sys.effect("ArchetypeName", data)` — the single output
-            primitive. Returns an EffectBuilder for optional chaining.
+            primitive. Returns an EffectorBuilder for optional chaining.
         - *Fluent chain API*
           - `sys.effect("D", data)` — fire-and-forget (open-loop).
           - `sys.effect("D", data).by("E")` — typed Effector port.
@@ -2299,7 +2305,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
           - No `.receive()` → **open-loop** / fire-and-forget:
             no feedback Receptor is derived.
         - *Injected host functions*
-          - `on(archetype)` — event trigger declaration (see above).
           - `now()` → ISO 8601 timestamp.
           - `uuid7()` → UUIDv7 string (RFC 9562, time-sortable).
           - `fullmatch(pattern, string)` → boolean (full regex match).
