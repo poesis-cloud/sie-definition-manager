@@ -107,7 +107,7 @@ class MechanismServiceTest {
 
     ObjectNode stmt = MAPPER.createObjectNode();
     stmt.put("function", function);
-    stmt.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+    stmt.put("rule", "on(\"X\")\nsys.effect(\"Y\", {})");
 
     MechanismEntity entity = mock(MechanismEntity.class);
     when(entity.getId()).thenReturn(UUID.randomUUID());
@@ -303,7 +303,7 @@ class MechanismServiceTest {
                 parse(
                     """
                                         on("AlertEvent")
-                                        sys.emit("NotificationEvent", {"level": "warn"})
+                                        sys.effect("NotificationEvent", {"level": "warn"})
                                         """));
 
         assertTrue(
@@ -311,7 +311,7 @@ class MechanismServiceTest {
                 .anyMatch(
                     s ->
                         "receptor".equals(s.direction())
-                            && "AlertEvent".equals(s.archetypeName())));
+                            && "AlertEvent".equals(s.dataArchetypeName())));
       }
 
       @Test
@@ -321,7 +321,7 @@ class MechanismServiceTest {
                 parse(
                     """
                                         evt = on("IncomingOrder")
-                                        sys.emit("OrderAck", {"ok": True})
+                                        sys.effect("OrderAck", {"ok": True})
                                         """));
 
         assertTrue(
@@ -329,90 +329,51 @@ class MechanismServiceTest {
                 .anyMatch(
                     s ->
                         "receptor".equals(s.direction())
-                            && "IncomingOrder".equals(s.archetypeName())));
+                            && "IncomingOrder".equals(s.dataArchetypeName())));
       }
     }
 
     @Nested
-    class SysCallEffectors {
+    class SysEffectEffectors {
 
       @Test
-      void sysEmit_producesEffector() {
+      void sysEffect_producesEffector() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                sys.emit("OutputEvent", {"data": 1})
+                                sys.effect("OutputEvent", {"data": 1})
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "OutputEvent")));
+        assertTrue(sigs.contains(new PortSignature("effector", "OutputEvent", null)));
       }
 
       @Test
-      void sysCreate_producesEffector() {
+      void sysEffectWithBy_producesTypedEffector() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                sys.create("NewRecord", {"id": "x"})
+                                sys.effect("OutputEvent", {"data": 1}).by("CustomEffector")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "NewRecord")));
+        assertTrue(sigs.contains(new PortSignature("effector", "OutputEvent", "CustomEffector")));
       }
 
       @Test
-      void sysModify_producesEffector() {
+      void multipleSysEffects_eachProducesEffector() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                sys.modify("ExistingRecord", {"id": "x"}, {"val": 42})
+                                sys.effect("A", {})
+                                sys.effect("B", {"x": 1})
+                                sys.effect("C", {}).by("TypedPort")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ExistingRecord")));
-      }
-
-      @Test
-      void sysDelete_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                                on("Trigger")
-                                sys.delete("OldRecord", {"id": "x"})
-                                """);
-
-        assertTrue(sigs.contains(new PortSignature("effector", "OldRecord")));
-      }
-
-      @Test
-      void sysAcquire_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                                on("Trigger")
-                                sys.acquire("ReadTarget", {"id": "x"})
-                                """);
-
-        assertTrue(sigs.contains(new PortSignature("effector", "ReadTarget")));
-      }
-
-      @Test
-      void allSysMethods_eachProducesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
-                                on("Trigger")
-                                sys.emit("A", {})
-                                sys.create("B", {})
-                                sys.modify("C", {}, {})
-                                sys.delete("D", {})
-                                sys.acquire("E", {})
-                                """);
-
-        for (String name : List.of("A", "B", "C", "D", "E")) {
-          assertTrue(
-              sigs.contains(new PortSignature("effector", name)), "Expected effector for " + name);
-        }
+        assertTrue(sigs.contains(new PortSignature("effector", "A", null)));
+        assertTrue(sigs.contains(new PortSignature("effector", "B", null)));
+        assertTrue(sigs.contains(new PortSignature("effector", "C", "TypedPort")));
       }
     }
 
@@ -420,65 +381,66 @@ class MechanismServiceTest {
     class ClosedLoopReceptor {
 
       @Test
-      void assignedSysCreate_producesEffectorAndReceptor() {
+      void effectWithReceive_producesEffectorAndReceptor() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                result = sys.create("NewRecord", {"id": "x"})
+                                sys.effect("NewRecord", {"id": "x"}).receive("Feedback")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "NewRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "NewRecord")));
+        assertTrue(sigs.contains(new PortSignature("effector", "NewRecord", null)));
+        assertTrue(sigs.contains(new PortSignature("receptor", "Feedback", null)));
       }
 
       @Test
-      void assignedSysModify_producesEffectorAndReceptor() {
+      void effectWithReceiveAndOn_producesTypedReceptor() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                result = sys.modify("ExistingRecord", {"id": "x"}, {"val": 1})
+                                sys.effect("Record", {"id": "x"}).receive("Ack").on("AckPort")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ExistingRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "ExistingRecord")));
+        assertTrue(sigs.contains(new PortSignature("effector", "Record", null)));
+        assertTrue(sigs.contains(new PortSignature("receptor", "Ack", "AckPort")));
       }
 
       @Test
-      void unassignedSysCreate_noFeedbackReceptor() {
+      void effectWithoutReceive_noFeedbackReceptor() {
         List<PortSignature> sigs =
             service.collectPortSignatures(
                 parse(
                     """
                                         on("Trigger")
-                                        sys.create("NewRecord", {"id": "x"})
+                                        sys.effect("NewRecord", {"id": "x"})
                                         """));
 
         long receptorCount =
             sigs.stream()
                 .filter(
-                    s -> "receptor".equals(s.direction()) && "NewRecord".equals(s.archetypeName()))
+                    s ->
+                        "receptor".equals(s.direction())
+                            && "NewRecord".equals(s.dataArchetypeName()))
                 .count();
-        assertEquals(
-            0, receptorCount, "Unassigned sys.create should not produce feedback receptor");
+        assertEquals(0, receptorCount, "effect() without .receive() should not produce receptor");
       }
     }
 
     @Nested
-    class ResponseKeywordReceptor {
+    class FeedbackReceptor {
 
       @Test
-      void sysEmitWithResponse_producesResponseReceptor() {
+      void effectWithReceive_producesFeedbackReceptor() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                sys.emit("Request", {}, response="ResponseType")
+                                sys.effect("Request", {}).receive("ResponseType")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "Request")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "ResponseType")));
+        assertTrue(sigs.contains(new PortSignature("effector", "Request", null)));
+        assertTrue(sigs.contains(new PortSignature("receptor", "ResponseType", null)));
       }
     }
 
@@ -493,25 +455,25 @@ class MechanismServiceTest {
                                 on("Batch")
                                 items = [1, 2, 3]
                                 for item in items:
-                                    sys.emit("ItemEvent", {"item": item})
+                                    sys.effect("ItemEvent", {"item": item})
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ItemEvent")));
+        assertTrue(sigs.contains(new PortSignature("effector", "ItemEvent", null)));
       }
 
       @Test
-      void assignedSysCallInForLoop_producesClosedLoop() {
+      void sysCallWithReceiveInForLoop_producesClosedLoop() {
         Set<PortSignature> sigs =
             uniqueSignatures(
                 """
                                 on("Batch")
                                 items = [1, 2, 3]
                                 for item in items:
-                                    result = sys.create("ItemRecord", {"item": item})
+                                    sys.effect("ItemRecord", {"item": item}).receive("ItemAck")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("effector", "ItemRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "ItemRecord")));
+        assertTrue(sigs.contains(new PortSignature("effector", "ItemRecord", null)));
+        assertTrue(sigs.contains(new PortSignature("receptor", "ItemAck", null)));
       }
     }
 
@@ -524,17 +486,17 @@ class MechanismServiceTest {
             uniqueSignatures(
                 """
                                 evt = on("PaymentRequest")
-                                record = sys.create("PaymentRecord", {"amount": 100})
-                                sys.emit("PaymentProcessed", {"status": "ok"})
-                                sys.emit("ExternalNotify", {}, response="NotifyAck")
+                                sys.effect("PaymentRecord", {"amount": 100}).receive("PaymentAck")
+                                sys.effect("PaymentProcessed", {"status": "ok"})
+                                sys.effect("ExternalNotify", {}).receive("NotifyAck").on("AckPort")
                                 """);
 
-        assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRequest")));
-        assertTrue(sigs.contains(new PortSignature("effector", "PaymentRecord")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRecord")));
-        assertTrue(sigs.contains(new PortSignature("effector", "PaymentProcessed")));
-        assertTrue(sigs.contains(new PortSignature("effector", "ExternalNotify")));
-        assertTrue(sigs.contains(new PortSignature("receptor", "NotifyAck")));
+        assertTrue(sigs.contains(new PortSignature("receptor", "PaymentRequest", null)));
+        assertTrue(sigs.contains(new PortSignature("effector", "PaymentRecord", null)));
+        assertTrue(sigs.contains(new PortSignature("receptor", "PaymentAck", null)));
+        assertTrue(sigs.contains(new PortSignature("effector", "PaymentProcessed", null)));
+        assertTrue(sigs.contains(new PortSignature("effector", "ExternalNotify", null)));
+        assertTrue(sigs.contains(new PortSignature("receptor", "NotifyAck", "AckPort")));
       }
 
       @Test
@@ -543,15 +505,15 @@ class MechanismServiceTest {
             uniqueSignatures(
                 """
                                 evt = on("PaymentRequest")
-                                record = sys.create("PaymentRecord", {"amount": 100})
-                                sys.emit("PaymentProcessed", {"status": "ok"})
+                                sys.effect("PaymentRecord", {"amount": 100}).receive("PaymentAck")
+                                sys.effect("PaymentProcessed", {"status": "ok"})
                                 """);
 
         long effectors = sigs.stream().filter(s -> "effector".equals(s.direction())).count();
         long receptors = sigs.stream().filter(s -> "receptor".equals(s.direction())).count();
 
         assertEquals(2, effectors, "PaymentRecord + PaymentProcessed effectors");
-        assertEquals(2, receptors, "PaymentRequest trigger + PaymentRecord feedback receptors");
+        assertEquals(2, receptors, "PaymentRequest trigger + PaymentAck feedback receptors");
       }
     }
 
@@ -564,14 +526,16 @@ class MechanismServiceTest {
             uniqueSignatures(
                 """
                                 on("Trigger")
-                                sys.emit("SameEvent", {"a": 1})
-                                sys.emit("SameEvent", {"b": 2})
+                                sys.effect("SameEvent", {"a": 1})
+                                sys.effect("SameEvent", {"b": 2})
                                 """);
 
         long effectorCount =
             sigs.stream()
                 .filter(
-                    s -> "effector".equals(s.direction()) && "SameEvent".equals(s.archetypeName()))
+                    s ->
+                        "effector".equals(s.direction())
+                            && "SameEvent".equals(s.dataArchetypeName()))
                 .count();
         assertEquals(1, effectorCount, "Duplicate effectors should be deduplicated");
       }
@@ -593,7 +557,7 @@ class MechanismServiceTest {
         String rule =
             """
                         on("AlertEvent")
-                        sys.emit("NotificationEvent", {"level": "warn"})
+                        sys.effect("NotificationEvent", {"level": "warn"})
                         """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("AlertEvent", trigger);
@@ -604,7 +568,7 @@ class MechanismServiceTest {
         String rule =
             """
                         evt = on("IncomingOrder")
-                        sys.create("OrderRecord", {"id": uuid7(), "data": evt})
+                        sys.effect("OrderRecord", {"id": uuid7(), "data": evt})
                         """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("IncomingOrder", trigger);
@@ -615,9 +579,9 @@ class MechanismServiceTest {
         String rule =
             """
                         evt = on("PaymentRequest")
-                        result = sys.create("PaymentRecord", {"amount": evt})
-                        sys.emit("PaymentProcessed", {"status": "ok"})
-                        sys.modify("AccountBalance", {"id": "x"}, {"delta": 100})
+                        sys.effect("PaymentRecord", {"amount": evt}).receive("PaymentAck")
+                        sys.effect("PaymentProcessed", {"status": "ok"})
+                        sys.effect("AccountBalance", {"delta": 100}).by("BalanceEffector")
                         """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("PaymentRequest", trigger);
@@ -629,7 +593,7 @@ class MechanismServiceTest {
             """
                         evt = on("ValidationRequest")
                         if evt:
-                            sys.emit("ValidationOk", {"valid": True})
+                            sys.effect("ValidationOk", {"valid": True})
                         """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("ValidationRequest", trigger);
@@ -642,7 +606,7 @@ class MechanismServiceTest {
                         evt = on("BatchInput")
                         items = [1, 2, 3]
                         for item in items:
-                            sys.emit("ItemProcessed", {"item": item})
+                            sys.effect("ItemProcessed", {"item": item})
                         """;
         assertEquals("BatchInput", service.validateStarlarkRule(rule));
       }
@@ -654,7 +618,7 @@ class MechanismServiceTest {
                         evt = on("SomeEvent")
                         x = 42
                         name = "hello"
-                        sys.emit("Result", {"val": x, "name": name})
+                        sys.effect("Result", {"val": x, "name": name})
                         """;
         assertEquals("SomeEvent", service.validateStarlarkRule(rule));
       }
@@ -666,7 +630,7 @@ class MechanismServiceTest {
                         evt = on("Input")
                         length = len("hello")
                         items = sorted([3, 1, 2])
-                        sys.emit("Output", {"len": length, "items": items})
+                        sys.effect("Output", {"len": length, "items": items})
                         """;
         assertEquals("Input", service.validateStarlarkRule(rule));
       }
@@ -680,21 +644,21 @@ class MechanismServiceTest {
                         id = uuid7()
                         matched = fullmatch("^abc.*", "abcdef")
                         found = search("[0-9]+", "abc123")
-                        sys.emit("Output", {"ts": ts, "id": id})
+                        sys.effect("Output", {"ts": ts, "id": id})
                         """;
         assertEquals("Input", service.validateStarlarkRule(rule));
       }
 
       @Test
-      void allSysMethods() {
+      void allChainPatterns() {
         String rule =
             """
                         on("Trigger")
-                        sys.emit("A", {})
-                        sys.create("B", {})
-                        sys.modify("C", {}, {})
-                        sys.delete("D", {})
-                        sys.acquire("E", {})
+                        sys.effect("A", {})
+                        sys.effect("B", {}).by("BPort")
+                        sys.effect("C", {}).receive("CAck")
+                        sys.effect("D", {}).receive("DAck").on("DPort")
+                        sys.effect("E", {}).by("EPort").receive("EAck").on("EReceptor")
                         """;
         assertEquals("Trigger", service.validateStarlarkRule(rule));
       }
@@ -742,7 +706,7 @@ class MechanismServiceTest {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
-                () -> service.validateStarlarkRule("sys.emit(\"X\", {})"));
+                () -> service.validateStarlarkRule("sys.effect(\"X\", {})"));
         assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
         assertTrue(ex.getMessage().contains("on("));
       }
@@ -756,7 +720,7 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on()
-                                        sys.emit("X", {})
+                                        sys.effect("X", {})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
         assertTrue(ex.getMessage().contains("one positional string argument"));
@@ -772,7 +736,7 @@ class MechanismServiceTest {
                         """
                                         name = "Foo"
                                         on(name)
-                                        sys.emit("X", {})
+                                        sys.effect("X", {})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
         assertTrue(ex.getMessage().contains("on(") || ex.getMessage().contains("first"));
@@ -787,7 +751,7 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("")
-                                        sys.emit("X", {})
+                                        sys.effect("X", {})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
         assertTrue(ex.getMessage().contains("empty"));
@@ -822,7 +786,7 @@ class MechanismServiceTest {
                         """
                                         load("module.bzl", "helper")
                                         on("X")
-                                        sys.emit("Y", {})
+                                        sys.effect("Y", {})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
         assertTrue(ex.getMessage().contains("load()"));
@@ -833,7 +797,7 @@ class MechanismServiceTest {
     class SysCallValidation {
 
       @Test
-      void sysEmitWithVariableArchetype_rejected() {
+      void sysEffectWithVariableArchetype_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -842,14 +806,14 @@ class MechanismServiceTest {
                         """
                                         on("Input")
                                         archetype = "DynamicType"
-                                        sys.emit(archetype, {})
+                                        sys.effect(archetype, {})
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("string literal"));
       }
 
       @Test
-      void sysCreateWithVariableArchetype_rejected() {
+      void sysEffectWithNoArgs_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -857,15 +821,45 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        name = "SomeType"
-                                        sys.create(name, {})
+                                        sys.effect()
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY, ex.getRuleType());
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY, ex.getRuleType());
+        assertTrue(ex.getMessage().contains("1-2 positional"));
+      }
+
+      @Test
+      void sysEffectWithTooManyArgs_rejected() {
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateStarlarkRule(
+                        """
+                                        on("Input")
+                                        sys.effect("A", {}, "extra")
+                                        """));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY, ex.getRuleType());
+        assertTrue(ex.getMessage().contains("1-2 positional"));
+      }
+
+      @Test
+      void chainByWithVariableArg_rejected() {
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateStarlarkRule(
+                        """
+                                        on("Input")
+                                        port = "MyPort"
+                                        sys.effect("Output", {}).by(port)
+                                        """));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("string literal"));
       }
 
       @Test
-      void sysEmitWithNoArgs_rejected() {
+      void chainReceiveWithNoArgs_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -873,14 +867,14 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        sys.emit()
+                                        sys.effect("Output", {}).receive()
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY, ex.getRuleType());
+        assertTrue(ex.getMessage().contains(".receive()"));
       }
 
       @Test
-      void sysModifyWithNoArgs_rejected() {
+      void chainOnWithoutReceive_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -888,14 +882,14 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        sys.modify()
+                                        sys.effect("Output", {}).on("MyPort")
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID, ex.getRuleType());
+        assertTrue(ex.getMessage().contains(".on()"));
       }
 
       @Test
-      void sysModifyWithVariableArchetype_rejected() {
+      void chainWrongOrder_receiveBeforeBy_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -903,15 +897,14 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        name = "SomeType"
-                                        sys.modify(name, {}, {})
+                                        sys.effect("Output", {}).receive("Ack").by("Port")
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID, ex.getRuleType());
+        assertTrue(ex.getMessage().contains("Invalid chain order"));
       }
 
       @Test
-      void sysDeleteWithNoArgs_rejected() {
+      void chainUnknownMethod_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -919,14 +912,14 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        sys.delete()
+                                        sys.effect("Output", {}).then("X")
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID, ex.getRuleType());
+        assertTrue(ex.getMessage().contains("Unknown chain method"));
       }
 
       @Test
-      void sysDeleteWithVariableArchetype_rejected() {
+      void chainDuplicateReceive_rejected() {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class,
@@ -934,88 +927,9 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        name = "SomeType"
-                                        sys.delete(name, {})
+                                        sys.effect("Output", {}).receive("A").receive("B")
                                         """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
-
-      @Test
-      void sysAcquireWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                        on("Input")
-                                        sys.acquire()
-                                        """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("requires at least one"));
-      }
-
-      @Test
-      void sysAcquireWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                        on("Input")
-                                        name = "SomeType"
-                                        sys.acquire(name, {})
-                                        """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
-
-      @Test
-      void responseOnNonEmit_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                        on("Input")
-                                        sys.create("Output", {}, response="Resp")
-                                        """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("response"));
-      }
-
-      @Test
-      void responseNotStringLiteral_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                        on("Input")
-                                        resp = "Resp"
-                                        sys.emit("Output", {}, response=resp)
-                                        """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("string literal"));
-      }
-
-      @Test
-      void responseEmpty_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
-                                        on("Input")
-                                        sys.emit("Output", {}, response="")
-                                        """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("empty"));
+        assertEquals(RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID, ex.getRuleType());
       }
     }
 
@@ -1032,7 +946,7 @@ class MechanismServiceTest {
                         """
                                         on("Input")
                                         result = unknown_func()
-                                        sys.emit("Output", {"r": result})
+                                        sys.effect("Output", {"r": result})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown globals"));
@@ -1048,7 +962,7 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        sys.emit("Output", {"val": external_var})
+                                        sys.effect("Output", {"val": external_var})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown globals"));
@@ -1063,7 +977,7 @@ class MechanismServiceTest {
         String rule =
             """
                         on("Input")
-                        sys.emit("Output", {"mechanismId": sys.id})
+                        sys.effect("Output", {"mechanismId": sys.id})
                         """;
         assertEquals("Input", service.validateStarlarkRule(rule));
       }
@@ -1077,7 +991,7 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        sys.emit("Output", {"name": sys.name})
+                                        sys.effect("Output", {"name": sys.name})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown sys property"));
@@ -1093,7 +1007,7 @@ class MechanismServiceTest {
                     service.validateStarlarkRule(
                         """
                                         on("Input")
-                                        sys.emit("Output", {"v": sys.version})
+                                        sys.effect("Output", {"v": sys.version})
                                         """));
         assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown sys property"));
@@ -1107,7 +1021,7 @@ class MechanismServiceTest {
       void withinBudget_valid() {
         StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
         for (int i = 0; i < 199; i++) {
-          sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+          sb.append("sys.effect(\"E\", {\"i\": ").append(i).append("})\n");
         }
         assertEquals("Trigger", service.validateStarlarkRule(sb.toString()));
       }
@@ -1116,7 +1030,7 @@ class MechanismServiceTest {
       void exceedsBudget_rejected() {
         StringBuilder sb = new StringBuilder("on(\"Trigger\")\n");
         for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
-          sb.append("sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+          sb.append("sys.effect(\"E\", {\"i\": ").append(i).append("})\n");
         }
         RuleViolationException ex =
             assertThrows(
@@ -1130,7 +1044,7 @@ class MechanismServiceTest {
       void forLoopBody_countsTowardBudget() {
         StringBuilder sb = new StringBuilder("on(\"Trigger\")\nfor x in range(1):\n");
         for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
-          sb.append("    sys.emit(\"E\", {\"i\": ").append(i).append("})\n");
+          sb.append("    sys.effect(\"E\", {\"i\": ").append(i).append("})\n");
         }
         RuleViolationException ex =
             assertThrows(
@@ -1195,7 +1109,7 @@ class MechanismServiceTest {
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structDefId.toString());
       stmt.put("function", "UserValidation");
-      stmt.put("rule", "on(\"Input\")\nsys.emit(\"Output\", {})");
+      stmt.put("rule", "on(\"Input\")\nsys.effect(\"Output\", {})");
 
       MechanismEntity result = service.buildEntity(def, archetype, stmt);
       assertNotNull(result);
@@ -1209,7 +1123,7 @@ class MechanismServiceTest {
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("function", "X");
-      stmt.put("rule", "on(\"A\")\nsys.emit(\"B\", {})");
+      stmt.put("rule", "on(\"A\")\nsys.effect(\"B\", {})");
 
       assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
     }
@@ -1225,7 +1139,7 @@ class MechanismServiceTest {
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structDefId.toString());
       stmt.put("function", "X");
-      stmt.put("rule", "on(\"A\")\nsys.emit(\"B\", {})");
+      stmt.put("rule", "on(\"A\")\nsys.effect(\"B\", {})");
 
       assertThrows(
           ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));
@@ -1313,7 +1227,7 @@ class MechanismServiceTest {
       when(mechDef.getId()).thenReturn(mechDefId);
 
       ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"InputType\")\nsys.emit(\"OutputType\", {})");
+      stmt.put("rule", "on(\"InputType\")\nsys.effect(\"OutputType\", {})");
 
       MechanismEntity mechanism = mock(MechanismEntity.class);
       when(mechanism.getStatement()).thenReturn(stmt);
@@ -1367,7 +1281,7 @@ class MechanismServiceTest {
       when(mechDef.getId()).thenReturn(mechDefId);
 
       ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+      stmt.put("rule", "on(\"X\")\nsys.effect(\"Y\", {})");
 
       MechanismEntity mechanism = mock(MechanismEntity.class);
       when(mechanism.getStatement()).thenReturn(stmt);
@@ -1387,7 +1301,7 @@ class MechanismServiceTest {
       when(mechDef.getId()).thenReturn(mechDefId);
 
       ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"MissingType\")\nsys.emit(\"AlsoMissing\", {})");
+      stmt.put("rule", "on(\"MissingType\")\nsys.effect(\"AlsoMissing\", {})");
 
       MechanismEntity mechanism = mock(MechanismEntity.class);
       when(mechanism.getStatement()).thenReturn(stmt);
@@ -1416,7 +1330,7 @@ class MechanismServiceTest {
       when(mechDef.getId()).thenReturn(mechDefId);
 
       ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "on(\"InputType\")\nsys.emit(\"OutputType\", {})");
+      stmt.put("rule", "on(\"InputType\")\nsys.effect(\"OutputType\", {})");
 
       MechanismEntity mechanism = mock(MechanismEntity.class);
       when(mechanism.getStatement()).thenReturn(stmt);

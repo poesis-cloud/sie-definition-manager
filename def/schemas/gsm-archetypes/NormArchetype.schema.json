@@ -1,143 +1,110 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/NormArchetype/v1",
-  "title": "NormArchetype",
-  "description": "Schema for Norm Ascriptions — measurable constraint predicates (DNA 'N'). Defines the governance grammar: structure, qualifier, guard, predicate, toleranceMode, and mode-dependent temporal fields. DM validates CEL expressions against their profiles. Extensible — tenant-defined archetypes MAY extend Norm via allOf to add domain-specific measurement vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
-  "type": "object",
-  "examples": [
-    {
-      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-      "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
-      "guard": "DeploymentProperties.environment == \"production\"",
-      "predicate": "PerformanceProperties.p99Latency < 500",
-      "toleranceMode": "AGGREGATED",
-      "temporalWindow": "PT5M",
-      "temporalAggregation": "P99"
-    },
-    {
-      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-      "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
-      "predicate": "SecurityProperties.tlsEnabled == true",
-      "toleranceMode": "INSTANTANEOUS"
-    }
-  ],
-  "required": [
-    "structure",
-    "qualifier",
-    "predicate",
-    "toleranceMode"
-  ],
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "toleranceMode": {
-            "const": "INSTANTANEOUS"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "temporalWindow": false,
-          "temporalAggregation": false,
-          "sustainedThreshold": false
+  "$schema" : "gsm://archetypes/Archetype/v1",
+  "$id" : "gsm://archetypes/NormArchetype/v1",
+  "title" : "NormArchetype",
+  "description" : "Schema for Norm Ascriptions — measurable constraint predicates (DNA 'N'). Defines the governance grammar: structure, qualifier, guard, predicate, toleranceMode, and mode-dependent temporal fields. DM validates CEL expressions against their profiles. Extensible — tenant-defined archetypes MAY extend Norm via allOf to add domain-specific measurement vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
+  "type" : "object",
+  "examples" : [ {
+    "structure" : "019cc49a-dc59-7fef-9b0c-b3f100044603",
+    "qualifier" : "019cc49a-dc5a-7670-9ccb-5e161985340b",
+    "guard" : "DeploymentProperties.environment == \"production\"",
+    "predicate" : "PerformanceProperties.p99Latency < 500",
+    "toleranceMode" : "AGGREGATED",
+    "temporalWindow" : "PT5M",
+    "temporalAggregation" : "P99"
+  }, {
+    "structure" : "019cc49a-dc59-7fef-9b0c-b3f100044603",
+    "qualifier" : "019cc49a-dc5a-7670-9ccb-5e161985340b",
+    "predicate" : "SecurityProperties.tlsEnabled == true",
+    "toleranceMode" : "INSTANTANEOUS"
+  } ],
+  "required" : [ "structure", "qualifier", "predicate", "toleranceMode" ],
+  "allOf" : [ {
+    "if" : {
+      "properties" : {
+        "toleranceMode" : {
+          "const" : "INSTANTANEOUS"
         }
       }
     },
-    {
-      "if": {
-        "properties": {
-          "toleranceMode": {
-            "const": "AGGREGATED"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "temporalWindow",
-          "temporalAggregation"
-        ],
-        "properties": {
-          "sustainedThreshold": false
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "toleranceMode": {
-            "const": "SUSTAINED"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "temporalWindow",
-          "temporalAggregation",
-          "sustainedThreshold"
-        ]
+    "then" : {
+      "properties" : {
+        "temporalWindow" : false,
+        "temporalAggregation" : false,
+        "sustainedThreshold" : false
       }
     }
-  ],
-  "properties": {
-    "structure": {
-      "type": "string",
-      "format": "uuid",
-      "$gsm:identityBound": true,
-      "description": "ID reference to the authoring Structure."
+  }, {
+    "if" : {
+      "properties" : {
+        "toleranceMode" : {
+          "const" : "AGGREGATED"
+        }
+      }
     },
-    "qualifier": {
-      "type": "string",
-      "format": "uuid",
-      "$gsm:identityBound": true,
-      "description": "ID reference to the Archetype that the predicate constrains — mirrors Directive.qualifier. Enables governance chain validation and direct queryability ('all Norms targeting SecurityProperties') without CEL parsing."
+    "then" : {
+      "required" : [ "temporalWindow", "temporalAggregation" ],
+      "properties" : {
+        "sustainedThreshold" : false
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "toleranceMode" : {
+          "const" : "SUSTAINED"
+        }
+      }
     },
-    "guard": {
-      "type": "string",
-      "default": "true",
-      "description": "CEL expression conforming to the applicability-guard CEL profile — activation condition. Predicate is only evaluated when guard is true. Default: 'true' (unconditional)."
+    "then" : {
+      "required" : [ "temporalWindow", "temporalAggregation", "sustainedThreshold" ]
+    }
+  } ],
+  "properties" : {
+    "structure" : {
+      "type" : "string",
+      "format" : "uuid",
+      "$gsm:identityBound" : true,
+      "description" : "ID reference to the authoring Structure."
     },
-    "predicate": {
-      "type": "string",
-      "minLength": 1,
-      "$gsm:identityBound": true,
-      "description": "CEL expression conforming to the property-assertion CEL profile → bool. References exactly one Archetype by name as root identifier, then navigates its JSON Schema fields."
+    "qualifier" : {
+      "type" : "string",
+      "format" : "uuid",
+      "$gsm:identityBound" : true,
+      "description" : "ID reference to the Archetype that the predicate constrains — mirrors Directive.qualifier. Enables governance chain validation and direct queryability ('all Norms targeting SecurityProperties') without CEL parsing."
     },
-    "toleranceMode": {
-      "type": "string",
-      "enum": [
-        "INSTANTANEOUS",
-        "AGGREGATED",
-        "SUSTAINED"
-      ],
-      "description": "How violations are measured over time. Discriminates which temporal fields are required."
+    "guard" : {
+      "type" : "string",
+      "default" : "true",
+      "description" : "CEL expression conforming to the applicability-guard CEL profile — activation condition. Predicate is only evaluated when guard is true. Default: 'true' (unconditional)."
     },
-    "temporalWindow": {
-      "type": "string",
-      "pattern": "^P",
-      "description": "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is AGGREGATED or SUSTAINED."
+    "predicate" : {
+      "type" : "string",
+      "minLength" : 1,
+      "$gsm:identityBound" : true,
+      "description" : "CEL expression conforming to the property-assertion CEL profile → bool. References exactly one Archetype by name as root identifier, then navigates its JSON Schema fields."
     },
-    "temporalAggregation": {
-      "type": "string",
-      "enum": [
-        "SUM",
-        "AVG",
-        "MIN",
-        "MAX",
-        "COUNT",
-        "P50",
-        "P90",
-        "P95",
-        "P99"
-      ],
-      "description": "Aggregation function applied within the temporalWindow. Required when toleranceMode is AGGREGATED or SUSTAINED."
+    "toleranceMode" : {
+      "type" : "string",
+      "enum" : [ "INSTANTANEOUS", "AGGREGATED", "SUSTAINED" ],
+      "description" : "How violations are measured over time. Discriminates which temporal fields are required."
     },
-    "sustainedThreshold": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1,
-      "description": "Ratio [0,1] — fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
+    "temporalWindow" : {
+      "type" : "string",
+      "pattern" : "^P",
+      "description" : "ISO 8601 duration for time-based tolerance modes. Required when toleranceMode is AGGREGATED or SUSTAINED."
+    },
+    "temporalAggregation" : {
+      "type" : "string",
+      "enum" : [ "SUM", "AVG", "MIN", "MAX", "COUNT", "P50", "P90", "P95", "P99" ],
+      "description" : "Aggregation function applied within the temporalWindow. Required when toleranceMode is AGGREGATED or SUSTAINED."
+    },
+    "sustainedThreshold" : {
+      "type" : "number",
+      "minimum" : 0,
+      "maximum" : 1,
+      "description" : "Ratio [0,1] — fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
     }
   },
-  "unevaluatedProperties": false
+  "unevaluatedProperties" : false
 }

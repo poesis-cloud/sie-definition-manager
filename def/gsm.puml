@@ -189,7 +189,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     to add domain-specific vocabulary (e.g., Principle, Standard, Measure)
     while inheriting the full governance grammar. A governance Mechanism
     producing a Directive simply creates one via
-    `sys.create("DirectiveArchetype", {...})`.
+    `sys.effect("DirectiveArchetype", {...})`.
 
     Like biological DNA encodes the instructions for proteins that build and
     regulate an organism, a System's DNA encodes the governance instructions
@@ -326,7 +326,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     (getModal(), getGuard(), etc.) are convenience delegations into
     `statement`.
     A governance Mechanism creates a Directive by calling
-    `sys.create("DirectiveArchetype", {...})`. This closes §3 systemic
+    `sys.effect("DirectiveArchetype", {...})`. This closes §3 systemic
     recursion naturally: governance DNA follows the same Archetype typing
     and the same Effector→Archetype type model as all other Ascriptions.
 
@@ -2208,12 +2208,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `on("...")` call as its first executable statement.
     - The `on()` argument MUST be a string literal resolving to a defined
       Archetype in the governed scope.
-    - String literals in `sys.*` calls (first argument = archetype name)
+    - String literals in `sys.effect()` calls (first argument = archetype name)
       MUST be string literals (enables static analysis and Effector/Receptor
       auto-derivation).
-    - String literals in `sys.*` calls MUST resolve to declared Archetypes
+    - String literals in `sys.effect()` calls MUST resolve to declared Archetypes
       in the governed scope.
-    - Dict literals in `sys.emit/create/modify` SHOULD conform to the
+    - Dict literals in `sys.effect()` data arg SHOULD conform to the
       target Archetype schema (best-effort for dynamic values).
     - Only `sys`, injected host functions (`on`, `now`, `uuid7`,
       `fullmatch`, `search`), and Starlark built-ins are allowed globals.
@@ -2257,22 +2257,20 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - `on("ArchetypeName")` — MUST be the first executable statement.
         Declares the triggering Archetype and returns its payload.
         Auto-derives a Receptor typed by the named Archetype.
-      - Return-value assignment of a `sys.*` mutation call (see below)
-        auto-derives an additional Receptor (feedback / closed-loop).
+      - `.receive("FeedbackArch")` chain on a `sys.effect()` call
+        auto-derives a feedback Receptor (closed-loop).
     - *Effector derivation (outputs)*
-      - `sys.emit("ArchetypeName", data)` — emits data typed by the
-        named Archetype. Auto-derives an Effector.
-      - `sys.emit("ArchetypeName", data, response="RespArchetype")` —
-        emits with a synchronous response expectation. Auto-derives an
-        Effector (for the emit) and a Receptor (for the response).
-      - `sys.create("ArchetypeName", data)` — creates a state object.
-        Auto-derives an Effector.
-      - `sys.modify("ArchetypeName", filter, data)` — modifies state
-        object(s). Auto-derives an Effector.
-      - `sys.delete("ArchetypeName", filter)` — deletes state
-        object(s). Auto-derives an Effector.
-      - `sys.acquire("ArchetypeName", filter)` — reads/acquires state
-        object(s). Auto-derives an Effector.
+      - `sys.effect("ArchetypeName", data)` — the single output primitive.
+        Auto-derives an Effector typed by the named Archetype.
+      - Optional fluent chain qualifiers:
+        - `.by("EffectorPortArch")` — qualifies the Effector port type
+          (resolved to a tenant EffectorArchetype extension).
+        - `.receive("FeedbackArch")` — declares feedback expectation
+          (closed-loop). Auto-derives a Receptor.
+        - `.on("ReceptorPortArch")` — qualifies the feedback Receptor
+          port type (only valid after `.receive()`).
+      - Chain order: `effect → [by] → [receive → [on]]`
+      - All chain methods take exactly 1 string literal argument.
 
     **Usage Rules**:
 
@@ -2283,13 +2281,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
         built-ins. No other globals are permitted.
         - *`sys` namespace*
           - `sys.id` — read-only property: the Mechanism's `id`.
+          - `sys.effect("ArchetypeName", data)` — the single output
+            primitive. Returns an EffectBuilder for optional chaining.
+        - *Fluent chain API*
+          - `sys.effect("D", data)` — fire-and-forget (open-loop).
+          - `sys.effect("D", data).by("E")` — typed Effector port.
+          - `sys.effect("D", data).receive("F")` — closed-loop with
+            untyped Receptor.
+          - `sys.effect("D", data).receive("F").on("R")` — closed-loop
+            with typed Receptor port.
+          - `sys.effect("D", data).by("E").receive("F").on("R")` — full
+            chain with both typed ports.
+          - Chain order: `effect → [by] → [receive → [on]]`.
         - *Closed-loop vs open-loop pattern*
-          - `var = sys.create(...)` (assigned) → **closed-loop**: the DM
+          - `.receive("FeedbackArch")` present → **closed-loop**: the DM
             auto-derives a feedback Receptor, enabling verification.
-          - `sys.create(...)` (unassigned) → **open-loop** / fire-and-forget:
+          - No `.receive()` → **open-loop** / fire-and-forget:
             no feedback Receptor is derived.
-          - Same pattern applies to `sys.modify`, `sys.delete`,
-            `sys.acquire`.
         - *Injected host functions*
           - `on(archetype)` — event trigger declaration (see above).
           - `now()` → ISO 8601 timestamp.

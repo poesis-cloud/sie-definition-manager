@@ -116,47 +116,23 @@ public enum RuleType {
           + "in the governed scope."),
 
   // ====================================================================
-  // MECHANISM — sys method arity and argument constraints
+  // MECHANISM — sys.effect() chain arity and argument constraints
   // ====================================================================
 
-  MECHANISM_RULE_SYS_EMIT_METHOD_ARITY(
-      "gsm:rules/mechanism/rule/sys-emit-method-arity",
-      "Mechanism rule sys.emit() method arity",
-      "sys.emit() requires exactly 2 positional arguments (archetype "
-          + "title, data) and accepts an optional 'response' keyword "
-          + "argument."),
+  MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY(
+      "gsm:rules/mechanism/rule/sys-effect-method-arity",
+      "Mechanism rule sys.effect() method arity",
+      "sys.effect() requires 1-2 positional arguments (archetype "
+          + "title, optional data payload). Chain methods .by(), "
+          + ".receive(), .on() each require exactly 1 positional "
+          + "argument (archetype title as string literal)."),
 
-  MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE(
-      "gsm:rules/mechanism/rule/sys-emit-method-response",
-      "Mechanism rule sys.emit() method response",
-      "sys.emit()'s optional 'response' keyword argument must be a "
-          + "non-empty string literal resolving to a declared Archetype "
-          + "title — it declares the synchronous response type and "
-          + "auto-derives a feedback Receptor."),
-
-  MECHANISM_RULE_SYS_CREATE_METHOD_ARITY(
-      "gsm:rules/mechanism/rule/sys-create-method-arity",
-      "Mechanism rule sys.create() method arity",
-      "sys.create() requires exactly 2 positional arguments: archetype "
-          + "title and data payload."),
-
-  MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY(
-      "gsm:rules/mechanism/rule/sys-modify-method-arity",
-      "Mechanism rule sys.modify() method arity",
-      "sys.modify() requires exactly 3 positional arguments: archetype "
-          + "title, filter expression, and data payload."),
-
-  MECHANISM_RULE_SYS_DELETE_METHOD_ARITY(
-      "gsm:rules/mechanism/rule/sys-delete-method-arity",
-      "Mechanism rule sys.delete() method arity",
-      "sys.delete() requires exactly 2 positional arguments: archetype "
-          + "title and filter expression."),
-
-  MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY(
-      "gsm:rules/mechanism/rule/sys-acquire-method-arity",
-      "Mechanism rule sys.acquire() method arity",
-      "sys.acquire() requires exactly 2 positional arguments: archetype "
-          + "title and filter expression."),
+  MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID(
+      "gsm:rules/mechanism/rule/sys-effect-chain-invalid",
+      "Mechanism rule sys.effect() chain invalid",
+      "sys.effect() chain must follow the pattern: "
+          + "effect → [by] → [receive → [on]]. Each method may appear "
+          + "at most once. No other methods are allowed on the chain."),
 
   // ====================================================================
   // EFFECTOR — statement validation and reference integrity

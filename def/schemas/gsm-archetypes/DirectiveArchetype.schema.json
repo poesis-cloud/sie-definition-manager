@@ -1,69 +1,46 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/DirectiveArchetype/v1",
-  "title": "DirectiveArchetype",
-  "description": "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). Defines the governance grammar: structure, modal, verb, qualifier, purpose. Extensible — tenant-defined archetypes MAY extend Directive via allOf to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
-  "type": "object",
-  "examples": [
-    {
-      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-      "modal": "MUST",
-      "verb": "ENSURE",
-      "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
-      "purpose": "019cc49a-dc5a-7003-98e1-c214032f0420"
-    }
-  ],
-  "required": [
-    "structure",
-    "modal",
-    "verb",
-    "qualifier",
-    "purpose"
-  ],
-  "properties": {
-    "structure": {
-      "type": "string",
-      "format": "uuid",
-      "$gsm:identityBound": true,
-      "description": "ID reference to the authoring Structure that issues the Directive."
+  "$schema" : "gsm://archetypes/Archetype/v1",
+  "$id" : "gsm://archetypes/DirectiveArchetype/v1",
+  "title" : "DirectiveArchetype",
+  "description" : "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). Defines the governance grammar: structure, modal, verb, qualifier, purpose. Extensible — tenant-defined archetypes MAY extend Directive via allOf to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
+  "type" : "object",
+  "examples" : [ {
+    "structure" : "019cc49a-dc59-7fef-9b0c-b3f100044603",
+    "modal" : "MUST",
+    "verb" : "ENSURE",
+    "qualifier" : "019cc49a-dc5a-7670-9ccb-5e161985340b",
+    "purpose" : "019cc49a-dc5a-7003-98e1-c214032f0420"
+  } ],
+  "required" : [ "structure", "modal", "verb", "qualifier", "purpose" ],
+  "properties" : {
+    "structure" : {
+      "type" : "string",
+      "format" : "uuid",
+      "$gsm:identityBound" : true,
+      "description" : "ID reference to the authoring Structure that issues the Directive."
     },
-    "modal": {
-      "type": "string",
-      "enum": [
-        "MUST",
-        "MUST_NOT",
-        "SHOULD",
-        "SHOULD_NOT",
-        "MAY"
-      ],
-      "description": "Deontic obligation strength. MUST/MUST_NOT = hard constraint (violations = errors). SHOULD/SHOULD_NOT = soft constraint (violations = warnings). MAY = permitted (informational)."
+    "modal" : {
+      "type" : "string",
+      "enum" : [ "MUST", "MUST_NOT", "SHOULD", "SHOULD_NOT", "MAY" ],
+      "description" : "Deontic obligation strength. MUST/MUST_NOT = hard constraint (violations = errors). SHOULD/SHOULD_NOT = soft constraint (violations = warnings). MAY = permitted (informational)."
     },
-    "verb": {
-      "type": "string",
-      "enum": [
-        "ENSURE",
-        "PREVENT",
-        "MAINTAIN",
-        "OPTIMIZE",
-        "MINIMIZE",
-        "MAXIMIZE",
-        "MONITOR",
-        "ENABLE"
-      ],
-      "description": "Governance action expressing the governance direction on the qualifier Archetype's viability dimension."
+    "verb" : {
+      "type" : "string",
+      "enum" : [ "ENSURE", "PREVENT", "MAINTAIN", "OPTIMIZE", "MINIMIZE", "MAXIMIZE", "MONITOR", "ENABLE" ],
+      "description" : "Governance action expressing the governance direction on the qualifier Archetype's viability dimension."
     },
-    "qualifier": {
-      "type": "string",
-      "format": "uuid",
-      "$gsm:identityBound": true,
-      "description": "ID reference to the Archetype that defines the viability dimension being governed. Norms operationalizing this Directive MUST reference this same Archetype (or a descendant) in their guard/predicate CEL expressions."
+    "qualifier" : {
+      "type" : "string",
+      "format" : "uuid",
+      "$gsm:identityBound" : true,
+      "description" : "ID reference to the Archetype that defines the viability dimension being governed. Norms operationalizing this Directive MUST reference this same Archetype (or a descendant) in their guard/predicate CEL expressions."
     },
-    "purpose": {
-      "type": "string",
-      "format": "uuid",
-      "$gsm:identityBound": true,
-      "description": "ID reference to the purposed Structure whose purpose is governed by this Directive."
+    "purpose" : {
+      "type" : "string",
+      "format" : "uuid",
+      "$gsm:identityBound" : true,
+      "description" : "ID reference to the purposed Structure whose purpose is governed by this Directive."
     }
   },
-  "unevaluatedProperties": false
+  "unevaluatedProperties" : false
 }

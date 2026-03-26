@@ -291,8 +291,7 @@ class AscriptionResourceIT {
   void createMechanism_withStructureFkInStatement() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "PaymentValidation");
-    statement.put(
-        "rule", "on(\"PaymentRequest\")\nresult = sys.emit(\"PaymentResult\", {\"ok\": True})");
+    statement.put("rule", "on(\"PaymentRequest\")\nsys.effect(\"PaymentResult\", {\"ok\": True})");
     statement.put("structure", createdStructureId.toString());
 
     ObjectNode request = mapper.createObjectNode();
@@ -329,7 +328,7 @@ class AscriptionResourceIT {
   void createMechanism_missingStructureInStatement_returns400() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
-    statement.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+    statement.put("rule", "on(\"X\")\nsys.effect(\"Y\", {})");
     // structure intentionally omitted from statement
 
     ObjectNode request = mapper.createObjectNode();
@@ -348,7 +347,7 @@ class AscriptionResourceIT {
   void createMechanism_bogusStructureInStatement_returns400() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
-    statement.put("rule", "on(\"X\")\nsys.emit(\"Y\", {})");
+    statement.put("rule", "on(\"X\")\nsys.effect(\"Y\", {})");
     statement.put("structure", UUID.randomUUID().toString());
 
     ObjectNode request = mapper.createObjectNode();

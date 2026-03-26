@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -105,8 +106,10 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
           "filter",
           "struct");
 
-  private static final Set<String> SYS_METHODS =
-      Set.of("emit", "create", "modify", "delete", "acquire");
+  private static final Set<String> SYS_METHODS = Set.of("effect");
+
+  /** Valid chain methods on the EffectBuilder returned by sys.effect(). */
+  private static final Set<String> EFFECT_CHAIN_METHODS = Set.of("by", "receive", "on");
 
   /** Valid read-only properties on the sys namespace object. */
   private static final Set<String> SYS_PROPERTIES = Set.of("id");
@@ -485,76 +488,137 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   private void validateSysCallsInExpr(Expression expr) {
     if (!(expr instanceof CallExpression call)) return;
+    if (!isSysEffectChain(call)) return;
 
-    if (call.getFunction() instanceof DotExpression dot
-        && dot.getObject() instanceof Identifier obj
-        && "sys".equals(obj.getName())) {
+    List<ChainLink> chain = unwrapEffectChain(call);
+    if (chain.isEmpty()) return;
 
-      String method = dot.getField().getName();
-      if (!SYS_METHODS.contains(method)) {
+    // Validate chain order: effect → [by] → [receive → [on]]
+    validateChainOrder(chain);
+
+    // Validate root effect() arity: 1-2 positional args, first must be string literal
+    ChainLink effectLink = chain.get(0);
+    List<Argument> effectArgs = effectLink.args();
+    if (effectArgs.isEmpty() || effectArgs.size() > 2) {
+      throw RuleViolationException.of(
+          RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY,
+          "sys.effect() requires 1-2 positional arguments (archetype name, optional data)",
+          "method",
+          "effect");
+    }
+    if (!(effectArgs.get(0).getValue() instanceof StringLiteral)) {
+      throw RuleViolationException.of(
+          RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY,
+          "sys.effect() first argument must be a string literal (archetype name)",
+          "method",
+          "effect");
+    }
+
+    // Validate chain method arity: .by(), .receive(), .on() each require exactly 1 string literal
+    for (int i = 1; i < chain.size(); i++) {
+      ChainLink link = chain.get(i);
+      if (link.args().size() != 1) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
-            "Unknown sys method: sys." + method + ". Allowed: " + SYS_METHODS,
+            RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY,
+            "." + link.method() + "() requires exactly 1 argument (archetype name)",
             "method",
-            method);
+            link.method());
       }
-
-      List<Argument> args = call.getArguments();
-      if (args.isEmpty()) {
+      if (!(link.args().get(0).getValue() instanceof StringLiteral)) {
         throw RuleViolationException.of(
-            sysMethodArityRule(method),
-            "sys." + method + "() requires at least one argument",
+            RuleType.MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY,
+            "." + link.method() + "() argument must be a string literal (archetype name)",
             "method",
-            method);
-      }
-
-      Expression firstArg = args.get(0).getValue();
-      if (!(firstArg instanceof StringLiteral)) {
-        throw RuleViolationException.of(
-            sysMethodArityRule(method),
-            "sys." + method + "() first argument must be a string literal (archetype name)",
-            "method",
-            method);
-      }
-
-      // Validate response= keyword arg (only valid on sys.emit)
-      for (Argument arg : args) {
-        if (arg instanceof Argument.Keyword kw && "response".equals(kw.getName())) {
-          if (!"emit".equals(method)) {
-            throw RuleViolationException.of(
-                RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE,
-                "response= keyword argument is only valid on sys.emit(), not sys." + method + "()",
-                "method",
-                method);
-          }
-          if (!(kw.getValue() instanceof StringLiteral sl)) {
-            throw RuleViolationException.of(
-                RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE,
-                "sys.emit() response= must be a string literal (archetype name)",
-                "method",
-                method);
-          }
-          if (sl.getValue().isBlank()) {
-            throw RuleViolationException.of(
-                RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_RESPONSE,
-                "sys.emit() response= must be a non-empty archetype name",
-                "method",
-                method);
-          }
-        }
+            link.method());
       }
     }
   }
 
-  private static RuleType sysMethodArityRule(String method) {
-    return switch (method) {
-      case "emit" -> RuleType.MECHANISM_RULE_SYS_EMIT_METHOD_ARITY;
-      case "create" -> RuleType.MECHANISM_RULE_SYS_CREATE_METHOD_ARITY;
-      case "modify" -> RuleType.MECHANISM_RULE_SYS_MODIFY_METHOD_ARITY;
-      case "delete" -> RuleType.MECHANISM_RULE_SYS_DELETE_METHOD_ARITY;
-      case "acquire" -> RuleType.MECHANISM_RULE_SYS_ACQUIRE_METHOD_ARITY;
-      default -> RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST;
-    };
+  /** A link in a sys.effect() fluent chain. */
+  private record ChainLink(String method, List<Argument> args) {}
+
+  /**
+   * Check if a CallExpression is a sys.effect() chain (possibly with .by/.receive/.on methods).
+   * Walks from outermost call to innermost, looking for sys.effect root.
+   */
+  private boolean isSysEffectChain(CallExpression call) {
+    Expression current = call;
+    while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
+      if (dot.getObject() instanceof Identifier id && "sys".equals(id.getName())) {
+        return "effect".equals(dot.getField().getName());
+      }
+      current = dot.getObject();
+    }
+    return false;
+  }
+
+  /**
+   * Unwrap a sys.effect() fluent chain from outermost to innermost, returning links in natural
+   * order: [effect, by, receive, on].
+   */
+  private List<ChainLink> unwrapEffectChain(CallExpression call) {
+    List<ChainLink> links = new ArrayList<>();
+    Expression current = call;
+    while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
+      links.add(new ChainLink(dot.getField().getName(), c.getArguments()));
+      current = dot.getObject();
+      if (current instanceof Identifier) break;
+    }
+    Collections.reverse(links);
+    return links;
+  }
+
+  /**
+   * Validate chain order: effect → [by] → [receive → [on]]. State machine with 4 states: EFFECT →
+   * BY → RECEIVE → ON.
+   */
+  private void validateChainOrder(List<ChainLink> chain) {
+    if (chain.isEmpty() || !"effect".equals(chain.get(0).method())) {
+      throw RuleViolationException.of(
+          RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID,
+          "sys.effect() chain must start with effect()",
+          "method",
+          chain.isEmpty() ? "?" : chain.get(0).method());
+    }
+
+    // Valid transitions: effect→by, effect→receive, by→receive, receive→on
+    int state = 0; // 0=effect, 1=by, 2=receive, 3=on
+    for (int i = 1; i < chain.size(); i++) {
+      String method = chain.get(i).method();
+      int next =
+          switch (method) {
+            case "by" -> 1;
+            case "receive" -> 2;
+            case "on" -> 3;
+            default -> -1;
+          };
+      if (next == -1) {
+        throw RuleViolationException.of(
+            RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID,
+            "Unknown chain method: ." + method + "(). Allowed: .by(), .receive(), .on()",
+            "method",
+            method);
+      }
+      if (next <= state) {
+        throw RuleViolationException.of(
+            RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID,
+            "Invalid chain order: ."
+                + method
+                + "() cannot follow ."
+                + chain.get(i - 1).method()
+                + "(). Valid order: effect → [by] → [receive → [on]]",
+            "method",
+            method);
+      }
+      if (next == 3 && state != 2) {
+        throw RuleViolationException.of(
+            RuleType.MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID,
+            ".on() can only follow .receive() (it qualifies the feedback Receptor port type)",
+            "method",
+            method);
+      }
+      state = next;
+    }
   }
 
   private Set<String> collectLocals(StarlarkFile file) {
@@ -664,27 +728,12 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   private void collectSysArchetypeNamesInExpr(Expression expr, Set<String> names) {
     if (!(expr instanceof CallExpression call)) return;
+    if (!isSysEffectChain(call)) return;
 
-    if (call.getFunction() instanceof DotExpression dot
-        && dot.getObject() instanceof Identifier obj
-        && "sys".equals(obj.getName())) {
-      String method = dot.getField().getName();
-      if (SYS_METHODS.contains(method)) {
-        List<Argument> args = call.getArguments();
-        if (!args.isEmpty()) {
-          Expression firstArg = args.get(0).getValue();
-          if (firstArg instanceof StringLiteral sl) {
-            names.add(sl.getValue());
-          }
-        }
-        // Check for response= keyword arg (sys.emit with response archetype)
-        for (Argument arg : args) {
-          if (arg instanceof Argument.Keyword kw && "response".equals(kw.getName())) {
-            if (kw.getValue() instanceof StringLiteral sl) {
-              names.add(sl.getValue());
-            }
-          }
-        }
+    List<ChainLink> chain = unwrapEffectChain(call);
+    for (ChainLink link : chain) {
+      if (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl) {
+        names.add(sl.getValue());
       }
     }
   }
@@ -703,45 +752,43 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   private void validateDictLiteralInSysCall(Expression expr) {
     if (!(expr instanceof CallExpression call)) return;
+    if (!isSysEffectChain(call)) return;
 
-    if (call.getFunction() instanceof DotExpression dot
-        && dot.getObject() instanceof Identifier obj
-        && "sys".equals(obj.getName())) {
-      String method = dot.getField().getName();
-      if (SYS_METHODS.contains(method)) {
-        List<Argument> args = call.getArguments();
-        if (args.size() < 2) return;
+    // Unwrap chain to find root effect() args
+    List<ChainLink> chain = unwrapEffectChain(call);
+    if (chain.isEmpty()) return;
 
-        // First arg = archetype name; second arg = data dict (for emit/create/modify)
-        Expression firstArg = args.get(0).getValue();
-        if (!(firstArg instanceof StringLiteral sl)) return;
-        String archetypeName = sl.getValue();
+    ChainLink effectLink = chain.get(0);
+    List<Argument> args = effectLink.args();
+    if (args.size() < 2) return;
 
-        Expression secondArg = args.get(1).getValue();
-        if (!(secondArg instanceof DictExpression dict)) return;
+    // First arg = archetype name; second arg = data dict
+    Expression firstArg = args.get(0).getValue();
+    if (!(firstArg instanceof StringLiteral sl)) return;
+    String archetypeName = sl.getValue();
 
-        ArchetypeEntity archetype = archetypeService.findInEffectBySchemaTitle(archetypeName);
-        if (archetype == null) return; // Archetype not yet in-effect; can't validate
+    Expression secondArg = args.get(1).getValue();
+    if (!(secondArg instanceof DictExpression dict)) return;
 
-        JsonNode schema = archetype.getStatement();
-        if (schema == null || !schema.has("properties")) return;
+    ArchetypeEntity archetype = archetypeService.findInEffectBySchemaTitle(archetypeName);
+    if (archetype == null) return; // Archetype not yet in-effect; can't validate
 
-        JsonNode properties = schema.get("properties");
-        Set<String> schemaKeys = new HashSet<>();
-        properties.fieldNames().forEachRemaining(schemaKeys::add);
+    JsonNode schema = archetype.getStatement();
+    if (schema == null || !schema.has("properties")) return;
 
-        for (DictExpression.Entry entry : dict.getEntries()) {
-          if (entry.getKey() instanceof StringLiteral keyLit) {
-            String key = keyLit.getValue();
-            if (!schemaKeys.contains(key)) {
-              LOG.warn(
-                  "sys.{}(\"{}\", ...): dict key '{}' not in Archetype schema properties {}",
-                  method,
-                  archetypeName,
-                  key,
-                  schemaKeys);
-            }
-          }
+    JsonNode properties = schema.get("properties");
+    Set<String> schemaKeys = new HashSet<>();
+    properties.fieldNames().forEachRemaining(schemaKeys::add);
+
+    for (DictExpression.Entry entry : dict.getEntries()) {
+      if (entry.getKey() instanceof StringLiteral keyLit) {
+        String key = keyLit.getValue();
+        if (!schemaKeys.contains(key)) {
+          LOG.warn(
+              "sys.effect(\"{}\", ...): dict key '{}' not in Archetype schema properties {}",
+              archetypeName,
+              key,
+              schemaKeys);
         }
       }
     }
@@ -753,9 +800,10 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   /**
    * A derived port signature from Starlark AST analysis. direction: "effector" or "receptor"
-   * archetypeName: the data archetype schema.title
+   * dataArchetypeName: the data archetype schema.title portArchetypeName: optional port archetype
+   * name (from .by()/.on()); null means use base EffectorArchetype/ReceptorArchetype
    */
-  record PortSignature(String direction, String archetypeName) {}
+  record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {}
 
   @Override
   protected void afterCreate(AscriptionEntity saved) {
@@ -774,24 +822,27 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
    * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
    *
    * <ul>
-   *   <li>on("X") → Receptor for X (trigger)
-   *   <li>sys.emit/create/modify/delete/acquire("Y") unassigned → Effector for Y
-   *   <li>var = sys.emit/create/modify/delete/acquire("Y") assigned → Effector for Y + Receptor for
-   *       Y (closed-loop)
-   *   <li>sys.emit("Y", data, response="R") → Effector for Y + Receptor for R
+   *   <li>on("X") → Receptor for X (trigger, base ReceptorArchetype)
+   *   <li>sys.effect("A", data) → Effector for A (base EffectorArchetype)
+   *   <li>sys.effect("A", data).by("E") → Effector for A (port type E)
+   *   <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F (base types)
+   *   <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor for F (port type
+   *       R)
+   *   <li>sys.effect("A", data).by("E").receive("F").on("R") → Effector for A (port type E) +
+   *       Receptor for F (port type R)
    * </ul>
    */
   List<PortSignature> collectPortSignatures(StarlarkFile file) {
     List<PortSignature> signatures = new ArrayList<>();
 
     for (Statement stmt : file.getStatements()) {
-      // on("X") → Receptor
+      // on("X") → Receptor (base ReceptorArchetype)
       if (stmt instanceof ExpressionStatement es
           && es.getExpression() instanceof CallExpression call) {
         if (isGlobalCall(call, "on")) {
           String name = extractFirstStringArg(call);
           if (name != null) {
-            signatures.add(new PortSignature("receptor", name));
+            signatures.add(new PortSignature("receptor", name, null));
           }
         }
       }
@@ -799,7 +850,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         if (isGlobalCall(call, "on")) {
           String name = extractFirstStringArg(call);
           if (name != null) {
-            signatures.add(new PortSignature("receptor", name));
+            signatures.add(new PortSignature("receptor", name, null));
           }
         }
       }
@@ -816,45 +867,49 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   private void collectPortSignaturesFromStatement(Statement stmt, List<PortSignature> signatures) {
-    boolean assigned = false;
     Expression expr = null;
 
     if (stmt instanceof ExpressionStatement es) {
       expr = es.getExpression();
-      assigned = false;
     } else if (stmt instanceof AssignmentStatement as) {
       expr = as.getRHS();
-      assigned = true;
     }
 
     if (expr == null) return;
+    if (!(expr instanceof CallExpression call)) return;
+    if (!isSysEffectChain(call)) return;
 
-    if (expr instanceof CallExpression call
-        && call.getFunction() instanceof DotExpression dot
-        && dot.getObject() instanceof Identifier obj
-        && "sys".equals(obj.getName())) {
-      String method = dot.getField().getName();
-      if (!SYS_METHODS.contains(method)) return;
+    List<ChainLink> chain = unwrapEffectChain(call);
+    if (chain.isEmpty()) return;
 
-      String archetypeName = extractFirstStringArg(call);
-      if (archetypeName == null) return;
+    // Extract data from chain: effect("A"), by("E"), receive("F"), on("R")
+    String dataArchetype = null;
+    String effectorPortArchetype = null;
+    String receiveArchetype = null;
+    String receptorPortArchetype = null;
 
-      // Effector for the output
-      signatures.add(new PortSignature("effector", archetypeName));
-
-      // U4 closed-loop: assigned → Receptor feedback
-      if (assigned) {
-        signatures.add(new PortSignature("receptor", archetypeName));
+    for (ChainLink link : chain) {
+      String arg =
+          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
+              ? sl.getValue()
+              : null;
+      switch (link.method()) {
+        case "effect" -> dataArchetype = arg;
+        case "by" -> effectorPortArchetype = arg;
+        case "receive" -> receiveArchetype = arg;
+        case "on" -> receptorPortArchetype = arg;
+        default -> {}
       }
+    }
 
-      // U3/U4: response= keyword → Receptor for response archetype
-      for (Argument arg : call.getArguments()) {
-        if (arg instanceof Argument.Keyword kw && "response".equals(kw.getName())) {
-          if (kw.getValue() instanceof StringLiteral sl) {
-            signatures.add(new PortSignature("receptor", sl.getValue()));
-          }
-        }
-      }
+    if (dataArchetype == null) return;
+
+    // Always derive Effector for the effect() data archetype
+    signatures.add(new PortSignature("effector", dataArchetype, effectorPortArchetype));
+
+    // If .receive() present → derive feedback Receptor (closed-loop)
+    if (receiveArchetype != null) {
+      signatures.add(new PortSignature("receptor", receiveArchetype, receptorPortArchetype));
     }
   }
 
@@ -867,15 +922,16 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   /**
    * GSM §Mechanism U12: derive port entities with Definition reuse. Match existing Definitions by
-   * (Mechanism Definition, data Archetype, direction).
+   * (Mechanism Definition, data Archetype, direction). Resolves tenant port archetypes from
+   * PortSignature.portArchetypeName (falls back to base EffectorArchetype/ReceptorArchetype).
    */
   private void derivePortEntities(MechanismEntity mechanism, List<PortSignature> signatures) {
-    // Resolve base typing archetypes
-    ArchetypeEntity effectorArchetype =
+    // Resolve base typing archetypes (fallback when no port archetype specified)
+    ArchetypeEntity baseEffectorArchetype =
         archetypeService.findInEffectBySchemaTitle("EffectorArchetype");
-    ArchetypeEntity receptorArchetype =
+    ArchetypeEntity baseReceptorArchetype =
         archetypeService.findInEffectBySchemaTitle("ReceptorArchetype");
-    if (effectorArchetype == null || receptorArchetype == null) {
+    if (baseEffectorArchetype == null || baseReceptorArchetype == null) {
       LOG.warn("Base EffectorArchetype/ReceptorArchetype not in-effect; skipping auto-derivation");
       return;
     }
@@ -888,20 +944,45 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
     for (PortSignature sig : unique) {
       ArchetypeEntity dataArchetype =
-          archetypeService.findInEffectBySchemaTitle(sig.archetypeName());
+          archetypeService.findInEffectBySchemaTitle(sig.dataArchetypeName());
       if (dataArchetype == null) {
         LOG.warn(
             "Auto-derivation: data Archetype '{}' not in-effect; skipping port",
-            sig.archetypeName());
+            sig.dataArchetypeName());
         continue;
       }
 
       if ("effector".equals(sig.direction())) {
-        deriveEffector(mechanism, mechanismDefId, effectorArchetype, dataArchetype, mapper);
+        ArchetypeEntity portArchetype =
+            resolvePortArchetype(sig.portArchetypeName(), baseEffectorArchetype, "Effector");
+        deriveEffector(mechanism, mechanismDefId, portArchetype, dataArchetype, mapper);
       } else {
-        deriveReceptor(mechanism, mechanismDefId, receptorArchetype, dataArchetype, mapper);
+        ArchetypeEntity portArchetype =
+            resolvePortArchetype(sig.portArchetypeName(), baseReceptorArchetype, "Receptor");
+        deriveReceptor(mechanism, mechanismDefId, portArchetype, dataArchetype, mapper);
       }
     }
+  }
+
+  /**
+   * Resolve a port archetype by name, falling back to the base archetype if the name is null or the
+   * named archetype is not in-effect.
+   */
+  private ArchetypeEntity resolvePortArchetype(
+      String portArchetypeName, ArchetypeEntity baseArchetype, String portKind) {
+    if (portArchetypeName == null) {
+      return baseArchetype;
+    }
+    ArchetypeEntity resolved = archetypeService.findInEffectBySchemaTitle(portArchetypeName);
+    if (resolved == null) {
+      LOG.warn(
+          "Auto-derivation: {} port Archetype '{}' not in-effect; falling back to base {}",
+          portKind,
+          portArchetypeName,
+          baseArchetype.getStatement().get("title").asText());
+      return baseArchetype;
+    }
+    return resolved;
   }
 
   private void deriveEffector(
