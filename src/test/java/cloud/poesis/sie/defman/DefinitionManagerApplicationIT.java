@@ -10,8 +10,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Smoke test: validates context startup + Flyway migration against real
- * PostgreSQL
+ * Smoke test: validates context startup + Flyway migration against real PostgreSQL
  * (Testcontainers). H2 is incompatible with TABLE_PER_CLASS + NAMED_ENUM.
  */
 @SpringBootTest
@@ -19,8 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class DefinitionManagerApplicationIT {
 
-  @Container
-  static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
+  @Container static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
 
   @DynamicPropertySource
   static void pgProperties(DynamicPropertyRegistry registry) {
