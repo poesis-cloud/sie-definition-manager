@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,26 +115,28 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
     UUID axiomaticDefinitionId = insertDefinition();
     // Self-referential: id = archetype_id (CTE generates one UUID for both)
     UUID axiomaticArchetypeId =
-        jdbc.queryForObject(
-            "WITH gen AS (SELECT uuid_v7() AS v)"
-                + " INSERT INTO archetype (id, definition_id, archetype_id, statement, version, status)"
-                + " SELECT v, ?::uuid, v, ?::jsonb, 1, 'ACTIVE'::ascription_status FROM gen RETURNING id",
-            UUID.class,
-            axiomaticDefinitionId.toString(),
-            axiomaticArchetypeSchema.toString());
+        Objects.requireNonNull(
+            jdbc.queryForObject(
+                "WITH gen AS (SELECT uuid_v7() AS v)"
+                    + " INSERT INTO archetype (id, definition_id, archetype_id, statement, version, status)"
+                    + " SELECT v, ?::uuid, v, ?::jsonb, 1, 'ACTIVE'::ascription_status FROM gen RETURNING id",
+                UUID.class,
+                axiomaticDefinitionId.toString(),
+                axiomaticArchetypeSchema.toString()));
     insertLifecycleTransitions(axiomaticArchetypeId);
     LOG.info("Seeded meta-archetype: Archetype (self-typed bootstrap)");
 
     for (Map.Entry<String, JsonNode> entry : schemas.entrySet()) {
       UUID definitionId = insertDefinition();
       UUID archetypeId =
-          jdbc.queryForObject(
-              "INSERT INTO archetype (definition_id, archetype_id, statement, version, status)"
-                  + " VALUES (?::uuid, ?::uuid, ?::jsonb, 1, 'ACTIVE'::ascription_status) RETURNING id",
-              UUID.class,
-              definitionId.toString(),
-              axiomaticArchetypeId.toString(),
-              entry.getValue().toString());
+          Objects.requireNonNull(
+              jdbc.queryForObject(
+                  "INSERT INTO archetype (definition_id, archetype_id, statement, version, status)"
+                      + " VALUES (?::uuid, ?::uuid, ?::jsonb, 1, 'ACTIVE'::ascription_status) RETURNING id",
+                  UUID.class,
+                  definitionId.toString(),
+                  axiomaticArchetypeId.toString(),
+                  entry.getValue().toString()));
       insertLifecycleTransitions(archetypeId);
       LOG.info("Seeded base archetype: {}", entry.getKey());
     }

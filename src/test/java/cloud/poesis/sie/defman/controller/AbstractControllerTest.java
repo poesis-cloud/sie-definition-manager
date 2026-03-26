@@ -354,10 +354,11 @@ class AbstractControllerTest {
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(400, pd.getStatus());
-      assertNotNull(pd.getProperties());
-      assertTrue(pd.getProperties().containsKey("definitionId"));
-      assertTrue(pd.getProperties().containsKey("rule"));
-      assertTrue(pd.getProperties().containsKey("ruleDescription"));
+      Map<String, Object> props = pd.getProperties();
+      assertNotNull(props);
+      assertTrue(props.containsKey("definitionId"));
+      assertTrue(props.containsKey("rule"));
+      assertTrue(props.containsKey("ruleDescription"));
     }
 
     @Test
@@ -368,9 +369,10 @@ class AbstractControllerTest {
 
       assertEquals(404, pd.getStatus());
       assertEquals("Not found", pd.getTitle());
-      assertNotNull(pd.getProperties());
-      assertTrue(pd.getProperties().containsKey("resourceType"));
-      assertTrue(pd.getProperties().containsKey("resourceId"));
+      Map<String, Object> props = pd.getProperties();
+      assertNotNull(props);
+      assertTrue(props.containsKey("resourceType"));
+      assertTrue(props.containsKey("resourceId"));
     }
 
     @Test
