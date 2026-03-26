@@ -881,6 +881,10 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
       JsonNode value = statement.get(propName);
 
+      if (hasAnnotation(propSchema, "$gsm:identityBound")) {
+        enforceStatementIdentityBound(propName, value, definitionId);
+      }
+
       if (hasAnnotation(propSchema, "$gsm:unique")) {
         enforceUnique(propName, value, archetype, definitionId);
       }
@@ -932,6 +936,43 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
               existing.getDefinition().getId());
         }
       }
+    }
+  }
+
+  private void enforceStatementIdentityBound(String propName, JsonNode value, UUID definitionId) {
+    List<? extends AscriptionEntity> existing = findAllByDefinitionId(definitionId);
+    if (existing.isEmpty()) {
+      return;
+    }
+
+    AscriptionEntity first = existing.getLast(); // ordered by timestamp DESC, so last = earliest
+    JsonNode firstStmt = first.getStatement();
+    if (!firstStmt.has(propName)) {
+      return;
+    }
+
+    String newStr = value.isTextual() ? value.asText() : value.toString();
+    JsonNode firstVal = firstStmt.get(propName);
+    String firstStr = firstVal.isTextual() ? firstVal.asText() : firstVal.toString();
+
+    if (!newStr.equals(firstStr)) {
+      throw RuleViolationException.of(
+          RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          "Identity-bound field '"
+              + propName
+              + "' changed: expected '"
+              + firstStr
+              + "' but got '"
+              + newStr
+              + "'",
+          "field",
+          propName,
+          "definitionId",
+          definitionId,
+          "expectedValue",
+          firstStr,
+          "actualValue",
+          newStr);
     }
   }
 

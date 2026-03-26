@@ -282,16 +282,38 @@ class ArchetypeServiceTest {
 
     @Test
     void allOfToSealedBase_rejected() {
-      ArchetypeEntity sealedArchetype = mockArchetype(schemaNode("EffectorArchetype", true));
+      ArchetypeEntity sealedArchetype = mockArchetype(schemaNode("Archetype", true));
       when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(sealedArchetype));
 
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantEffector");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/EffectorArchetype/v1");
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantMeta");
+      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/Archetype/v1");
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
       assertTrue(ex.getMessage().contains("sealed"));
       assertEquals(RuleType.ARCHETYPE_ALLOF_SEAL, ex.getRuleType());
+    }
+
+    @Test
+    void allOfToUnsealedEffectorBase_accepted() {
+      ArchetypeEntity effectorArchetype = mockArchetype(schemaNode("EffectorArchetype", false));
+      when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(effectorArchetype));
+
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "mTLSEffector");
+      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/EffectorArchetype/v1");
+
+      assertDoesNotThrow(() -> service.validateAllOfChain(schema));
+    }
+
+    @Test
+    void allOfToUnsealedReceptorBase_accepted() {
+      ArchetypeEntity receptorArchetype = mockArchetype(schemaNode("ReceptorArchetype", false));
+      when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(receptorArchetype));
+
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "WebhookReceptor");
+      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/ReceptorArchetype/v1");
+
+      assertDoesNotThrow(() -> service.validateAllOfChain(schema));
     }
 
     @Test

@@ -207,6 +207,101 @@ class AbstractAscriptionServiceTest {
   }
 
   // ========================================================================
+  // $gsm:identityBound enforcement on statement properties (schema-driven)
+  // ========================================================================
+
+  @Nested
+  class EnforceStatementIdentityBound {
+
+    @Test
+    void identityBoundProperty_firstAscription_passes() {
+      UUID defId = UUID.randomUUID();
+      ObjectNode propNode = prop("string");
+      propNode.put("$gsm:identityBound", true);
+      ObjectNode archetypeSchema = schemaWithProperty("region", propNode);
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+      ObjectNode statement = MAPPER.createObjectNode().put("region", "eu-west-1");
+
+      existingAscriptions = List.of(); // no prior ascriptions
+
+      assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
+    }
+
+    @Test
+    void identityBoundProperty_sameValue_passes() {
+      UUID defId = UUID.randomUUID();
+      ObjectNode propNode = prop("string");
+      propNode.put("$gsm:identityBound", true);
+      ObjectNode archetypeSchema = schemaWithProperty("region", propNode);
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+      ObjectNode statement = MAPPER.createObjectNode().put("region", "eu-west-1");
+
+      AscriptionEntity existing = mock(AscriptionEntity.class);
+      DefinitionEntity existingDef = mock(DefinitionEntity.class);
+      when(existingDef.getId()).thenReturn(defId);
+      when(existing.getDefinition()).thenReturn(existingDef);
+      when(existing.getStatement())
+          .thenReturn(MAPPER.createObjectNode().put("region", "eu-west-1"));
+
+      existingAscriptions = List.of(existing);
+
+      assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
+    }
+
+    @Test
+    void identityBoundProperty_differentValue_rejected() {
+      UUID defId = UUID.randomUUID();
+      ObjectNode propNode = prop("string");
+      propNode.put("$gsm:identityBound", true);
+      ObjectNode archetypeSchema = schemaWithProperty("region", propNode);
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+      ObjectNode statement = MAPPER.createObjectNode().put("region", "us-east-1");
+
+      AscriptionEntity existing = mock(AscriptionEntity.class);
+      DefinitionEntity existingDef = mock(DefinitionEntity.class);
+      when(existingDef.getId()).thenReturn(defId);
+      when(existing.getDefinition()).thenReturn(existingDef);
+      when(existing.getStatement())
+          .thenReturn(MAPPER.createObjectNode().put("region", "eu-west-1"));
+
+      existingAscriptions = List.of(existing);
+
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.enforceAnnotations(statement, archetype, defId));
+      assertEquals(RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("Identity-bound field"));
+      assertTrue(ex.getMessage().contains("region"));
+    }
+
+    @Test
+    void identityBoundProperty_missingInFirstAscription_passes() {
+      UUID defId = UUID.randomUUID();
+      ObjectNode propNode = prop("string");
+      propNode.put("$gsm:identityBound", true);
+      ObjectNode archetypeSchema = schemaWithProperty("region", propNode);
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(archetypeSchema);
+      ObjectNode statement = MAPPER.createObjectNode().put("region", "eu-west-1");
+
+      // First ascription doesn't have the field at all (schema evolved)
+      AscriptionEntity existing = mock(AscriptionEntity.class);
+      DefinitionEntity existingDef = mock(DefinitionEntity.class);
+      when(existingDef.getId()).thenReturn(defId);
+      when(existing.getDefinition()).thenReturn(existingDef);
+      when(existing.getStatement()).thenReturn(MAPPER.createObjectNode());
+
+      existingAscriptions = List.of(existing);
+
+      assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
+    }
+  }
+
+  // ========================================================================
   // Statement validation (Ascription-V1)
   // ========================================================================
 

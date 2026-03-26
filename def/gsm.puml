@@ -321,7 +321,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     inheriting lifecycle, and statement. Identity is held by the
     referenced Definition. Their governance
     grammar (modal, verb, guard, predicate, etc.) lives in the
-    `statement` payload, typed by sealed GSM Archetypes
+    `statement` payload, typed by GSM Archetypes
     (DirectiveArchetype, NormArchetype). Domain-specific accessors
     (getModal(), getGuard(), etc.) are convenience delegations into
     `statement`.
@@ -361,7 +361,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     │ GOVERNANCE DNA: identity + constraints        │
     │   Directive (identity, slow tempo)            │
     │   Norm (constraints, medium tempo)            │
-    │   Extend Ascription; sealed Archetypes        │
+    │   Extend Ascription; extensible Archetypes     │
     ├─────────────────────────────────────────────┤
     │ DOMAIN MODEL: vocabulary, semantics, schemas  │
     │   Archetype (types statement via schema)    │
@@ -473,17 +473,19 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     governance, and information-flow concerns simultaneously —
     unified by identity, differentiated by FK position.
 
-    GSM base archetypes (sealed set): StructureArchetype, MechanismArchetype,
-    InteractionArchetype, Archetype.
-    EffectorArchetype and ReceptorArchetype are GSM-internal sealed archetypes
-    for Mechanism Effectors and Receptors (lifecycle-coupled, derived at
-    authoring time) and MUST NOT be tenant-extended. DirectiveArchetype and
-    NormArchetype are governance DNA archetypes (their schemas carry the
-    governance grammar for Directive and Norm instances respectively);
-    they are **extensible** — tenant-defined archetypes MAY extend them
-    via allOf to add domain-specific vocabulary while inheriting the full
-    governance grammar. EffectorArchetype and ReceptorArchetype carry the
-    `$gsm:sealed` marker in their JSON Schema.
+    GSM base archetypes: StructureArchetype, MechanismArchetype,
+    InteractionArchetype, EffectorArchetype, ReceptorArchetype,
+    DirectiveArchetype, NormArchetype, and the Archetype meta-schema.
+    All GSM base archetypes except the Archetype meta-schema are
+    **extensible** — tenant-defined archetypes MAY extend them via
+    allOf to add domain-specific vocabulary while inheriting the base
+    schema. EffectorArchetype and ReceptorArchetype define Mechanism
+    port schemas (lifecycle-coupled, derived at authoring time);
+    tenants extend them to add port-level vocabulary (transport,
+    security, observability). DirectiveArchetype and NormArchetype
+    are governance DNA archetypes; tenants extend them to add
+    domain-specific governance vocabulary. The Archetype meta-schema
+    itself carries `$gsm:sealed` and MUST NOT be tenant-extended.
 
     ====
 
@@ -675,12 +677,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     `$gsm:sealed: true` (top-level schema keyword)
     Marks an Archetype schema as non-extensible. Tenant-defined Archetypes
-    MUST NOT declare `allOf` referencing a sealed schema. Applied to
-    EffectorArchetype, ReceptorArchetype, and the Archetype meta-schema
-    itself. DirectiveArchetype and NormArchetype are **not sealed** —
-    tenants extend them to add domain-specific governance vocabulary.
-    GSM base structural schemas (StructureArchetype, MechanismArchetype,
-    etc.) are also NOT sealed — tenants extend them.
+    MUST NOT declare `allOf` referencing a sealed schema. Applied only to
+    the Archetype meta-schema itself. All other GSM base archetypes
+    (StructureArchetype, MechanismArchetype, InteractionArchetype,
+    EffectorArchetype, ReceptorArchetype, DirectiveArchetype,
+    NormArchetype) are NOT sealed — tenants extend them.
 
     `$gsm:identityBound: true` (property-level)
     Marks a property as constitutive of the Definition's identity.
@@ -1830,10 +1831,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - **Tenant-extensible Archetypes** (Structure, Mechanism,
         Interaction): all `$gsm:*` vocabulary keywords may
         appear on tenant-defined extended properties.
-      - **Sealed / GSM-internal Archetypes** (Effector, Receptor,
-        Directive, Norm, Archetype): only GSM-defined vocabulary
-        keywords apply (tenants cannot extend the schema or add
-        keywords).
+      - **Sealed Archetype** (Archetype meta-schema only): the
+        Archetype meta-schema is sealed — tenants cannot extend it
+        or add keywords.
       Note: GSM base-schema structural references (e.g.,
       Mechanism.structure, Effector.mechanism) are materialized as
       table columns with database-level FKs.
