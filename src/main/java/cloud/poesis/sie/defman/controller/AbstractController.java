@@ -1,5 +1,18 @@
 package cloud.poesis.sie.defman.controller;
 
+import java.net.URI;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.dto.DefinitionDto;
@@ -10,19 +23,10 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
-import com.fasterxml.jackson.databind.JsonNode;
-import java.net.URI;
-import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Base controller providing entity-to-DTO mapping and RFC 9457 Problem Detail exception handling
+ * Base controller providing entity-to-DTO mapping and RFC 9457 Problem Detail
+ * exception handling
  * for all GSM REST endpoints.
  *
  * @author Clément Cazaud
@@ -37,7 +41,8 @@ public abstract class AbstractController {
   /**
    * Constructs the abstract controller with shared services.
    *
-   * @param dataProtectionService the data protection service for in-transit protection
+   * @param dataProtectionService the data protection service for in-transit
+   *                              protection
    */
   protected AbstractController(DataProtectionService dataProtectionService) {
     this.dataProtectionService = dataProtectionService;
@@ -50,19 +55,22 @@ public abstract class AbstractController {
   /**
    * Maps an ascription entity to its DTO, applying in-transit data protection.
    *
-   * <p>Explicit-fetch design — see README.md § "Explicit-fetch design for lazy associations". The
-   * archetype is passed explicitly (already fetched by the caller) rather than navigated via {@code
-   * ascription.getArchetype()}, which would trigger a lazy-loading proxy exception.
+   * <p>
+   * Explicit-fetch design — see README.md § "Explicit-fetch design for lazy
+   * associations". The
+   * archetype is passed explicitly (already fetched by the caller) rather than
+   * navigated via {@code
+   * ascription.getArchetype()}, which would trigger a lazy-loading proxy
+   * exception.
    *
    * @param ascription the ascription entity
-   * @param archetype the resolved archetype entity
+   * @param archetype  the resolved archetype entity
    * @return the DTO with in-transit data protection applied
    */
   protected AscriptionDto mapEntityToAscriptionDto(
       AscriptionEntity ascription, ArchetypeEntity archetype) {
-    JsonNode statement =
-        dataProtectionService.applyInTransitProtection(
-            ascription.getStatement(), archetype.getStatement());
+    JsonNode statement = dataProtectionService.applyInTransitProtection(
+        ascription.getStatement(), archetype.getStatement());
     return new AscriptionDto(
         ascription.getId(),
         statement,
@@ -127,8 +135,7 @@ public abstract class AbstractController {
 
   @ExceptionHandler(IllegalArgumentException.class)
   ProblemDetail mapIllegalArgumentExceptionToProblemDetail(IllegalArgumentException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     problemDetail.setTitle("Invalid request parameter");
     return problemDetail;
   }
@@ -136,17 +143,15 @@ public abstract class AbstractController {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ProblemDetail mapMethodArgumentNotValidExceptionToProblemDetail(
       MethodArgumentNotValidException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     problemDetail.setTitle("Validation failed");
     return problemDetail;
   }
 
   @ExceptionHandler(ResponseStatusException.class)
   ProblemDetail mapResponseStatusExceptionToProblemDetail(ResponseStatusException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.valueOf(exception.getStatusCode().value()), exception.getReason());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.valueOf(exception.getStatusCode().value()), exception.getReason());
     problemDetail.setTitle(exception.getStatusCode().toString());
     return problemDetail;
   }
@@ -154,9 +159,8 @@ public abstract class AbstractController {
   @ExceptionHandler(Exception.class)
   ProblemDetail mapExceptionToProblemDetail(Exception exception) {
     log.error("Unexpected error", exception);
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
     problemDetail.setTitle("Internal server error");
     return problemDetail;
   }
@@ -179,72 +183,72 @@ public abstract class AbstractController {
   private static HttpStatus mapRuleViolationTypeToHttpStatus(RuleViolationException exception) {
     return switch (exception.getRuleType()) {
       case STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
-              MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
-              MECHANISM_RULE_STARLARK_PARSING,
-              MECHANISM_RULE_STARLARK_BUDGET,
-              MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
-              MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
-              MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
-              MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
-              MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
-              MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY,
-              MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID,
-              EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
-              RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,
-              INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
-              INTERACTION_EFFECTOR_REFERENCE_INTEGRITY,
-              INTERACTION_RECEPTOR_REFERENCE_INTEGRITY,
-              INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
-              ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-              ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
-              DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
-              DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY,
-              DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY,
-              NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              NORM_STRUCTURE_REFERENCE_INTEGRITY,
-              NORM_QUALIFIER_REFERENCE_INTEGRITY,
-              NORM_GUARD_CEL_PARSING,
-              NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-              NORM_GUARD_COMPARISON_CONSISTENCY,
-              NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION,
-              NORM_GUARD_PROPERTY_PATH_RESOLUTION,
-              NORM_PREDICATE_CEL_PARSING,
-              NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION,
-              NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
-              NORM_PREDICATE_AS_BOOLEAN_RESULT,
-              NORM_PREDICATE_PROPERTY_PATH_RESOLUTION,
-              NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
-              ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
-              ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
-              ARCHETYPE_ALLOF_SEAL,
-              ARCHETYPE_ANNOTATION_QUERYABLE,
-              ARCHETYPE_ANNOTATION_DATA_PROTECTION,
-              ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY,
-              ARCHETYPE_VALIDATION_CEL_PARSING,
-              ARCHETYPE_VALIDATION_CEL_CONSTRUCT_BLACKLIST,
-              ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING,
-              ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT ->
-          HttpStatus.BAD_REQUEST;
+          STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          MECHANISM_RULE_STARLARK_PARSING,
+          MECHANISM_RULE_STARLARK_BUDGET,
+          MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
+          MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+          MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
+          MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
+          MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+          MECHANISM_RULE_SYS_EFFECT_METHOD_ARITY,
+          MECHANISM_RULE_SYS_EFFECT_CHAIN_INVALID,
+          EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
+          RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,
+          INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          INTERACTION_EFFECTOR_REFERENCE_INTEGRITY,
+          INTERACTION_RECEPTOR_REFERENCE_INTEGRITY,
+          INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
+          ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+          DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
+          DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY,
+          DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY,
+          NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          NORM_STRUCTURE_REFERENCE_INTEGRITY,
+          NORM_QUALIFIER_REFERENCE_INTEGRITY,
+          NORM_GUARD_CEL_PARSING,
+          NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
+          NORM_GUARD_COMPARISON_CONSISTENCY,
+          NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION,
+          NORM_GUARD_PROPERTY_PATH_RESOLUTION,
+          NORM_PREDICATE_CEL_PARSING,
+          NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION,
+          NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
+          NORM_PREDICATE_AS_BOOLEAN_RESULT,
+          NORM_PREDICATE_PROPERTY_PATH_RESOLUTION,
+          NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+          ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
+          ARCHETYPE_ALLOF_SEAL,
+          ARCHETYPE_ANNOTATION_QUERYABLE,
+          ARCHETYPE_ANNOTATION_DATA_PROTECTION,
+          ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY,
+          ARCHETYPE_VALIDATION_CEL_PARSING,
+          ARCHETYPE_VALIDATION_CEL_CONSTRUCT_BLACKLIST,
+          ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING,
+          ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT ->
+        HttpStatus.BAD_REQUEST;
       case ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-              ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
-              DIRECTIVE_VERB_COMPATIBILITY,
-              DIRECTIVE_MODAL_COMPATIBILITY,
-              ASCRIPTION_STATUS_TRANSITION_PATH,
-              ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
-              ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
-              ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS,
-              ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS,
-              ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,
-              ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF,
-              ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY ->
-          HttpStatus.CONFLICT;
+          ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          DIRECTIVE_VERB_COMPATIBILITY,
+          DIRECTIVE_MODAL_COMPATIBILITY,
+          ASCRIPTION_STATUS_TRANSITION_PATH,
+          ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+          ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS,
+          ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS,
+          ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,
+          ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF,
+          ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY ->
+        HttpStatus.CONFLICT;
       case DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT -> HttpStatus.INTERNAL_SERVER_ERROR;
     };
   }
