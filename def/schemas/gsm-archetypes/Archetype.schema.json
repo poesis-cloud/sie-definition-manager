@@ -1,161 +1,161 @@
 {
-  "$schema" : "https://json-schema.org/draft/2020-12/schema",
-  "$id" : "gsm://archetypes/Archetype/v1",
-  "$dynamicAnchor" : "meta",
-  "$gsm:sealed" : true,
-  "title" : "Archetype",
-  "description" : "Unified Archetype schema and GSM meta-schema. As the seed Archetype's statement, this schema defines the structure and semantics of ALL Archetype Ascription statements (including itself — autopoietic closure). As a meta-schema, it extends JSON Schema 2020-12 to validate $gsm:* vocabulary keywords at every schema node. DM validates incoming Archetype schemas against this meta-schema at authoring time (first-pass structural gate); semantic checks (allOf chain resolution, cross-Definition uniqueness, type-compatibility, mutual exclusion) are DM application-level. The Archetype's identity is carried by title (DM-enforced identity-bound rule: MUST be non-empty, globally unique among in-effect Archetypes, and MUST NOT change across Ascriptions of the same Definition). title is used as the root identifier in Norm CEL guard expressions. DM assigns $id inside the schema using the convention gsm://archetypes/{title}/v{version}. Bootstrap: this schema's $schema references JSON Schema 2020-12 (the bootstrap exception, mirroring archetype_id = self at the instance level). Sealed — tenant-defined archetypes MUST NOT extend Archetype.",
-  "$vocabulary" : {
-    "https://json-schema.org/draft/2020-12/vocab/core" : true,
-    "https://json-schema.org/draft/2020-12/vocab/applicator" : true,
-    "https://json-schema.org/draft/2020-12/vocab/unevaluated" : true,
-    "https://json-schema.org/draft/2020-12/vocab/validation" : true,
-    "https://json-schema.org/draft/2020-12/vocab/meta-data" : true,
-    "https://json-schema.org/draft/2020-12/vocab/format-annotation" : true,
-    "https://json-schema.org/draft/2020-12/vocab/content" : true,
-    "gsm://vocabulary/v1" : false
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gsm://archetypes/Archetype/v1",
+  "$dynamicAnchor": "meta",
+  "$gsm:sealed": true,
+  "title": "Archetype",
+  "description": "Unified Archetype schema and GSM meta-schema. As the seed Archetype's statement, this schema defines the structure and semantics of ALL Archetype Ascription statements (including itself — autopoietic closure). As a meta-schema, it extends JSON Schema 2020-12 to validate $gsm:* vocabulary keywords at every schema node. DM validates incoming Archetype schemas against this meta-schema at authoring time (first-pass structural gate); semantic checks (allOf chain resolution, cross-Definition uniqueness, type-compatibility, mutual exclusion) are DM application-level. The Archetype's identity is carried by title (DM-enforced identity-bound rule: MUST be non-empty, globally unique among in-effect Archetypes, and MUST NOT change across Ascriptions of the same Definition). title is used as the root identifier in Norm CEL guard expressions. DM assigns $id inside the schema using the convention gsm://archetypes/{title}/v{version}. Bootstrap: this schema's $schema references JSON Schema 2020-12 (the bootstrap exception, mirroring archetype_id = self at the instance level). Sealed — tenant-defined archetypes MUST NOT extend Archetype.",
+  "$vocabulary": {
+    "https://json-schema.org/draft/2020-12/vocab/core": true,
+    "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+    "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+    "https://json-schema.org/draft/2020-12/vocab/validation": true,
+    "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+    "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+    "https://json-schema.org/draft/2020-12/vocab/content": true,
+    "gsm://vocabulary/v1": false
   },
-  "allOf" : [ {
-    "$ref" : "https://json-schema.org/draft/2020-12/schema"
+  "allOf": [ {
+    "$ref": "https://json-schema.org/draft/2020-12/schema"
   } ],
-  "properties" : {
-    "$gsm:sealed" : {
-      "$ref" : "#/$defs/Sealed"
+  "properties": {
+    "$gsm:sealed": {
+      "$ref": "#/$defs/Sealed"
     },
-    "$gsm:identityBound" : {
-      "$ref" : "#/$defs/IdentityBound"
+    "$gsm:identityBound": {
+      "$ref": "#/$defs/IdentityBound"
     },
-    "$gsm:queryable" : {
-      "$ref" : "#/$defs/Queryable"
+    "$gsm:queryable": {
+      "$ref": "#/$defs/Queryable"
     },
-    "$gsm:unique" : {
-      "$ref" : "#/$defs/Unique"
+    "$gsm:unique": {
+      "$ref": "#/$defs/Unique"
     },
-    "$gsm:validation" : {
-      "$ref" : "#/$defs/Validation"
+    "$gsm:validation": {
+      "$ref": "#/$defs/Validation"
     },
-    "$gsm:dataProtection" : {
-      "$ref" : "#/$defs/DataProtection"
+    "$gsm:dataProtection": {
+      "$ref": "#/$defs/DataProtection"
     }
   },
-  "$defs" : {
-    "Sealed" : {
-      "const" : true,
-      "description" : "Top-level schema keyword. Marks an Archetype schema as non-extensible. Tenant-defined Archetypes MUST NOT declare allOf referencing a sealed schema."
+  "$defs": {
+    "Sealed": {
+      "const": true,
+      "description": "Top-level schema keyword. Marks an Archetype schema as non-extensible. Tenant-defined Archetypes MUST NOT declare allOf referencing a sealed schema."
     },
-    "IdentityBound" : {
-      "const" : true,
-      "description" : "Property-level. Value MUST NOT change across Ascriptions of the same Definition. The identity-bound set is immutable per Archetype Definition."
+    "IdentityBound": {
+      "const": true,
+      "description": "Property-level. Value MUST NOT change across Ascriptions of the same Definition. The identity-bound set is immutable per Archetype Definition."
     },
-    "Queryable" : {
-      "const" : true,
-      "description" : "Property-level. DM provisions a PostgreSQL expression index on the JSONB path (B-tree for scalars, GIN for arrays/objects). Max queryable properties per Archetype: DM-configurable cap (default: 8). Property type MUST be indexable: string, number, integer, boolean, or array of scalars."
+    "Queryable": {
+      "const": true,
+      "description": "Property-level. DM provisions a PostgreSQL expression index on the JSONB path (B-tree for scalars, GIN for arrays/objects). Max queryable properties per Archetype: DM-configurable cap (default: 8). Property type MUST be indexable: string, number, integer, boolean, or array of scalars."
     },
-    "Unique" : {
-      "const" : true,
-      "description" : "Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. DM provisions a partial unique expression index."
+    "Unique": {
+      "const": true,
+      "description": "Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. DM provisions a partial unique expression index."
     },
-    "Validation" : {
-      "type" : "array",
-      "items" : {
-        "type" : "string",
-        "minLength" : 1
+    "Validation": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
       },
-      "minItems" : 1,
-      "description" : "Top-level schema keyword. CEL expressions evaluated as CHECK constraints at Ascription authoring time. Each expression receives the statement payload as `this` and MUST evaluate to bool. Conforms to the validation-expression CEL profile: boolean expressions over statement properties, implicit root `this`. Allowed: comparisons, boolean connectives, set membership, arithmetic, string/collection functions, field presence, type constructors/conversions, cross-property comparisons, ternary. Forbidden: non-deterministic functions, imperative constructs, side effects, external data access."
+      "minItems": 1,
+      "description": "Top-level schema keyword. CEL expressions evaluated as CHECK constraints at Ascription authoring time. Each expression receives the statement payload as `this` and MUST evaluate to bool. Conforms to the validation-expression CEL profile: boolean expressions over statement properties, implicit root `this`. Allowed: comparisons, boolean connectives, set membership, arithmetic, string/collection functions, field presence, type constructors/conversions, cross-property comparisons, ternary. Forbidden: non-deterministic functions, imperative constructs, side effects, external data access."
     },
-    "DataProtection" : {
-      "type" : "object",
-      "description" : "Property-level. Phase-first protection model. Two lifecycle phases (atRest, inTransit), each declaring at most one of four uniform measures (encryption, hash, mask, suppression). No auto-cascade between phases. All annotated fields are subject to implicit access audit.",
-      "properties" : {
-        "atRest" : {
-          "$ref" : "#/$defs/DataProtectionMeasures"
+    "DataProtection": {
+      "type": "object",
+      "description": "Property-level. Phase-first protection model. Two lifecycle phases (atRest, inTransit), each declaring at most one of four uniform measures (encryption, hash, mask, suppression). No auto-cascade between phases. All annotated fields are subject to implicit access audit.",
+      "properties": {
+        "atRest": {
+          "$ref": "#/$defs/DataProtectionMeasures"
         },
-        "inTransit" : {
-          "$ref" : "#/$defs/DataProtectionMeasures"
+        "inTransit": {
+          "$ref": "#/$defs/DataProtectionMeasures"
         }
       },
-      "minProperties" : 1,
-      "additionalProperties" : false
+      "minProperties": 1,
+      "additionalProperties": false
     },
-    "DataProtectionMeasures" : {
-      "type" : "object",
-      "description" : "Exactly one protection measure per lifecycle phase.",
-      "properties" : {
-        "encryption" : {
-          "type" : "object",
-          "description" : "Reversible AES-256-GCM envelope encryption.",
-          "properties" : {
-            "algorithm" : {
-              "type" : "string",
-              "enum" : [ "AES-256-GCM" ],
-              "default" : "AES-256-GCM",
-              "description" : "Authenticated encryption algorithm."
+    "DataProtectionMeasures": {
+      "type": "object",
+      "description": "Exactly one protection measure per lifecycle phase.",
+      "properties": {
+        "encryption": {
+          "type": "object",
+          "description": "Reversible AES-256-GCM envelope encryption.",
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [ "AES-256-GCM" ],
+              "default": "AES-256-GCM",
+              "description": "Authenticated encryption algorithm."
             },
-            "keyRetention" : {
-              "type" : "integer",
-              "minimum" : 1,
-              "description" : "Days before automatic key destruction (crypto-shredding). Omit for on-demand only."
+            "keyRetention": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Days before automatic key destruction (crypto-shredding). Omit for on-demand only."
             }
           },
-          "additionalProperties" : false
+          "additionalProperties": false
         },
-        "hash" : {
-          "type" : "object",
-          "description" : "One-way salted hash. DM-managed salt. Irreversible.",
-          "properties" : {
-            "algorithm" : {
-              "type" : "string",
-              "enum" : [ "SHA-256", "SHA-512", "SHA3-256" ],
-              "default" : "SHA-256",
-              "description" : "Hash algorithm (java.security.MessageDigest)."
+        "hash": {
+          "type": "object",
+          "description": "One-way salted hash. DM-managed salt. Irreversible.",
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [ "SHA-256", "SHA-512", "SHA3-256" ],
+              "default": "SHA-256",
+              "description": "Hash algorithm (java.security.MessageDigest)."
             }
           },
-          "additionalProperties" : false
+          "additionalProperties": false
         },
-        "mask" : {
-          "type" : "object",
-          "description" : "Partial masking. `from` selects the visible end; `with` specifies the replacement.",
-          "properties" : {
-            "from" : {
-              "type" : "string",
-              "enum" : [ "LEFT", "RIGHT" ],
-              "description" : "Which end of the value remains visible. LEFT = first characters visible (mask from the right). RIGHT = last characters visible (mask from the left)."
+        "mask": {
+          "type": "object",
+          "description": "Partial masking. `from` selects the visible end; `with` specifies the replacement.",
+          "properties": {
+            "from": {
+              "type": "string",
+              "enum": [ "LEFT", "RIGHT" ],
+              "description": "Which end of the value remains visible. LEFT = first characters visible (mask from the right). RIGHT = last characters visible (mask from the left)."
             },
-            "with" : {
-              "type" : "object",
-              "description" : "Mask replacement specification.",
-              "properties" : {
-                "character" : {
-                  "type" : "string",
-                  "minLength" : 1,
-                  "maxLength" : 1,
-                  "default" : "*",
-                  "description" : "Replacement character."
+            "with": {
+              "type": "object",
+              "description": "Mask replacement specification.",
+              "properties": {
+                "character": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1,
+                  "default": "*",
+                  "description": "Replacement character."
                 },
-                "occurrence" : {
-                  "type" : "integer",
-                  "minimum" : 1,
-                  "maximum" : 16,
-                  "description" : "Number of characters to keep visible."
+                "occurrence": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16,
+                  "description": "Number of characters to keep visible."
                 }
               },
-              "required" : [ "occurrence" ],
-              "additionalProperties" : false
+              "required": [ "occurrence" ],
+              "additionalProperties": false
             }
           },
-          "required" : [ "from", "with" ],
-          "additionalProperties" : false
+          "required": [ "from", "with" ],
+          "additionalProperties": false
         },
-        "suppression" : {
-          "type" : "boolean",
-          "const" : true,
-          "description" : "Complete omission — field absent from output."
+        "suppression": {
+          "type": "boolean",
+          "const": true,
+          "description": "Complete omission — field absent from output."
         }
       },
-      "minProperties" : 1,
-      "maxProperties" : 1,
-      "additionalProperties" : false
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false
     }
   }
 }
