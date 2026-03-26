@@ -2,8 +2,7 @@
   "$schema" : "gsm://archetypes/Archetype/v1",
   "$id" : "gsm://archetypes/NormArchetype/v1",
   "title" : "NormArchetype",
-  "description" : "Schema for Norm Ascriptions — measurable constraint predicates (DNA 'N'). Defines the governance grammar: structure, qualifier, guard, predicate, toleranceMode, and mode-dependent temporal fields. DM validates CEL expressions against their profiles. Sealed — tenant-defined archetypes MUST NOT extend Norm. DM input = DM output (1:1).",
-  "$gsm:sealed" : true,
+  "description" : "Schema for Norm Ascriptions — measurable constraint predicates (DNA 'N'). Defines the governance grammar: structure, qualifier, guard, predicate, toleranceMode, and mode-dependent temporal fields. DM validates CEL expressions against their profiles. Extensible — tenant-defined archetypes MAY extend Norm via allOf to add domain-specific measurement vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type" : "object",
   "examples" : [ {
     "structure" : "019cc49a-dc59-7fef-9b0c-b3f100044603",
@@ -107,5 +106,5 @@
       "description" : "Ratio [0,1] — fraction of temporalWindow the predicate must hold. Required when toleranceMode = SUSTAINED."
     }
   },
-  "additionalProperties" : false
+  "unevaluatedProperties" : false
 }

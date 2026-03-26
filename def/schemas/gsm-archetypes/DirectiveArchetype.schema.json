@@ -2,8 +2,7 @@
   "$schema" : "gsm://archetypes/Archetype/v1",
   "$id" : "gsm://archetypes/DirectiveArchetype/v1",
   "title" : "DirectiveArchetype",
-  "description" : "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). Defines the governance grammar: structure, modal, verb, qualifier, purpose. Sealed — tenant-defined archetypes MUST NOT extend Directive. DM input = DM output (1:1).",
-  "$gsm:sealed" : true,
+  "description" : "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). Defines the governance grammar: structure, modal, verb, qualifier, purpose. Extensible — tenant-defined archetypes MAY extend Directive via allOf to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type" : "object",
   "examples" : [ {
     "structure" : "019cc49a-dc59-7fef-9b0c-b3f100044603",
@@ -43,5 +42,5 @@
       "description" : "ID reference to the purposed Structure whose purpose is governed by this Directive."
     }
   },
-  "additionalProperties" : false
+  "unevaluatedProperties" : false
 }

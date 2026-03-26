@@ -282,16 +282,39 @@ class ArchetypeServiceTest {
 
     @Test
     void allOfToSealedBase_rejected() {
-      ArchetypeEntity sealedArchetype = mockArchetype(schemaNode("DirectiveArchetype", true));
+      ArchetypeEntity sealedArchetype = mockArchetype(schemaNode("EffectorArchetype", true));
       when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(sealedArchetype));
 
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantDirective");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/DirectiveArchetype/v1");
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantEffector");
+      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/EffectorArchetype/v1");
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
       assertTrue(ex.getMessage().contains("sealed"));
       assertEquals(RuleType.ARCHETYPE_ALLOF_SEAL, ex.getRuleType());
+    }
+
+    @Test
+    void allOfToUnsealedDirectiveBase_accepted() {
+      ArchetypeEntity directiveArchetype = mockArchetype(schemaNode("DirectiveArchetype", false));
+      when(archetypeRepo.findAllByStatusIn(anyCollection()))
+          .thenReturn(List.of(directiveArchetype));
+
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "Principle");
+      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/DirectiveArchetype/v1");
+
+      assertDoesNotThrow(() -> service.validateAllOfChain(schema));
+    }
+
+    @Test
+    void allOfToUnsealedNormBase_accepted() {
+      ArchetypeEntity normArchetype = mockArchetype(schemaNode("NormArchetype", false));
+      when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(normArchetype));
+
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "Measure");
+      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/NormArchetype/v1");
+
+      assertDoesNotThrow(() -> service.validateAllOfChain(schema));
     }
 
     @Test

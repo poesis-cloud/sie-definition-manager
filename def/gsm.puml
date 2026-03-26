@@ -172,7 +172,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **§2 — DNA - Unified Governance Grammar**
 
     Reflexive Mechanisms produce governance **DNA** — typed definitions
-    constrained by sealed governance Archetypes:
+    constrained by governance Archetypes:
 
     - Directive (D): identity-level normative constraint.
     - Norm (N): measurable constraint predicate on Element.
@@ -183,8 +183,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Directive and Norm extend Ascription: they inherit lifecycle,
     Archetype-typing, and statement from the Ascription base. Identity is
     held by the referenced Definition. What makes them governance DNA is
-    their sealed Archetype: DirectiveArchetype and NormArchetype define the
-    governance grammar within the `statement` payload. A governance Mechanism
+    their Archetype: DirectiveArchetype and NormArchetype define the
+    governance grammar within the `statement` payload. Tenant-defined
+    archetypes MAY extend DirectiveArchetype and NormArchetype via allOf
+    to add domain-specific vocabulary (e.g., Principle, Standard, Measure)
+    while inheriting the full governance grammar. A governance Mechanism
     producing a Directive simply creates one via
     `sys.create("DirectiveArchetype", {...})`.
 
@@ -476,8 +479,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     for Mechanism Effectors and Receptors (lifecycle-coupled, derived at
     authoring time) and MUST NOT be tenant-extended. DirectiveArchetype and
     NormArchetype are governance DNA archetypes (their schemas carry the
-    governance grammar for Directive and Norm instances respectively). Base
-    archetypes carry the `$gsm:sealed` marker in their JSON Schema.
+    governance grammar for Directive and Norm instances respectively);
+    they are **extensible** — tenant-defined archetypes MAY extend them
+    via allOf to add domain-specific vocabulary while inheriting the full
+    governance grammar. EffectorArchetype and ReceptorArchetype carry the
+    `$gsm:sealed` marker in their JSON Schema.
 
     ====
 
@@ -670,10 +676,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     `$gsm:sealed: true` (top-level schema keyword)
     Marks an Archetype schema as non-extensible. Tenant-defined Archetypes
     MUST NOT declare `allOf` referencing a sealed schema. Applied to
-    governance DNA schemas (DirectiveArchetype, NormArchetype) and the
-    Archetype meta-schema itself. GSM base structural schemas
-    (StructureArchetype, MechanismArchetype, etc.) are NOT sealed —
-    tenants extend them.
+    EffectorArchetype, ReceptorArchetype, and the Archetype meta-schema
+    itself. DirectiveArchetype and NormArchetype are **not sealed** —
+    tenants extend them to add domain-specific governance vocabulary.
+    GSM base structural schemas (StructureArchetype, MechanismArchetype,
+    etc.) are also NOT sealed — tenants extend them.
 
     `$gsm:identityBound: true` (property-level)
     Marks a property as constitutive of the Definition's identity.
