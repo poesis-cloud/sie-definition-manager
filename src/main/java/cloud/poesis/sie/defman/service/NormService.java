@@ -1,5 +1,18 @@
 package cloud.poesis.sie.defman.service;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -12,30 +25,22 @@ import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.RuleType;
-import com.fasterxml.jackson.databind.JsonNode;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.ast.CelConstant;
 import dev.cel.common.ast.CelExpr;
-import dev.cel.common.types.SimpleType;
 import dev.cel.compiler.CelCompiler;
 import dev.cel.compiler.CelCompilerFactory;
 import jakarta.persistence.EntityManager;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import org.springframework.stereotype.Service;
 
 /**
  * GSM Norm ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link NormEntity} ascriptions including CEL
- * guard/predicate profile validation (applicability-guard and property-assertion profiles) and
+ * <p>
+ * Manages lifecycle and persistence of {@link NormEntity} ascriptions including
+ * CEL
+ * guard/predicate profile validation (applicability-guard and
+ * property-assertion profiles) and
  * governing cascade from owning Structure.
  *
  * @author Clément Cazaud
@@ -48,8 +53,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   // CEL profile constants (from CelProfileValidator)
   // ======================================================================
 
-  private static final Set<String> GUARD_COMPARISON_OPS =
-      Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
+  private static final Set<String> GUARD_COMPARISON_OPS = Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
   private static final Set<String> GUARD_ALLOWED_FUNCTIONS = Set.of("matches");
   private static final Set<String> GUARD_ARITHMETIC_OPS = Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
   private static final Set<String> PREDICATE_FORBIDDEN_FUNCTIONS = Set.of("now", "uuid");
@@ -57,19 +61,18 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   private final NormRepository normRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
-  private final CelCompiler guardCompiler;
-  private final CelCompiler predicateCompiler;
+  private final CelCompiler celParser;
 
   /**
    * Constructs the Norm service with its required dependencies.
    *
-   * @param normRepo the norm repository
-   * @param structureService the structure service for reference resolution
-   * @param archetypeService the archetype service for qualifier resolution
-   * @param definitionService the definition service
-   * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
-   * @param entityManager the JPA entity manager
+   * @param normRepo              the norm repository
+   * @param structureService      the structure service for reference resolution
+   * @param archetypeService      the archetype service for qualifier resolution
+   * @param definitionService     the definition service
+   * @param transitionService     the status transition service
+   * @param ascriptionRepository  the base ascription repository
+   * @param entityManager         the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public NormService(
@@ -90,10 +93,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     this.normRepo = normRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
-    this.guardCompiler =
-        CelCompilerFactory.standardCelCompilerBuilder().addVar("self", SimpleType.DYN).build();
-    this.predicateCompiler =
-        CelCompilerFactory.standardCelCompilerBuilder().addVar("self", SimpleType.DYN).build();
+    this.celParser = CelCompilerFactory.standardCelCompilerBuilder().build();
   }
 
   @Override
@@ -184,7 +184,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     if (guard == null || guard.isBlank() || "true".equals(guard.trim())) {
       return;
     }
-    CelExpr ast = parseGuardCel(guardCompiler, guard);
+    CelExpr ast = parseGuardCel(celParser, guard);
     Set<String> axes = new HashSet<>();
     validateGuardExpr(ast, axes, true);
   }
@@ -198,7 +198,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           "field",
           "predicate");
     }
-    CelExpr ast = parsePredicateCel(predicateCompiler, predicate);
+    CelExpr ast = parsePredicateCel(celParser, predicate);
     validatePredicateExpr(ast);
     // NORM_PREDICATE_AS_BOOLEAN_RESULT: top-level must be boolean-producing
     validatePredicateBooleanResult(ast);
@@ -427,7 +427,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     switch (kind.getKind()) {
       case SELECT -> {
         String axis = extractAxis(expr);
-        if (axis != null) axes.add(axis);
+        if (axis != null)
+          axes.add(axis);
       }
       case CALL -> {
         CelExpr.CelCall call = kind.call();
@@ -443,7 +444,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   private static String extractAxis(CelExpr expr) {
-    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT) return null;
+    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT)
+      return null;
     CelExpr.CelSelect sel = expr.exprKind().select();
     String field = sel.field();
     CelExpr operand = sel.operand();
@@ -457,8 +459,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
       CelExpr firstSelect = operand;
       while (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT
-          && firstSelect.exprKind().select().operand().exprKind().getKind()
-              != CelExpr.ExprKind.Kind.IDENT) {
+          && firstSelect.exprKind().select().operand().exprKind().getKind() != CelExpr.ExprKind.Kind.IDENT) {
         firstSelect = firstSelect.exprKind().select().operand();
       }
       if (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
@@ -502,12 +503,25 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
           String rootName = root.exprKind().ident().name();
-          if (!rootName.equals("self") && Character.isUpperCase(rootName.charAt(0))) {
+          if ("self".equals(rootName)) {
             throw RuleViolationException.of(
                 RuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
-                "Predicate profile violation: use 'self' as implicit root, "
+                "Predicate profile violation: use bare qualifier property names, "
+                    + "not 'self.' prefix. "
+                    + "Example: 'encryptionLevel' instead of 'self."
+                    + sel.field()
+                    + "'.",
+                "field",
+                "predicate",
+                "rootName",
+                rootName);
+          }
+          if (Character.isUpperCase(rootName.charAt(0))) {
+            throw RuleViolationException.of(
+                RuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
+                "Predicate profile violation: use bare qualifier property names, "
                     + "not an explicit Archetype name. "
-                    + "Example: 'self.encryptionLevel' instead of '"
+                    + "Example: 'encryptionLevel' instead of '"
                     + rootName
                     + "."
                     + sel.field()
@@ -521,7 +535,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         validatePredicateExpr(operand);
       }
       case IDENT, CONSTANT -> {
-        /* OK */
+        /* OK — bare identifiers are qualifier properties */
       }
       case LIST -> {
         CelExpr.CelList list = kind.list();
@@ -604,12 +618,13 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   /** Package-private for test access. */
   void validateGuardReferences(String guard) {
-    CelExpr ast = parseGuardCel(guardCompiler, guard);
+    CelExpr ast = parseGuardCel(celParser, guard);
     Set<String> axes = new LinkedHashSet<>();
     collectAxes(ast, axes);
     for (String axis : axes) {
       int dot = axis.indexOf('.');
-      if (dot <= 0) continue;
+      if (dot <= 0)
+        continue;
       String archetypeName = axis.substring(0, dot);
       String propertyPath = axis.substring(dot + 1);
       // NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION
@@ -649,27 +664,26 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   // NORM_PREDICATE_AS_BOOLEAN_RESULT
   // ======================================================================
 
-  private static final Set<String> BOOLEAN_PRODUCING_OPS =
-      Set.of(
-          "_==_",
-          "_!=_",
-          "_<_",
-          "_<=_",
-          "_>_",
-          "_>=_",
-          "_&&_",
-          "_||_",
-          "!_",
-          "_!_",
-          "@in",
-          "matches",
-          "startsWith",
-          "endsWith",
-          "contains",
-          "has",
-          "exists",
-          "all",
-          "exists_one");
+  private static final Set<String> BOOLEAN_PRODUCING_OPS = Set.of(
+      "_==_",
+      "_!=_",
+      "_<_",
+      "_<=_",
+      "_>_",
+      "_>=_",
+      "_&&_",
+      "_||_",
+      "!_",
+      "_!_",
+      "@in",
+      "matches",
+      "startsWith",
+      "endsWith",
+      "contains",
+      "has",
+      "exists",
+      "all",
+      "exists_one");
 
   private static void validatePredicateBooleanResult(CelExpr ast) {
     CelExpr.ExprKind kind = ast.exprKind();
@@ -718,16 +732,16 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   /** Package-private for test access. */
   void validatePredicatePropertyPaths(String predicate, ArchetypeEntity qualifier) {
-    CelExpr ast = parsePredicateCel(predicateCompiler, predicate);
+    CelExpr ast = parsePredicateCel(celParser, predicate);
     Set<String> paths = new LinkedHashSet<>();
-    collectSelfPaths(ast, paths);
+    collectPropertyIdents(ast, paths, new HashSet<>());
     JsonNode schema = qualifier.getStatement();
     for (String path : paths) {
       if (!resolveSchemaProperty(schema, path)) {
         String title = schema.has("title") ? schema.get("title").asText() : "(unknown)";
         throw RuleViolationException.of(
             RuleType.NORM_PREDICATE_PROPERTY_PATH_RESOLUTION,
-            "Predicate references 'self."
+            "Predicate references '"
                 + path
                 + "' which does not exist in qualifier Archetype '"
                 + title
@@ -740,47 +754,54 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     }
   }
 
-  private static void collectSelfPaths(CelExpr expr, Set<String> paths) {
+  private static void collectPropertyIdents(
+      CelExpr expr, Set<String> paths, Set<String> boundVars) {
     CelExpr.ExprKind kind = expr.exprKind();
     switch (kind.getKind()) {
-      case SELECT -> {
-        String path = extractSelfPath(expr);
-        if (path != null) {
-          paths.add(path);
+      case IDENT -> {
+        String name = kind.ident().name();
+        if (!boundVars.contains(name)) {
+          paths.add(name);
         }
-        collectSelfPaths(kind.select().operand(), paths);
+      }
+      case SELECT -> {
+        CelExpr root = expr;
+        while (root.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
+          root = root.exprKind().select().operand();
+        }
+        if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
+          String rootName = root.exprKind().ident().name();
+          if (!boundVars.contains(rootName)) {
+            paths.add(rootName);
+          }
+        }
       }
       case CALL -> {
         CelExpr.CelCall call = kind.call();
-        call.target().ifPresent(t -> collectSelfPaths(t, paths));
+        call.target().ifPresent(t -> collectPropertyIdents(t, paths, boundVars));
         for (CelExpr arg : call.args()) {
-          collectSelfPaths(arg, paths);
+          collectPropertyIdents(arg, paths, boundVars);
         }
       }
       case LIST -> {
         for (CelExpr el : kind.list().elements()) {
-          collectSelfPaths(el, paths);
+          collectPropertyIdents(el, paths, boundVars);
         }
       }
+      case COMPREHENSION -> {
+        CelExpr.CelComprehension comp = kind.comprehension();
+        collectPropertyIdents(comp.iterRange(), paths, boundVars);
+        Set<String> innerBound = new HashSet<>(boundVars);
+        innerBound.add(comp.iterVar());
+        collectPropertyIdents(comp.accuInit(), paths, innerBound);
+        collectPropertyIdents(comp.loopCondition(), paths, innerBound);
+        collectPropertyIdents(comp.loopStep(), paths, innerBound);
+        collectPropertyIdents(comp.result(), paths, innerBound);
+      }
       default -> {
-        /* IDENT, CONSTANT */
+        /* CONSTANT, MAP, STRUCT */
       }
     }
-  }
-
-  /**
-   * Extracts the first-level property path from a self.* select chain. E.g., {@code self.config} →
-   * "config", {@code self.config.timeout} → "config". Returns null if the root is not "self".
-   */
-  private static String extractSelfPath(CelExpr expr) {
-    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT) return null;
-    CelExpr.CelSelect sel = expr.exprKind().select();
-    CelExpr operand = sel.operand();
-    if (operand.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT
-        && "self".equals(operand.exprKind().ident().name())) {
-      return sel.field();
-    }
-    return null;
   }
 
   // ======================================================================
@@ -789,14 +810,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   /** Package-private for test access. */
   static void validateToleranceModeConsistency(JsonNode statement) {
-    if (!statement.has("toleranceMode")) return;
+    if (!statement.has("toleranceMode"))
+      return;
     String mode = statement.get("toleranceMode").asText();
-    boolean hasWindow =
-        statement.has("temporalWindow") && !statement.get("temporalWindow").isNull();
-    boolean hasAggregation =
-        statement.has("temporalAggregation") && !statement.get("temporalAggregation").isNull();
-    boolean hasThreshold =
-        statement.has("sustainedThreshold") && !statement.get("sustainedThreshold").isNull();
+    boolean hasWindow = statement.has("temporalWindow") && !statement.get("temporalWindow").isNull();
+    boolean hasAggregation = statement.has("temporalAggregation") && !statement.get("temporalAggregation").isNull();
+    boolean hasThreshold = statement.has("sustainedThreshold") && !statement.get("sustainedThreshold").isNull();
 
     switch (mode) {
       case "INSTANTANEOUS" -> {
@@ -876,7 +895,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     JsonNode current = schema;
     for (String part : parts) {
       JsonNode props = current.get("properties");
-      if (props == null || !props.has(part)) return false;
+      if (props == null || !props.has(part))
+        return false;
       current = props.get(part);
     }
     return true;

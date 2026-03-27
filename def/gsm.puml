@@ -1256,8 +1256,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       is only evaluated when guard evaluates to true.
     - `predicate`: CEL expression conforming to the **property-assertion
       profile** → bool. The constraint. Property paths are resolved
-      against the qualifier Archetype's JSON Schema; `self` is the
-      implicit root. Example: `self.encryptionLevel >= "AES-128"`.
+      against the qualifier Archetype's JSON Schema as bare identifiers.
+      Example: `encryptionLevel >= "AES-128"`.
     - `toleranceMode`: how violations are measured over time.
     - `temporalWindow`: ISO 8601 duration for time-based modes.
     - `temporalAggregation`: aggregation function for the window.
@@ -1437,9 +1437,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     Structure — **boolean expression over qualifier properties**:
     The predicate MUST evaluate to `bool`. Property paths are resolved
-    against the qualifier Archetype's JSON Schema. The implicit root
-    is `self` — bound to the Norm's `qualifier` FK at evaluation time.
-    No explicit Archetype name appears in the expression.
+    against the qualifier Archetype's JSON Schema. Properties are
+    referenced as bare identifiers — bound to the Norm's `qualifier`
+    FK at evaluation time. No `self.` prefix; no explicit Archetype
+    name appears in the expression.
 
     Allowed constructs:
     - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`.
@@ -1448,7 +1449,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Set membership**: `in`, `!(... in ...)`.
     - **Arithmetic**: `+`, `-`, `*`, `/`, `%` on numeric values
       (for computed thresholds, e.g.,
-      `self.p99Latency < self.budget * 1.1`).
+      `p99Latency < budget * 1.1`).
     - **String functions**: `matches(regex)`,
       `startsWith(prefix)`, `endsWith(suffix)`,
       `contains(substring)`.
@@ -1460,7 +1461,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Type conversions**: `int()`, `uint()`, `double()`,
       `string()`.
     - **Cross-property comparisons**: allowed
-      (e.g., `self.actual < self.target`).
+      (e.g., `actual < target`).
     - **Ternary**: `cond ? a : b` for conditional expressions.
 
     Forbidden constructs:
@@ -1476,73 +1477,77 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     governance coverage computation (which qualifier Archetype fields
     are constrained and which are governance gaps) and deterministic
     re-evaluation over time (for tolerance-mode semantics). Using
-    `self` (bound to qualifier) instead of an explicit Archetype name
-    eliminates redundancy with the `qualifier` FK and removes a class
-    of inconsistency errors.
+    bare property names (bound to qualifier) instead of an explicit
+    Archetype name or `self.` prefix eliminates redundancy with the
+    `qualifier` FK and removes a class of inconsistency errors.
 
     Examples (property-assertion profile):
     ```
     // Simple threshold:
-    self.encryptionLevel >= "AES-128"
+    encryptionLevel >= "AES-128"
 
     // Boolean AND / OR:
-    self.tlsEnabled == true
-      && self.tlsVersion >= "1.2"
+    tlsEnabled == true
+      && tlsVersion >= "1.2"
 
     // Disjunction (OR allowed in predicate):
-    self.authMethod == "mTLS"
-      || self.authMethod == "OAuth2"
+    authMethod == "mTLS"
+      || authMethod == "OAuth2"
 
     // Negation:
-    !self.allowsAnonymousAccess
+    !allowsAnonymousAccess
 
     // Cross-property comparison:
-    self.p99Latency < self.budget
+    p99Latency < budget
 
     // Arithmetic threshold:
-    self.p99Latency < self.budget * 1.1
+    p99Latency < budget * 1.1
 
     // Set membership:
-    self.cipherSuite in
+    cipherSuite in
       ["TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"]
 
     // String functions:
-    self.schema.matches("^https://.*")
-      && !self.owner.endsWith("-deprecated")
+    schema.matches("^https://.*")
+      && !owner.endsWith("-deprecated")
 
     // Collection macro — all items satisfy:
-    self.ports.all(p, p >= 1024)
+    ports.all(p, p >= 1024)
 
     // Collection macro — at least one item satisfies:
-    self.certifications.exists(c,
+    certifications.exists(c,
       c == "SOC2" || c == "ISO27001")
 
     // Field presence check:
-    has(self.retentionPolicy)
+    has(retentionPolicy)
 
     // Size check:
-    self.tags.size() >= 1
+    tags.size() >= 1
 
     // Temporal comparison:
-    self.retentionPeriod >= duration("720h")
+    retentionPeriod >= duration("720h")
 
     // Ternary (conditional threshold):
-    (self.tier == "critical"
-      ? self.p99Latency < 100
-      : self.p99Latency < 500)
+    (tier == "critical"
+      ? p99Latency < 100
+      : p99Latency < 500)
 
     // Type conversion:
-    double(self.monthlyBudget) > 0.0
+    double(monthlyBudget) > 0.0
     ```
     Invalid (rejected by the definition-manager):
     ```
     // Non-deterministic function:
-    self.lastReview > now() - duration("8760h")
+    lastReview > now() - duration("8760h")
     // → now() varies across evaluations
 
-    // Explicit Archetype name (use self instead):
+    // 'self.' prefix (use bare property name):
+    self.tlsEnabled
+    // → bare identifier: tlsEnabled
+
+    // Explicit Archetype name:
     SecurityProperties.tlsEnabled
-    // → self is the implicit root, not ArchetypeName
+    // → bare identifier: tlsEnabled
 
     // Variable declaration (imperative):
     var threshold = 500;
