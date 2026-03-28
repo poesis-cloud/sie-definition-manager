@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 import java.util.Objects;
 
 /**
- * Norm — measurable constraint predicate. Extends AscriptionEntity.
+ * Norm — measurable governance assertion. Extends AscriptionEntity.
  *
  * <p>Carries the standard 6-trigger set on the {@code norm} table (see {@link AscriptionEntity} for
  * details).
@@ -36,9 +36,9 @@ public class NormEntity extends AscriptionEntity {
    *
    * @param definition the stable identity this norm ascribes to
    * @param archetype the typing archetype (NormArchetype)
-   * @param statement the JSON payload containing guard, predicate, and tolerance settings
+   * @param statement the JSON payload containing applicability, assertion, and tolerance settings
    * @param structure the authoring structure
-   * @param qualifier the archetype whose properties are constrained by the predicate
+   * @param qualifier the archetype whose properties are constrained by the assertion
    */
   public NormEntity(
       DefinitionEntity definition,

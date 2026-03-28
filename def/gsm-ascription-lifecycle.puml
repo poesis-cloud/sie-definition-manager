@@ -92,7 +92,7 @@ note as Rules
   | Receptor | `mechanism`, `archetype` (data) |
   | Interaction | `effector`, `receptor` |
   | Directive | `structure`, `qualifier`, `purpose` |
-  | Norm | `structure`, `qualifier`, `predicate` |
+  | Norm | `structure`, `qualifier`, `assertion` |
   | Archetype | `title` (DM-enforced) |
 
   ====

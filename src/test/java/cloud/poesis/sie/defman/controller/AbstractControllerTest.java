@@ -350,7 +350,8 @@ class AbstractControllerTest {
     void ruleViolation_withSite_includesExtensions() {
       Map<String, Object> site = Map.of("definitionId", UUID.randomUUID().toString());
       RuleViolationException ex =
-          new RuleViolationException(RuleType.NORM_GUARD_CEL_PARSING, "CEL parse error", site);
+          new RuleViolationException(
+              RuleType.NORM_APPLICABILITY_CEL_PARSING, "CEL parse error", site);
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(400, pd.getStatus());
@@ -405,8 +406,8 @@ class AbstractControllerTest {
         RuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
         RuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
         RuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
-        RuleType.NORM_GUARD_CEL_PARSING,
-        RuleType.NORM_PREDICATE_CEL_PARSING,
+        RuleType.NORM_APPLICABILITY_CEL_PARSING,
+        RuleType.NORM_ASSERTION_CEL_PARSING,
         RuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
         RuleType.ARCHETYPE_VALIDATION_CEL_PARSING,
       };

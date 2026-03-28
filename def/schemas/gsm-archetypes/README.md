@@ -30,8 +30,8 @@ All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "g
 | `Receptor.schema.json`    | Receptor    | No     | Yes (`allOf`)     | `mechanism`, `archetype`              |
 | `Interaction.schema.json` | Interaction | No     | Yes (`allOf`)     | `effector`, `receptor`                |
 | `Archetype.schema.json`   | Archetype   | Yes    | No                | `title` (DM-enforced)                 |
-| `Directive.schema.json`   | Directive   | Yes    | No                | `structure`, `qualifier`, `purpose`   |
-| `Norm.schema.json`        | Norm        | Yes    | No                | `structure`, `qualifier`, `predicate` |
+| `Directive.schema.json`   | Directive   | No     | Yes (`allOf`)     | `structure`, `qualifier`, `purpose`   |
+| `Norm.schema.json`        | Norm        | No     | Yes (`allOf`)     | `structure`, `qualifier`, `assertion` |
 
 **Extensible** schemas use `unevaluatedProperties: false` (allows `allOf` additions).
 **Sealed** schemas use `additionalProperties: false` and carry `$gsm:sealed: true`.

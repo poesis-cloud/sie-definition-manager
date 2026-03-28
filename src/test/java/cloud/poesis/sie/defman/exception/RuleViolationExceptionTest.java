@@ -48,7 +48,8 @@ class RuleViolationExceptionTest {
       Throwable cause = new RuntimeException("root");
       Map<String, Object> site = Map.of("key", "value");
       var ex =
-          new RuleViolationException(RuleType.NORM_GUARD_CEL_PARSING, "cel error", site, cause);
+          new RuleViolationException(
+              RuleType.NORM_APPLICABILITY_CEL_PARSING, "cel error", site, cause);
       assertEquals("cel error", ex.getMessage());
       assertEquals(cause, ex.getCause());
       assertEquals("value", ex.getSite().get("key"));
@@ -58,7 +59,7 @@ class RuleViolationExceptionTest {
     void fourArgConstructor_nullSiteTreatedAsEmpty() {
       var ex =
           new RuleViolationException(
-              RuleType.NORM_GUARD_CEL_PARSING, "cel error", null, new RuntimeException());
+              RuleType.NORM_APPLICABILITY_CEL_PARSING, "cel error", null, new RuntimeException());
       assertTrue(ex.getSite().isEmpty());
     }
   }
@@ -93,7 +94,7 @@ class RuleViolationExceptionTest {
 
     @Test
     void getExtensions_emptySiteStillHasRuleInfo() {
-      var ex = new RuleViolationException(RuleType.NORM_GUARD_CEL_PARSING, "detail");
+      var ex = new RuleViolationException(RuleType.NORM_APPLICABILITY_CEL_PARSING, "detail");
       Map<String, Object> ext = ex.getExtensions();
       assertEquals(2, ext.size());
       assertNotNull(ext.get("rule"));
@@ -108,14 +109,14 @@ class RuleViolationExceptionTest {
     void of_buildsFromKeyValuePairs() {
       var ex =
           RuleViolationException.of(
-              RuleType.NORM_GUARD_CEL_PARSING,
-              "bad guard",
+              RuleType.NORM_APPLICABILITY_CEL_PARSING,
+              "bad applicability",
               "field",
-              "guard",
+              "applicability",
               "ascriptionId",
               "uuid-123");
-      assertEquals("bad guard", ex.getMessage());
-      assertEquals("guard", ex.getSite().get("field"));
+      assertEquals("bad applicability", ex.getMessage());
+      assertEquals("applicability", ex.getSite().get("field"));
       assertEquals("uuid-123", ex.getSite().get("ascriptionId"));
     }
 
@@ -123,7 +124,7 @@ class RuleViolationExceptionTest {
     void of_omitsNullValues() {
       var ex =
           RuleViolationException.of(
-              RuleType.NORM_GUARD_CEL_PARSING, "detail", "key1", "val1", "key2", null);
+              RuleType.NORM_APPLICABILITY_CEL_PARSING, "detail", "key1", "val1", "key2", null);
       assertEquals("val1", ex.getSite().get("key1"));
       assertTrue(ex.getSite().size() == 1);
     }
@@ -134,7 +135,11 @@ class RuleViolationExceptionTest {
           IllegalArgumentException.class,
           () ->
               RuleViolationException.of(
-                  RuleType.NORM_GUARD_CEL_PARSING, "detail", "key1", "val1", "orphanedKey"));
+                  RuleType.NORM_APPLICABILITY_CEL_PARSING,
+                  "detail",
+                  "key1",
+                  "val1",
+                  "orphanedKey"));
     }
 
     @Test
@@ -142,10 +147,14 @@ class RuleViolationExceptionTest {
       Throwable cause = new RuntimeException("root");
       var ex =
           RuleViolationException.of(
-              RuleType.NORM_GUARD_CEL_PARSING, "bad guard", cause, "field", "guard");
-      assertEquals("bad guard", ex.getMessage());
+              RuleType.NORM_APPLICABILITY_CEL_PARSING,
+              "bad applicability",
+              cause,
+              "field",
+              "applicability");
+      assertEquals("bad applicability", ex.getMessage());
       assertEquals(cause, ex.getCause());
-      assertEquals("guard", ex.getSite().get("field"));
+      assertEquals("applicability", ex.getSite().get("field"));
     }
 
     @Test
@@ -154,12 +163,15 @@ class RuleViolationExceptionTest {
           IllegalArgumentException.class,
           () ->
               RuleViolationException.of(
-                  RuleType.NORM_GUARD_CEL_PARSING, "detail", new RuntimeException(), "key1"));
+                  RuleType.NORM_APPLICABILITY_CEL_PARSING,
+                  "detail",
+                  new RuntimeException(),
+                  "key1"));
     }
 
     @Test
     void of_emptyVarargs() {
-      var ex = RuleViolationException.of(RuleType.NORM_GUARD_CEL_PARSING, "no site");
+      var ex = RuleViolationException.of(RuleType.NORM_APPLICABILITY_CEL_PARSING, "no site");
       assertTrue(ex.getSite().isEmpty());
     }
   }
@@ -171,13 +183,13 @@ class RuleViolationExceptionTest {
     void siteMapIsImmutable() {
       Map<String, Object> site = new java.util.HashMap<>();
       site.put("key", "val");
-      var ex = new RuleViolationException(RuleType.NORM_GUARD_CEL_PARSING, "detail", site);
+      var ex = new RuleViolationException(RuleType.NORM_APPLICABILITY_CEL_PARSING, "detail", site);
       assertThrows(UnsupportedOperationException.class, () -> ex.getSite().put("newKey", "newVal"));
     }
 
     @Test
     void extensionsMapIsImmutable() {
-      var ex = new RuleViolationException(RuleType.NORM_GUARD_CEL_PARSING, "detail");
+      var ex = new RuleViolationException(RuleType.NORM_APPLICABILITY_CEL_PARSING, "detail");
       assertThrows(
           UnsupportedOperationException.class, () -> ex.getExtensions().put("newKey", "newVal"));
     }

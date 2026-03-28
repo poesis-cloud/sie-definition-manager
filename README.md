@@ -238,15 +238,15 @@ Cost: **2 queries** (page + batch archetype IN). The batch fetch eliminates the 
 A Directive's `qualifierArchetypeId` references the **Archetype** whose JSON
 Schema defines the measurable properties being governed. Every Norm
 operationalizing that Directive references the **same Archetype** as root
-identifier in its CEL `predicate`. This closes a machine-verifiable governance
+identifier in its CEL `assertion`. This closes a machine-verifiable governance
 chain:
 
 ```text
 Directive (qualifierArchetypeId → Archetype A)
-    └── Norm (predicate root identifier → same Archetype A)
+    └── Norm (assertion root identifier → same Archetype A)
 ```
 
-The definition-manager validates this link: a Norm whose predicate references
+The definition-manager validates this link: a Norm whose assertion references
 an Archetype that differs from its Directive's `qualifierArchetypeId` is
 rejected.
 
@@ -281,10 +281,10 @@ Schema defines: `encryptionLevel`, `authenticationProtocol`, `dataClassification
 
 **Norms** operationalizing this Directive:
 
-| guard  | predicate                                             | toleranceMode | meaning                                                      |
-| ------ | ----------------------------------------------------- | ------------- | ------------------------------------------------------------ |
-| `true` | `SecurityProperties.encryptionLevel >= "AES-256"`     | INSTANTANEOUS | All order-processing Structures must use AES-256+ encryption |
-| `true` | `SecurityProperties.authenticationProtocol == "mTLS"` | INSTANTANEOUS | Must use mTLS between services                               |
+| applicability | assertion                                             | toleranceMode | meaning                                                      |
+| ------------- | ----------------------------------------------------- | ------------- | ------------------------------------------------------------ |
+| `true`        | `SecurityProperties.encryptionLevel >= "AES-256"`     | INSTANTANEOUS | All order-processing Structures must use AES-256+ encryption |
+| `true`        | `SecurityProperties.authenticationProtocol == "mTLS"` | INSTANTANEOUS | Must use mTLS between services                               |
 
 > _Pattern: **definition-time**. Norms evaluate Structure Ascription properties when the definition is authored._
 
@@ -309,12 +309,12 @@ Schema defines: `framework`, `validationCoverage`, `lastAuditDate`, …
 
 **Norms**:
 
-| guard                                         | predicate                                         | toleranceMode | meaning                                                 |
+| applicability                                 | assertion                                         | toleranceMode | meaning                                                 |
 | --------------------------------------------- | ------------------------------------------------- | ------------- | ------------------------------------------------------- |
 | `ComplianceProperties.framework == "PCI-DSS"` | `ComplianceProperties.validationCoverage >= 0.95` | INSTANTANEOUS | PCI-DSS mechanisms must have ≥ 95 % validation coverage |
 | `ComplianceProperties.framework == "SOC2"`    | `ComplianceProperties.validationCoverage >= 0.80` | INSTANTANEOUS | SOC2 mechanisms need ≥ 80 % coverage                    |
 
-> _Pattern: **definition-time**. The guard filters which Mechanisms the Norm applies to (only those in the matching compliance framework). Guards are how Norms achieve conditional governance without branching logic._
+> _Pattern: **definition-time**. The applicability filters which Mechanisms the Norm applies to (only those in the matching compliance framework). Applicability is how Norms achieve conditional governance without branching logic._
 
 ### Example 3 — Interface governance: APISecurityProperties
 
@@ -337,7 +337,7 @@ Schema defines: `exposure`, `tlsVersion`, `rateLimitRps`, `corsPolicy`, …
 
 **Norms**:
 
-| guard                                        | predicate                                   | toleranceMode | meaning                                   |
+| applicability                                | assertion                                   | toleranceMode | meaning                                   |
 | -------------------------------------------- | ------------------------------------------- | ------------- | ----------------------------------------- |
 | `APISecurityProperties.exposure == "public"` | `APISecurityProperties.tlsVersion >= "1.3"` | INSTANTANEOUS | Public interfaces must use TLS 1.3+       |
 | `APISecurityProperties.exposure == "public"` | `APISecurityProperties.rateLimitRps > 0`    | INSTANTANEOUS | Public interfaces must have rate limiting |
@@ -366,11 +366,11 @@ Schema defines: `encryptionInTransit`, `maxPayloadBytes`, `retryPolicy`, …
 
 **Norms**:
 
-| guard  | predicate                                                      | toleranceMode | meaning                                       |
-| ------ | -------------------------------------------------------------- | ------------- | --------------------------------------------- |
-| `true` | `InteractionReliabilityProperties.encryptionInTransit == true` | INSTANTANEOUS | All interactions must be encrypted in transit |
-| `true` | `InteractionReliabilityProperties.maxPayloadBytes <= 1048576`  | INSTANTANEOUS | Payload must not exceed 1 MB                  |
-| `true` | `InteractionReliabilityProperties.retryPolicy != "none"`       | INSTANTANEOUS | A retry policy must be configured             |
+| applicability | assertion                                                      | toleranceMode | meaning                                       |
+| ------------- | -------------------------------------------------------------- | ------------- | --------------------------------------------- |
+| `true`        | `InteractionReliabilityProperties.encryptionInTransit == true` | INSTANTANEOUS | All interactions must be encrypted in transit |
+| `true`        | `InteractionReliabilityProperties.maxPayloadBytes <= 1048576`  | INSTANTANEOUS | Payload must not exceed 1 MB                  |
+| `true`        | `InteractionReliabilityProperties.retryPolicy != "none"`       | INSTANTANEOUS | A retry policy must be configured             |
 
 > _Pattern: **definition-time**. Norms constrain Interaction Ascription properties that govern how causal couplings between Mechanisms behave._
 
@@ -395,7 +395,7 @@ Schema defines: `environment`, `endpoint`, `p95ResponseMs`, `p99ResponseMs`, `er
 
 **Norms**:
 
-| guard                                        | predicate                              | toleranceMode | temporalWindow | temporalAggregation | sustainedThreshold | meaning                                                          |
+| applicability                                | assertion                              | toleranceMode | temporalWindow | temporalAggregation | sustainedThreshold | meaning                                                          |
 | -------------------------------------------- | -------------------------------------- | ------------- | -------------- | ------------------- | ------------------ | ---------------------------------------------------------------- |
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.p95ResponseMs <= 500`  | AGGREGATED    | PT5M           | P95                 | —                  | P95 latency ≤ 500 ms over 5-minute windows (production only)     |
 | `LatencyMetrics.environment == "production"` | `LatencyMetrics.p99ResponseMs <= 2000` | SUSTAINED     | PT15M          | P99                 | 0.95               | P99 latency ≤ 2 s must hold for 95 % of each 15-minute window    |
@@ -460,22 +460,22 @@ Three options were evaluated:
 
 #### Core constructs
 
-| Construct         | GSM Primitive                      | Purpose                                                                                                                                                                                 |
-| ----------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appraisal Finding | `Archetype` (persisted, queryable) | Result of a checkpoint evaluation. Includes `severity`, `checkpointId`, `targetPrimitiveId`, `evaluationMode` (DETERMINISTIC / PROBABILISTIC / UNDECIDABLE), `confidence` \[0.0, 1.0\]. |
-| Transition Guard  | `Norm`                             | Constrains lifecycle transitions using cardinality predicates over AppraisalFinding state objects. Scoped to the DefinitionManager component.                                           |
-| Checkpoint        | `Mechanism rule`                   | Behavioral definition triggered by persisted-events. Each named checkpoint (NA-\*) is a Rule that evaluates coherence and produces findings.                                            |
+| Construct                | GSM Primitive                      | Purpose                                                                                                                                                                                 |
+| ------------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Appraisal Finding        | `Archetype` (persisted, queryable) | Result of a checkpoint evaluation. Includes `severity`, `checkpointId`, `targetPrimitiveId`, `evaluationMode` (DETERMINISTIC / PROBABILISTIC / UNDECIDABLE), `confidence` \[0.0, 1.0\]. |
+| Transition Applicability | `Norm`                             | Constrains lifecycle transitions using cardinality assertions over AppraisalFinding state objects. Scoped to the DefinitionManager component.                                           |
+| Checkpoint               | `Mechanism rule`                   | Behavioral definition triggered by persisted-events. Each named checkpoint (NA-\*) is a Rule that evaluates coherence and produces findings.                                            |
 
 #### Key design corrections
 
 - **No `ContextVariableReferenceExpression` in Norms.** Norms are declarative state constraints with no receptor context. Per-instance scoping (matching findings to the primitive being transitioned) is handled by Mechanism rules, which have receptor context. The Norm states the normative goal; the Mechanism rule enforces it behaviorally.
-- **Norm is used with structural constraint predicates.** Transition guards constrain _what definitions MUST BE_ (structural invariants of the DNA set). The constraint nature (structural) is derived from the predicate target (cardinality via `size()`, dependencies via structural primitives) and the Directive's qualifier, not from a Norm subtype. Guard scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
+- **Norm is used with structural constraint assertions.** Transition applicability expressions constrain _what definitions MUST BE_ (structural invariants of the DNA set). The constraint nature (structural) is derived from the assertion target (cardinality via `size()`, dependencies via structural primitives) and the Directive's qualifier, not from a Norm subtype. Applicability scoping: `scopedFunctions: [DefinitionLifecycleManagement]`.
 - **NormAppraisal is a Purpose; each checkpoint is a Function.** The Purpose is _why_ (appraise normative coherence); each checkpoint Function is _what_ (the specific check activity). Functions serve the Purpose.
 - **Findings are Archetype-typed** (persisted, queryable), not transient events. Mechanism rule execution produces AppraisalFinding instances.
 - **Seed immutability via ownership.** Genesis seeds are owned by the SIE system. Tenants cannot modify primitives outside their governance authority. No explicit `mutable` flag needed — the existing ownership model handles it.
-- **Non-determinism support.** Checks can be deterministic, probabilistic, or undecidable. Determinism lives at the guard (Norm) level; checks (Mechanism rule) can have any evaluation mode. Guard Norms define confidence thresholds for probabilistic check acceptance.
+- **Non-determinism support.** Checks can be deterministic, probabilistic, or undecidable. Determinism lives at the applicability (Norm) level; checks (Mechanism rule) can have any evaluation mode. Applicability Norms define confidence thresholds for probabilistic check acceptance.
 
-**DSL impact**: None. Existing Norm guard/predicate CEL expressions and archetype-scoped selectors express all guard constraints. No new types, functions, or syntax needed.
+**DSL impact**: None. Existing Norm applicability/assertion CEL expressions and archetype-scoped selectors express all applicability constraints. No new types, functions, or syntax needed.
 
 **Genesis seed**: `sie-genesis-seed.json` (adjacent to `gsm.puml`). Contains the full SIE system axiomatic definition including all norm appraisal checkpoints instantiated as DNA, plus supporting purposes, qualities, functions, mechanisms, and infrastructure.
 
@@ -491,13 +491,13 @@ Three options were evaluated:
 
 #### Consequences
 
-| Aspect          | Pro                                                                            | Con                                                              |
-| --------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| Coherence       | SIE governs itself with its own DNA constructs (maximal alignment)             | Two DNA layers increase indirection                              |
-| Extensibility   | Tenants add custom checkpoint Mechanism rules without SIE code changes         | Tenant mistakes in custom Mechanism rules require escape hatches |
-| Auditability    | Full DNA chain for every governance decision (compliance-grade trail)          | —                                                                |
-| Future-proofing | LLM/probabilistic checks integrate cleanly via `evaluationMode` + `confidence` | Performance cost scales with checkpoint count                    |
-| Non-determinism | Determinism at guard level; checks can be probabilistic                        | Need confidence thresholds for probabilistic guard evaluation    |
-| Ownership model | Existing governance authority handles seed immutability                        | Tenants must understand they cannot modify `SIE_*` seeds         |
+| Aspect          | Pro                                                                            | Con                                                                   |
+| --------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Coherence       | SIE governs itself with its own DNA constructs (maximal alignment)             | Two DNA layers increase indirection                                   |
+| Extensibility   | Tenants add custom checkpoint Mechanism rules without SIE code changes         | Tenant mistakes in custom Mechanism rules require escape hatches      |
+| Auditability    | Full DNA chain for every governance decision (compliance-grade trail)          | —                                                                     |
+| Future-proofing | LLM/probabilistic checks integrate cleanly via `evaluationMode` + `confidence` | Performance cost scales with checkpoint count                         |
+| Non-determinism | Determinism at applicability level; checks can be probabilistic                | Need confidence thresholds for probabilistic applicability evaluation |
+| Ownership model | Existing governance authority handles seed immutability                        | Tenants must understand they cannot modify `SIE_*` seeds              |
 
 **Behavioral Executor (architectural note)**: SIE needs a generic Mechanism rule executor (Behavioral Executor) serving both Operators and Supervisors — the Operation plane's execution substrate. Technology analogs: Temporal.io (durable step-based workflows), Drools (rule engine), OPA/Rego (policy evaluation), Apache Flink (streaming CEP). Practical SIE stack: Temporal for rule sequencing + CEL for expression evaluation.

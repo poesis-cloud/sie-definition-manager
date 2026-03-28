@@ -1,18 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -25,6 +12,7 @@ import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.RuleType;
+import com.fasterxml.jackson.databind.JsonNode;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.ast.CelConstant;
@@ -32,16 +20,22 @@ import dev.cel.common.ast.CelExpr;
 import dev.cel.compiler.CelCompiler;
 import dev.cel.compiler.CelCompilerFactory;
 import jakarta.persistence.EntityManager;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 /**
  * GSM Norm ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link NormEntity} ascriptions including
- * CEL
- * guard/predicate profile validation (applicability-guard and
- * property-assertion profiles) and
- * governing cascade from owning Structure.
+ * <p>Manages lifecycle and persistence of {@link NormEntity} ascriptions including CEL
+ * applicability/assertion profile validation (applicability and assertion profiles) and governing
+ * cascade from owning Structure.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -53,10 +47,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   // CEL profile constants (from CelProfileValidator)
   // ======================================================================
 
-  private static final Set<String> GUARD_COMPARISON_OPS = Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
-  private static final Set<String> GUARD_ALLOWED_FUNCTIONS = Set.of("matches");
-  private static final Set<String> GUARD_ARITHMETIC_OPS = Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
-  private static final Set<String> PREDICATE_FORBIDDEN_FUNCTIONS = Set.of("now", "uuid");
+  private static final Set<String> APPLICABILITY_COMPARISON_OPS =
+      Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
+  private static final Set<String> APPLICABILITY_ALLOWED_FUNCTIONS = Set.of("matches");
+  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS =
+      Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
+  private static final Set<String> ASSERTION_FORBIDDEN_FUNCTIONS = Set.of("now", "uuid");
 
   private final NormRepository normRepo;
   private final StructureService structureService;
@@ -66,13 +62,13 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   /**
    * Constructs the Norm service with its required dependencies.
    *
-   * @param normRepo              the norm repository
-   * @param structureService      the structure service for reference resolution
-   * @param archetypeService      the archetype service for qualifier resolution
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionRepository  the base ascription repository
-   * @param entityManager         the JPA entity manager
+   * @param normRepo the norm repository
+   * @param structureService the structure service for reference resolution
+   * @param archetypeService the archetype service for qualifier resolution
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionRepository the base ascription repository
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public NormService(
@@ -110,11 +106,11 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   public NormEntity buildEntity(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
     // GSM: validate CEL profiles before building entity
-    if (statement.has("guard")) {
-      validateGuard(statement.get("guard").asText());
+    if (statement.has("applicability")) {
+      validateApplicability(statement.get("applicability").asText());
     }
-    if (statement.has("predicate")) {
-      validatePredicate(statement.get("predicate").asText());
+    if (statement.has("assertion")) {
+      validateAssertion(statement.get("assertion").asText());
     }
 
     UUID structureId = extractRequiredUuid(statement, "structure");
@@ -124,14 +120,16 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
 
     // Semantic validations (after references are resolved)
-    if (statement.has("guard")) {
-      String guard = statement.get("guard").asText();
-      if (guard != null && !guard.isBlank() && !"true".equals(guard.trim())) {
-        validateGuardReferences(guard);
+    if (statement.has("applicability")) {
+      String applicability = statement.get("applicability").asText();
+      if (applicability != null
+          && !applicability.isBlank()
+          && !"true".equals(applicability.trim())) {
+        validateApplicabilityReferences(applicability);
       }
     }
-    if (statement.has("predicate")) {
-      validatePredicatePropertyPaths(statement.get("predicate").asText(), qualifier);
+    if (statement.has("assertion")) {
+      validateAssertionPropertyPaths(statement.get("assertion").asText(), qualifier);
     }
     validateToleranceModeConsistency(statement);
 
@@ -169,84 +167,84 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     values.put("structure", n.getStructure().getDefinition().getId());
     values.put("qualifier", n.getQualifier().getDefinition().getId());
     var stmt = n.getStatement();
-    if (stmt.has("predicate")) {
-      values.put("predicate", stmt.get("predicate").asText());
+    if (stmt.has("assertion")) {
+      values.put("assertion", stmt.get("assertion").asText());
     }
     return values;
   }
 
   // ======================================================================
-  // CEL Guard profile validation (inlined from CelProfileValidator)
+  // CEL Applicability profile validation (inlined from CelProfileValidator)
   // ======================================================================
 
   /** Package-private for test access. */
-  void validateGuard(String guard) {
-    if (guard == null || guard.isBlank() || "true".equals(guard.trim())) {
+  void validateApplicability(String applicability) {
+    if (applicability == null || applicability.isBlank() || "true".equals(applicability.trim())) {
       return;
     }
-    CelExpr ast = parseGuardCel(celParser, guard);
+    CelExpr ast = parseApplicabilityCel(celParser, applicability);
     Set<String> axes = new HashSet<>();
-    validateGuardExpr(ast, axes, true);
+    validateApplicabilityExpr(ast, axes, true);
   }
 
   /** Package-private for test access. */
-  void validatePredicate(String predicate) {
-    if (predicate == null || predicate.isBlank()) {
+  void validateAssertion(String assertion) {
+    if (assertion == null || assertion.isBlank()) {
       throw RuleViolationException.of(
           RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-          "Predicate must not be empty",
+          "Assertion must not be empty",
           "field",
-          "predicate");
+          "assertion");
     }
-    CelExpr ast = parsePredicateCel(celParser, predicate);
-    validatePredicateExpr(ast);
-    // NORM_PREDICATE_AS_BOOLEAN_RESULT: top-level must be boolean-producing
-    validatePredicateBooleanResult(ast);
+    CelExpr ast = parseAssertionCel(celParser, assertion);
+    validateAssertionExpr(ast);
+    // NORM_ASSERTION_AS_BOOLEAN_RESULT: top-level must be boolean-producing
+    validateAssertionBooleanResult(ast);
   }
 
-  private static CelExpr parseGuardCel(CelCompiler compiler, String expression) {
+  private static CelExpr parseApplicabilityCel(CelCompiler compiler, String expression) {
     CelValidationResult result = compiler.parse(expression);
     if (result.hasError()) {
       throw RuleViolationException.of(
-          RuleType.NORM_GUARD_CEL_PARSING,
-          "Guard CEL parse error: " + result.getErrorString(),
+          RuleType.NORM_APPLICABILITY_CEL_PARSING,
+          "Applicability CEL parse error: " + result.getErrorString(),
           "field",
-          "guard");
+          "applicability");
     }
     try {
       return result.getAst().getExpr();
     } catch (CelValidationException e) {
       throw RuleViolationException.of(
-          RuleType.NORM_GUARD_CEL_PARSING,
-          "Guard CEL validation error: " + e.getMessage(),
+          RuleType.NORM_APPLICABILITY_CEL_PARSING,
+          "Applicability CEL validation error: " + e.getMessage(),
           e,
           "field",
-          "guard");
+          "applicability");
     }
   }
 
-  private static CelExpr parsePredicateCel(CelCompiler compiler, String expression) {
+  private static CelExpr parseAssertionCel(CelCompiler compiler, String expression) {
     CelValidationResult result = compiler.parse(expression);
     if (result.hasError()) {
       throw RuleViolationException.of(
-          RuleType.NORM_PREDICATE_CEL_PARSING,
-          "Predicate CEL parse error: " + result.getErrorString(),
+          RuleType.NORM_ASSERTION_CEL_PARSING,
+          "Assertion CEL parse error: " + result.getErrorString(),
           "field",
-          "predicate");
+          "assertion");
     }
     try {
       return result.getAst().getExpr();
     } catch (CelValidationException e) {
       throw RuleViolationException.of(
-          RuleType.NORM_PREDICATE_CEL_PARSING,
-          "Predicate CEL validation error: " + e.getMessage(),
+          RuleType.NORM_ASSERTION_CEL_PARSING,
+          "Assertion CEL validation error: " + e.getMessage(),
           e,
           "field",
-          "predicate");
+          "assertion");
     }
   }
 
-  private void validateGuardExpr(CelExpr expr, Set<String> axes, boolean topLevel) {
+  private void validateApplicabilityExpr(CelExpr expr, Set<String> axes, boolean topLevel) {
     CelExpr.ExprKind kind = expr.exprKind();
     switch (kind.getKind()) {
       case CALL -> {
@@ -254,46 +252,46 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         String fn = call.function();
         if ("_&&_".equals(fn)) {
           for (CelExpr arg : call.args()) {
-            validateGuardExpr(arg, axes, true);
+            validateApplicabilityExpr(arg, axes, true);
           }
           return;
         }
         if ("_||_".equals(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-              "Guard profile violation: '||' (OR) is forbidden. "
-                  + "The guard must be a pure conjunction. "
+              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              "Applicability profile violation: '||' (OR) is forbidden. "
+                  + "The applicability expression must be a pure conjunction. "
                   + "Use 'in [...]' for set membership instead of OR.",
               "field",
-              "guard",
+              "applicability",
               "construct",
               fn);
         }
         if ("_?_:_".equals(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-              "Guard profile violation: ternary operator (?:) is forbidden in guard expressions.",
+              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              "Applicability profile violation: ternary operator (?:) is forbidden in applicability expressions.",
               "field",
-              "guard",
+              "applicability",
               "construct",
               fn);
         }
-        if (GUARD_ARITHMETIC_OPS.contains(fn)) {
+        if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-              "Guard profile violation: arithmetic operators are forbidden in guard expressions.",
+              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              "Applicability profile violation: arithmetic operators are forbidden in guard expressions.",
               "field",
-              "guard",
+              "applicability",
               "construct",
               fn);
         }
         if ("!_".equals(fn) || "_!_".equals(fn)) {
           for (CelExpr arg : call.args()) {
-            validateGuardExpr(arg, axes, topLevel);
+            validateApplicabilityExpr(arg, axes, topLevel);
           }
           return;
         }
-        if (GUARD_COMPARISON_OPS.contains(fn)) {
+        if (APPLICABILITY_COMPARISON_OPS.contains(fn)) {
           if ("@in".equals(fn) && call.args().size() == 2) {
             validateInListConsistency(call.args().get(1));
           }
@@ -303,15 +301,15 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           return;
         }
         if (call.target().isPresent()) {
-          if (!GUARD_ALLOWED_FUNCTIONS.contains(fn)) {
+          if (!APPLICABILITY_ALLOWED_FUNCTIONS.contains(fn)) {
             throw RuleViolationException.of(
-                RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-                "Guard profile violation: only .matches() is allowed as a function call. "
+                RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+                "Applicability profile violation: only .matches() is allowed as a function call. "
                     + "Found: ."
                     + fn
                     + "()",
                 "field",
-                "guard",
+                "applicability",
                 "construct",
                 fn);
           }
@@ -319,12 +317,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
             String axis = extractAxis(call.target().get());
             if (axis != null && !axes.add(axis)) {
               throw RuleViolationException.of(
-                  RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-                  "Guard profile violation: duplicate axis '"
+                  RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+                  "Applicability profile violation: duplicate axis '"
                       + axis
-                      + "'. At most one predicate per (Archetype, propertyPath).",
+                      + "'. At most one applicability predicate per (Archetype, propertyPath).",
                   "field",
-                  "guard",
+                  "applicability",
                   "axis",
                   axis);
             }
@@ -332,12 +330,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           return;
         }
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-            "Guard profile violation: function call '"
+            RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            "Applicability profile violation: function call '"
                 + fn
                 + "' is forbidden. Only comparison operators and .matches() are allowed.",
             "field",
-            "guard",
+            "applicability",
             "construct",
             fn);
       }
@@ -352,7 +350,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   private void validateSingleAxisPredicate(CelExpr.CelCall call, Set<String> axes) {
     for (CelExpr arg : call.args()) {
-      rejectForbiddenInGuardOperand(arg);
+      rejectForbiddenInApplicabilityOperand(arg);
     }
     Set<String> predAxes = new HashSet<>();
     for (CelExpr arg : call.args()) {
@@ -360,59 +358,59 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     }
     if (predAxes.size() > 1) {
       throw RuleViolationException.of(
-          RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-          "Guard profile violation: cross-property comparison detected. "
-              + "Each predicate must compare a single property to a literal. "
+          RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+          "Applicability profile violation: cross-property comparison detected. "
+              + "Each applicability predicate must compare a single property to a literal. "
               + "Found axes: "
               + predAxes,
           "field",
-          "guard",
+          "applicability",
           "axes",
           predAxes.toString());
     }
     for (String axis : predAxes) {
       if (!axes.add(axis)) {
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-            "Guard profile violation: duplicate axis '"
+            RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            "Applicability profile violation: duplicate axis '"
                 + axis
-                + "'. At most one predicate per (Archetype, propertyPath).",
+                + "'. At most one applicability predicate per (Archetype, propertyPath).",
             "field",
-            "guard",
+            "applicability",
             "axis",
             axis);
       }
     }
   }
 
-  private static void rejectForbiddenInGuardOperand(CelExpr expr) {
+  private static void rejectForbiddenInApplicabilityOperand(CelExpr expr) {
     CelExpr.ExprKind kind = expr.exprKind();
     switch (kind.getKind()) {
       case CALL -> {
         CelExpr.CelCall call = kind.call();
         String fn = call.function();
-        if (GUARD_ARITHMETIC_OPS.contains(fn)) {
+        if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-              "Guard profile violation: arithmetic operators are forbidden in guard expressions.",
+              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              "Applicability profile violation: arithmetic operators are forbidden in guard expressions.",
               "field",
-              "guard",
+              "applicability",
               "construct",
               fn);
         }
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_AXIS_PREDICATE_NORMAL_FORM,
-            "Guard profile violation: function call '"
+            RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            "Applicability profile violation: function call '"
                 + fn
-                + "' is forbidden in guard comparison operands. "
+                + "' is forbidden in applicability comparison operands. "
                 + "Only property references and literals are allowed. "
                 + "(Only .matches() is allowed as a standalone predicate.)",
             "field",
-            "guard",
+            "applicability",
             "construct",
             fn);
       }
-      case SELECT -> rejectForbiddenInGuardOperand(kind.select().operand());
+      case SELECT -> rejectForbiddenInApplicabilityOperand(kind.select().operand());
       case IDENT, CONSTANT, LIST -> {
         /* valid */
       }
@@ -427,8 +425,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     switch (kind.getKind()) {
       case SELECT -> {
         String axis = extractAxis(expr);
-        if (axis != null)
-          axes.add(axis);
+        if (axis != null) axes.add(axis);
       }
       case CALL -> {
         CelExpr.CelCall call = kind.call();
@@ -444,8 +441,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   private static String extractAxis(CelExpr expr) {
-    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT)
-      return null;
+    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT) return null;
     CelExpr.CelSelect sel = expr.exprKind().select();
     String field = sel.field();
     CelExpr operand = sel.operand();
@@ -459,7 +455,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
       CelExpr firstSelect = operand;
       while (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT
-          && firstSelect.exprKind().select().operand().exprKind().getKind() != CelExpr.ExprKind.Kind.IDENT) {
+          && firstSelect.exprKind().select().operand().exprKind().getKind()
+              != CelExpr.ExprKind.Kind.IDENT) {
         firstSelect = firstSelect.exprKind().select().operand();
       }
       if (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
@@ -470,28 +467,28 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // CEL Predicate profile validation
+  // CEL Assertion profile validation
   // ======================================================================
 
-  private void validatePredicateExpr(CelExpr expr) {
+  private void validateAssertionExpr(CelExpr expr) {
     CelExpr.ExprKind kind = expr.exprKind();
     switch (kind.getKind()) {
       case CALL -> {
         CelExpr.CelCall call = kind.call();
         String fn = call.function();
-        if (PREDICATE_FORBIDDEN_FUNCTIONS.contains(fn)) {
+        if (ASSERTION_FORBIDDEN_FUNCTIONS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_AS_DETERMINISTIC_EXPRESSION,
-              "Predicate profile violation: non-deterministic functions (now(), uuid()) are forbidden. "
-                  + "Predicate must be deterministic and side-effect-free.",
+              RuleType.NORM_ASSERTION_AS_DETERMINISTIC_EXPRESSION,
+              "Assertion profile violation: non-deterministic functions (now(), uuid()) are forbidden. "
+                  + "Assertion must be deterministic and side-effect-free.",
               "field",
-              "predicate",
+              "assertion",
               "construct",
               fn);
         }
-        call.target().ifPresent(this::validatePredicateExpr);
+        call.target().ifPresent(this::validateAssertionExpr);
         for (CelExpr arg : call.args()) {
-          validatePredicateExpr(arg);
+          validateAssertionExpr(arg);
         }
       }
       case SELECT -> {
@@ -505,21 +502,21 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           String rootName = root.exprKind().ident().name();
           if ("self".equals(rootName)) {
             throw RuleViolationException.of(
-                RuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
-                "Predicate profile violation: use bare qualifier property names, "
+                RuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
+                "Assertion profile violation: use bare qualifier property names, "
                     + "not 'self.' prefix. "
                     + "Example: 'encryptionLevel' instead of 'self."
                     + sel.field()
                     + "'.",
                 "field",
-                "predicate",
+                "assertion",
                 "rootName",
                 rootName);
           }
           if (Character.isUpperCase(rootName.charAt(0))) {
             throw RuleViolationException.of(
-                RuleType.NORM_PREDICATE_AS_ARCHETYPE_BOUND_EXPRESSION,
-                "Predicate profile violation: use bare qualifier property names, "
+                RuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
+                "Assertion profile violation: use bare qualifier property names, "
                     + "not an explicit Archetype name. "
                     + "Example: 'encryptionLevel' instead of '"
                     + rootName
@@ -527,12 +524,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
                     + sel.field()
                     + "'.",
                 "field",
-                "predicate",
+                "assertion",
                 "rootName",
                 rootName);
           }
         }
-        validatePredicateExpr(operand);
+        validateAssertionExpr(operand);
       }
       case IDENT, CONSTANT -> {
         /* OK — bare identifiers are qualifier properties */
@@ -540,7 +537,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       case LIST -> {
         CelExpr.CelList list = kind.list();
         for (CelExpr el : list.elements()) {
-          validatePredicateExpr(el);
+          validateAssertionExpr(el);
         }
       }
       default -> {
@@ -550,7 +547,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_GUARD_COMPARISON_CONSISTENCY: in-list element validation
+  // NORM_APPLICABILITY_COMPARISON_CONSISTENCY: in-list element validation
   // ======================================================================
 
   private static void validateInListConsistency(CelExpr listExpr) {
@@ -561,8 +558,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     List<CelExpr> elements = list.elements();
     if (elements.size() < 2) {
       throw RuleViolationException.of(
-          RuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
-          "Guard 'in' list must have >= 2 elements (single value → use '=='). Found: "
+          RuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
+          "Applicability 'in' list must have >= 2 elements (single value → use '=='). Found: "
               + elements.size(),
           "elementCount",
           elements.size());
@@ -571,7 +568,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     CelConstant.Kind firstKind = null;
     for (CelExpr el : elements) {
       if (el.exprKind().getKind() != CelExpr.ExprKind.Kind.CONSTANT) {
-        continue; // non-literal elements rejected by guard profile elsewhere
+        continue; // non-literal elements rejected by applicability profile elsewhere
       }
       CelConstant c = el.exprKind().constant();
       CelConstant.Kind kind = c.getKind();
@@ -579,8 +576,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         firstKind = kind;
       } else if (kind != firstKind) {
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
-            "Guard 'in' list elements must be type-homogeneous. "
+            RuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
+            "Applicability 'in' list elements must be type-homogeneous. "
                 + "Mixed types: "
                 + firstKind
                 + " and "
@@ -593,8 +590,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       String repr = constantToString(c);
       if (!seen.add(repr)) {
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_COMPARISON_CONSISTENCY,
-            "Guard 'in' list elements must be unique. Duplicate: " + repr,
+            RuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
+            "Applicability 'in' list elements must be unique. Duplicate: " + repr,
             "duplicate",
             repr);
       }
@@ -613,26 +610,25 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION + PROPERTY_PATH_RESOLUTION
+  // NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION + PROPERTY_PATH_RESOLUTION
   // ======================================================================
 
   /** Package-private for test access. */
-  void validateGuardReferences(String guard) {
-    CelExpr ast = parseGuardCel(celParser, guard);
+  void validateApplicabilityReferences(String applicability) {
+    CelExpr ast = parseApplicabilityCel(celParser, applicability);
     Set<String> axes = new LinkedHashSet<>();
     collectAxes(ast, axes);
     for (String axis : axes) {
       int dot = axis.indexOf('.');
-      if (dot <= 0)
-        continue;
+      if (dot <= 0) continue;
       String archetypeName = axis.substring(0, dot);
       String propertyPath = axis.substring(dot + 1);
-      // NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION
+      // NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION
       Optional<ArchetypeEntity> archetype = archetypeService.findInEffectByTitle(archetypeName);
       if (archetype.isEmpty()) {
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_ARCHETYPE_REFERENCE_RESOLUTION,
-            "Guard references Archetype '"
+            RuleType.NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION,
+            "Applicability references Archetype '"
                 + archetypeName
                 + "' which does not exist as an active Archetype",
             "archetypeName",
@@ -640,12 +636,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
             "axis",
             axis);
       }
-      // NORM_GUARD_PROPERTY_PATH_RESOLUTION
+      // NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION
       JsonNode schema = archetype.get().getStatement();
       if (!resolveSchemaProperty(schema, propertyPath)) {
         throw RuleViolationException.of(
-            RuleType.NORM_GUARD_PROPERTY_PATH_RESOLUTION,
-            "Guard references property '"
+            RuleType.NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION,
+            "Applicability references property '"
                 + propertyPath
                 + "' which does not exist in Archetype '"
                 + archetypeName
@@ -661,31 +657,32 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_PREDICATE_AS_BOOLEAN_RESULT
+  // NORM_ASSERTION_AS_BOOLEAN_RESULT
   // ======================================================================
 
-  private static final Set<String> BOOLEAN_PRODUCING_OPS = Set.of(
-      "_==_",
-      "_!=_",
-      "_<_",
-      "_<=_",
-      "_>_",
-      "_>=_",
-      "_&&_",
-      "_||_",
-      "!_",
-      "_!_",
-      "@in",
-      "matches",
-      "startsWith",
-      "endsWith",
-      "contains",
-      "has",
-      "exists",
-      "all",
-      "exists_one");
+  private static final Set<String> BOOLEAN_PRODUCING_OPS =
+      Set.of(
+          "_==_",
+          "_!=_",
+          "_<_",
+          "_<=_",
+          "_>_",
+          "_>=_",
+          "_&&_",
+          "_||_",
+          "!_",
+          "_!_",
+          "@in",
+          "matches",
+          "startsWith",
+          "endsWith",
+          "contains",
+          "has",
+          "exists",
+          "all",
+          "exists_one");
 
-  private static void validatePredicateBooleanResult(CelExpr ast) {
+  private static void validateAssertionBooleanResult(CelExpr ast) {
     CelExpr.ExprKind kind = ast.exprKind();
     switch (kind.getKind()) {
       case CALL -> {
@@ -693,13 +690,13 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         if ("_?_:_".equals(fn)) {
           return; // ternary: result type depends on branches — accept
         }
-        if (!BOOLEAN_PRODUCING_OPS.contains(fn) && !GUARD_ARITHMETIC_OPS.contains(fn)) {
+        if (!BOOLEAN_PRODUCING_OPS.contains(fn) && !APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           return; // unknown function — accept (DYN)
         }
-        if (GUARD_ARITHMETIC_OPS.contains(fn)) {
+        if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT,
-              "Predicate top-level expression is arithmetic ('" + fn + "') — must evaluate to bool",
+              RuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT,
+              "Assertion top-level expression is arithmetic ('" + fn + "') — must evaluate to bool",
               "function",
               fn);
         }
@@ -709,8 +706,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         CelConstant c = kind.constant();
         if (c.getKind() != CelConstant.Kind.BOOLEAN_VALUE) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_AS_BOOLEAN_RESULT,
-              "Predicate top-level expression is a non-boolean constant ("
+              RuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT,
+              "Assertion top-level expression is a non-boolean constant ("
                   + c.getKind()
                   + ") — must evaluate to bool",
               "constantKind",
@@ -727,12 +724,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_PREDICATE_PROPERTY_PATH_RESOLUTION
+  // NORM_ASSERTION_PROPERTY_PATH_RESOLUTION
   // ======================================================================
 
   /** Package-private for test access. */
-  void validatePredicatePropertyPaths(String predicate, ArchetypeEntity qualifier) {
-    CelExpr ast = parsePredicateCel(celParser, predicate);
+  void validateAssertionPropertyPaths(String assertion, ArchetypeEntity qualifier) {
+    CelExpr ast = parseAssertionCel(celParser, assertion);
     Set<String> paths = new LinkedHashSet<>();
     collectPropertyIdents(ast, paths, new HashSet<>());
     JsonNode schema = qualifier.getStatement();
@@ -740,8 +737,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       if (!resolveSchemaProperty(schema, path)) {
         String title = schema.has("title") ? schema.get("title").asText() : "(unknown)";
         throw RuleViolationException.of(
-            RuleType.NORM_PREDICATE_PROPERTY_PATH_RESOLUTION,
-            "Predicate references '"
+            RuleType.NORM_ASSERTION_PROPERTY_PATH_RESOLUTION,
+            "Assertion references '"
                 + path
                 + "' which does not exist in qualifier Archetype '"
                 + title
@@ -805,23 +802,25 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY
+  // NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY
   // ======================================================================
 
   /** Package-private for test access. */
   static void validateToleranceModeConsistency(JsonNode statement) {
-    if (!statement.has("toleranceMode"))
-      return;
+    if (!statement.has("toleranceMode")) return;
     String mode = statement.get("toleranceMode").asText();
-    boolean hasWindow = statement.has("temporalWindow") && !statement.get("temporalWindow").isNull();
-    boolean hasAggregation = statement.has("temporalAggregation") && !statement.get("temporalAggregation").isNull();
-    boolean hasThreshold = statement.has("sustainedThreshold") && !statement.get("sustainedThreshold").isNull();
+    boolean hasWindow =
+        statement.has("temporalWindow") && !statement.get("temporalWindow").isNull();
+    boolean hasAggregation =
+        statement.has("temporalAggregation") && !statement.get("temporalAggregation").isNull();
+    boolean hasThreshold =
+        statement.has("sustainedThreshold") && !statement.get("sustainedThreshold").isNull();
 
     switch (mode) {
       case "INSTANTANEOUS" -> {
         if (hasWindow || hasAggregation || hasThreshold) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "INSTANTANEOUS mode forbids temporalWindow, temporalAggregation,"
                   + " and sustainedThreshold",
               "toleranceMode",
@@ -837,7 +836,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       case "AGGREGATED" -> {
         if (!hasWindow || !hasAggregation) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "AGGREGATED mode requires temporalWindow and temporalAggregation",
               "toleranceMode",
               mode,
@@ -848,7 +847,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if (hasThreshold) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "AGGREGATED mode forbids sustainedThreshold",
               "toleranceMode",
               mode);
@@ -857,7 +856,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       case "SUSTAINED" -> {
         if (!hasWindow || !hasAggregation || !hasThreshold) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "SUSTAINED mode requires temporalWindow, temporalAggregation,"
                   + " and sustainedThreshold",
               "toleranceMode",
@@ -872,7 +871,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         double threshold = statement.get("sustainedThreshold").asDouble();
         if (threshold < 0.0 || threshold > 1.0) {
           throw RuleViolationException.of(
-              RuleType.NORM_PREDICATE_TOLERANCE_MODE_CONSISTENCY,
+              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "sustainedThreshold must be in [0, 1]. Found: " + threshold,
               "toleranceMode",
               mode,
@@ -895,8 +894,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     JsonNode current = schema;
     for (String part : parts) {
       JsonNode props = current.get("properties");
-      if (props == null || !props.has(part))
-        return false;
+      if (props == null || !props.has(part)) return false;
       current = props.get(part);
     }
     return true;

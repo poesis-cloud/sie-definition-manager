@@ -30,7 +30,7 @@ skinparam noteBorderColor #57606A
 ' - Think to making a Structure child of a Structure... The rationale
 '   being that if a structure is an agglomerat of mechanisms, there
 '   should not be reasons it can't agglomerate structures... The criteria
-'   of structure agglomeration is governance designing substructures purposes,
+'   of structure agglomeration is governance designing governed structures' purposes,
 '   identities... Isolation might be a marker of a composition pattern.
 '   Or an aggregate of interactiong structure IS a superstructure... Composition
 '   is an illusion of perspective on governance patterns, not a structural fact?
@@ -175,7 +175,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     constrained by governance Archetypes:
 
     - Directive (D): identity-level normative constraint.
-    - Norm (N): measurable constraint predicate on Element.
+    - Norm (N): measurable governance assertion on Element.
     - Ascription (A): governed statement applied to the Element.
 
     Together, these define the **DNA** grammar of a System.
@@ -203,7 +203,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       They are the slowest-moving layer — comparable to constitutional
       principles or organizational purpose.
     - **N — medium (constraints)**: Norms operationalize Directives into
-      measurable, evaluable predicates. They adapt as the environment,
+      measurable, evaluable assertions. They adapt as the environment,
       technology, or risk landscape shifts — without touching identity.
       Comparable to policies and compliance rules.
     - **A — fast (ascription)**: Ascriptions carry the concrete,
@@ -216,6 +216,77 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     without destabilizing the others. The governance loop governs each tempo
     independently — Directives via Governance, Norms via Regulation, Ascriptions
     via Supervision.
+
+    **Governance relationships and scoping**
+
+    A **Directive** is a **constitutive act** — it does not merely constrain; it
+    **opens a governance relationship** between a governing Structure and a
+    governed Structure along a viability dimension (qualifier Archetype).
+    Without a Directive, there is no governance relationship: no stance on
+    quality, no normative root, no constraint scope. The Directive is the
+    speech act that declares "I (governor) govern this Structure along this
+    viability axis."
+
+    **Roles in a Directive**:
+
+    - `structure` = the **governor** — the Structure issuing the governance
+      commitment and accountable for maintaining it.
+    - `purpose` = the **governed** — the Structure whose purpose is governed
+      and whose internal Elements fall under the governance scope.
+
+    This yields a **two-level governance model**:
+
+    1. **Level 1 — Directive (scope opener)**: The governing Structure issues
+       a Directive referencing a governed Structure and a qualifier Archetype.
+       This constitutive act opens a governance scope on the **governed**
+       Structure's internal Elements (Mechanisms, Effectors, Receptors,
+       Interactions) along the declared viability dimension. The Directive is
+       identity-level and unconditional — it applies universally within the
+       scope it opens.
+
+    2. **Level 2 — Norm (scope consumer)**: Norms operationalize the Directive
+       within the scope it opened. A Norm has `structure` = the **governed**
+       Structure and references the same (or descendant) qualifier Archetype,
+       constraining the governed Structure's internal Elements with measurable,
+       evaluable assertions. The Norm's scope is **not independently defined**
+       — it inherits the governance scope boundary from the Directive that
+       opened it.
+
+    **Governance chain linkage**: `Directive.purpose == Norm.structure`. The
+    governed Structure (referenced by the Directive's `purpose`) is the same
+    Structure that bears the Norms (the Norm's `structure`). The governor
+    defines what governance applies; the governed bears the constraints and is
+    accountable for compliance.
+
+    **Scope rule**: The governance scope opened by a Directive is the set of
+    **internal Elements** of the **governed** Structure (`purpose`) — its
+    Mechanisms, Effectors, Receptors, and Interactions. Scope is NOT
+    accumulated across Directives and NOT inherited upward.
+
+    **Transitive governance** is achieved through **governance chains**: if
+    Structure A governs Structure B (via a Directive), and Structure B governs
+    Structure C (via its own Directive), governance propagates transitively.
+    Each link is a distinct Directive with its own scope boundary. A does NOT
+    directly reach into C's internals — B must issue its own Directive
+    governing C to cascade the governance intent.
+
+    There are **no sub-Structures** in GSM; Structures are flat aggregates of
+    Elements (§3). Governance between Structures is expressed exclusively
+    through Directives (DNA) and may be structurally materialized as
+    governance-typed Interactions between the governing and governed
+    Structures.
+
+    This mirrors Beer's VSM: System 3 regulates System 1 at its level;
+    jurisdiction = the governed system's boundary. A meta-system governs a
+    system not by reaching into its internals, but by setting constraints that
+    the system's own regulatory apparatus must satisfy — governance is
+    **delegated**, not **centralized**.
+
+    The consequence: every governance chain is traceable from Directive
+    (constitutive act, governor → governed) → Norm (evaluable constraint,
+    borne by governed) → Element (governed subject), scoped by the governed
+    Structure's boundary. There are no "floating" constraints — every Norm
+    exists because a Directive opened the scope that legitimates it.
 
     ====
 
@@ -305,7 +376,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Domain semantics are expressed through **Archetypes** — each Archetype
     carries a `schema` (JSON Schema document, persisted as-is) whose
     `title` serves as the Archetype's identity (globally unique, used as
-    root identifier in Norm CEL guard expressions; DM-enforced
+    root identifier in Norm CEL applicability expressions; DM-enforced
     identity-bound rule). DM input = DM output (1:1). There is one Archetype kind; no
     separate "domain" or "metadata" typing layers.
 
@@ -320,10 +391,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Governance DNA as Archetypes**: Directive and Norm extend Ascription,
     inheriting lifecycle, and statement. Identity is held by the
     referenced Definition. Their governance
-    grammar (modal, verb, guard, predicate, etc.) lives in the
+    grammar (modal, verb, applicability, assertion, etc.) lives in the
     `statement` payload, typed by GSM Archetypes
     (DirectiveArchetype, NormArchetype). Domain-specific accessors
-    (getModal(), getGuard(), etc.) are convenience delegations into
+    (getModal(), getApplicability(), etc.) are convenience delegations into
     `statement`.
     A governance Mechanism creates a Directive by calling
     `sys.effect("DirectiveArchetype", {...})`. This closes §3 systemic
@@ -760,7 +831,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     constructors/conversions, cross-property comparisons, ternary.
     Forbidden: non-deterministic functions (`now()`, `uuid()`),
     imperative constructs, side effects, external data access.
-    Same determinism requirement as Norm property-assertion profile.
+    Same determinism requirement as Norm assertion profile.
 
     **Vocabulary keyword immutability rule**:
     The set of `$gsm:*` keywords on a property (which keywords
@@ -998,7 +1069,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - The qualifier Archetype reference enables:
       - **Machine-verifiable governance chain**: the definition-manager
         validates that Norms operationalizing this Directive reference
-        the same Archetype (or a descendant) in their guard/predicate CEL
+        the same Archetype (or a descendant) in their applicability/assertion CEL
         expressions.
       - **Governance coverage analysis**: which fields of the qualifier
         Archetype's schema are covered by Norms, and which are governance
@@ -1029,14 +1100,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Attribute Semantics**:
 
-    - `structure`: The authoring Structure.
+    - `structure`: The **governing** Structure — accountable for this
+      governance commitment. 'Governor' = the Structure that issues this
+      Directive and is accountable for maintaining the governance
+      relationship it opens.
+      **Scope rule**: The governance scope opened by this Directive covers
+      the internal Elements of the **governed** Structure (`purpose`) —
+      its Mechanisms, Effectors, Receptors, and Interactions. Scope is
+      NOT accumulated across Directives.
     - `modal`: Deontic obligation strength (see DirectiveModal enum).
     - `verb`: Governance direction/guarantee semantics (see DirectiveVerb
       enum).
     - `qualifier`: Reference to the Archetype that defines the viability
       dimension being governed. The Archetype's schema defines the
       measurable properties; Norms operationalizing this Directive
-      reference this same Archetype in their guard/predicate CEL
+      reference this same Archetype in their applicability/assertion CEL
       expressions.
     - `purpose`: Reference to the purposed Structure.
 
@@ -1169,7 +1247,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       viability dimension.
     - Combined with DirectiveModal (obligation strength), determines
       the full governance stance.
-    - Verb choice influences how downstream Norm predicates are framed.
+    - Verb choice influences how downstream Norm assertions are framed.
 
     **Attribute Semantics**:
 
@@ -1215,8 +1293,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   class Norm {
     +getStructure(): Structure
     +getQualifier(): Archetype
-    +getGuard(): String
-    +getPredicate(): String
+    +getApplicability(): String
+    +getAssertion(): String
     +getToleranceMode(): NormToleranceMode
     +getTemporalWindow(): String
     +getTemporalAggregation(): NormAggregationType
@@ -1224,19 +1302,21 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
   }
 
   note bottom of Norm
-    **Norm** — Measurable constraint predicate (N). Extends Ascription.
+    **Norm** — Measurable governance assertion (N). Extends Ascription.
+
+    **Natural grammar**: {structure} ON {qualifier}: WHEN {applicability} ASSERT {assertion} ({toleranceMode})
 
     **Concept Semantics**:
 
     - Extends Ascription. Inherits lifecycle, Archetype-typing,
-      and statement. Typed by the sealed NormArchetype: the constraint
-      grammar (guard, predicate, toleranceMode, etc.) lives in
-      `statement`. Class-specific accessors (`getGuard()`,
-      `getPredicate()`, etc.) are convenience delegations into
+      and statement. Typed by the sealed NormArchetype: the governance
+      grammar (applicability, assertion, toleranceMode, etc.) lives in
+      `statement`. Class-specific accessors (`getApplicability()`,
+      `getAssertion()`, etc.) are convenience delegations into
       `statement`.
     - Faster-changing than Directive. Operationalizes a Directive's intent into
-      an evaluable predicate.
-    - Guard and predicate use two distinct **CEL profiles** — restricted
+      an evaluable assertion.
+    - Applicability and assertion use two distinct **CEL profiles** — restricted
       subsets of CEL calibrated for their respective governance analysis
       purposes (see CEL Profiles below). The definition-manager validates
       expressions against their applicable profile and rejects non-conforming
@@ -1244,17 +1324,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Attribute Semantics**:
 
-    - `structure`: The authoring Structure.
-    - `qualifier`: Reference to the Archetype that the predicate constrains
+    - `structure`: The **governed** Structure — accountable for this Norm.
+      'Governed' = the Structure whose internal Elements are constrained;
+      'accountable' = the Structure that bears compliance consequences.
+      **Governance chain**: `Norm.structure` references the same Structure
+      as the legitimating `Directive.purpose` (the governed Structure).
+      **Scope rule**: A Norm constrains only the internal Elements
+      of its `structure` (the governed Structure) — i.e. the Subjects
+      that are Mechanisms, Effectors, Receptors, or Interactions of that
+      Structure. (VSM: System 3 regulates System 1 at its level;
+      jurisdiction = governed system's boundary.)
+    - `qualifier`: Reference to the Archetype that the assertion constrains
       — mirrors Directive.qualifier. Enables governance chain
       validation (Norms operationalizing a Directive MUST target the same
       or descendant
       Archetype) and direct queryability ("all Norms targeting
       SecurityProperties") without CEL parsing.
-    - `guard`: CEL expression conforming to the **applicability-guard
-      profile** (default: `"true"`). Activation condition — predicate
-      is only evaluated when guard evaluates to true.
-    - `predicate`: CEL expression conforming to the **property-assertion
+    - `applicability`: CEL expression conforming to the **applicability
+      profile** (default: `"true"`). Activation condition — assertion
+      is only evaluated when applicability evaluates to true.
+    - `assertion`: CEL expression conforming to the **assertion
       profile** → bool. The constraint. Property paths are resolved
       against the qualifier Archetype's JSON Schema as bare identifiers.
       Example: `encryptionLevel >= "AES-128"`.
@@ -1271,11 +1360,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statement.qualifier` MUST reference an existing Archetype.
     - `statement.qualifier` is **identity-bound**: MUST NOT change across
       Ascriptions of the same Definition (see Ascription identity invariant).
-    - `statement.guard` MUST conform to the **applicability-guard CEL
+    - `statement.applicability` MUST conform to the **applicability CEL
       profile** (see CEL Profiles above).
-    - `statement.predicate` MUST conform to the **property-assertion
+    - `statement.assertion` MUST conform to the **assertion
       CEL profile** (see CEL Profiles above).
-    - `statement.predicate` is **identity-bound**: MUST NOT change across
+    - `statement.assertion` is **identity-bound**: MUST NOT change across
       Ascriptions of the same Definition (see Ascription identity invariant).
     - `statement.toleranceMode` MUST NOT be null.
     - `statement.temporalWindow` required when `statement.toleranceMode` is
@@ -1285,7 +1374,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Assignment Rules**:
 
-    - When `guard` is omitted, the definition-manager MUST default it to `true`.
+    - When `applicability` is omitted, the definition-manager MUST default it to `true`.
 
     **State Rules**:
 
@@ -1313,8 +1402,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `getStructure()` → column `structure_id` → resolves Structure
     - `getQualifier()` → column `qualifier_id` → resolves Archetype
-    - `getGuard()` → `statement.guard`
-    - `getPredicate()` → `statement.predicate`
+    - `getApplicability()` → `statement.applicability`
+    - `getAssertion()` → `statement.assertion`
     - `getToleranceMode()` → `statement.toleranceMode`
     - `getTemporalWindow()` → `statement.temporalWindow` (nullable)
     - `getTemporalAggregation()` → `statement.temporalAggregation` (nullable)
@@ -1322,23 +1411,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **CEL Profiles**:
 
-    Norm fields `guard` and `predicate` each conform to a named CEL
+    Norm fields `applicability` and `assertion` each conform to a named CEL
     profile. Profiles are restricted subsets of CEL with different
     expressiveness, each calibrated for a specific governance analysis
     purpose.
 
-    *Applicability-Guard profile* (`guard`):
+    *Applicability profile* (`applicability`):
 
     Enables deterministic overlap and containment detection between Norm
     activation conditions — the foundation for governance conflict analysis
     and coverage computation.
 
     Structure — **axis-predicate normal form**:
-    The guard MUST be expressible as a conjunction of single-axis
+    The applicability MUST be expressible as a conjunction of single-axis
     predicates:
       `pred₁ && pred₂ && ... && predₙ`
     where each predᵢ targets a single (Archetype, propertyPath) axis.
-    The degenerate case (n = 0) is the default guard `true`
+    The degenerate case (n = 0) is the default applicability `true`
     (unconditional activation).
 
     Allowed constructs:
@@ -1357,7 +1446,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       references.
 
     Forbidden constructs:
-    - **Disjunction**: `||` (OR) is forbidden. The guard is a pure
+    - **Disjunction**: `||` (OR) is forbidden. The applicability is a pure
       conjunction.
     - **Function calls** except `matches()` on string properties.
     - **Cross-property comparisons**: each predicate compares a property
@@ -1369,15 +1458,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     Why this restriction:
     The axis-predicate normal form enables **deterministic** overlap
-    and containment detection between any two guards:
-    - Two guards **overlap** iff every shared axis has overlapping
+    and containment detection between any two applicability expressions:
+    - Two applicability expressions **overlap** iff every shared axis has overlapping
       value sets.
-    - Guard A **contains** guard B iff for every axis in A, A's
+    - Applicability A **contains** applicability B iff for every axis in A, A's
       predicate accepts all values that B's predicate accepts.
     This is the analytical foundation for Norm conflict detection
     and governance coverage analysis.
 
-    Examples (applicability-guard profile):
+    Examples (applicability profile):
     ```
     // Unconditional (default) — applies to all instances:
     true
@@ -1428,15 +1517,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     DeploymentProperties.tags.size() > 0
     ```
 
-    *Property-Assertion profile* (`predicate`):
+    *Assertion profile* (`assertion`):
 
     Enables expressive, deterministic, side-effect-free constraint
-    evaluation. More permissive than the guard profile — full boolean
+    evaluation. More permissive than the applicability profile — full boolean
     logic, cross-property comparisons, and aggregation-compatible
     functions.
 
     Structure — **boolean expression over qualifier properties**:
-    The predicate MUST evaluate to `bool`. Property paths are resolved
+    The assertion MUST evaluate to `bool`. Property paths are resolved
     against the qualifier Archetype's JSON Schema. Properties are
     referenced as bare identifiers — bound to the Norm's `qualifier`
     FK at evaluation time. No `self.` prefix; no explicit Archetype
@@ -1473,7 +1562,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Side effects**: no mutation, no I/O.
 
     Why this restriction:
-    The property-assertion profile enables **static analysis** for
+    The assertion profile enables **static analysis** for
     governance coverage computation (which qualifier Archetype fields
     are constrained and which are governance gaps) and deterministic
     re-evaluation over time (for tolerance-mode semantics). Using
@@ -1481,7 +1570,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Archetype name or `self.` prefix eliminates redundancy with the
     `qualifier` FK and removes a class of inconsistency errors.
 
-    Examples (property-assertion profile):
+    Examples (assertion profile):
     ```
     // Simple threshold:
     encryptionLevel >= "AES-128"
@@ -1490,7 +1579,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     tlsEnabled == true
       && tlsVersion >= "1.2"
 
-    // Disjunction (OR allowed in predicate):
+    // Disjunction (OR allowed in assertion):
     authMethod == "mTLS"
       || authMethod == "OAuth2"
 
@@ -1570,29 +1659,29 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Concept Semantics**:
 
-    - Defines how a Norm predicate is evaluated over time.
+    - Defines how a Norm assertion is evaluated over time.
     - ToleranceMode is the **primary discriminant** of a Norm's violation
-      boundary. The same predicate with a different tolerance mode defines
+      boundary. The same assertion with a different tolerance mode defines
       a **different Norm** — a different violation boundary. This is a
       governance concern, not an analytical distinction.
 
     **Attribute Semantics**:
 
-    - `INSTANTANEOUS`: The predicate is evaluated instantaneously.
-      Violation = predicate is false. No temporal tolerance — any
+    - `INSTANTANEOUS`: The assertion is evaluated instantaneously.
+      Violation = assertion is false. No temporal tolerance — any
       instant of non-compliance is a violation.
       No temporalWindow, temporalAggregation, or sustainedThreshold.
       *Sourced from: OCL invariants, design-by-contract.*
-    - `AGGREGATED`: The numeric metric referenced by the predicate
+    - `AGGREGATED`: The numeric metric referenced by the assertion
       is collected over temporalWindow, aggregated using
       temporalAggregation, then compared against the threshold
-      from the predicate. Predicate MUST be in metric-comparison
+      from the assertion. Assertion MUST be in metric-comparison
       form (`self.property ComparisonOp Literal`).
       Requires temporalWindow and temporalAggregation.
       sustainedThreshold is forbidden.
       *E.g., P99 latency < 100ms over 5 minutes.*
       *Sourced from: Google SLO definitions, Prometheus alerting.*
-    - `SUSTAINED`: The predicate is evaluated at each sample point
+    - `SUSTAINED`: The assertion is evaluated at each sample point
       over temporalWindow, producing a boolean series. The compliance
       ratio (fraction of true evaluations) is computed using
       temporalAggregation and compared against sustainedThreshold.
@@ -1603,8 +1692,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - **Norm field applicability by mode**:
       | Field | INSTANTANEOUS | AGGREGATED | SUSTAINED |
       |---|:---:|:---:|:---:|
-      | predicate | Required (any form) | Required (metric-comparison) | Required (any form) |
-      | guard | Optional | Optional | Optional |
+      | assertion | Required (any form) | Required (metric-comparison) | Required (any form) |
+      | applicability | Optional | Optional | Optional |
       | temporalWindow | Null | Required | Required |
       | temporalAggregation | Null | Required | Required |
       | sustainedThreshold | Null | Null | Required |
@@ -1632,7 +1721,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Aggregations describe how measurements are summarized, not how they are
       collected.
     - In AGGREGATED mode: aggregates the **numeric metric** referenced by
-      the predicate over the temporal window.
+      the assertion over the temporal window.
     - In SUSTAINED mode: aggregates the **boolean compliance series**
       (fraction of true evaluations) over the temporal window. Typically
       AVG (= percentage of true samples) or MIN (= always true).
@@ -1827,7 +1916,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       | Receptor | `mechanism`, `archetype` (data) |
       | Interaction | `effector`, `receptor` |
       | Directive | `structure`, `qualifier`, `purpose` |
-      | Norm | `structure`, `qualifier`, `predicate` |
+      | Norm | `structure`, `qualifier`, `assertion` |
       | Archetype | `title` (DM-enforced) |
     - **Vocabulary-driven validation** (DM enforces `$gsm:*`
       vocabulary keywords declared in the typing Archetype's schema at
@@ -2073,17 +2162,25 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       is never accidental authoring. A Structure's element set and topology
       exist **for a purpose** and are the product of governance.
     - **Governing Structure (governance relation)**: a Structure `G` governs a
-      Structure `S` when `G` produces governance DNA (Directives/Norms)
-      targeting `S` (by referencing `StructureArchetype.purpose`, and by
-      operationalizing those Directives as Norms constraining in-scope
-      Elements). This is how
-      inter-Structure governance is expressed in GSM: not by containment, but by
-      DNA targeting (de-facto) governed Elements.
+      Structure `S` when `G` produces a Directive whose `purpose` references `S`
+      (by referencing `StructureArchetype.purpose`), and `S` bears Norms
+      operationalizing that Directive which constrain `S`'s own internal
+      Elements. This is how inter-Structure governance is expressed in GSM:
+      not by containment, but by Directive + Norm targeting.
     - **Formalization**: `G` governs `S` **iff** (a) there exists at least one
-      Directive authored/owned by `G` whose `purpose` field references
-      `StructureArchetype.purpose`, and
-      (b) over time, those Directives are operationalized by one or more Norms
-      authored/owned by `G` that constrain (target) in-scope Elements of `S`.
+      Directive with `structure` = `G` whose `purpose` field references
+      `S`, and (b) those Directives are operationalized by Norms with
+      `structure` = `S` that constrain `S`'s internal Elements.
+    - **Governance chain linkage**: `Directive.purpose == Norm.structure` = `S`.
+      The governor (`G`) defines what governance applies; the governed (`S`)
+      bears the constraints and is accountable for compliance.
+    - **Scope rule**: Norm scope = governed Structure's internal Elements only.
+      A Norm's `structure` field identifies the governed Structure; the Norm
+      constrains only that Structure's Mechanisms, Effectors, Receptors, and
+      Interactions. Transitive governance is achieved through governance
+      chains: `G` governs `S`; `S` governs `T` (separate Directives).
+      (VSM: System 3 jurisdiction ≡ System 1 operational boundary;
+      Ashby: regulator scope ≤ variety-absorption capacity.)
     - **Purpose is owned by governance**: `StructureArchetype.purpose` is the
       Structure's identity field, but it is not self-declared — it is a
       **governed outcome**. A governing Structure confers purpose by producing
@@ -2092,9 +2189,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       aggregate of Mechanisms should exist for this reason. This reflects the
       cybernetic principle that identity is conferred by the meta-system, not
       intrinsic to the system itself.
-    - No sub-structures, no containment hierarchy. Governance between Structures
+    - No sub-Structures, no containment hierarchy. Governance between Structures
       is expressed through DNA targeting governed Elements — not through
-      illusional hierarchical nesting.
+      illusory hierarchical nesting.
 
     **Attribute Semantics**:
 
@@ -2624,9 +2721,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       identity is carried by `title` inside the JSON Schema
       document — not by a separate `name` property. This avoids
       redundancy (JSON Schema already has `title` for naming).
-      `title` is the root identifier in Norm CEL guard
+      `title` is the root identifier in Norm CEL applicability
       expressions (e.g., `SecurityProperties.environment`).
-      Norm predicates use `self` instead — bound to the qualifier FK.
+      Norm assertions use bare qualifier property names — bound to the qualifier FK.
       DM enforces `title` as identity-bound by built-in rule
       (not via `$gsm:identityBound` keyword, since `title` is a
       standard JSON Schema keyword, not a `$gsm:*` keyword).
@@ -2653,8 +2750,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       - `title`: **DM-enforced identity-bound**. The Archetype's
         human-readable identity — what the Archetype IS. Globally unique
         among in-effect Archetypes. Used as the root identifier in Norm
-        CEL guard expressions. Norm predicates use `self` (bound to
-        qualifier FK). MUST NOT change across
+        CEL applicability expressions. Norm assertions use bare qualifier
+        property names (bound to qualifier FK). MUST NOT change across
         Ascriptions of the same Definition. Naming convention:
         PascalCase domain concept (e.g., `SecurityProperties`,
         `DeploymentProperties`).
@@ -2703,7 +2800,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       data MUST NOT be indexed in cleartext).
       `$gsm:validation` — each expression MUST be parseable CEL,
       deterministic, and side-effect-free (same restrictions as Norm
-      property-assertion profile; both use implicit root).
+      assertion profile; both use implicit root).
       `$gsm:identityBound` — the set of annotated properties MUST
       NOT differ from the first Ascription's schema for this
       Definition (immutable set — see §5 and §8).
