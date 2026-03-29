@@ -112,7 +112,9 @@ resolves them without manual intervention.
 
 GSM is a fundamental departure from classical systemic models such as Beer's Viable System Model (VSM) or von Bertalanffy's General System Theory (GST). Those models are _descriptive_: they provide analytical frameworks for observing and reasoning about systems that already exist. GSM, by contrast, is _generative_ (equivalently: _definitional_). Its primitives are not passive descriptions of an observed reality; they are **active definitions** from which system structure, behavior, governance, and viability are _derived and produced_.
 
-**Structure** is the foundational aggregate — an intentional assembly of Elements (Mechanisms, Interactions, Interfaces) arranged to address a governed **purpose**. GSM does not model "System" as a primitive; whether something _is_ a system is derived at inference time from reflexivity and governance scope, not asserted at definition time. A Structure becomes a System when its Mechanisms become reflexive — when it operates itself.
+**Structure** is the foundational aggregate — an intentional assembly of Elements (Mechanisms, Interactions) arranged to address a governed **purpose**. GSM does not model "System" as a primitive; whether something _is_ a system is derived at inference time from reflexivity and governance scope, not asserted at definition time. A Structure becomes a System when its Mechanisms become reflexive — when it operates itself.
+
+A Structure is fundamentally **dynamic**: it has Mechanisms — causal behavioral units with rule logic. Only dynamism is causal. Static structure in GSM is expressed through **Archetypes** (type definitions); Archetypes have no Mechanisms and no causal behavior. Dynamic Structures produce static structures through their Mechanisms' Effectors. A codebase, for example, is an Archetype (static structure) produced by a dev team's Mechanisms; the software instance it defines is a Structure (dynamic).
 
 **DNA** (Directives / Norms / Ascriptions) is the unified governance grammar, stratified by rate of change:
 

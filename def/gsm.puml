@@ -167,6 +167,76 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     purpose-level commitments, Norms constrain function-level and rule-level
     behavior, Ascriptions carry the concrete definitions.
 
+    **Structure as dynamic structure — Archetype as static structure**
+
+    GSM draws a fundamental distinction between **dynamic** and **static**
+    structure:
+
+    - A **Structure** is a dynamic aggregate. It has Mechanisms — causal
+      behavioral units with rule logic, Effectors, and Receptors. Only
+      dynamism is causal; only a dynamic aggregate can produce, govern,
+      and interact. A Structure IS its causal capacity.
+    - An **Archetype** is GSM's vehicle for static structure: a type
+      definition (JSON Schema) that shapes and constrains what can be
+      ascribed. Archetypes have no Mechanisms, no causal behavior — they
+      define shapes, not agents.
+
+    Dynamic Structures **produce** static structures (Archetypes and their
+    typed instances) through their Mechanisms' Effectors. This
+    is the generative direction: dynamism produces form.
+
+    **Example — software governance chain:**
+
+    - **Product team** (Structure, dynamic) governs →
+    - **Dev team** (Structure, dynamic) governs →
+    - **Codebase** (Archetype — static structure, produced by the dev
+      team's Mechanisms as a deliverable evaluated against Norms/Directives)
+      defines →
+    - **Software instance** (Structure, dynamic — also governed by product
+      and dev teams)
+
+    The codebase is a static structure — it has no causal Mechanisms of its
+    own. It is NOT a GSM Structure. It is an Archetype that structures code
+    components (packages, classes, configurations, manifests). Code
+    components are **ascribed via Archetypes**, not via Structure.
+
+    The software instance IS a GSM Structure — it has Mechanisms with
+    causal behavior (request handling, data processing, event emission).
+    Ascribing software means defining it as a dynamic instance. Its
+    Mechanism Ascriptions (rules) are **sourced from** the codebase but are
+    NOT a mirror of it: rules integrate functional logic from many stacked
+    codebase artifacts (classes, methods, libraries). A single Mechanism
+    rule may synthesize behavior spread across dozens of source files.
+
+    **Multi-type Ascription aggregate:**
+
+    A Structure's complete definition is NOT captured by a single Ascription.
+    It is the **aggregate** of:
+    - Its own Structure-level Ascriptions (identity, purpose, governance
+      attributes).
+    - All its Element Ascriptions (Mechanism rule logic, Effector/Receptor
+      specifications, Interaction couplings).
+    - Its governance DNA (Directives legitimating it, Norms constraining it).
+
+    No single Ascription captures the whole — the Structure is the coherent
+    aggregate whose identity emerges from the governed composition of all its
+    constituent Element Ascriptions.
+
+    A Structure's constituent Ascriptions are **Archetyped Effector
+    deliverables** — produced by the Mechanism Effectors of governing
+    Structures, each Effector typed by the appropriate Archetype
+    (`output_archetype_id`). The governing Structure delivers the governed
+    Structure by producing its Element Ascriptions through its
+    Mechanism Effectors. Without governorship, there are no typed Effector
+    outputs, and the Structure has no definition.
+
+    Element Ascriptions may exist in **native notation** — a domain-specific
+    executable or declarative form (source code, API contracts, deployment
+    manifests, infrastructure specs) outside the GSM canonical JSON statement.
+    Domain applications recognize and source native-notation Ascriptions by
+    translating them into GSM Ascription statements. The Ascription is the
+    same governed artifact regardless of notation — native or canonical.
+
     ====
 
     **§2 — DNA - Unified Governance Grammar**
@@ -596,7 +666,54 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     aggregated Structures. Governance between Structures is expressed through
     DNA, not hierarchical containment.
 
-    **Relationship / Role**: inter-structure governance via DNA.
+    **Relationship / Role**: eliminated as structural primitives. GSM models
+    exactly one primitive relation: **Interaction** (Effector → Receptor) — the
+    causal coupling between structural Elements. Interaction is the most
+    fundamental relation: causally grounded, directional, structurally explicit
+    (it connects named ports), and governable (Norms can constrain it).
+
+    All other relation types found in modeling languages (ArchiMate's
+    *realization*, *composition*, *serving*, *access*, *influence*,
+    *triggering*, *flow*; UML's *association*, *aggregation*, *dependency*;
+    TOGAF content metamodel relationships) are **derivable shortcuts** over
+    chains of Interactions. They are legitimate and useful abstractions — they
+    avoid expressing every intermediary Interaction in a causal chain — but
+    they are not primitives. GSM does not need to model them because any such
+    relation can be:
+
+    1. **Traced** to a concrete chain of Interactions (Effector→Receptor
+       couplings) connecting the related Structures through intermediary
+       Structures (teams, CI/CD pipelines, runtimes, registries, etc.).
+    2. **Derived** at query/rendering time by pattern-matching on the
+       Interaction graph or on Effector output typing — e.g., an Effector
+       whose `output_archetype_id` references a software Structure
+       Archetype → derive a 'realizes' relation between the producing
+       team and the software.
+
+    Not all framework relations require Interaction-chain derivation.
+    Some map directly to existing GSM references:
+
+    - **ArchiMate *realizes***: maps to `output_archetype_id` on the
+      producing Effector — a direct FK, not a derived chain. The codebase
+      is an Archetype (static structure — see §1) whose content is sourced
+      to define the software Structure (dynamic). The Effector types the
+      deliverable; the "realizes" relation IS the `output_archetype_id`
+      reference.
+    - **ArchiMate *serves***: maps to an Interaction (Effector→Receptor)
+      between Structures — a direct GSM primitive.
+    - **ArchiMate *composition***: maps to governance chains (Directives)
+      — a direct GSM reference.
+
+    Other framework relations DO require chain derivation — e.g., linking
+    a business unit to its runtime software requires traversing governance
+    chains and Effector outputs through intermediary team Structures.
+
+    Domain applications (e.g. ITIP) define **derived relation types** as
+    named Interaction-chain patterns and render them in framework-native
+    notation (ArchiMate, C4, UML) without requiring every intermediary step
+    to be explicitly modeled. This is a presentation/derivation concern,
+    not a GSM structural concern. Governance applies to the primitives
+    (Interactions); derived relations are read-only projections.
 
     **Interface**: eliminated as a structural primitive. Interface was the
     only non-causal Element in GSM — it carried no behavior, no rule logic,
