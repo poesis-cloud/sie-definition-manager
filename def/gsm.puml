@@ -451,12 +451,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     separate "domain" or "metadata" typing layers.
 
     **Archetype** is the general-purpose typed deliverable in the definition
-    plane. It defines the structure and semantics of domain knowledge
-    handled by Mechanisms via their Effectors and Receptors. An Archetype is
-    NOT a runtime data instance — it is a **type definition** (specifying
-    the schema, constraints, and semantics of data that will exist at
-    runtime). Effectors and Receptors reference Archetypes to declare the
-    type of information they emit/consume.
+    plane — and GSM's vehicle for **static structure** (see §1: Structure
+    is dynamic, Archetype is static). It defines the structure and semantics
+    of domain knowledge handled by Mechanisms via their Effectors and
+    Receptors. An Archetype is NOT a runtime data instance — it is a **type
+    definition** (specifying the schema, constraints, and semantics of data
+    that will exist at runtime). Effectors and Receptors reference Archetypes
+    to declare the type of information they emit/consume.
 
     **Governance DNA as Archetypes**: Directive and Norm extend Ascription,
     inheriting lifecycle, and statement. Identity is held by the
@@ -686,9 +687,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
        Structures (teams, CI/CD pipelines, runtimes, registries, etc.).
     2. **Derived** at query/rendering time by pattern-matching on the
        Interaction graph or on Effector output typing — e.g., an Effector
-       whose `output_archetype_id` references a software Structure
-       Archetype → derive a 'realizes' relation between the producing
-       team and the software.
+       whose `output_archetype_id` references a codebase Archetype
+       → derive a 'realizes' relation between the producing team and
+       the software (the codebase is static, the software is the dynamic
+       Structure it defines — see §1).
 
     Not all framework relations require Interaction-chain derivation.
     Some map directly to existing GSM references:
@@ -1067,6 +1069,23 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       by the Archetype reference on each Ascription.
     - At most one in-effect Ascription per Definition (status = ACTIVE or
       DEPRECATED).
+    - **One-in-effect implications (logical consequences)**:
+      - **Total version supersession**: when a new Ascription reaches ACTIVE,
+        the previously ACTIVE one auto-transitions to DEPRECATED. There is no
+        branching or forking within a single Definition's lineage.
+      - **Archetype flexibility across versions**: successive Ascriptions of
+        the same Definition MAY reference different Archetypes, provided that
+        (a) each Archetype's `allOf` chain converges to the same GSM base
+        corresponding to `Definition.subjectType`, and (b) identity-bound
+        field values (`$gsm:identityBound`) are preserved across versions.
+      - **Multi-archetype typing of one Structure**: because only one
+        Ascription can be in-effect per Definition, typing a single Structure
+        under multiple Archetypes requires multiple Definitions — one per
+        Archetype — each with its own Ascription lineage... Provided that
+        a subject's identity has only one Definition.
+      - **Approval convergence**: a new Ascription cannot be APPROVED while
+        another Ascription of the same Definition is already APPROVED.
+        This prevents parallel version pipelines within a Definition.
 
     **Attribute Semantics**:
 
@@ -2099,6 +2118,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       and audit-log invariants.
     - At most one in-effect Ascription per Definition (status = ACTIVE or
       DEPRECATED).
+    - `archetype_id` MAY differ across Ascriptions of the same Definition,
+      provided the Archetype converges to the same GSM base as
+      `Definition.subjectType` and identity-bound values are preserved
+      (see Definition note — "One-in-effect implications").
 
     **Persistence Rules**:
 

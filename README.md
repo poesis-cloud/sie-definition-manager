@@ -132,7 +132,9 @@ Each layer can evolve at its natural rate without destabilizing the others.
 - **Function** (Mechanism) → _what capacity_ each causal unit contributes.
 - **Rule** (Mechanism, Starlark) → _how_ that capacity is realized. The definition-manager auto-derives **Effectors** (output ports) and **Receptors** (input ports) from the rule's AST — closed-loop vs. open-loop pattern.
 
-**Archetype** is the sole typed deliverable in the definition plane — the domain model / vocabulary. Every Ascription references one Archetype; every Archetype references a JSON Schema (`schemaUri`) that validates its instances. The type system bootstraps from a single axiomatic seed (the Archetype that types itself).
+**Archetype** is the sole typed deliverable in the definition plane — the domain model / vocabulary and GSM's vehicle for static structure. Every Ascription references one Archetype; every Archetype references a JSON Schema (`schemaUri`) that validates its instances. The type system bootstraps from a single axiomatic seed (the Archetype that types itself).
+
+**Governance chain example**: Product team (Structure) governs → Dev team (Structure) governs → Codebase (Archetype — evaluated deliverable) defines → Software instance (Structure). The codebase is a static structure (Archetype); the running software is a dynamic Structure with causal Mechanisms whose rules are sourced from the codebase.
 
 **Systemic recursion** closes the loop: Mechanisms operate on Ascriptions; all definitions are Ascriptions; therefore Mechanisms can operate on Mechanisms — including producing governance DNA (Directives and Norms). The system defines itself through itself.
 
