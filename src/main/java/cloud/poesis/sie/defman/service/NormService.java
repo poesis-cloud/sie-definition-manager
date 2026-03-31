@@ -273,7 +273,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         continue;
       }
 
-      // Check qualifier overlap: sibling's qualifier lineage must intersect norm's lineage
+      // Check qualifier overlap: sibling's qualifier lineage must intersect norm's
+      // lineage
       Set<String> siblingAncestors =
           archetypeService.getAncestorTitles(sibling.getQualifier().getId());
       boolean qualifierOverlap = false;

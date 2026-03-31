@@ -591,7 +591,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       }
     }
 
-    // sys.receive() chains are validated in validateOnTrigger; no extra check needed here
+    // sys.receive() chains are validated in validateOnTrigger; no extra check
+    // needed here
   }
 
   /** A link in a sys.effect() fluent chain. */

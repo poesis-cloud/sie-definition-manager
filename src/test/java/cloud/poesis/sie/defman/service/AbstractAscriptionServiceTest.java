@@ -410,7 +410,8 @@ class AbstractAscriptionServiceTest {
       ObjectNode statement = MAPPER.createObjectNode().put("val", "ok");
 
       assertDoesNotThrow(() -> service.validateStatement(statement, archetype));
-      // archetypeRepo.findAllByStatusIn should NOT be called for classpath-only schemas
+      // archetypeRepo.findAllByStatusIn should NOT be called for classpath-only
+      // schemas
       verify(archetypeRepo, never()).findAllByStatusIn(anyCollection());
     }
   }

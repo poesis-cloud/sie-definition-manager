@@ -1028,7 +1028,8 @@ class NormServiceTest {
 
     @Test
     void directiveWithAncestorQualifier_accepts() {
-      // Norm qualifier is "DetailedSecurity", Directive qualifier is "SecurityProperties"
+      // Norm qualifier is "DetailedSecurity", Directive qualifier is
+      // "SecurityProperties"
       // DetailedSecurity extends SecurityProperties → lineage overlap
       UUID structDefId = UUID.randomUUID();
       UUID qualDefId = UUID.randomUUID();
@@ -1044,7 +1045,8 @@ class NormServiceTest {
       when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
 
-      // Norm qualifier lineage: DetailedSecurity -> SecurityProperties -> StructureArchetype
+      // Norm qualifier lineage: DetailedSecurity -> SecurityProperties ->
+      // StructureArchetype
       when(archetypeService.getAncestorTitles(qualId))
           .thenReturn(
               new java.util.LinkedHashSet<>(

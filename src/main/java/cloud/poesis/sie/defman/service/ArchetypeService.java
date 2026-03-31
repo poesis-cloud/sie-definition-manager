@@ -565,9 +565,9 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
    * be resolved at the time of the call (lenient mode). GSM base titles are included when reached.
    *
    * <p><b>Ordering guarantee:</b> the returned {@link LinkedHashSet} preserves insertion order,
-   * which is nearest-ancestor-first (depth-first, left-to-right traversal of the allOf chain).
-   * The archetype's own title, when present, is always the first element. Callers (e.g.,
-   * {@code NormService} governance chain validation) may rely on this ordering.
+   * which is nearest-ancestor-first (depth-first, left-to-right traversal of the allOf chain). The
+   * archetype's own title, when present, is always the first element. Callers (e.g., {@code
+   * NormService} governance chain validation) may rely on this ordering.
    *
    * @param archetypeId the ascription ID of the archetype to inspect
    * @return the set of ancestor titles in nearest-ancestor-first order (may be empty for rootless
