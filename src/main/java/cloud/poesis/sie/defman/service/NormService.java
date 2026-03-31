@@ -9,8 +9,6 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -66,7 +64,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
 
   private final NormRepository normRepo;
-  private final DirectiveRepository directiveRepo;
+  private final DirectiveService directiveService;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
   private final CelCompiler celParser;
@@ -75,35 +73,35 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
    * Constructs the Norm service with its required dependencies.
    *
    * @param normRepo the norm repository
-   * @param directiveRepo the directive repository for governance chain checks
+   * @param directiveService the directive service for governance chain checks
    * @param structureService the structure service for reference resolution
    * @param archetypeService the archetype service for qualifier resolution
    * @param definitionService the definition service
    * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
+   * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public NormService(
       NormRepository normRepo,
-      DirectiveRepository directiveRepo,
+      DirectiveService directiveService,
       StructureService structureService,
       ArchetypeService archetypeService,
       ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
-      AscriptionRepository ascriptionRepository,
+      AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     super(
         definitionService,
         transitionService,
-        ascriptionRepository,
+        ascriptionService,
         archetypeRepository,
         entityManager,
         dataProtectionService);
     this.normRepo = normRepo;
-    this.directiveRepo = directiveRepo;
+    this.directiveService = directiveService;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
     this.celParser = CelCompilerFactory.standardCelCompilerBuilder().build();
@@ -206,7 +204,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     UUID qualifierId = norm.getQualifier().getId();
 
     List<DirectiveEntity> directives =
-        directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(structureDefId, IN_EFFECT);
+        directiveService.findAllByPurposeDefinitionIdAndStatusIn(structureDefId, IN_EFFECT);
 
     if (directives.isEmpty()) {
       throw RuleViolationException.of(

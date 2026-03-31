@@ -3,7 +3,10 @@ package cloud.poesis.sie.defman.service;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,5 +45,21 @@ public class AscriptionService {
     return ascriptionRepository
         .findById(ascriptionId)
         .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ASCRIPTION, ascriptionId));
+  }
+
+  /**
+   * Returns all ascriptions for a given archetype that are in the specified statuses, excluding one
+   * definition. Used for {@code $gsm:unique} enforcement across definitions.
+   *
+   * @param archetypeId the archetype UUID
+   * @param statuses the lifecycle statuses to match
+   * @param excludeDefinitionId the definition UUID to exclude
+   * @return the matching ascription entities
+   */
+  @Transactional(value = "transactionManager", readOnly = true)
+  public List<AscriptionEntity> findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+      UUID archetypeId, Collection<AscriptionStatusType> statuses, UUID excludeDefinitionId) {
+    return ascriptionRepository.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+        archetypeId, statuses, excludeDefinitionId);
   }
 }

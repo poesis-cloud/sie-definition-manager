@@ -8,7 +8,6 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -67,7 +66,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
    * @param archetypeService the archetype service for qualifier resolution
    * @param definitionService the definition service
    * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
+   * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
@@ -78,13 +77,13 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
       ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
-      AscriptionRepository ascriptionRepository,
+      AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     super(
         definitionService,
         transitionService,
-        ascriptionRepository,
+        ascriptionService,
         archetypeRepository,
         entityManager,
         dataProtectionService);
@@ -141,6 +140,18 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
       return directiveRepo.findAllByStructureId(sourceAscriptionId);
     }
     return List.of();
+  }
+
+  /**
+   * Returns directives whose purpose targets the given structure definition, filtered by statuses.
+   *
+   * @param purposeDefinitionId the purpose structure definition UUID
+   * @param statuses the lifecycle statuses to match
+   * @return the matching directive entities
+   */
+  public List<DirectiveEntity> findAllByPurposeDefinitionIdAndStatusIn(
+      UUID purposeDefinitionId, Collection<AscriptionStatusType> statuses) {
+    return directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(purposeDefinitionId, statuses);
   }
 
   @Override

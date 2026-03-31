@@ -7,7 +7,6 @@ import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -103,7 +102,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   // Shared dependencies — constructor-injected into all subclasses
   private final DefinitionService definitionService;
   private final AscriptionStatusTransitionService transitionService;
-  private final AscriptionRepository ascriptionRepository;
+  private final AscriptionService ascriptionService;
   private final ArchetypeRepository archetypeRepository;
   private final EntityManager entityManager;
   private final DataProtectionService dataProtectionService;
@@ -113,21 +112,22 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    *
    * @param definitionService the definition service for identity resolution
    * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
-   * @param archetypeRepository the archetype repository for tenant schema resolution
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param archetypeRepository the archetype repository for tenant schema resolution (documented
+   *     exception: ArchetypeService extends this class, preventing clean service injection)
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   protected AbstractAscriptionService(
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
-      AscriptionRepository ascriptionRepository,
+      AscriptionService ascriptionService,
       ArchetypeRepository archetypeRepository,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     this.definitionService = definitionService;
     this.transitionService = transitionService;
-    this.ascriptionRepository = ascriptionRepository;
+    this.ascriptionService = ascriptionService;
     this.archetypeRepository = archetypeRepository;
     this.entityManager = entityManager;
     this.dataProtectionService = dataProtectionService;
@@ -1032,7 +1032,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   private void enforceUnique(
       String propName, JsonNode value, ArchetypeEntity archetype, UUID definitionId) {
     List<AscriptionEntity> inEffect =
-        ascriptionRepository.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+        ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
             archetype.getId(), GSM_IN_EFFECT, definitionId);
 
     String valueStr = value.isTextual() ? value.asText() : value.toString();

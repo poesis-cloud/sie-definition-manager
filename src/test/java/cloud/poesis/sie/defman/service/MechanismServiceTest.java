@@ -19,10 +19,7 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
-import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.service.MechanismService.PortSignature;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -56,9 +53,9 @@ class MechanismServiceTest {
 
   @Mock private MechanismRepository mechanismRepo;
 
-  @Mock private EffectorRepository effectorRepo;
+  @Mock private EffectorService effectorService;
 
-  @Mock private ReceptorRepository receptorRepo;
+  @Mock private ReceptorService receptorService;
 
   @Mock private StructureService structureService;
 
@@ -80,11 +77,11 @@ class MechanismServiceTest {
             structureService,
             archetypeService,
             mock(ArchetypeRepository.class),
-            effectorRepo,
-            receptorRepo,
+            effectorService,
+            receptorService,
             definitionService,
             transitionService,
-            mock(AscriptionRepository.class),
+            mock(AscriptionService.class),
             entityManager,
             mock(DataProtectionService.class));
   }
@@ -1250,8 +1247,8 @@ class MechanismServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
 
       // No existing ports
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
 
       // Stub new definitions
       DefinitionEntity effDef = mock(DefinitionEntity.class);
@@ -1263,17 +1260,17 @@ class MechanismServiceTest {
       EffectorEntity savedEff = mock(EffectorEntity.class);
       when(savedEff.getId()).thenReturn(UUID.randomUUID());
       when(savedEff.getStatement()).thenReturn(stmt);
-      when(effectorRepo.save(any(EffectorEntity.class))).thenReturn(savedEff);
+      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
 
       ReceptorEntity savedRec = mock(ReceptorEntity.class);
       when(savedRec.getId()).thenReturn(UUID.randomUUID());
       when(savedRec.getStatement()).thenReturn(stmt);
-      when(receptorRepo.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
 
       service.afterCreate(mechanism);
 
-      verify(effectorRepo).save(any(EffectorEntity.class));
-      verify(receptorRepo).save(any(ReceptorEntity.class));
+      verify(effectorService).save(any(EffectorEntity.class));
+      verify(receptorService).save(any(ReceptorEntity.class));
     }
 
     @Test
@@ -1319,8 +1316,8 @@ class MechanismServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("MissingType")).thenReturn(null);
       when(archetypeService.findInEffectBySchemaTitle("AlsoMissing")).thenReturn(null);
 
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
 
       assertDoesNotThrow(() -> service.afterCreate(mechanism));
     }
@@ -1361,26 +1358,26 @@ class MechanismServiceTest {
       when(existingEff.getDefinition()).thenReturn(existingEffDef);
       when(existingEff.getOutputArchetype()).thenReturn(existingOutputArch);
       List<EffectorEntity> existingEffectors = List.of(existingEff);
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(existingEffectors);
+      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(existingEffectors);
 
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
       DefinitionEntity recDef = mock(DefinitionEntity.class);
       when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
 
       EffectorEntity savedEff = mock(EffectorEntity.class);
       when(savedEff.getId()).thenReturn(UUID.randomUUID());
       when(savedEff.getStatement()).thenReturn(stmt);
-      when(effectorRepo.save(any(EffectorEntity.class))).thenReturn(savedEff);
+      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
 
       ReceptorEntity savedRec = mock(ReceptorEntity.class);
       when(savedRec.getId()).thenReturn(UUID.randomUUID());
       when(savedRec.getStatement()).thenReturn(stmt);
-      when(receptorRepo.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
 
       service.afterCreate(mechanism);
 
       // Effector should use existing definition, not create new
-      verify(effectorRepo).save(any(EffectorEntity.class));
+      verify(effectorService).save(any(EffectorEntity.class));
     }
 
     private ArchetypeEntity mockArchetypeWithTitle(String title) {

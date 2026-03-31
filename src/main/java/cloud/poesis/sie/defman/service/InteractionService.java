@@ -9,7 +9,6 @@ import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -46,7 +45,7 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
    * @param receptorService the receptor service for reference resolution
    * @param definitionService the definition service
    * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
+   * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
@@ -57,13 +56,13 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
       ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
-      AscriptionRepository ascriptionRepository,
+      AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     super(
         definitionService,
         transitionService,
-        ascriptionRepository,
+        ascriptionService,
         archetypeRepository,
         entityManager,
         dataProtectionService);

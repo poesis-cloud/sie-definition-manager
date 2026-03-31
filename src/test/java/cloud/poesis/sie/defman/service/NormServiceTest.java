@@ -16,8 +16,6 @@ import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -48,7 +46,7 @@ class NormServiceTest {
 
   @Mock private NormRepository normRepo;
 
-  @Mock private DirectiveRepository directiveRepo;
+  @Mock private DirectiveService directiveService;
 
   @Mock private StructureService structureService;
 
@@ -61,13 +59,13 @@ class NormServiceTest {
     service =
         new NormService(
             normRepo,
-            directiveRepo,
+            directiveService,
             structureService,
             archetypeService,
             mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
             mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionRepository.class),
+            mock(AscriptionService.class),
             mock(EntityManager.class),
             mock(DataProtectionService.class));
   }
@@ -961,7 +959,8 @@ class NormServiceTest {
 
       NormEntity norm = stubNormWithIds(structDefId, qualDefId, qualId, "encryptionLevel >= 1");
 
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of());
 
       RuleViolationException ex =
@@ -983,7 +982,8 @@ class NormServiceTest {
       UUID directiveQualId = UUID.randomUUID();
       DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
 
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
 
       // Norm qualifier ancestors contain "SecurityProperties"
@@ -1011,7 +1011,8 @@ class NormServiceTest {
       UUID directiveQualId = UUID.randomUUID();
       DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
 
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
 
       // Disjoint lineages
@@ -1042,7 +1043,8 @@ class NormServiceTest {
       UUID directiveQualId = UUID.randomUUID();
       DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
 
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
 
       // Norm qualifier lineage: DetailedSecurity -> SecurityProperties ->
@@ -1083,7 +1085,8 @@ class NormServiceTest {
       // Governance chain passes
       UUID directiveQualId = UUID.randomUUID();
       DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
       when(archetypeService.getAncestorTitles(qualId))
           .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
@@ -1109,7 +1112,8 @@ class NormServiceTest {
       // Governance chain passes
       UUID directiveQualId = UUID.randomUUID();
       DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
       when(archetypeService.getAncestorTitles(qualId))
           .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
@@ -1144,7 +1148,8 @@ class NormServiceTest {
       // Governance chain passes
       UUID directiveQualId = UUID.randomUUID();
       DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-      when(directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
+      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
+              eq(structDefId), anyCollection()))
           .thenReturn(List.of(directive));
       when(archetypeService.getAncestorTitles(qualId))
           .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));

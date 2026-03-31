@@ -8,7 +8,6 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -44,7 +43,7 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
    * @param archetypeService the archetype service for data archetype resolution
    * @param definitionService the definition service
    * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
+   * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
@@ -55,13 +54,13 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
       ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
-      AscriptionRepository ascriptionRepository,
+      AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     super(
         definitionService,
         transitionService,
-        ascriptionRepository,
+        ascriptionService,
         archetypeRepository,
         entityManager,
         dataProtectionService);
@@ -103,6 +102,16 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
     return effectorRepo
         .findById(id)
         .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.EFFECTOR, id));
+  }
+
+  /**
+   * Returns all effectors belonging to a mechanism definition.
+   *
+   * @param mechanismDefinitionId the mechanism definition UUID
+   * @return the matching effector entities
+   */
+  public List<EffectorEntity> findAllByMechanismDefinitionId(UUID mechanismDefinitionId) {
+    return effectorRepo.findAllByMechanismDefinitionId(mechanismDefinitionId);
   }
 
   // ---- Lifecycle descriptors ----

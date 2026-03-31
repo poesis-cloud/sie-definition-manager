@@ -11,10 +11,7 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
-import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
-import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -50,6 +47,7 @@ import net.starlark.java.syntax.StringLiteral;
 import net.starlark.java.syntax.SyntaxError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -126,8 +124,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   private final MechanismRepository mechanismRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
-  private final EffectorRepository effectorRepo;
-  private final ReceptorRepository receptorRepo;
+  private final EffectorService effectorService;
+  private final ReceptorService receptorService;
 
   /**
    * Constructs the Mechanism service with its required dependencies.
@@ -135,11 +133,11 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
    * @param mechanismRepo the mechanism repository
    * @param structureService the structure service for reference resolution
    * @param archetypeService the archetype service for data archetype resolution
-   * @param effectorRepo the effector repository for port auto-derivation
-   * @param receptorRepo the receptor repository for port auto-derivation
+   * @param effectorService the effector service for port auto-derivation (lazy to break cycle)
+   * @param receptorService the receptor service for port auto-derivation (lazy to break cycle)
    * @param definitionService the definition service
    * @param transitionService the status transition service
-   * @param ascriptionRepository the base ascription repository
+   * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
@@ -148,25 +146,25 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       StructureService structureService,
       ArchetypeService archetypeService,
       ArchetypeRepository archetypeRepository,
-      EffectorRepository effectorRepo,
-      ReceptorRepository receptorRepo,
+      @Lazy EffectorService effectorService,
+      @Lazy ReceptorService receptorService,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
-      AscriptionRepository ascriptionRepository,
+      AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     super(
         definitionService,
         transitionService,
-        ascriptionRepository,
+        ascriptionService,
         archetypeRepository,
         entityManager,
         dataProtectionService);
     this.mechanismRepo = mechanismRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
-    this.effectorRepo = effectorRepo;
-    this.receptorRepo = receptorRepo;
+    this.effectorService = effectorService;
+    this.receptorService = receptorService;
   }
 
   @Override
@@ -1107,7 +1105,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         findOrCreatePortDefinition(
             mechanismDefId,
             dataArchetype.getDefinition().getId(),
-            effectorRepo.findAllByMechanismDefinitionId(mechanismDefId),
+            effectorService.findAllByMechanismDefinitionId(mechanismDefId),
             e ->
                 ((EffectorEntity) e)
                     .getOutputArchetype()
@@ -1122,7 +1120,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
     EffectorEntity effector =
         new EffectorEntity(definition, effectorArchetype, statement, mechanism, dataArchetype);
-    EffectorEntity saved = effectorRepo.save(effector);
+    EffectorEntity saved = effectorService.save(effector);
     getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
     getEntityManager().refresh(saved);
     LOG.debug(
@@ -1143,7 +1141,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         findOrCreatePortDefinition(
             mechanismDefId,
             dataArchetype.getDefinition().getId(),
-            receptorRepo.findAllByMechanismDefinitionId(mechanismDefId),
+            receptorService.findAllByMechanismDefinitionId(mechanismDefId),
             e ->
                 ((ReceptorEntity) e)
                     .getInputArchetype()
@@ -1158,7 +1156,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
     ReceptorEntity receptor =
         new ReceptorEntity(definition, receptorArchetype, statement, mechanism, dataArchetype);
-    ReceptorEntity saved = receptorRepo.save(receptor);
+    ReceptorEntity saved = receptorService.save(receptor);
     getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
     getEntityManager().refresh(saved);
     LOG.debug(

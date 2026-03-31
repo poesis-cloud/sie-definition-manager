@@ -21,7 +21,6 @@ import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -55,7 +54,7 @@ class AbstractAscriptionServiceTest {
 
   @Mock private DefinitionService definitionService;
 
-  @Mock private AscriptionRepository ascriptionRepo;
+  @Mock private AscriptionService ascriptionService;
 
   @Mock private AscriptionStatusTransitionService transitionService;
 
@@ -77,7 +76,7 @@ class AbstractAscriptionServiceTest {
         new AbstractAscriptionService<>(
             definitionService,
             transitionService,
-            ascriptionRepo,
+            ascriptionService,
             archetypeRepo,
             entityManager,
             new DataProtectionService()) {
@@ -153,7 +152,7 @@ class AbstractAscriptionServiceTest {
       ObjectNode statement = MAPPER.createObjectNode().put("code", "ALPHA");
 
       // No in-effect ascriptions with same archetype
-      when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+      when(ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
               any(), any(), eq(defId)))
           .thenReturn(List.of());
 
@@ -178,7 +177,7 @@ class AbstractAscriptionServiceTest {
       when(existing.getDefinition()).thenReturn(existingDef);
       when(existing.getStatement()).thenReturn(MAPPER.createObjectNode().put("code", "ALPHA"));
 
-      when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+      when(ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
               any(), any(), eq(defId)))
           .thenReturn(List.of(existing));
 
@@ -205,7 +204,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity existing = mock(AscriptionEntity.class);
       when(existing.getStatement()).thenReturn(MAPPER.createObjectNode().put("code", "BETA"));
 
-      when(ascriptionRepo.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+      when(ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
               any(), any(), eq(defId)))
           .thenReturn(List.of(existing));
 
@@ -478,7 +477,7 @@ class AbstractAscriptionServiceTest {
           new AbstractAscriptionService<>(
               definitionService,
               transitionService,
-              ascriptionRepo,
+              ascriptionService,
               archetypeRepo,
               entityManager,
               new DataProtectionService()) {
@@ -1083,7 +1082,7 @@ class AbstractAscriptionServiceTest {
           new AbstractAscriptionService<>(
               definitionService,
               transitionService,
-              ascriptionRepo,
+              ascriptionService,
               archetypeRepo,
               entityManager,
               new DataProtectionService()) {
