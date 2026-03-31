@@ -7,8 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
@@ -17,6 +20,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -55,6 +59,8 @@ class AbstractAscriptionServiceTest {
 
   @Mock private AscriptionStatusTransitionService transitionService;
 
+  @Mock private ArchetypeRepository archetypeRepo;
+
   @Mock private EntityManager entityManager;
 
   /** Minimal concrete subclass for testing package-private base methods. */
@@ -72,6 +78,7 @@ class AbstractAscriptionServiceTest {
             definitionService,
             transitionService,
             ascriptionRepo,
+            archetypeRepo,
             entityManager,
             new DataProtectionService()) {
           @Override
@@ -360,6 +367,52 @@ class AbstractAscriptionServiceTest {
       assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("Statement validation failed"));
     }
+
+    @Test
+    void tenantArchetypeRef_resolvedFromDb() {
+      // Tenant archetype schema in the DB
+      ObjectNode tenantSchema = MAPPER.createObjectNode();
+      tenantSchema.put("title", "CustomTenantArchetype");
+      tenantSchema.put("type", "object");
+      tenantSchema.putObject("properties").putObject("label").put("type", "string");
+
+      ArchetypeEntity tenantArchetype = mock(ArchetypeEntity.class);
+      when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
+      when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+
+      when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(tenantArchetype));
+
+      // Archetype schema that references tenant archetype
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "CompositeTenant");
+      schema.put("type", "object");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "gsm://archetypes/CustomTenantArchetype/v1");
+      var local = allOf.addObject();
+      local.put("type", "object");
+      local.putObject("properties").putObject("extra").put("type", "integer");
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+      ObjectNode statement = MAPPER.createObjectNode().put("label", "hello").put("extra", 42);
+
+      assertDoesNotThrow(() -> service.validateStatement(statement, archetype));
+    }
+
+    @Test
+    void classpathOnly_usesStaticFactory() {
+      // Schema with only local refs → no DB call
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "PureSelf");
+      schema.put("type", "object");
+      schema.putObject("properties").putObject("val").put("type", "string");
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+      ObjectNode statement = MAPPER.createObjectNode().put("val", "ok");
+
+      assertDoesNotThrow(() -> service.validateStatement(statement, archetype));
+      // archetypeRepo.findAllByStatusIn should NOT be called for classpath-only schemas
+      verify(archetypeRepo, never()).findAllByStatusIn(anyCollection());
+    }
   }
 
   // ========================================================================
@@ -425,6 +478,7 @@ class AbstractAscriptionServiceTest {
               definitionService,
               transitionService,
               ascriptionRepo,
+              archetypeRepo,
               entityManager,
               new DataProtectionService()) {
             @Override
@@ -1029,6 +1083,7 @@ class AbstractAscriptionServiceTest {
               definitionService,
               transitionService,
               ascriptionRepo,
+              archetypeRepo,
               entityManager,
               new DataProtectionService()) {
             @Override

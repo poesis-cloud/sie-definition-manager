@@ -7,6 +7,7 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -51,6 +52,7 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
       ReceptorRepository receptorRepo,
       MechanismService mechanismService,
       ArchetypeService archetypeService,
+      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
       AscriptionRepository ascriptionRepository,
@@ -60,6 +62,7 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
         definitionService,
         transitionService,
         ascriptionRepository,
+        archetypeRepository,
         entityManager,
         dataProtectionService);
     this.receptorRepo = receptorRepo;

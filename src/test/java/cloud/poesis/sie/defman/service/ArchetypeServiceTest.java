@@ -1873,4 +1873,228 @@ class ArchetypeServiceTest {
 
     return archetype;
   }
+
+  // ========================================================================
+  // Descendant resolution API (getAncestorTitles / isDescendantOf)
+  // ========================================================================
+
+  @Nested
+  class DescendantResolution {
+
+    @Test
+    void getAncestorTitles_rootlessArchetype_returnsOwnTitleOnly() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema =
+          MAPPER
+              .createObjectNode()
+              .put("title", "SecurityProperties")
+              .putObject("properties")
+              .putObject("encryptionLevel")
+              .put("type", "string");
+      // Fix: schema must not have nested properties inside properties
+      ObjectNode correctSchema = MAPPER.createObjectNode();
+      correctSchema.put("title", "SecurityProperties");
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(correctSchema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      Set<String> ancestors = service.getAncestorTitles(id);
+
+      assertEquals(Set.of("SecurityProperties"), ancestors);
+    }
+
+    @Test
+    void getAncestorTitles_singleAllOfToBase_returnsOwnPlusBase() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "SecurityProperties");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(schema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      Set<String> ancestors = service.getAncestorTitles(id);
+
+      assertTrue(ancestors.contains("SecurityProperties"));
+      assertTrue(ancestors.contains("StructureArchetype"));
+      assertEquals(2, ancestors.size());
+    }
+
+    @Test
+    void getAncestorTitles_chainThroughIntermediary_resolvesAll() {
+      UUID id = UUID.randomUUID();
+      // Child -> Intermediary -> StructureArchetype (base)
+      ObjectNode childSchema = MAPPER.createObjectNode();
+      childSchema.put("title", "DetailedSecurity");
+      var childAllOf = childSchema.putArray("allOf");
+      childAllOf.addObject().put("$ref", "gsm://archetypes/SecurityProperties/v1");
+
+      ArchetypeEntity childEntity = mock(ArchetypeEntity.class);
+      when(childEntity.getStatement()).thenReturn(childSchema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(childEntity));
+
+      // Intermediary schema in DB
+      ObjectNode intermediarySchema = MAPPER.createObjectNode();
+      intermediarySchema.put("title", "SecurityProperties");
+      var intermediaryAllOf = intermediarySchema.putArray("allOf");
+      intermediaryAllOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+
+      ArchetypeEntity intermediaryEntity = mock(ArchetypeEntity.class);
+      when(intermediaryEntity.getStatement()).thenReturn(intermediarySchema);
+      when(intermediaryEntity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+
+      when(archetypeRepo.findAllByStatusIn(anyCollection()))
+          .thenReturn(List.of(intermediaryEntity));
+
+      Set<String> ancestors = service.getAncestorTitles(id);
+
+      assertTrue(ancestors.contains("DetailedSecurity"));
+      assertTrue(ancestors.contains("SecurityProperties"));
+      assertTrue(ancestors.contains("StructureArchetype"));
+      assertEquals(3, ancestors.size());
+    }
+
+    @Test
+    void isDescendantOf_exactMatch_returnsTrue() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "SecurityProperties");
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(schema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      assertTrue(service.isDescendantOf(id, "SecurityProperties"));
+    }
+
+    @Test
+    void isDescendantOf_viaAllOfChain_returnsTrue() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "DetailedSecurity");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(schema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      assertTrue(service.isDescendantOf(id, "StructureArchetype"));
+    }
+
+    @Test
+    void getAncestorTitles_noTitle_returnsEmpty() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER.createObjectNode();
+      // No title, no allOf
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(schema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      Set<String> ancestors = service.getAncestorTitles(id);
+      assertTrue(ancestors.isEmpty());
+    }
+
+    @Test
+    void getAncestorTitles_unresolvableIntermediary_skipsGracefully() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "Child");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "gsm://archetypes/UnknownParent/v1");
+
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(schema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      // No in-effect archetypes in DB → intermediary not resolvable
+      when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of());
+
+      Set<String> ancestors = service.getAncestorTitles(id);
+
+      assertTrue(ancestors.contains("Child"));
+      assertTrue(ancestors.contains("UnknownParent"));
+      assertEquals(2, ancestors.size());
+    }
+  }
+
+  // ========================================================================
+  // $ref URI policy validation (E1 R2/R3)
+  // ========================================================================
+
+  @Nested
+  class RefUriPolicy {
+
+    @Test
+    void localJsonPointer_accepted() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "MyArchetype");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "#/$defs/SomeLocal");
+
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
+    }
+
+    @Test
+    void gsmUri_accepted() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "MyArchetype");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
+    }
+
+    @Test
+    void httpUri_rejected() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "MyArchetype");
+      var props = schema.putObject("properties");
+      props.putObject("ext").put("$ref", "http://example.com/schema.json");
+
+      var ex =
+          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
+      assertEquals(RuleType.ARCHETYPE_REF_URI_POLICY, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("http://example.com/schema.json"));
+    }
+
+    @Test
+    void httpsUri_rejected() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "MyArchetype");
+      schema.putObject("$defs").putObject("Ext").put("$ref", "https://evil.com/inject.json");
+
+      var ex =
+          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
+      assertEquals(RuleType.ARCHETYPE_REF_URI_POLICY, ex.getRuleType());
+    }
+
+    @Test
+    void deeplyNestedRef_detected() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      var arr = schema.putArray("allOf");
+      var inner = arr.addObject().putObject("properties").putObject("nested");
+      inner.put("$ref", "ftp://bad-host/schema");
+
+      var ex =
+          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
+      assertEquals(RuleType.ARCHETYPE_REF_URI_POLICY, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("ftp://bad-host/schema"));
+    }
+
+    @Test
+    void noRefs_noViolation() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "Plain");
+      schema.putObject("properties").putObject("name").put("type", "string");
+
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
+    }
+
+    @Test
+    void nullSchema_noViolation() {
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(null));
+    }
+  }
 }

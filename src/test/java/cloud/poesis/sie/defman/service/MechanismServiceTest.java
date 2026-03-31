@@ -18,6 +18,7 @@ import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
@@ -78,6 +79,7 @@ class MechanismServiceTest {
             mechanismRepo,
             structureService,
             archetypeService,
+            mock(ArchetypeRepository.class),
             effectorRepo,
             receptorRepo,
             definitionService,

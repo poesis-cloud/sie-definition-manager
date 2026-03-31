@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,6 +139,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         definitionService,
         transitionService,
         ascriptionRepository,
+        archetypeRepo,
         entityManager,
         dataProtectionService);
     this.archetypeRepo = archetypeRepo;
@@ -169,6 +171,9 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
     // GSM §5: allOf chain convergence + §8: $gsm:sealed enforcement
     validateAllOfChain(statement);
+
+    // GSM §8: deep $ref URI policy — reject external URIs everywhere
+    validateRefUriPolicy(statement);
 
     // GSM §8: $gsm:* annotation well-formedness
     validateArchetypeAnnotations(statement, definition.getId());
@@ -376,6 +381,9 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     if (entity instanceof ArchetypeEntity archetypeEntity) {
       // GSM §5: strict allOf chain resolution — all intermediaries must be in-effect.
       validateAllOfChain(archetypeEntity.getStatement(), true);
+      // GSM §8: deep $ref URI policy — reject external URIs everywhere (re-check
+      // in case schema was modified between authoring and activation).
+      validateRefUriPolicy(archetypeEntity.getStatement());
       provisionIndexes(archetypeEntity);
     }
   }
@@ -549,6 +557,84 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   // AllOf chain validation (inlined from AllOfChainValidator)
   // ========================================================================
 
+  // ---- Public descendant resolution API ----
+
+  /**
+   * Returns the set of all ancestor Archetype titles reachable through the allOf chain of the given
+   * archetype. Includes the archetype's own title if present. Does not include titles that cannot
+   * be resolved at the time of the call (lenient mode). GSM base titles are included when reached.
+   *
+   * <p><b>Ordering guarantee:</b> the returned {@link LinkedHashSet} preserves insertion order,
+   * which is nearest-ancestor-first (depth-first, left-to-right traversal of the allOf chain).
+   * The archetype's own title, when present, is always the first element. Callers (e.g.,
+   * {@code NormService} governance chain validation) may rely on this ordering.
+   *
+   * @param archetypeId the ascription ID of the archetype to inspect
+   * @return the set of ancestor titles in nearest-ancestor-first order (may be empty for rootless
+   *     archetypes)
+   */
+  public Set<String> getAncestorTitles(UUID archetypeId) {
+    ArchetypeEntity archetype = findEntityById(archetypeId);
+    JsonNode schema = archetype.getStatement();
+    String title = schema.has("title") ? schema.get("title").asText() : null;
+
+    Set<String> ancestors = new LinkedHashSet<>();
+    if (title != null) {
+      ancestors.add(title);
+    }
+
+    JsonNode allOf = schema.get("allOf");
+    if (allOf == null || !allOf.isArray() || allOf.isEmpty()) {
+      return ancestors;
+    }
+
+    Set<String> visited = new HashSet<>();
+    if (title != null) {
+      visited.add(title);
+    }
+    collectAncestorTitles(allOf, ancestors, visited);
+    return ancestors;
+  }
+
+  /**
+   * Checks whether the given archetype is a descendant (via allOf chain) of an ancestor identified
+   * by title. Returns true if the archetype's own title matches, or if any allOf ancestor matches.
+   *
+   * @param archetypeId the ascription ID of the archetype to check
+   * @param ancestorTitle the title of the potential ancestor
+   * @return true if the archetype descends from the ancestor
+   */
+  public boolean isDescendantOf(UUID archetypeId, String ancestorTitle) {
+    return getAncestorTitles(archetypeId).contains(ancestorTitle);
+  }
+
+  private void collectAncestorTitles(JsonNode allOf, Set<String> ancestors, Set<String> visited) {
+    for (JsonNode entry : allOf) {
+      if (!entry.has("$ref")) {
+        continue;
+      }
+      String ref = entry.get("$ref").asText();
+      String refTitle = extractTitleFromRef(ref);
+      if (refTitle == null || !visited.add(refTitle)) {
+        continue;
+      }
+      ancestors.add(refTitle);
+      if (GSM_BASE_TITLES.contains(refTitle)) {
+        continue;
+      }
+      JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
+      if (intermediateSchema == null) {
+        continue; // lenient: unresolvable intermediary skipped
+      }
+      JsonNode intermediateAllOf = intermediateSchema.get("allOf");
+      if (intermediateAllOf != null && intermediateAllOf.isArray()) {
+        collectAncestorTitles(intermediateAllOf, ancestors, visited);
+      }
+    }
+  }
+
+  // ---- AllOf chain validation ----
+
   void validateAllOfChain(JsonNode schema) {
     validateAllOfChain(schema, false);
   }
@@ -695,6 +781,65 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       return m.group(1);
     }
     return null;
+  }
+
+  // ========================================================================
+  // Deep $ref URI policy scan (R2/R3 from E1 gap register)
+  // ========================================================================
+
+  /**
+   * Recursively scans the entire schema tree for {@code $ref} values and enforces the URI policy:
+   * only local JSON Pointers ({@code #/...}) and {@code gsm://archetypes/{title}/v{version}} URIs
+   * are allowed. Rejects external URIs (http, https, file, etc.) to prevent SSRF and ensure all
+   * schema resolution is local.
+   *
+   * <p>Called at authoring time (buildEntity) to catch prohibited URIs early. The allOf-specific
+   * validation in {@link #walkAllOfChain} remains the authoritative check for allOf chain
+   * semantics; this method is a complementary breadth scan.
+   *
+   * @param schema the archetype JSON Schema to scan
+   * @throws RuleViolationException if any {@code $ref} violates the URI policy
+   */
+  void validateRefUriPolicy(JsonNode schema) {
+    scanRefsRecursively(schema, "$");
+  }
+
+  private void scanRefsRecursively(JsonNode node, String path) {
+    if (node == null) {
+      return;
+    }
+
+    if (node.isObject()) {
+      if (node.has("$ref")) {
+        String ref = node.get("$ref").asText();
+        if (!isAllowedRef(ref)) {
+          throw RuleViolationException.of(
+              RuleType.ARCHETYPE_REF_URI_POLICY,
+              "Prohibited $ref URI at "
+                  + path
+                  + ": '"
+                  + ref
+                  + "'. "
+                  + "Only local JSON Pointers (#/...) and gsm://archetypes/{title}/v{version} "
+                  + "URIs are allowed",
+              "path",
+              path,
+              "ref",
+              ref);
+        }
+      }
+      for (Map.Entry<String, JsonNode> field : node.properties()) {
+        scanRefsRecursively(field.getValue(), path + "." + field.getKey());
+      }
+    } else if (node.isArray()) {
+      for (int i = 0; i < node.size(); i++) {
+        scanRefsRecursively(node.get(i), path + "[" + i + "]");
+      }
+    }
+  }
+
+  private static boolean isAllowedRef(String ref) {
+    return ref.startsWith("#") || GSM_URI_PATTERN.matcher(ref).matches();
   }
 
   // ========================================================================

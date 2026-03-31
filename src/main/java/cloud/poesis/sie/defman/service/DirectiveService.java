@@ -7,6 +7,7 @@ import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -74,6 +75,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
       DirectiveRepository directiveRepo,
       StructureService structureService,
       ArchetypeService archetypeService,
+      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
       AscriptionRepository ascriptionRepository,
@@ -83,6 +85,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
         definitionService,
         transitionService,
         ascriptionRepository,
+        archetypeRepository,
         entityManager,
         dataProtectionService);
     this.directiveRepo = directiveRepo;

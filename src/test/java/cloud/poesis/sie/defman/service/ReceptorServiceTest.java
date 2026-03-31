@@ -14,6 +14,7 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -58,6 +59,7 @@ class ReceptorServiceTest {
             receptorRepo,
             mechanismService,
             archetypeService,
+            mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
             mock(AscriptionStatusTransitionService.class),
             mock(AscriptionRepository.class),

@@ -384,6 +384,27 @@ public enum RuleType {
           + "sustainedThreshold in [0,1]."),
 
   // ====================================================================
+  // NORM — governance chain and conflict detection
+  // ====================================================================
+
+  NORM_GOVERNANCE_CHAIN(
+      "gsm:rules/norm/governance-chain",
+      "Norm governance chain",
+      "A Norm must be legitimated by an in-effect Directive whose "
+          + "purpose matches the Norm's structure and whose qualifier "
+          + "is an ancestor-or-equal of the Norm's qualifier in the "
+          + "allOf chain — no Directive backing means no governance "
+          + "authority for this Norm."),
+
+  NORM_CONFLICT(
+      "gsm:rules/norm/conflict",
+      "Norm conflict",
+      "Norms targeting the same structure and the same or overlapping "
+          + "qualifier lineage must not carry contradictory assertions "
+          + "on the same property paths — conflicting governance "
+          + "constraints indicate a governance design error."),
+
+  // ====================================================================
   // ARCHETYPE — statement validation and allOf chain constraints
   // ====================================================================
 
@@ -415,6 +436,16 @@ public enum RuleType {
       "Archetype allOf seal",
       "A tenant-defined Archetype must not extend a sealed ($gsm:sealed) "
           + "Archetype via allOf — sealed Archetypes are non-extensible."),
+
+  ARCHETYPE_REF_URI_POLICY(
+      "gsm:rules/archetype/ref/uri-policy",
+      "Archetype $ref URI policy",
+      "Every $ref URI in an Archetype schema must be either a local "
+          + "JSON Pointer (starting with '#') or a gsm:// URI following "
+          + "the gsm://archetypes/{title}/v{version} convention. "
+          + "External URIs (http://, https://, file://, etc.) are "
+          + "rejected to prevent SSRF and ensure all schema resolution "
+          + "is local."),
 
   // ====================================================================
   // ARCHETYPE — $gsm:* annotation well-formedness

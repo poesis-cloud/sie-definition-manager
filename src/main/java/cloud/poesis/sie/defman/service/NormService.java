@@ -3,13 +3,17 @@ package cloud.poesis.sie.defman.service;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,6 +32,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -43,6 +49,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class NormService extends AbstractAscriptionService<NormEntity> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(NormService.class);
+
   // ======================================================================
   // CEL profile constants (from CelProfileValidator)
   // ======================================================================
@@ -54,7 +62,11 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
   private static final Set<String> ASSERTION_FORBIDDEN_FUNCTIONS = Set.of("now", "uuid");
 
+  private static final List<AscriptionStatusType> IN_EFFECT =
+      List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
+
   private final NormRepository normRepo;
+  private final DirectiveRepository directiveRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
   private final CelCompiler celParser;
@@ -63,6 +75,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
    * Constructs the Norm service with its required dependencies.
    *
    * @param normRepo the norm repository
+   * @param directiveRepo the directive repository for governance chain checks
    * @param structureService the structure service for reference resolution
    * @param archetypeService the archetype service for qualifier resolution
    * @param definitionService the definition service
@@ -73,8 +86,10 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
    */
   public NormService(
       NormRepository normRepo,
+      DirectiveRepository directiveRepo,
       StructureService structureService,
       ArchetypeService archetypeService,
+      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
       AscriptionRepository ascriptionRepository,
@@ -84,9 +99,11 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         definitionService,
         transitionService,
         ascriptionRepository,
+        archetypeRepository,
         entityManager,
         dataProtectionService);
     this.normRepo = normRepo;
+    this.directiveRepo = directiveRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
     this.celParser = CelCompilerFactory.standardCelCompilerBuilder().build();
@@ -171,6 +188,151 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       values.put("assertion", stmt.get("assertion").asText());
     }
     return values;
+  }
+
+  @Override
+  public void validateActivationUniqueness(AscriptionEntity entity) {
+    var norm = (NormEntity) entity;
+    validateGovernanceChain(norm);
+    validateNormConflict(norm);
+  }
+
+  // ======================================================================
+  // NORM_GOVERNANCE_CHAIN: Directive backing validation
+  // ======================================================================
+
+  private void validateGovernanceChain(NormEntity norm) {
+    UUID structureDefId = norm.getStructure().getDefinition().getId();
+    UUID qualifierId = norm.getQualifier().getId();
+
+    List<DirectiveEntity> directives =
+        directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(structureDefId, IN_EFFECT);
+
+    if (directives.isEmpty()) {
+      throw RuleViolationException.of(
+          RuleType.NORM_GOVERNANCE_CHAIN,
+          "No in-effect Directive targets structure (definition "
+              + structureDefId
+              + ") as purpose — Norm has no governance authority",
+          "structureDefinitionId",
+          structureDefId);
+    }
+
+    Set<String> normAncestors = archetypeService.getAncestorTitles(qualifierId);
+
+    boolean hasLegitimatingDirective =
+        directives.stream()
+            .anyMatch(
+                d -> {
+                  Set<String> directiveAncestors =
+                      archetypeService.getAncestorTitles(d.getQualifier().getId());
+                  // Norm qualifier must be same or descendant of Directive qualifier
+                  // i.e. any Directive ancestor must appear in Norm ancestors
+                  for (String da : directiveAncestors) {
+                    if (normAncestors.contains(da)) {
+                      return true;
+                    }
+                  }
+                  return false;
+                });
+
+    if (!hasLegitimatingDirective) {
+      throw RuleViolationException.of(
+          RuleType.NORM_GOVERNANCE_CHAIN,
+          "No in-effect Directive with purpose (definition "
+              + structureDefId
+              + ") has a qualifier that is ancestor-or-equal of Norm qualifier — "
+              + "Norm qualifier lineage "
+              + normAncestors
+              + " has no overlap with any Directive qualifier lineage",
+          "structureDefinitionId",
+          structureDefId,
+          "normQualifierAncestors",
+          normAncestors.toString());
+    }
+  }
+
+  // ======================================================================
+  // NORM_CONFLICT: Overlapping Norm detection
+  // ======================================================================
+
+  private void validateNormConflict(NormEntity norm) {
+    UUID structureDefId = norm.getStructure().getDefinition().getId();
+    UUID thisDefId = norm.getDefinition().getId();
+    UUID qualifierId = norm.getQualifier().getId();
+
+    Set<String> normAncestors = archetypeService.getAncestorTitles(qualifierId);
+    String normAssertion =
+        norm.getStatement().has("assertion") ? norm.getStatement().get("assertion").asText() : "";
+
+    List<NormEntity> siblings =
+        normRepo.findAllByStructureDefinitionIdAndStatusIn(structureDefId, IN_EFFECT);
+
+    for (NormEntity sibling : siblings) {
+      if (sibling.getDefinition().getId().equals(thisDefId)) {
+        continue;
+      }
+
+      // Check qualifier overlap: sibling's qualifier lineage must intersect norm's lineage
+      Set<String> siblingAncestors =
+          archetypeService.getAncestorTitles(sibling.getQualifier().getId());
+      boolean qualifierOverlap = false;
+      for (String sa : siblingAncestors) {
+        if (normAncestors.contains(sa)) {
+          qualifierOverlap = true;
+          break;
+        }
+      }
+      if (!qualifierOverlap) {
+        continue;
+      }
+
+      // Same assertion text on overlapping qualifier = direct conflict
+      String siblingAssertion =
+          sibling.getStatement().has("assertion")
+              ? sibling.getStatement().get("assertion").asText()
+              : "";
+      if (normAssertion.equals(siblingAssertion)) {
+        // Same assertion is a duplicate, not a conflict — skip
+        continue;
+      }
+
+      // Check assertion property overlap: extract bare property identifiers
+      Set<String> normProps = extractAssertionProperties(normAssertion);
+      Set<String> siblingProps = extractAssertionProperties(siblingAssertion);
+      Set<String> commonProps = new HashSet<>(normProps);
+      commonProps.retainAll(siblingProps);
+
+      if (!commonProps.isEmpty()) {
+        LOG.warn(
+            "[{}] Potential Norm conflict: Norm (definition {}) and sibling {} "
+                + "(definition {}) target overlapping qualifier lineage and "
+                + "assert on common properties {}",
+            RuleType.NORM_CONFLICT.getType(),
+            thisDefId,
+            sibling.getId(),
+            sibling.getDefinition().getId(),
+            commonProps);
+      }
+    }
+  }
+
+  private Set<String> extractAssertionProperties(String assertion) {
+    if (assertion == null || assertion.isBlank()) {
+      return Set.of();
+    }
+    CelValidationResult result = celParser.parse(assertion);
+    if (result.hasError()) {
+      return Set.of();
+    }
+    try {
+      CelExpr ast = result.getAst().getExpr();
+      Set<String> paths = new LinkedHashSet<>();
+      collectPropertyIdents(ast, paths, new HashSet<>());
+      return paths;
+    } catch (CelValidationException e) {
+      return Set.of();
+    }
   }
 
   // ======================================================================

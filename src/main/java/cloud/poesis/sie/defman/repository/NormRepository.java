@@ -1,6 +1,8 @@
 package cloud.poesis.sie.defman.repository;
 
 import cloud.poesis.sie.defman.entity.NormEntity;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -30,4 +32,14 @@ public interface NormRepository extends AbstractAscriptionRepository<NormEntity>
    * @return the matching norm entities
    */
   List<NormEntity> findAllByStructureId(UUID structureId);
+
+  /**
+   * Returns norms targeting the given structure definition and with the given statuses.
+   *
+   * @param structureDefinitionId the governed structure definition UUID
+   * @param statuses the lifecycle statuses to match
+   * @return the matching norm entities
+   */
+  List<NormEntity> findAllByStructureDefinitionIdAndStatusIn(
+      UUID structureDefinitionId, Collection<AscriptionStatusType> statuses);
 }

@@ -8,6 +8,7 @@ import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -53,6 +54,7 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
       InteractionRepository interactionRepo,
       EffectorService effectorService,
       ReceptorService receptorService,
+      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
       AscriptionRepository ascriptionRepository,
@@ -62,6 +64,7 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
         definitionService,
         transitionService,
         ascriptionRepository,
+        archetypeRepository,
         entityManager,
         dataProtectionService);
     this.interactionRepo = interactionRepo;

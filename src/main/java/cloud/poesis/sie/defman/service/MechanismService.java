@@ -10,6 +10,7 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
@@ -146,6 +147,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       MechanismRepository mechanismRepo,
       StructureService structureService,
       ArchetypeService archetypeService,
+      ArchetypeRepository archetypeRepository,
       EffectorRepository effectorRepo,
       ReceptorRepository receptorRepo,
       DefinitionService definitionService,
@@ -157,6 +159,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         definitionService,
         transitionService,
         ascriptionRepository,
+        archetypeRepository,
         entityManager,
         dataProtectionService);
     this.mechanismRepo = mechanismRepo;

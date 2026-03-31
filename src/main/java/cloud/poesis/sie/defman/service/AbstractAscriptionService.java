@@ -6,6 +6,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -20,6 +21,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.resource.DisallowSchemaLoader;
 import dev.cel.common.CelAbstractSyntaxTree;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.types.SimpleType;
@@ -29,9 +31,12 @@ import dev.cel.runtime.CelRuntime;
 import dev.cel.runtime.CelRuntimeFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,11 +73,11 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractAscriptionService.class);
 
   /**
-   * JSON Schema factory configured to resolve {@code gsm://} URIs to classpath resources. GSM §8
-   * security invariant: DM MUST NOT resolve {@code $schema} URIs from incoming tenant schemas via
-   * network — all resolution is local.
+   * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsm://} URIs. Used
+   * when no tenant archetypes need DB resolution. GSM §8 security invariant: DM MUST NOT resolve
+   * {@code $schema} URIs from incoming tenant schemas via network — all resolution is local.
    */
-  private static final JsonSchemaFactory schemaFactory =
+  private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY =
       JsonSchemaFactory.getInstance(
           SpecVersion.VersionFlag.V202012,
           builder ->
@@ -99,6 +104,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   private final DefinitionService definitionService;
   private final AscriptionStatusTransitionService transitionService;
   private final AscriptionRepository ascriptionRepository;
+  private final ArchetypeRepository archetypeRepository;
   private final EntityManager entityManager;
   private final DataProtectionService dataProtectionService;
 
@@ -108,6 +114,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    * @param definitionService the definition service for identity resolution
    * @param transitionService the status transition service
    * @param ascriptionRepository the base ascription repository
+   * @param archetypeRepository the archetype repository for tenant schema resolution
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
@@ -115,11 +122,13 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       DefinitionService definitionService,
       AscriptionStatusTransitionService transitionService,
       AscriptionRepository ascriptionRepository,
+      ArchetypeRepository archetypeRepository,
       EntityManager entityManager,
       DataProtectionService dataProtectionService) {
     this.definitionService = definitionService;
     this.transitionService = transitionService;
     this.ascriptionRepository = ascriptionRepository;
+    this.archetypeRepository = archetypeRepository;
     this.entityManager = entityManager;
     this.dataProtectionService = dataProtectionService;
   }
@@ -763,7 +772,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
     SchemaValidatorsConfig config =
         SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
-    JsonSchema schema = schemaFactory.getSchema(archetypeStatement, config);
+    JsonSchemaFactory factory = buildSchemaFactory(archetypeStatement);
+    JsonSchema schema = factory.getSchema(archetypeStatement, config);
     Set<ValidationMessage> errors = schema.validate(statement);
 
     if (errors.isEmpty()) {
@@ -826,6 +836,123 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
         archetype.getDefinition().getId(),
         "violations",
         messages);
+  }
+
+  // --- Schema factory with tenant-aware resolution (R1 from E1 gap register) ---
+
+  /** GSM base archetype titles that live on classpath. */
+  private static final Set<String> CLASSPATH_ARCHETYPE_TITLES =
+      Set.of(
+          "Archetype",
+          "StructureArchetype",
+          "MechanismArchetype",
+          "EffectorArchetype",
+          "ReceptorArchetype",
+          "InteractionArchetype",
+          "DirectiveArchetype",
+          "NormArchetype");
+
+  private static final java.util.regex.Pattern GSM_URI_PATTERN =
+      java.util.regex.Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
+
+  /**
+   * Builds a {@link JsonSchemaFactory} that resolves gsm:// URIs. GSM base archetypes are resolved
+   * from classpath; tenant archetypes are resolved from the database. Network-based resolution is
+   * blocked via {@link DisallowSchemaLoader}.
+   */
+  private JsonSchemaFactory buildSchemaFactory(JsonNode archetypeSchema) {
+    Map<String, String> tenantSchemaJsonByUri = collectTenantSchemaMap(archetypeSchema);
+
+    if (tenantSchemaJsonByUri.isEmpty()) {
+      return CLASSPATH_SCHEMA_FACTORY;
+    }
+
+    return JsonSchemaFactory.getInstance(
+        SpecVersion.VersionFlag.V202012,
+        builder ->
+            builder
+                .schemaLoaders(
+                    loaders ->
+                        loaders.add(
+                            iri -> {
+                              String uri = iri.toString();
+                              String json = tenantSchemaJsonByUri.get(uri);
+                              if (json != null) {
+                                return () ->
+                                    new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+                              }
+                              return null;
+                            }))
+                .schemaMappers(
+                    mappers ->
+                        mappers.mappings(
+                            uri -> uri.startsWith("gsm://archetypes/"),
+                            uri -> {
+                              if (tenantSchemaJsonByUri.containsKey(uri)) {
+                                return uri;
+                              }
+                              String rest = uri.substring("gsm://archetypes/".length());
+                              String name = rest.split("/")[0];
+                              return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                            })));
+  }
+
+  /**
+   * Scans the archetype schema for gsm:// $ref URIs that reference tenant archetypes (not on
+   * classpath) and preloads them from the database. Returns a map from gsm:// URI to the JSON
+   * content of the resolved schema.
+   */
+  private Map<String, String> collectTenantSchemaMap(JsonNode schema) {
+    Map<String, String> result = new HashMap<>();
+    collectTenantRefs(schema, result);
+    return result;
+  }
+
+  private void collectTenantRefs(JsonNode node, Map<String, String> result) {
+    if (node == null) {
+      return;
+    }
+    if (node.isObject()) {
+      if (node.has("$ref")) {
+        String ref = node.get("$ref").asText();
+        if (!result.containsKey(ref)) {
+          java.util.regex.Matcher m = GSM_URI_PATTERN.matcher(ref);
+          if (m.matches()) {
+            String title = m.group(1);
+            if (!CLASSPATH_ARCHETYPE_TITLES.contains(title)) {
+              resolveTenantArchetypeFromDb(ref, title, result);
+            }
+          }
+        }
+      }
+      for (Map.Entry<String, JsonNode> field : node.properties()) {
+        collectTenantRefs(field.getValue(), result);
+      }
+    } else if (node.isArray()) {
+      for (JsonNode child : node) {
+        collectTenantRefs(child, result);
+      }
+    }
+  }
+
+  private void resolveTenantArchetypeFromDb(String uri, String title, Map<String, String> result) {
+    List<ArchetypeEntity> inEffect =
+        archetypeRepository.findAllByStatusIn(
+            List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
+    for (ArchetypeEntity a : inEffect) {
+      JsonNode stmt = a.getStatement();
+      if (stmt != null && stmt.has("title") && title.equals(stmt.get("title").asText())) {
+        result.put(uri, stmt.toString());
+        // Recursively collect refs from the resolved schema too
+        collectTenantRefs(stmt, result);
+        return;
+      }
+    }
+    LOG.warn(
+        "Tenant archetype '{}' referenced by gsm:// URI '{}' not found in-effect — "
+            + "statement validation may fail if it uses properties from this schema",
+        title,
+        uri);
   }
 
   /**

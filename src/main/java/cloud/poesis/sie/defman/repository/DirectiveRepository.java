@@ -45,4 +45,14 @@ public interface DirectiveRepository extends AbstractAscriptionRepository<Direct
       UUID qualifierDefinitionId,
       UUID purposeDefinitionId,
       Collection<AscriptionStatusType> statuses);
+
+  /**
+   * Returns directives whose purpose targets the given structure definition.
+   *
+   * @param purposeDefinitionId the purpose structure definition UUID
+   * @param statuses the lifecycle statuses to match
+   * @return the matching directive entities
+   */
+  List<DirectiveEntity> findAllByPurposeDefinitionIdAndStatusIn(
+      UUID purposeDefinitionId, Collection<AscriptionStatusType> statuses);
 }

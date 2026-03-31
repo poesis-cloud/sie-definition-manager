@@ -1473,9 +1473,38 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `qualifier`: Reference to the Archetype that the assertion constrains
       — mirrors Directive.qualifier. Enables governance chain
       validation (Norms operationalizing a Directive MUST target the same
-      or descendant
-      Archetype) and direct queryability ("all Norms targeting
-      SecurityProperties") without CEL parsing.
+      or descendant Archetype) and direct queryability ("all Norms
+      targeting SecurityProperties") without CEL parsing.
+
+    **Norm Scope Semantics** (existing rules — informational):
+
+    A Norm operates as a **conditional universal quantifier** over the
+    governed Structure's internal Elements:
+
+      ∀ element ∈ Structure.elements
+        WHERE archetype(element) ⊑ qualifier
+        IF   applicability(element) = true
+        THEN assertion(element) MUST hold
+
+    Key semantics:
+    - **Type matching via descendant resolution**: An element is "typed by"
+      the qualifier Archetype if its own Archetype is the qualifier itself
+      OR a descendant of the qualifier through the `allOf` chain. Elements
+      whose Archetype extends SecurityProperties via allOf ARE typed by
+      SecurityProperties. This uses the same chain resolution as Archetype
+      validation (`walkAllOfChain`).
+    - **Applicability filters by property values**: The `applicability` CEL
+      expression further narrows scope to elements whose qualifier
+      properties match the predicate (e.g., `environment == "production"`).
+    - **No instance-level targeting**: Norms cannot reference specific
+      element instances by Definition ID. Filtering is exclusively by
+      type (qualifier Archetype lineage) plus property values
+      (applicability expression). This is a design constraint, not an
+      omission — it keeps Norms declarative and type-level.
+    - **Vacuous satisfaction**: If zero elements of the governed Structure
+      match the qualifier type, the Norm is vacuously satisfied (true).
+      The assertion is never evaluated when the quantifier's domain is
+      empty.
     - `applicability`: CEL expression conforming to the **applicability
       profile** (default: `"true"`). Activation condition — assertion
       is only evaluated when applicability evaluates to true.

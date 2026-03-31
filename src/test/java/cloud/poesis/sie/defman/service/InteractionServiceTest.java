@@ -13,6 +13,7 @@ import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -56,6 +57,7 @@ class InteractionServiceTest {
             interactionRepo,
             effectorService,
             receptorService,
+            mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
             mock(AscriptionStatusTransitionService.class),
             mock(AscriptionRepository.class),
