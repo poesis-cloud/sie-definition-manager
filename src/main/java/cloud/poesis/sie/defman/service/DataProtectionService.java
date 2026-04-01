@@ -1,7 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.type.RuleType;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.charset.StandardCharsets;
@@ -177,7 +177,7 @@ public class DataProtectionService {
       return hex.toString();
     } catch (NoSuchAlgorithmException e) {
       throw RuleViolationException.of(
-          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
           "keyword",
           "$gsm:dataProtection",

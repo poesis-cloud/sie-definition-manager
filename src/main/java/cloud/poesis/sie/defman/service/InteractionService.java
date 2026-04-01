@@ -10,9 +10,9 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -96,7 +96,7 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
     UUID recArchDefId = receptor.getInputArchetype().getDefinition().getId();
     if (!effArchDefId.equals(recArchDefId)) {
       throw RuleViolationException.of(
-          RuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
+          AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
           "Interaction archetype mismatch: effector output archetype (definition "
               + effArchDefId
               + ") is not compatible with receptor input archetype (definition "

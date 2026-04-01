@@ -16,10 +16,11 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
@@ -121,7 +122,7 @@ class DirectiveServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateActivationUniqueness(directive));
-        assertEquals(RuleType.DIRECTIVE_VERB_COMPATIBILITY, ex.getRuleType());
+        assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
         assertTrue(ex.getMessage().contains("contradiction"));
         assertTrue(ex.getMessage().contains("ENSURE"));
         assertTrue(ex.getMessage().contains("PREVENT"));
@@ -140,7 +141,7 @@ class DirectiveServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateActivationUniqueness(directive));
-        assertEquals(RuleType.DIRECTIVE_VERB_COMPATIBILITY, ex.getRuleType());
+        assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
         assertTrue(ex.getMessage().contains("contradiction"));
       }
     }
@@ -161,7 +162,7 @@ class DirectiveServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateActivationUniqueness(directive));
-        assertEquals(RuleType.DIRECTIVE_MODAL_COMPATIBILITY, ex.getRuleType());
+        assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
         assertTrue(ex.getMessage().contains("modal contradiction"));
       }
 
@@ -178,7 +179,7 @@ class DirectiveServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateActivationUniqueness(directive));
-        assertEquals(RuleType.DIRECTIVE_MODAL_COMPATIBILITY, ex.getRuleType());
+        assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
         assertTrue(ex.getMessage().contains("modal contradiction"));
       }
 
@@ -195,7 +196,7 @@ class DirectiveServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateActivationUniqueness(directive));
-        assertEquals(RuleType.DIRECTIVE_MODAL_COMPATIBILITY, ex.getRuleType());
+        assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
       }
 
       @Test
@@ -211,7 +212,7 @@ class DirectiveServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateActivationUniqueness(directive));
-        assertEquals(RuleType.DIRECTIVE_MODAL_COMPATIBILITY, ex.getRuleType());
+        assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
         assertTrue(ex.getMessage().contains("modal contradiction"));
       }
 
@@ -384,7 +385,9 @@ class DirectiveServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("structure"));
     }
   }

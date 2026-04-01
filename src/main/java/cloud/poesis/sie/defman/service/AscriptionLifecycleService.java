@@ -6,10 +6,10 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -356,7 +356,7 @@ public class AscriptionLifecycleService {
         VALID_TRANSITIONS.getOrDefault(from, EnumSet.noneOf(AscriptionStatusType.class));
     if (allowed.isEmpty()) {
       throw RuleViolationException.of(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
           "Ascription "
               + ascriptionId
               + " is in terminal state "
@@ -372,7 +372,7 @@ public class AscriptionLifecycleService {
     }
     if (!allowed.contains(to)) {
       throw RuleViolationException.of(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
           "Invalid transition from " + from + " to " + to + " for ascription " + ascriptionId,
           "ascriptionId",
           ascriptionId,
@@ -417,7 +417,8 @@ public class AscriptionLifecycleService {
           allowedNames.add(s.name());
         }
         throw RuleViolationException.of(
-            RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            AscriptionStatusTransitionRuleType
+                .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
             "Referee '"
                 + ref.label()
                 + "' ("
@@ -472,7 +473,8 @@ public class AscriptionLifecycleService {
         if (target.getStatus() != fromStatus) {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
-                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                 "Constitutive cascade failed: target "
                     + target.getId()
                     + " ("
@@ -495,7 +497,8 @@ public class AscriptionLifecycleService {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.GOVERNING) {
             LOG.debug(
                 "[{}] Governing cascade skipped: target {} ({}) is {}, expected {}",
-                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
+                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS
+                    .getType(),
                 target.getId(),
                 entry.targetService().getSubjectType().name(),
                 target.getStatus().name(),
@@ -503,7 +506,9 @@ public class AscriptionLifecycleService {
           } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
             LOG.debug(
                 "[{}] Dependent cascade skipped: target {} ({}) is {}, expected {}",
-                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
+                    .getType(),
                 target.getId(),
                 entry.targetService().getSubjectType().name(),
                 target.getStatus().name(),
@@ -519,7 +524,8 @@ public class AscriptionLifecycleService {
         } catch (RuleViolationException e) {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
-                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                 "Constitutive cascade blocked: " + e.getMessage(),
                 e,
                 "cascadeType",
@@ -528,13 +534,16 @@ public class AscriptionLifecycleService {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.GOVERNING) {
             LOG.debug(
                 "[{}] Governing cascade skipped (referee precondition): target {} — {}",
-                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS.getType(),
+                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS
+                    .getType(),
                 target.getId(),
                 e.getMessage());
           } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
             LOG.debug(
                 "[{}] Dependent cascade skipped (referee precondition): target {} — {}",
-                RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS.getType(),
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
+                    .getType(),
                 target.getId(),
                 e.getMessage());
           }
@@ -578,7 +587,8 @@ public class AscriptionLifecycleService {
       }
       LOG.debug(
           "[{}] Governance convergence: sibling {} ({}) → {}",
-          RuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE.getType(),
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE
+              .getType(),
           sibling.getId(),
           siblingStatus.name(),
           terminalStatus.name());
@@ -597,7 +607,8 @@ public class AscriptionLifecycleService {
       if (prev.getId().equals(activating.getId())) continue;
       LOG.debug(
           "[{}] Activation handoff: predecessor {} (ACTIVE → DEPRECATED)",
-          RuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF.getType(),
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF
+              .getType(),
           prev.getId());
       recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
     }

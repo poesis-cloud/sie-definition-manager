@@ -9,10 +9,10 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -114,7 +114,7 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
           s.getStatement().has("purpose") ? s.getStatement().get("purpose").asText() : null;
       if (purpose.equals(sPurpose)) {
         throw RuleViolationException.of(
-            RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
             "Structure purpose '" + purpose + "' already in effect",
             "field",
             "purpose",

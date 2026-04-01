@@ -14,9 +14,9 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
@@ -89,7 +89,9 @@ class StructureServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-      assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("order-processing"));
       assertTrue(ex.getMessage().contains("already in"));
     }

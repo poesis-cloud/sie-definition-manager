@@ -9,10 +9,10 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.Collection;
@@ -194,7 +194,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
 
       if (!verb.equals(sibVerb) && CONTRADICTORY_VERB_PAIRS.contains(Set.of(verb, sibVerb))) {
         throw RuleViolationException.of(
-            RuleType.DIRECTIVE_VERB_COMPATIBILITY,
+            AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB,
             "Directive contradiction: "
                 + verb
                 + " and "
@@ -219,7 +219,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
 
       if (verb.equals(sibVerb) && areModalContradictions(modal, sibModal)) {
         throw RuleViolationException.of(
-            RuleType.DIRECTIVE_MODAL_COMPATIBILITY,
+            AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL,
             "Directive modal contradiction: "
                 + modal
                 + " "

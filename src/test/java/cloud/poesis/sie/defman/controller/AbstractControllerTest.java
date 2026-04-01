@@ -18,10 +18,12 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
@@ -314,7 +316,7 @@ class AbstractControllerTest {
     void ruleViolation_badRequest() {
       RuleViolationException ex =
           new RuleViolationException(
-              RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+              AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
               "Statement does not match schema");
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
@@ -327,7 +329,8 @@ class AbstractControllerTest {
     void ruleViolation_conflict() {
       RuleViolationException ex =
           new RuleViolationException(
-              RuleType.ASCRIPTION_STATUS_TRANSITION_PATH, "Invalid transition path");
+              AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
+              "Invalid transition path");
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(409, pd.getStatus());
@@ -335,23 +338,13 @@ class AbstractControllerTest {
     }
 
     @Test
-    void ruleViolation_internalServerError_delegatesToGenericHandler() {
-      RuleViolationException ex =
-          new RuleViolationException(
-              RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, "Invariant violated");
-      ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
-
-      assertEquals(500, pd.getStatus());
-      assertEquals("Unexpected server error", pd.getDetail());
-      assertEquals("Internal server error", pd.getTitle());
-    }
-
-    @Test
     void ruleViolation_withSite_includesExtensions() {
       Map<String, Object> site = Map.of("definitionId", UUID.randomUUID().toString());
       RuleViolationException ex =
           new RuleViolationException(
-              RuleType.NORM_APPLICABILITY_CEL_PARSING, "CEL parse error", site);
+              AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
+              "CEL parse error",
+              site);
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(400, pd.getStatus());
@@ -398,23 +391,22 @@ class AbstractControllerTest {
 
     @Test
     void allBadRequestRuleTypes_mapToBadRequest() {
-      RuleType[] badRequestTypes = {
-        RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-        RuleType.MECHANISM_RULE_STARLARK_PARSING,
-        RuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
-        RuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
-        RuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
-        RuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,
-        RuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
-        RuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
-        RuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-        RuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
-        RuleType.NORM_APPLICABILITY_CEL_PARSING,
-        RuleType.NORM_ASSERTION_CEL_PARSING,
-        RuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
-        RuleType.ARCHETYPE_VALIDATION_CEL_PARSING,
+      AscriptionConsistencyRuleType[] badRequestTypes = {
+        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+        AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING,
+        AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
+        AscriptionConsistencyRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
+        AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+        AscriptionConsistencyRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,
+        AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+        AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
+        AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+        AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
+        AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
+        AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
+        AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
       };
-      for (RuleType rt : badRequestTypes) {
+      for (AscriptionConsistencyRuleType rt : badRequestTypes) {
         RuleViolationException ex = new RuleViolationException(rt, "test");
         ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
         assertEquals(400, pd.getStatus(), "Expected 400 for " + rt);
@@ -423,24 +415,32 @@ class AbstractControllerTest {
 
     @Test
     void allConflictRuleTypes_mapToConflict() {
-      RuleType[] conflictTypes = {
-        RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-        RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
-        RuleType.DIRECTIVE_VERB_COMPATIBILITY,
-        RuleType.DIRECTIVE_MODAL_COMPATIBILITY,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF,
-        RuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
+      AscriptionConsistencyRuleType[] conflictTypes = {
+        AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+        AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
       };
-      for (RuleType rt : conflictTypes) {
+      for (AscriptionConsistencyRuleType rt : conflictTypes) {
         RuleViolationException ex = new RuleViolationException(rt, "test");
         ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
         assertEquals(409, pd.getStatus(), "Expected 409 for " + rt);
+      }
+    }
+
+    @Test
+    void allTransitionRuleTypes_mapToConflict() {
+      for (AscriptionStatusTransitionRuleType trt : AscriptionStatusTransitionRuleType.values()) {
+        RuleViolationException ex = new RuleViolationException(trt, "test");
+        ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
+        assertEquals(409, pd.getStatus(), "Expected 409 for " + trt);
+      }
+    }
+
+    @Test
+    void allAppraisalRuleTypes_mapToConflict() {
+      for (AppraisalRuleType art : AppraisalRuleType.values()) {
+        RuleViolationException ex = new RuleViolationException(art, "test");
+        ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
+        assertEquals(409, pd.getStatus(), "Expected 409 for " + art);
       }
     }
   }

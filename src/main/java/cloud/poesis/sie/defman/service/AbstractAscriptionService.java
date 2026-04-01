@@ -7,10 +7,11 @@ import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -148,61 +149,89 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   // Used to classify validation errors as GSM-base vs tenant-extension.
   private static final Map<DefinitionSubjectType, Set<String>> GSM_BASE_PROPERTIES =
       Map.of(
-          DefinitionSubjectType.STRUCTURE, Set.of("purpose"),
-          DefinitionSubjectType.MECHANISM, Set.of("structure", "function", "rule"),
-          DefinitionSubjectType.EFFECTOR, Set.of("mechanism", "archetype"),
-          DefinitionSubjectType.RECEPTOR, Set.of("mechanism", "archetype"),
-          DefinitionSubjectType.INTERACTION, Set.of("effector", "receptor"),
+          DefinitionSubjectType.STRUCTURE,
+          Set.of("purpose"),
+          DefinitionSubjectType.MECHANISM,
+          Set.of("structure", "function", "rule"),
+          DefinitionSubjectType.EFFECTOR,
+          Set.of("mechanism", "archetype"),
+          DefinitionSubjectType.RECEPTOR,
+          Set.of("mechanism", "archetype"),
+          DefinitionSubjectType.INTERACTION,
+          Set.of("effector", "receptor"),
           DefinitionSubjectType.DIRECTIVE,
-              Set.of("structure", "modal", "verb", "qualifier", "purpose"),
+          Set.of("structure", "modal", "verb", "qualifier", "purpose"),
           DefinitionSubjectType.NORM,
-              Set.of(
-                  "structure",
-                  "qualifier",
-                  "applicability",
-                  "assertion",
-                  "toleranceMode",
-                  "temporalWindow",
-                  "temporalAggregation",
-                  "sustainedThreshold"));
+          Set.of(
+              "structure",
+              "qualifier",
+              "applicability",
+              "assertion",
+              "toleranceMode",
+              "temporalWindow",
+              "temporalAggregation",
+              "sustainedThreshold"));
 
-  // Known PostgreSQL constraint → RuleType mapping (auto-generated FK names
+  // Known PostgreSQL constraint → AscriptionConsistencyRuleType mapping
+  // (auto-generated FK names
   // and partial unique indexes)
-  static final Map<String, RuleType> CONSTRAINT_TO_RULE =
+  static final Map<String, AscriptionConsistencyRuleType> CONSTRAINT_TO_RULE =
       Map.ofEntries(
           // Directive reference FKs
           Map.entry(
-              "directive_structure_id_fkey", RuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY),
+              "directive_structure_id_fkey",
+              AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY),
           Map.entry(
-              "directive_qualifier_id_fkey", RuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
-          Map.entry("directive_purpose_id_fkey", RuleType.DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY),
+              "directive_qualifier_id_fkey",
+              AscriptionConsistencyRuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
+          Map.entry(
+              "directive_purpose_id_fkey",
+              AscriptionConsistencyRuleType.DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY),
           // Norm reference FKs
-          Map.entry("norm_structure_id_fkey", RuleType.NORM_STRUCTURE_REFERENCE_INTEGRITY),
-          Map.entry("norm_qualifier_id_fkey", RuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
+          Map.entry(
+              "norm_structure_id_fkey",
+              AscriptionConsistencyRuleType.NORM_STRUCTURE_REFERENCE_INTEGRITY),
+          Map.entry(
+              "norm_qualifier_id_fkey",
+              AscriptionConsistencyRuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
           // Effector / Receptor reference FKs
-          Map.entry("effector_mechanism_id_fkey", RuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
           Map.entry(
-              "effector_output_archetype_id_fkey", RuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY),
-          Map.entry("receptor_mechanism_id_fkey", RuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
+              "effector_mechanism_id_fkey",
+              AscriptionConsistencyRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
           Map.entry(
-              "receptor_input_archetype_id_fkey", RuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY),
+              "effector_output_archetype_id_fkey",
+              AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY),
+          Map.entry(
+              "receptor_mechanism_id_fkey",
+              AscriptionConsistencyRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
+          Map.entry(
+              "receptor_input_archetype_id_fkey",
+              AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY),
           // Mechanism structure FK
           Map.entry(
-              "mechanism_structure_id_fkey", RuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY),
+              "mechanism_structure_id_fkey",
+              AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY),
           // Interaction reference FKs
           Map.entry(
-              "interaction_effector_id_fkey", RuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
+              "interaction_effector_id_fkey",
+              AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
           Map.entry(
-              "interaction_receptor_id_fkey", RuleType.INTERACTION_RECEPTOR_REFERENCE_INTEGRITY),
+              "interaction_receptor_id_fkey",
+              AscriptionConsistencyRuleType.INTERACTION_RECEPTOR_REFERENCE_INTEGRITY),
           // Archetype self-typing FK
-          Map.entry("archetype_typed_by_fk", RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY),
+          Map.entry(
+              "archetype_typed_by_fk",
+              AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY),
           // Identity uniqueness indexes
           Map.entry(
-              "uq_structure_purpose", RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+              "uq_structure_purpose",
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
           Map.entry(
-              "uq_mechanism_function", RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+              "uq_mechanism_function",
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
           Map.entry(
-              "uq_archetype_title", RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS));
+              "uq_archetype_title",
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS));
 
   // ======================================================================
   // Persistence exception translation
@@ -218,9 +247,9 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   static RuntimeException translatePersistenceException(DataIntegrityViolationException ex) {
     String constraintName = extractConstraintName(ex);
     if (constraintName != null) {
-      RuleType ruleType = CONSTRAINT_TO_RULE.get(constraintName);
+      AscriptionConsistencyRuleType ruleType = CONSTRAINT_TO_RULE.get(constraintName);
       if (ruleType == null && constraintName.endsWith("_archetype_id_fkey")) {
-        ruleType = RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
+        ruleType = AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
       }
       if (ruleType != null) {
         return RuleViolationException.of(
@@ -267,8 +296,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    *
    * @return the statement validation rule type
    */
-  protected RuleType statementValidationRule() {
-    return RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+  protected AscriptionConsistencyRuleType statementValidationRule() {
+    return AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
   }
 
   /**
@@ -276,10 +305,10 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    *
    * @return the non-GSM statement validation rule type, or {@code null} for sealed types
    */
-  protected RuleType extensionStatementValidationRule() {
+  protected AscriptionConsistencyRuleType extensionStatementValidationRule() {
     return switch (getSubjectType()) {
       case STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, DIRECTIVE, NORM ->
-          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
       case ARCHETYPE -> null; // Archetype meta-schema is GSM-only, not tenant-extensible
     };
   }
@@ -703,7 +732,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       Object firstVal = firstValues.get(field);
       if (!Objects.equals(newVal, firstVal)) {
         throw RuleViolationException.of(
-            RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
             "Identity-bound field '"
                 + field
                 + "' changed: expected '"
@@ -737,7 +766,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       AscriptionStatusType refStatus = ref.reference().getStatus();
       if (!CREATION_REFEREE_ALLOWED.contains(refStatus)) {
         throw RuleViolationException.of(
-            RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            AscriptionStatusTransitionRuleType
+                .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
             "Referee '"
                 + ref.label()
                 + "' ("
@@ -789,7 +819,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
     // For extensible subject types (Structure, Mechanism, Interaction),
     // classify errors as GSM-base vs tenant-extension violations.
     Set<String> baseProps = GSM_BASE_PROPERTIES.get(getSubjectType());
-    RuleType extensionRule = extensionStatementValidationRule();
+    AscriptionConsistencyRuleType extensionRule = extensionStatementValidationRule();
 
     if (baseProps != null && extensionRule != null) {
       List<String> baseMessages = new ArrayList<>();
@@ -1050,7 +1080,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
             existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
         if (valueStr.equals(existingStr)) {
           throw RuleViolationException.of(
-              RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
               propName
                   + " '"
                   + valueStr
@@ -1090,7 +1120,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
     if (!newStr.equals(firstStr)) {
       throw RuleViolationException.of(
-          RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           "Identity-bound field '"
               + propName
               + "' changed: expected '"

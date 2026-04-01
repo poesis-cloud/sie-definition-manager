@@ -11,11 +11,10 @@ import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -77,14 +76,13 @@ class DefinitionServiceTest {
     }
 
     @Test
-    void throwsRuleViolation_whenNoAscriptions() {
+    void throwsInternalException_whenNoAscriptions() {
       UUID id = UUID.randomUUID();
       DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.STRUCTURE, false);
       when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.getById(id));
-      assertEquals(RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, ex.getRuleType());
+      InternalException ex = assertThrows(InternalException.class, () -> service.getById(id));
+      assertTrue(ex.getMessage().contains("no ascriptions"));
     }
   }
 
@@ -113,15 +111,15 @@ class DefinitionServiceTest {
     }
 
     @Test
-    void throwsRuleViolation_whenNoAscriptions() {
+    void throwsInternalException_whenNoAscriptions() {
       UUID id = UUID.randomUUID();
       DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.MECHANISM, false);
       when(definitionRepository.findWithAscriptionArchetypesById(id))
           .thenReturn(Optional.of(entity));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.getByIdWithArchetypes(id));
-      assertEquals(RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT, ex.getRuleType());
+      InternalException ex =
+          assertThrows(InternalException.class, () -> service.getByIdWithArchetypes(id));
+      assertTrue(ex.getMessage().contains("no ascriptions"));
     }
   }
 

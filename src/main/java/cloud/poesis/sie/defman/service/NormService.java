@@ -10,10 +10,11 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
@@ -196,7 +197,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_GOVERNANCE_CHAIN: Directive backing validation
+  // NORM_DIRECTED: Directive backing validation
   // ======================================================================
 
   private void validateGovernanceChain(NormEntity norm) {
@@ -208,7 +209,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
     if (directives.isEmpty()) {
       throw RuleViolationException.of(
-          RuleType.NORM_GOVERNANCE_CHAIN,
+          AppraisalRuleType.NORM_DIRECTED,
           "No in-effect Directive targets structure (definition "
               + structureDefId
               + ") as purpose — Norm has no governance authority",
@@ -236,7 +237,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
     if (!hasLegitimatingDirective) {
       throw RuleViolationException.of(
-          RuleType.NORM_GOVERNANCE_CHAIN,
+          AppraisalRuleType.NORM_DIRECTED,
           "No in-effect Directive with purpose (definition "
               + structureDefId
               + ") has a qualifier that is ancestor-or-equal of Norm qualifier — "
@@ -251,7 +252,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_CONFLICT: Overlapping Norm detection
+  // NORM_COMPATIBILITY: Overlapping Norm detection
   // ======================================================================
 
   private void validateNormConflict(NormEntity norm) {
@@ -307,7 +308,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
             "[{}] Potential Norm conflict: Norm (definition {}) and sibling {} "
                 + "(definition {}) target overlapping qualifier lineage and "
                 + "assert on common properties {}",
-            RuleType.NORM_CONFLICT.getType(),
+            AppraisalRuleType.NORM_COMPATIBILITY.getType(),
             thisDefId,
             sibling.getId(),
             sibling.getDefinition().getId(),
@@ -352,7 +353,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   void validateAssertion(String assertion) {
     if (assertion == null || assertion.isBlank()) {
       throw RuleViolationException.of(
-          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "Assertion must not be empty",
           "field",
           "assertion");
@@ -367,7 +368,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     CelValidationResult result = compiler.parse(expression);
     if (result.hasError()) {
       throw RuleViolationException.of(
-          RuleType.NORM_APPLICABILITY_CEL_PARSING,
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
           "Applicability CEL parse error: " + result.getErrorString(),
           "field",
           "applicability");
@@ -376,7 +377,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       return result.getAst().getExpr();
     } catch (CelValidationException e) {
       throw RuleViolationException.of(
-          RuleType.NORM_APPLICABILITY_CEL_PARSING,
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
           "Applicability CEL validation error: " + e.getMessage(),
           e,
           "field",
@@ -388,7 +389,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     CelValidationResult result = compiler.parse(expression);
     if (result.hasError()) {
       throw RuleViolationException.of(
-          RuleType.NORM_ASSERTION_CEL_PARSING,
+          AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
           "Assertion CEL parse error: " + result.getErrorString(),
           "field",
           "assertion");
@@ -397,7 +398,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       return result.getAst().getExpr();
     } catch (CelValidationException e) {
       throw RuleViolationException.of(
-          RuleType.NORM_ASSERTION_CEL_PARSING,
+          AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
           "Assertion CEL validation error: " + e.getMessage(),
           e,
           "field",
@@ -419,7 +420,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if ("_||_".equals(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
               "Applicability profile violation: '||' (OR) is forbidden. "
                   + "The applicability expression must be a pure conjunction. "
                   + "Use 'in [...]' for set membership instead of OR.",
@@ -430,7 +431,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if ("_?_:_".equals(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
               "Applicability profile violation: ternary operator (?:) is forbidden in applicability expressions.",
               "field",
               "applicability",
@@ -439,7 +440,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
               "Applicability profile violation: arithmetic operators are forbidden in guard expressions.",
               "field",
               "applicability",
@@ -464,7 +465,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         if (call.target().isPresent()) {
           if (!APPLICABILITY_ALLOWED_FUNCTIONS.contains(fn)) {
             throw RuleViolationException.of(
-                RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+                AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
                 "Applicability profile violation: only .matches() is allowed as a function call. "
                     + "Found: ."
                     + fn
@@ -478,7 +479,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
             String axis = extractAxis(call.target().get());
             if (axis != null && !axes.add(axis)) {
               throw RuleViolationException.of(
-                  RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+                  AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
                   "Applicability profile violation: duplicate axis '"
                       + axis
                       + "'. At most one applicability predicate per (Archetype, propertyPath).",
@@ -491,7 +492,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           return;
         }
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             "Applicability profile violation: function call '"
                 + fn
                 + "' is forbidden. Only comparison operators and .matches() are allowed.",
@@ -519,7 +520,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     }
     if (predAxes.size() > 1) {
       throw RuleViolationException.of(
-          RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
           "Applicability profile violation: cross-property comparison detected. "
               + "Each applicability predicate must compare a single property to a literal. "
               + "Found axes: "
@@ -532,7 +533,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     for (String axis : predAxes) {
       if (!axes.add(axis)) {
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             "Applicability profile violation: duplicate axis '"
                 + axis
                 + "'. At most one applicability predicate per (Archetype, propertyPath).",
@@ -552,7 +553,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         String fn = call.function();
         if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+              AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
               "Applicability profile violation: arithmetic operators are forbidden in guard expressions.",
               "field",
               "applicability",
@@ -560,7 +561,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
               fn);
         }
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             "Applicability profile violation: function call '"
                 + fn
                 + "' is forbidden in applicability comparison operands. "
@@ -639,7 +640,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         String fn = call.function();
         if (ASSERTION_FORBIDDEN_FUNCTIONS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_AS_DETERMINISTIC_EXPRESSION,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_AS_DETERMINISTIC_EXPRESSION,
               "Assertion profile violation: non-deterministic functions (now(), uuid()) are forbidden. "
                   + "Assertion must be deterministic and side-effect-free.",
               "field",
@@ -663,7 +664,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           String rootName = root.exprKind().ident().name();
           if ("self".equals(rootName)) {
             throw RuleViolationException.of(
-                RuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
+                AscriptionConsistencyRuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
                 "Assertion profile violation: use bare qualifier property names, "
                     + "not 'self.' prefix. "
                     + "Example: 'encryptionLevel' instead of 'self."
@@ -676,7 +677,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
           }
           if (Character.isUpperCase(rootName.charAt(0))) {
             throw RuleViolationException.of(
-                RuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
+                AscriptionConsistencyRuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
                 "Assertion profile violation: use bare qualifier property names, "
                     + "not an explicit Archetype name. "
                     + "Example: 'encryptionLevel' instead of '"
@@ -719,7 +720,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     List<CelExpr> elements = list.elements();
     if (elements.size() < 2) {
       throw RuleViolationException.of(
-          RuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
           "Applicability 'in' list must have >= 2 elements (single value → use '=='). Found: "
               + elements.size(),
           "elementCount",
@@ -737,7 +738,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         firstKind = kind;
       } else if (kind != firstKind) {
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
             "Applicability 'in' list elements must be type-homogeneous. "
                 + "Mixed types: "
                 + firstKind
@@ -751,7 +752,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       String repr = constantToString(c);
       if (!seen.add(repr)) {
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
             "Applicability 'in' list elements must be unique. Duplicate: " + repr,
             "duplicate",
             repr);
@@ -788,7 +789,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       Optional<ArchetypeEntity> archetype = archetypeService.findInEffectByTitle(archetypeName);
       if (archetype.isEmpty()) {
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION,
             "Applicability references Archetype '"
                 + archetypeName
                 + "' which does not exist as an active Archetype",
@@ -801,7 +802,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       JsonNode schema = archetype.get().getStatement();
       if (!resolveSchemaProperty(schema, propertyPath)) {
         throw RuleViolationException.of(
-            RuleType.NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION,
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION,
             "Applicability references property '"
                 + propertyPath
                 + "' which does not exist in Archetype '"
@@ -856,7 +857,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT,
               "Assertion top-level expression is arithmetic ('" + fn + "') — must evaluate to bool",
               "function",
               fn);
@@ -867,7 +868,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         CelConstant c = kind.constant();
         if (c.getKind() != CelConstant.Kind.BOOLEAN_VALUE) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT,
               "Assertion top-level expression is a non-boolean constant ("
                   + c.getKind()
                   + ") — must evaluate to bool",
@@ -898,7 +899,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       if (!resolveSchemaProperty(schema, path)) {
         String title = schema.has("title") ? schema.get("title").asText() : "(unknown)";
         throw RuleViolationException.of(
-            RuleType.NORM_ASSERTION_PROPERTY_PATH_RESOLUTION,
+            AscriptionConsistencyRuleType.NORM_ASSERTION_PROPERTY_PATH_RESOLUTION,
             "Assertion references '"
                 + path
                 + "' which does not exist in qualifier Archetype '"
@@ -981,7 +982,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       case "INSTANTANEOUS" -> {
         if (hasWindow || hasAggregation || hasThreshold) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "INSTANTANEOUS mode forbids temporalWindow, temporalAggregation,"
                   + " and sustainedThreshold",
               "toleranceMode",
@@ -997,7 +998,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       case "AGGREGATED" -> {
         if (!hasWindow || !hasAggregation) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "AGGREGATED mode requires temporalWindow and temporalAggregation",
               "toleranceMode",
               mode,
@@ -1008,7 +1009,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         }
         if (hasThreshold) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "AGGREGATED mode forbids sustainedThreshold",
               "toleranceMode",
               mode);
@@ -1017,7 +1018,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       case "SUSTAINED" -> {
         if (!hasWindow || !hasAggregation || !hasThreshold) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "SUSTAINED mode requires temporalWindow, temporalAggregation,"
                   + " and sustainedThreshold",
               "toleranceMode",
@@ -1032,7 +1033,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
         double threshold = statement.get("sustainedThreshold").asDouble();
         if (threshold < 0.0 || threshold > 1.0) {
           throw RuleViolationException.of(
-              RuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
+              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
               "sustainedThreshold must be in [0, 1]. Found: " + threshold,
               "toleranceMode",
               mode,

@@ -21,11 +21,11 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.service.MechanismService.PortSignature;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
@@ -170,7 +170,9 @@ class MechanismServiceTest {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-        assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("UserValidation"));
         assertTrue(ex.getMessage().contains("already in"));
       }
@@ -655,21 +657,27 @@ class MechanismServiceTest {
       void nullRule_rejected() {
         RuleViolationException ex =
             assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(null));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            ex.getRuleType());
       }
 
       @Test
       void emptyRule_rejected() {
         RuleViolationException ex =
             assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(""));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            ex.getRuleType());
       }
 
       @Test
       void blankRule_rejected() {
         RuleViolationException ex =
             assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule("   "));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            ex.getRuleType());
       }
 
       @Test
@@ -677,7 +685,8 @@ class MechanismServiceTest {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class, () -> service.validateStarlarkRule("def foo(:::"));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
         assertTrue(ex.getMessage().contains("syntax error"));
       }
     }
@@ -691,7 +700,9 @@ class MechanismServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateStarlarkRule("sys.effect(\"X\", {})"));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("sys.receive("));
       }
 
@@ -706,7 +717,9 @@ class MechanismServiceTest {
                     sys.receive()
                     sys.effect("X", {})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("one positional string argument"));
       }
 
@@ -722,7 +735,9 @@ class MechanismServiceTest {
                     sys.receive(name)
                     sys.effect("X", {})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("sys.receive(") || ex.getMessage().contains("first"));
       }
 
@@ -737,7 +752,9 @@ class MechanismServiceTest {
                     sys.receive("")
                     sys.effect("X", {})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("empty"));
       }
 
@@ -752,7 +769,9 @@ class MechanismServiceTest {
                     sys.receive("First")
                     sys.receive("Second")
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("exactly one sys.receive()"));
       }
     }
@@ -772,7 +791,9 @@ class MechanismServiceTest {
                     sys.receive("X")
                     sys.effect("Y", {})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("load()"));
       }
     }
@@ -792,7 +813,8 @@ class MechanismServiceTest {
                     archetype = "DynamicType"
                     sys.effect(archetype, {})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("string literal"));
       }
 
@@ -807,7 +829,8 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect()
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("1-2 positional"));
       }
 
@@ -822,7 +845,8 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("A", {}, "extra")
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("1-2 positional"));
       }
 
@@ -838,7 +862,8 @@ class MechanismServiceTest {
                     port = "MyPort"
                     sys.effect("Output", {}).by(port)
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("string literal"));
       }
 
@@ -853,7 +878,8 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {}).receive()
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains(".receive()"));
       }
 
@@ -868,7 +894,7 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {}).on("MyPort")
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
+        assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
         assertTrue(ex.getMessage().contains(".on()"));
       }
 
@@ -883,7 +909,7 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {}).receive("Ack").by("Port")
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
+        assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Invalid chain order"));
       }
 
@@ -898,7 +924,7 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {}).then("X")
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
+        assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown chain method"));
       }
 
@@ -913,7 +939,7 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {}).receive("A").receive("B")
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
+        assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
       }
     }
 
@@ -932,7 +958,9 @@ class MechanismServiceTest {
                     result = unknown_func()
                     sys.effect("Output", {"r": result})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown globals"));
         assertTrue(ex.getMessage().contains("unknown_func"));
       }
@@ -948,7 +976,9 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {"val": external_var})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown globals"));
       }
     }
@@ -977,7 +1007,9 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {"name": sys.name})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown sys property"));
         assertTrue(ex.getMessage().contains("sys.name"));
       }
@@ -993,7 +1025,9 @@ class MechanismServiceTest {
                     sys.receive("Input")
                     sys.effect("Output", {"v": sys.version})
                     """));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+            ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown sys property"));
       }
     }
@@ -1019,7 +1053,8 @@ class MechanismServiceTest {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
         assertTrue(ex.getMessage().contains("execution budget"));
         assertTrue(ex.getMessage().contains(String.valueOf(MechanismService.MAX_RULE_STATEMENTS)));
       }
@@ -1033,7 +1068,8 @@ class MechanismServiceTest {
         RuleViolationException ex =
             assertThrows(
                 RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
-        assertEquals(RuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
         assertTrue(ex.getMessage().contains("execution budget"));
       }
     }
@@ -1069,7 +1105,9 @@ class MechanismServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("tenant-extended"));
     }
   }

@@ -10,6 +10,10 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
+import cloud.poesis.sie.defman.type.GsmRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URI;
 import java.util.Map;
@@ -177,7 +181,21 @@ public abstract class AbstractController {
    * @return the corresponding HTTP status
    */
   private static HttpStatus mapRuleViolationTypeToHttpStatus(RuleViolationException exception) {
-    return switch (exception.getRuleType()) {
+    GsmRuleType rule = exception.getRuleType();
+    if (rule instanceof AscriptionConsistencyRuleType rt) {
+      return mapRuleTypeToHttpStatus(rt);
+    }
+    if (rule instanceof AscriptionStatusTransitionRuleType) {
+      return HttpStatus.CONFLICT;
+    }
+    if (rule instanceof AppraisalRuleType) {
+      return HttpStatus.CONFLICT;
+    }
+    throw new IllegalStateException("Unhandled GsmRuleType: " + rule);
+  }
+
+  private static HttpStatus mapRuleTypeToHttpStatus(AscriptionConsistencyRuleType rt) {
+    return switch (rt) {
       case ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           MECHANISM_RULE_STARLARK_PARSING,
@@ -215,34 +233,15 @@ public abstract class AbstractController {
           NORM_ASSERTION_AS_BOOLEAN_RESULT,
           NORM_ASSERTION_PROPERTY_PATH_RESOLUTION,
           NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-          ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
-          ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
-          ARCHETYPE_ALLOF_SEAL,
-          ARCHETYPE_REF_URI_POLICY,
-          ARCHETYPE_ANNOTATION_QUERYABLE,
-          ARCHETYPE_ANNOTATION_DATA_PROTECTION,
-          ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY,
-          ARCHETYPE_VALIDATION_CEL_PARSING,
-          ARCHETYPE_VALIDATION_CEL_CONSTRUCT_BLACKLIST,
-          ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING,
-          ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT ->
+          ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+          ARCHETYPE_ALLOF_ACYCLICITY,
+          ARCHETYPE_ALLOF_NON_SEALED,
+          ARCHETYPE_REF_NORM,
+          ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY ->
           HttpStatus.BAD_REQUEST;
       case ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-          ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
-          DIRECTIVE_VERB_COMPATIBILITY,
-          DIRECTIVE_MODAL_COMPATIBILITY,
-          NORM_GOVERNANCE_CHAIN,
-          NORM_CONFLICT,
-          ASCRIPTION_STATUS_TRANSITION_PATH,
-          ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
-          ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
-          ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS,
-          ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS,
-          ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,
-          ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF,
-          ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY ->
+          ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION ->
           HttpStatus.CONFLICT;
-      case DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT -> HttpStatus.INTERNAL_SERVER_ERROR;
     };
   }
 }

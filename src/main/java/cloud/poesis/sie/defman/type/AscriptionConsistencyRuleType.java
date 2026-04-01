@@ -19,7 +19,7 @@ package cloud.poesis.sie.defman.type;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public enum RuleType {
+public enum AscriptionConsistencyRuleType implements GsmRuleType {
 
   // ====================================================================
   // MECHANISM — Starlark rule validation
@@ -198,21 +198,6 @@ public enum RuleType {
           + "(qualifier FK), distinct from the Ascription-level typing "
           + "archetype."),
 
-  DIRECTIVE_VERB_COMPATIBILITY(
-      "gsm:rules/directive/verb/compatibility",
-      "Directive verb compatibility",
-      "Directives targeting the same qualifier Archetype and the same "
-          + "purpose Structure must not carry contradictory verb "
-          + "directions (e.g. ENSURE vs PREVENT on the same viability "
-          + "dimension)."),
-
-  DIRECTIVE_MODAL_COMPATIBILITY(
-      "gsm:rules/directive/modal/compatibility",
-      "Directive modal compatibility",
-      "Directives targeting the same qualifier, purpose, and verb must "
-          + "not carry a positive modal and its negation (e.g. MUST + "
-          + "MUST_NOT on the same verb) — this is a contradiction."),
-
   // ====================================================================
   // NORM — reference integrity
   // ====================================================================
@@ -326,54 +311,33 @@ public enum RuleType {
           + "sustainedThreshold in [0,1]."),
 
   // ====================================================================
-  // NORM — governance chain and conflict detection
-  // ====================================================================
-
-  NORM_GOVERNANCE_CHAIN(
-      "gsm:rules/norm/governance-chain",
-      "Norm governance chain",
-      "A Norm must be legitimated by an in-effect Directive whose "
-          + "purpose matches the Norm's structure and whose qualifier "
-          + "is an ancestor-or-equal of the Norm's qualifier in the "
-          + "allOf chain — no Directive backing means no governance "
-          + "authority for this Norm."),
-
-  NORM_CONFLICT(
-      "gsm:rules/norm/conflict",
-      "Norm conflict",
-      "Norms targeting the same structure and the same or overlapping "
-          + "qualifier lineage must not carry contradictory assertions "
-          + "on the same property paths — conflicting governance "
-          + "constraints indicate a governance design error."),
-
-  // ====================================================================
   // ARCHETYPE — allOf chain constraints
   // ====================================================================
 
-  ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE(
-      "gsm:rules/archetype/allof/chain-exclusive-base-convergence",
-      "Archetype allOf chain exclusive base convergence",
+  ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE(
+      "gsm:rules/archetype/allof/exclusive-base-convergence",
+      "Archetype allOf exclusive base convergence",
       "A structural Archetype's allOf chain must converge to exactly one "
           + "GSM base Archetype (no divergence). Every $ref must use the "
           + "gsm://archetypes/{title}/v{version} URI convention and "
           + "resolve to a declared Archetype; at activation time, all "
           + "intermediary Archetypes must be in-effect."),
 
-  ARCHETYPE_ALLOF_CHAIN_ACYCLICITY(
-      "gsm:rules/archetype/allof/chain-acyclicity",
-      "Archetype allOf chain acyclicity",
+  ARCHETYPE_ALLOF_ACYCLICITY(
+      "gsm:rules/archetype/allof/acyclicity",
+      "Archetype allOf acyclicity",
       "The Archetype's allOf chain must be acyclic — no Archetype may "
           + "transitively reference itself through $ref entries."),
 
-  ARCHETYPE_ALLOF_SEAL(
-      "gsm:rules/archetype/allof/seal",
-      "Archetype allOf seal",
+  ARCHETYPE_ALLOF_NON_SEALED(
+      "gsm:rules/archetype/allof/non-sealed",
+      "Archetype allOf non-sealed",
       "A tenant-defined Archetype must not extend a sealed ($gsm:sealed) "
           + "Archetype via allOf — sealed Archetypes are non-extensible."),
 
-  ARCHETYPE_REF_URI_POLICY(
-      "gsm:rules/archetype/ref/uri-policy",
-      "Archetype $ref URI policy",
+  ARCHETYPE_REF_NORM(
+      "gsm:rules/archetype/ref/norm",
+      "Archetype $ref norm",
       "Every $ref URI in an Archetype schema must be either a local "
           + "JSON Pointer (starting with '#') or a gsm:// URI following "
           + "the gsm://archetypes/{title}/v{version} convention. "
@@ -385,62 +349,13 @@ public enum RuleType {
   // ARCHETYPE — $gsm:* annotation well-formedness
   // ====================================================================
 
-  ARCHETYPE_ANNOTATION_QUERYABLE(
-      "gsm:rules/archetype/annotation/queryable",
-      "Archetype $gsm:queryable annotation well-formedness",
-      "A $gsm:queryable annotation requires an indexable property type "
-          + "(string, number, integer, boolean, or array of scalars) and "
-          + "the total count of queryable properties per Archetype must "
-          + "not exceed the configurable limit (default: 8)."),
-
-  ARCHETYPE_ANNOTATION_DATA_PROTECTION(
-      "gsm:rules/archetype/annotation/data-protection",
-      "Archetype $gsm:dataProtection annotation well-formedness",
-      "A $gsm:dataProtection annotation must be a well-formed object "
-          + "with valid phase declarations (atRest / inTransit) and "
-          + "must satisfy cross-phase mutual exclusion constraints "
-          + "(e.g. atRest.hash constrains inTransit to suppression or "
-          + "absent; atRest.suppression requires inTransit absent). "
-          + "$gsm:queryable + $gsm:dataProtection on the same property "
-          + "is forbidden."),
-
-  ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY(
-      "gsm:rules/archetype/annotation/identity-bound-set-immutability",
-      "Archetype $gsm:identityBound set immutability",
+  ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY(
+      "gsm:rules/archetype/identity-bound/property-immutability",
+      "Archetype identity-bound property immutability",
       "The set of properties annotated $gsm:identityBound within an "
           + "Archetype schema must not differ across Ascriptions of "
           + "the same Archetype Definition — changing the identity-"
           + "bound set requires a new Definition."),
-
-  // ====================================================================
-  // ARCHETYPE — $gsm:validation CEL constraints
-  // ====================================================================
-
-  ARCHETYPE_VALIDATION_CEL_PARSING(
-      "gsm:rules/archetype/validation/cel-parsing",
-      "Archetype $gsm:validation CEL parsing",
-      "Every expression in the Archetype's $gsm:validation array must "
-          + "be a syntactically valid CEL expression."),
-
-  ARCHETYPE_VALIDATION_CEL_CONSTRUCT_BLACKLIST(
-      "gsm:rules/archetype/validation/cel-construct-blacklist",
-      "Archetype $gsm:validation CEL construct blacklist",
-      "Every $gsm:validation CEL expression must be deterministic and "
-          + "side-effect-free — non-deterministic functions (now(), "
-          + "uuid()) and imperative constructs are forbidden."),
-
-  ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING(
-      "gsm:rules/archetype/validation/cel-this-root-binding",
-      "Archetype $gsm:validation CEL 'this' root binding",
-      "Every $gsm:validation CEL expression receives the statement "
-          + "payload as 'this' — the expression must use 'this' as its "
-          + "implicit root for property access."),
-
-  ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT(
-      "gsm:rules/archetype/validation/cel-boolean-result",
-      "Archetype $gsm:validation CEL boolean result",
-      "Every $gsm:validation CEL expression must evaluate to bool — "
-          + "non-boolean result types are rejected."),
 
   // ====================================================================
   // ASCRIPTION — cross-cutting statement validation
@@ -496,74 +411,7 @@ public enum RuleType {
       "Ascription property integrity within definition",
       "Properties annotated $gsm:identityBound must not change across "
           + "Ascriptions of the same Definition — the value must equal the "
-          + "value from the Definition's first Ascription."),
-
-  ASCRIPTION_STATUS_TRANSITION_PATH(
-      "gsm:rules/ascription/status-transition/path",
-      "Ascription status transition path",
-      "A lifecycle transition is permitted only between statuses connected "
-          + "by an edge in the Ascription state machine (gsm-ascription-"
-          + "lifecycle)."),
-
-  ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS(
-      "gsm:rules/ascription/status-transition/compatibility-with-reference-status",
-      "Ascription status transition compatibility with reference status",
-      "A lifecycle transition requires every referenced entity (referee FK) "
-          + "to be in a lifecycle status that satisfies the referential "
-          + "integrity precondition for the target status."),
-
-  ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS(
-      "gsm:rules/ascription/status-transition/cascade-to-constituents",
-      "Ascription status transition cascade to constituents",
-      "A constitutive cascade (Mechanism → Effectors/Receptors) must "
-          + "complete successfully for all lifecycle-coupled targets — "
-          + "failure blocks the source transition."),
-
-  ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS(
-      "gsm:rules/ascription/status-transition/cascade-to-subjects",
-      "Ascription status transition cascade to subjects",
-      "A governing cascade (Structure → Mechanisms, Directives, Norms) "
-          + "propagates the transition to all governed elements — non-"
-          + "blocking, no-op on failure."),
-
-  ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS(
-      "gsm:rules/ascription/status-transition/cascade-to-dependents",
-      "Ascription status transition cascade to dependents",
-      "A dependent cascade (Effector/Receptor → Interactions) propagates "
-          + "degradation and terminal transitions to downstream consumers "
-          + "— non-blocking, no-op on failure."),
-
-  ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE(
-      "gsm:rules/ascription/status-transition/approval-convergence",
-      "Ascription status transition approval convergence",
-      "Approving an Ascription auto-terminates all non-terminal sibling "
-          + "Ascriptions for the same Definition: DRAFT → ABANDONED, "
-          + "PROPOSED → REJECTED."),
-
-  ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF(
-      "gsm:rules/ascription/status-transition/activation-handoff",
-      "Ascription status transition activation handoff",
-      "Activating an Ascription supersedes the previous in-effect "
-          + "Ascription for the same Definition: the predecessor "
-          + "transitions from ACTIVE to DEPRECATED."),
-
-  ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY(
-      "gsm:rules/ascription/status-transition/terminal-immutability",
-      "Ascription status transition terminal immutability",
-      "Once an Ascription reaches a terminal status (ABANDONED, REJECTED, "
-          + "RETIRED), no further status transitions may be appended — "
-          + "a new creative cycle requires a new Ascription."),
-
-  // ====================================================================
-  // DEFINITION — structural invariants
-  // ====================================================================
-
-  DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT(
-      "gsm:rules/definition/ascriptions/always-present",
-      "Definition ascriptions always present",
-      "A persisted Definition must always have at least one Ascription — "
-          + "Definitions are created transactionally with their first "
-          + "Ascription and must never exist without one.");
+          + "value from the Definition's first Ascription.");
 
   // ====================================================================
   // Fields and accessors
@@ -573,35 +421,23 @@ public enum RuleType {
   private final String title;
   private final String description;
 
-  RuleType(String type, String title, String description) {
+  AscriptionConsistencyRuleType(String type, String title, String description) {
     this.type = type;
     this.title = title;
     this.description = description;
   }
 
-  /**
-   * Returns the stable machine-readable URI ({@code gsm:rules/…}).
-   *
-   * @return the rule type URI; never {@code null}
-   */
+  @Override
   public String getType() {
     return type;
   }
 
-  /**
-   * Returns a short human-readable label for RFC 9457 ProblemDetail.
-   *
-   * @return the rule title; never {@code null}
-   */
+  @Override
   public String getTitle() {
     return title;
   }
 
-  /**
-   * Returns the natural-language statement of the rule.
-   *
-   * @return the rule description; never {@code null}
-   */
+  @Override
   public String getDescription() {
     return description;
   }

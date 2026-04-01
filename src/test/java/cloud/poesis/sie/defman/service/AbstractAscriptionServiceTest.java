@@ -22,9 +22,10 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -185,7 +186,9 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.enforceAnnotations(statement, archetype, defId));
-      assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("duplicates"));
       assertTrue(ex.getMessage().contains("code"));
     }
@@ -279,7 +282,9 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.enforceAnnotations(statement, archetype, defId));
-      assertEquals(RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("Identity-bound field"));
       assertTrue(ex.getMessage().contains("region"));
     }
@@ -344,7 +349,9 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("Statement validation failed"));
     }
 
@@ -363,7 +370,9 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("Statement validation failed"));
     }
 
@@ -535,7 +544,9 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> spyService.validateIdentityBound(newEntity));
-      assertEquals(RuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("Identity-bound field"));
       assertTrue(ex.getMessage().contains("purpose"));
     }
@@ -628,7 +639,8 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
       assertTrue(ex.getMessage().contains("RETIRED"));
@@ -647,7 +659,8 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
     }
@@ -665,7 +678,8 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
     }
@@ -683,7 +697,8 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
     }
@@ -725,7 +740,9 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
       assertTrue(ex.getMessage().contains("constraint failed"));
     }
@@ -750,7 +767,9 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("$gsm:validation"));
       assertTrue(ex.getMessage().contains("constraint failed"));
     }
@@ -965,7 +984,9 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.extractRequiredUuid(statement, "ref"));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("ref"));
     }
 
@@ -1378,7 +1399,7 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
           ((RuleViolationException) result).getRuleType());
     }
 
@@ -1391,7 +1412,7 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
           ((RuleViolationException) result).getRuleType());
     }
 
@@ -1405,7 +1426,7 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
           ((RuleViolationException) result).getRuleType());
     }
 
@@ -1419,7 +1440,7 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
           ((RuleViolationException) result).getRuleType());
     }
 
@@ -1432,7 +1453,7 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
           ((RuleViolationException) result).getRuleType());
     }
 

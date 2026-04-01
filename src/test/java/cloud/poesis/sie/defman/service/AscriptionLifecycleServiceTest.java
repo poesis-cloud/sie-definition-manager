@@ -21,9 +21,9 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
@@ -139,10 +139,11 @@ class AscriptionLifecycleServiceTest {
           ex.getMessage().contains("Invalid transition")
               || ex.getMessage().contains("terminal state"),
           "Expected 'Invalid transition' or 'terminal state' but got: " + ex.getMessage());
-      RuleType expectedRule =
+      AscriptionStatusTransitionRuleType expectedRule =
           Set.of("RETIRED", "ABANDONED", "REJECTED").contains(from)
-              ? RuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY
-              : RuleType.ASCRIPTION_STATUS_TRANSITION_PATH;
+              ? AscriptionStatusTransitionRuleType
+                  .ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY
+              : AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_PATH;
       assertEquals(expectedRule, ex.getRuleType());
     }
   }
@@ -204,7 +205,8 @@ class AscriptionLifecycleServiceTest {
       assertTrue(ex.getMessage().contains("Referee"));
       assertTrue(ex.getMessage().contains("structure"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -243,7 +245,8 @@ class AscriptionLifecycleServiceTest {
           assertThrows(RuleViolationException.class, () -> service.transition(id, "PROPOSED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -282,7 +285,8 @@ class AscriptionLifecycleServiceTest {
           assertThrows(RuleViolationException.class, () -> service.transition(id, "APPROVED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -321,7 +325,8 @@ class AscriptionLifecycleServiceTest {
           assertThrows(RuleViolationException.class, () -> service.transition(id, "SUSPENDED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -360,7 +365,8 @@ class AscriptionLifecycleServiceTest {
           assertThrows(RuleViolationException.class, () -> service.transition(id, "ACTIVE"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -399,7 +405,8 @@ class AscriptionLifecycleServiceTest {
           assertThrows(RuleViolationException.class, () -> service.transition(id, "RETIRED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -421,7 +428,8 @@ class AscriptionLifecycleServiceTest {
           assertThrows(RuleViolationException.class, () -> service.transition(id, "REJECTED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
-          RuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
     }
 
@@ -833,7 +841,9 @@ class AscriptionLifecycleServiceTest {
               RuleViolationException.class,
               () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
       assertTrue(ex.getMessage().contains("Constitutive cascade failed"));
-      assertEquals(RuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS, ex.getRuleType());
+      assertEquals(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+          ex.getRuleType());
     }
 
     @Test

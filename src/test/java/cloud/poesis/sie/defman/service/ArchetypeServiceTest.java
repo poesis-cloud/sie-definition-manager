@@ -21,9 +21,9 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,8 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -110,7 +108,9 @@ class ArchetypeServiceTest {
                 RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
         assertTrue(ex.getMessage().contains("SecurityProperties"));
         assertTrue(ex.getMessage().contains("already in"));
-        assertEquals(RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+            ex.getRuleType());
       }
 
       @Test
@@ -266,7 +266,7 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
       assertTrue(ex.getMessage().contains("sealed"));
-      assertEquals(RuleType.ARCHETYPE_ALLOF_SEAL, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
     }
 
     @Test
@@ -322,7 +322,9 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
       assertTrue(ex.getMessage().contains("gsm://"));
-      assertEquals(RuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+          ex.getRuleType());
     }
 
     @Test
@@ -339,7 +341,9 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
       assertTrue(ex.getMessage().contains("multiple"));
-      assertEquals(RuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+          ex.getRuleType());
     }
 
     @Test
@@ -359,7 +363,7 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
       assertTrue(ex.getMessage().contains("Cycle") || ex.getMessage().contains("already visited"));
-      assertEquals(RuleType.ARCHETYPE_ALLOF_CHAIN_ACYCLICITY, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, ex.getRuleType());
     }
 
     @Test
@@ -385,7 +389,9 @@ class ArchetypeServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateAllOfChain(schema, true));
       assertTrue(ex.getMessage().contains("Cannot resolve"));
-      assertEquals(RuleType.ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+          ex.getRuleType());
     }
 
     @Test
@@ -471,7 +477,9 @@ class ArchetypeServiceTest {
           assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertTrue(ex.getMessage().contains("Rootless"));
       assertTrue(ex.getMessage().contains("archetype_id"));
-      assertEquals(RuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          ex.getRuleType());
     }
 
     @Test
@@ -491,7 +499,9 @@ class ArchetypeServiceTest {
           assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertTrue(ex.getMessage().contains("Rootless"));
       assertTrue(ex.getMessage().contains("archetype_id"));
-      assertEquals(RuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          ex.getRuleType());
     }
   }
 
@@ -517,7 +527,9 @@ class ArchetypeServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            ex.getRuleType());
       }
 
       @Test
@@ -534,7 +546,9 @@ class ArchetypeServiceTest {
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("$gsm:foobar"));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            ex.getRuleType());
       }
 
       @Test
@@ -550,109 +564,9 @@ class ArchetypeServiceTest {
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("top-level only"));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
-    }
-
-    @Nested
-    class QueryableAnnotation {
-
-      @Test
-      void queryableString_valid() {
-        ObjectNode propNode = prop("string");
-        propNode.put("$gsm:queryable", true);
-        ObjectNode schema = schemaWithProperty("env", propNode);
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-      }
-
-      @Test
-      void queryableObject_rejected() {
-        ObjectNode propNode = prop("object");
-        propNode.put("$gsm:queryable", true);
-        ObjectNode schema = schemaWithProperty("data", propNode);
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("$gsm:queryable"));
-        assertTrue(ex.getMessage().contains("object"));
-        assertEquals(RuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
-      }
-
-      @Test
-      void queryableNoType_rejected() {
-        ObjectNode propNode = MAPPER.createObjectNode();
-        propNode.put("$gsm:queryable", true);
-        ObjectNode schema = schemaWithProperty("x", propNode);
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
-      }
-
-      @Test
-      void queryableArrayOfScalars_valid() {
-        ObjectNode items = MAPPER.createObjectNode().put("type", "string");
-        ObjectNode propNode = MAPPER.createObjectNode();
-        propNode.put("type", "array");
-        propNode.set("items", items);
-        propNode.put("$gsm:queryable", true);
-        ObjectNode schema = schemaWithProperty("tags", propNode);
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-      }
-
-      @Test
-      void queryableArrayOfObjects_rejected() {
-        ObjectNode items = MAPPER.createObjectNode().put("type", "object");
-        ObjectNode propNode = MAPPER.createObjectNode();
-        propNode.put("type", "array");
-        propNode.set("items", items);
-        propNode.put("$gsm:queryable", true);
-        ObjectNode schema = schemaWithProperty("entries", propNode);
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
-      }
-
-      @Test
-      void tooManyQueryable_rejected() {
-        ObjectNode schema = MAPPER.createObjectNode();
-        schema.put("title", "TooMany");
-        ObjectNode props = schema.putObject("properties");
-        for (int i = 0; i < 9; i++) {
-          ObjectNode p = props.putObject("p" + i);
-          p.put("type", "string");
-          p.put("$gsm:queryable", true);
-        }
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("Too many $gsm:queryable"));
-        assertEquals(RuleType.ARCHETYPE_ANNOTATION_QUERYABLE, ex.getRuleType());
+        assertEquals(
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            ex.getRuleType());
       }
     }
 
@@ -710,7 +624,8 @@ class ArchetypeServiceTest {
                 () -> service.validateArchetypeAnnotations(newSchema, defId));
         assertTrue(ex.getMessage().contains("identityBound set immutability"));
         assertEquals(
-            RuleType.ARCHETYPE_ANNOTATION_IDENTITY_BOUND_SET_IMMUTABILITY, ex.getRuleType());
+            AscriptionConsistencyRuleType.ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY,
+            ex.getRuleType());
       }
     }
 
@@ -752,190 +667,6 @@ class ArchetypeServiceTest {
 
       assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
     }
-
-    @Nested
-    class ValidationAnnotation {
-
-      @Test
-      void validCelExpressions_accepted() {
-        ObjectNode schema = schemaWithProperty("budget", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add("this.budget > 0.0"));
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-      }
-
-      @Test
-      void multipleCelExpressions_accepted() {
-        ObjectNode schema = MAPPER.createObjectNode();
-        schema.put("title", "TestSchema");
-        ObjectNode props = schema.putObject("properties");
-        props.set("min", prop("number"));
-        props.set("max", prop("number"));
-        schema.set(
-            "$gsm:validation",
-            MAPPER.createArrayNode().add("this.min <= this.max").add("this.min > 0"));
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-      }
-
-      @Test
-      void invalidCelSyntax_rejected() {
-        ObjectNode schema = schemaWithProperty("x", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add("this.x >>>> 0"));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
-        assertTrue(
-            ex.getMessage().contains("CEL parse error")
-                || ex.getMessage().contains("CEL validation error"));
-        assertEquals(RuleType.ARCHETYPE_VALIDATION_CEL_PARSING, ex.getRuleType());
-      }
-
-      @Test
-      void notAnArray_rejected() {
-        ObjectNode schema = schemaWithProperty("x", prop("number"));
-        schema.put("$gsm:validation", "this.x > 0");
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("must be an array"));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
-
-      @Test
-      void nonStringElement_rejected() {
-        ObjectNode schema = schemaWithProperty("x", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add(42));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
-        assertTrue(ex.getMessage().contains("must be a string"));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
-
-      @Test
-      void blankExpression_rejected() {
-        ObjectNode schema = schemaWithProperty("x", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add("  "));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
-        assertTrue(ex.getMessage().contains("must not be blank"));
-        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      }
-
-      @Test
-      void emptyArray_accepted() {
-        ObjectNode schema = schemaWithProperty("x", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode());
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-      }
-
-      @Test
-      void unboundIdent_rejected() {
-        ObjectNode schema = schemaWithProperty("bar", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add("foo.bar > 0"));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_VALIDATION_CEL_THIS_ROOT_BINDING, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("unbound"));
-      }
-
-      @Test
-      void arithmeticTopLevel_rejected() {
-        ObjectNode schema = schemaWithProperty("a", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add("this.a + 1"));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("arithmetic"));
-      }
-
-      @ParameterizedTest
-      @ValueSource(
-          strings = {
-            "this.tags.size()",
-            "int(this.a)",
-            "double(this.a)",
-            "uint(this.a)",
-            "string(this.a)",
-            "duration('5m')",
-            "timestamp('2024-01-01T00:00:00Z')"
-          })
-      void nonBooleanFunctionTopLevel_rejected(String expression) {
-        ObjectNode schema = MAPPER.createObjectNode();
-        schema.put("title", "TestSchema");
-        ObjectNode props = schema.putObject("properties");
-        props.set("tags", prop("array"));
-        props.set("a", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add(expression));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
-        assertTrue(
-            ex.getMessage().contains("not a known boolean-producing operation"),
-            "Expected rejection for: " + expression);
-      }
-
-      @Test
-      void nonBooleanConstant_rejected() {
-        ObjectNode schema = schemaWithProperty("x", prop("number"));
-        schema.set("$gsm:validation", MAPPER.createArrayNode().add("42"));
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_VALIDATION_CEL_BOOLEAN_RESULT, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("non-boolean constant"));
-      }
-    }
   }
 
   // ========================================================================
@@ -967,7 +698,9 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.buildEntity(def, archetypeRef, null));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
     }
 
     @Test
@@ -979,7 +712,9 @@ class ArchetypeServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetypeRef, MAPPER.createArrayNode()));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
     }
   }
 
@@ -1138,7 +873,9 @@ class ArchetypeServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
-      assertEquals(RuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("no title"));
     }
 
@@ -1152,7 +889,9 @@ class ArchetypeServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
-      assertEquals(RuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          ex.getRuleType());
     }
 
     @Test
@@ -1455,7 +1194,7 @@ class ArchetypeServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateAllOfChain(schema));
-      assertEquals(RuleType.ARCHETYPE_ALLOF_SEAL, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
       assertTrue(ex.getMessage().contains("SealedFacet"));
     }
 
@@ -1824,7 +1563,7 @@ class ArchetypeServiceTest {
 
       var ex =
           assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
-      assertEquals(RuleType.ARCHETYPE_REF_URI_POLICY, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
       assertTrue(ex.getMessage().contains("http://example.com/schema.json"));
     }
 
@@ -1836,7 +1575,7 @@ class ArchetypeServiceTest {
 
       var ex =
           assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
-      assertEquals(RuleType.ARCHETYPE_REF_URI_POLICY, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
     }
 
     @Test
@@ -1848,7 +1587,7 @@ class ArchetypeServiceTest {
 
       var ex =
           assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
-      assertEquals(RuleType.ARCHETYPE_REF_URI_POLICY, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
       assertTrue(ex.getMessage().contains("ftp://bad-host/schema"));
     }
 

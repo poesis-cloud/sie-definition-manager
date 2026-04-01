@@ -16,9 +16,9 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
@@ -169,7 +169,9 @@ class EffectorServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("mechanism"));
     }
 
@@ -190,7 +192,9 @@ class EffectorServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetypeRef, statement));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("archetype"));
     }
 
@@ -206,7 +210,9 @@ class EffectorServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetypeRef, statement));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
     }
   }
 

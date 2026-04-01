@@ -7,31 +7,31 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-class RuleTypeTest {
+class AscriptionConsistencyRuleTypeTest {
 
   @ParameterizedTest
-  @EnumSource(RuleType.class)
-  void getType_returnsNonBlank(RuleType rule) {
+  @EnumSource(AscriptionConsistencyRuleType.class)
+  void getType_returnsNonBlank(AscriptionConsistencyRuleType rule) {
     assertNotNull(rule.getType());
     assertFalse(rule.getType().isBlank());
   }
 
   @ParameterizedTest
-  @EnumSource(RuleType.class)
-  void getType_startsWithGsmRulesPrefix(RuleType rule) {
+  @EnumSource(AscriptionConsistencyRuleType.class)
+  void getType_startsWithGsmRulesPrefix(AscriptionConsistencyRuleType rule) {
     assertTrue(rule.getType().startsWith("gsm:rules/"));
   }
 
   @ParameterizedTest
-  @EnumSource(RuleType.class)
-  void getTitle_returnsNonBlank(RuleType rule) {
+  @EnumSource(AscriptionConsistencyRuleType.class)
+  void getTitle_returnsNonBlank(AscriptionConsistencyRuleType rule) {
     assertNotNull(rule.getTitle());
     assertFalse(rule.getTitle().isBlank());
   }
 
   @ParameterizedTest
-  @EnumSource(RuleType.class)
-  void getDescription_returnsNonBlank(RuleType rule) {
+  @EnumSource(AscriptionConsistencyRuleType.class)
+  void getDescription_returnsNonBlank(AscriptionConsistencyRuleType rule) {
     assertNotNull(rule.getDescription());
     assertFalse(rule.getDescription().isBlank());
   }

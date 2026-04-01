@@ -12,11 +12,11 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -253,7 +253,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
               : null;
       if (function.equals(sibFunc)) {
         throw RuleViolationException.of(
-            RuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
             "Mechanism function '" + function + "' already in-effect for another definition",
             "property",
             "function",
@@ -278,7 +278,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   String validateStarlarkRule(String rule) {
     if (rule == null || rule.isBlank()) {
       throw RuleViolationException.of(
-          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "Mechanism rule must not be null or blank",
           "field",
           "rule");
@@ -290,7 +290,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     int stmtCount = countStatements(file);
     if (stmtCount > MAX_RULE_STATEMENTS) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_STARLARK_BUDGET,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_BUDGET,
           "Mechanism rule exceeds execution budget: "
               + stmtCount
               + " statements (max "
@@ -305,7 +305,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     for (Statement stmt : file.getStatements()) {
       if (stmt instanceof LoadStatement) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
             "load() statements are not allowed in Mechanism rules",
             "field",
             "rule",
@@ -318,7 +318,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
     if (countOnCalls(file) > 1) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
           "Mechanism rule must have exactly one sys.receive() trigger declaration",
           "field",
           "rule",
@@ -330,7 +330,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     Set<String> unknowns = collectUnknownGlobals(file, locals);
     if (!unknowns.isEmpty()) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
           "Unknown globals in Mechanism rule: "
               + unknowns
               + ". Allowed: "
@@ -388,7 +388,10 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         sb.append("\n  - ").append(e.message());
       }
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_STARLARK_PARSING, sb.toString(), "field", "rule");
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING,
+          sb.toString(),
+          "field",
+          "rule");
     }
     return file;
   }
@@ -397,7 +400,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     CallExpression receiveCall = extractSysReceiveCall(file);
     if (receiveCall == null) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
           "Mechanism rule must begin with sys.receive(\"ArchetypeName\") as its first executable statement",
           "field",
           "rule",
@@ -409,7 +412,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     List<ChainLink> chain = unwrapReceiveChain(receiveCall);
     if (chain.isEmpty() || !"receive".equals(chain.get(0).method())) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
           "Mechanism rule must begin with sys.receive(\"ArchetypeName\") as its first executable statement",
           "field",
           "rule",
@@ -422,7 +425,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       String method = chain.get(i).method();
       if (!RECEIVE_CHAIN_METHODS.contains(method)) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
             "Unknown chain method on sys.receive(): ."
                 + method
                 + "(). Allowed: "
@@ -436,7 +439,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     List<Argument> args = receiveLink.args();
     if (args.size() != 1 || !(args.get(0) instanceof Argument.Positional)) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
           "sys.receive() must have exactly one positional string argument",
           "field",
           "rule",
@@ -447,7 +450,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     Expression argExpr = args.get(0).getValue();
     if (!(argExpr instanceof StringLiteral sl)) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
           "sys.receive() argument must be a string literal",
           "field",
           "rule",
@@ -458,7 +461,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     String archetype = sl.getValue();
     if (archetype == null || archetype.isBlank()) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
           "sys.receive() argument must be a non-empty string literal",
           "field",
           "rule",
@@ -471,14 +474,14 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       ChainLink link = chain.get(i);
       if (link.args().size() != 1) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
             "." + link.method() + "() requires exactly 1 argument (archetype name)",
             "method",
             link.method());
       }
       if (!(link.args().get(0).getValue() instanceof StringLiteral)) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
             "." + link.method() + "() argument must be a string literal (archetype name)",
             "method",
             link.method());
@@ -548,14 +551,14 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       List<Argument> effectArgs = effectLink.args();
       if (effectArgs.isEmpty() || effectArgs.size() > 2) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
             "sys.effect() requires 1-2 positional arguments (archetype name, optional data)",
             "method",
             "effect");
       }
       if (!(effectArgs.get(0).getValue() instanceof StringLiteral)) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
             "sys.effect() first argument must be a string literal (archetype name)",
             "method",
             "effect");
@@ -567,14 +570,14 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         ChainLink link = chain.get(i);
         if (link.args().size() != 1) {
           throw RuleViolationException.of(
-              RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
+              AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
               "." + link.method() + "() requires exactly 1 argument (archetype name)",
               "method",
               link.method());
         }
         if (!(link.args().get(0).getValue() instanceof StringLiteral)) {
           throw RuleViolationException.of(
-              RuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
+              AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY,
               "." + link.method() + "() argument must be a string literal (archetype name)",
               "method",
               link.method());
@@ -658,7 +661,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   private void validateChainOrder(List<ChainLink> chain) {
     if (chain.isEmpty() || !"effect".equals(chain.get(0).method())) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_RULE_SYS_FLUENT_API,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
           "sys.effect() chain must start with effect()",
           "method",
           chain.isEmpty() ? "?" : chain.get(0).method());
@@ -677,14 +680,14 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
           };
       if (next == -1) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
             "Unknown chain method: ." + method + "(). Allowed: " + EFFECT_CHAIN_METHODS,
             "method",
             method);
       }
       if (next <= state) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
             "Invalid chain order: ."
                 + method
                 + "() cannot follow ."
@@ -695,7 +698,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       }
       if (next == 3 && state != 2) {
         throw RuleViolationException.of(
-            RuleType.MECHANISM_RULE_SYS_FLUENT_API,
+            AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
             ".on() can only follow .receive() (it qualifies the feedback Receptor port type)",
             "method",
             method);
@@ -759,7 +762,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         String field = dot.getField().getName();
         if (!SYS_METHODS.contains(field) && !SYS_PROPERTIES.contains(field)) {
           throw RuleViolationException.of(
-              RuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
+              AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
               "Unknown sys property: sys."
                   + field
                   + ". Allowed methods: "

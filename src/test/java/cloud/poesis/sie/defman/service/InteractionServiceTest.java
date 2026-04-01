@@ -15,8 +15,8 @@ import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
@@ -117,7 +117,9 @@ class InteractionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(definition, archetypeRef, statement));
-      assertEquals(RuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("archetype mismatch"));
     }
   }
@@ -199,7 +201,9 @@ class InteractionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("effector"));
     }
 
@@ -225,7 +229,9 @@ class InteractionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("tenant-extended"));
     }
   }

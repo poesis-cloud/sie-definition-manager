@@ -1,12 +1,11 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RuleType;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -50,11 +49,7 @@ public class DefinitionService {
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
     if (entity.getAscriptions().isEmpty()) {
-      throw RuleViolationException.of(
-          RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT,
-          "Definition has no ascriptions",
-          "definitionId",
-          id.toString());
+      throw new InternalException("Definition " + id + " has no ascriptions");
     }
     return entity;
   }
@@ -74,11 +69,7 @@ public class DefinitionService {
             .findWithAscriptionArchetypesById(id)
             .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.DEFINITION, id));
     if (entity.getAscriptions().isEmpty()) {
-      throw RuleViolationException.of(
-          RuleType.DEFINITION_ASCRIPTIONS_ALWAYS_PRESENT,
-          "Definition has no ascriptions",
-          "definitionId",
-          id.toString());
+      throw new InternalException("Definition " + id + " has no ascriptions");
     }
     return entity;
   }

@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.type.RuleType;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -464,7 +464,9 @@ class DataProtectionServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.computeHash("hello", "BOGUS-ALG"));
 
-      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
       assertTrue(ex.getMessage().contains("BOGUS-ALG"));
     }
   }
