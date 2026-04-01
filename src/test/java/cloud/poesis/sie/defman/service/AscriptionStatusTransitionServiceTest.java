@@ -787,7 +787,8 @@ class AscriptionStatusTransitionServiceTest {
     private AscriptionStatusTransitionService serviceWithDependent;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // Mockito mock() erases AbstractAscriptionService generic;
+    // unavoidable — Java generics are not reified at runtime
     void setUpDependentCascade() {
       AbstractAscriptionService<? extends AscriptionEntity> mechSvc =
           mock(AbstractAscriptionService.class);
@@ -930,7 +931,8 @@ class AscriptionStatusTransitionServiceTest {
     private AscriptionStatusTransitionService serviceWithConstitutive;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // Mockito mock() erases AbstractAscriptionService generic;
+    // unavoidable — Java generics are not reified at runtime
     void setUpConstitutiveCascade() {
       AbstractAscriptionService<? extends AscriptionEntity> mechSvc =
           mock(AbstractAscriptionService.class);

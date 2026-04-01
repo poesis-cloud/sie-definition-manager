@@ -53,9 +53,6 @@
     "$gsm:unique": {
       "$ref": "#/$defs/Unique"
     },
-    "$gsm:validation": {
-      "$ref": "#/$defs/Validation"
-    },
     "$gsm:dataProtection": {
       "$ref": "#/$defs/DataProtection"
     }
@@ -76,15 +73,6 @@
     "Unique": {
       "const": true,
       "description": "Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. DM provisions a partial unique expression index."
-    },
-    "Validation": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1,
-      "description": "Top-level schema keyword. CEL expressions evaluated as CHECK constraints at Ascription authoring time. Each expression receives the statement payload as `this` and MUST evaluate to bool. Conforms to the validation-expression CEL profile: boolean expressions over statement properties, implicit root `this`. Allowed: comparisons, boolean connectives, set membership, arithmetic, string/collection functions, field presence, type constructors/conversions, cross-property comparisons, ternary. Forbidden: non-deterministic functions, imperative constructs, side effects, external data access."
     },
     "DataProtection": {
       "type": "object",

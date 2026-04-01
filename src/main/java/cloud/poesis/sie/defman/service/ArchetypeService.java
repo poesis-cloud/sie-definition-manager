@@ -84,10 +84,9 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
           "$gsm:identityBound",
           "$gsm:queryable",
           "$gsm:unique",
-          "$gsm:validation",
           "$gsm:dataProtection");
 
-  private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed", "$gsm:validation");
+  private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed");
 
   private static final Collection<AscriptionStatusType> IN_EFFECT =
       List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);

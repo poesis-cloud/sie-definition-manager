@@ -831,7 +831,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     | `$gsm:queryable` | Query optimization | Auto-provisions JSONB path index for efficient filtering | Expression index or GIN index on JSONB path |
     | `$gsm:unique` | Cross-Definition (same Archetype) | Enforces value uniqueness among in-effect Ascriptions | Partial unique expression index |
     | `$gsm:dataProtection` | Data protection | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time |
-    | `$gsm:validation` | Intra-Ascription | Evaluates CEL expression(s) as CHECK constraints at authoring time | Authoring-time validation |
 
     **Vocabulary keyword semantics (detailed)**:
 
@@ -905,22 +904,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     `atRest.encryption` on the same property is rejected (ciphertext
     is not indexable). `$gsm:queryable` + `atRest.hash` is
     allowed (DM hashes query inputs to match stored hashes).
-
-    `$gsm:validation: ["<expr>", ...]` (top-level schema keyword)
-    Declares CEL expressions evaluated as CHECK constraints at
-    Ascription authoring time. Each expression receives the statement
-    payload as `this` and MUST evaluate to `bool`. Covers cross-
-    property invariants that JSON Schema alone cannot express:
-    - `"this.minReplicas <= this.maxReplicas"`
-    - `"this.budget > 0.0 || this.budgetExempt == true"`
-    Expressions conform to the **validation-expression CEL profile**:
-    boolean expressions over statement properties, implicit root
-    `this`. Allowed: comparisons, boolean connectives, set membership,
-    arithmetic, string/collection functions, field presence, type
-    constructors/conversions, cross-property comparisons, ternary.
-    Forbidden: non-deterministic functions (`now()`, `uuid()`),
-    imperative constructs, side effects, external data access.
-    Same determinism requirement as Norm assertion profile.
 
     **Vocabulary keyword immutability rule**:
     The set of `$gsm:*` keywords on a property (which keywords
@@ -2075,9 +2058,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       same Archetype. Rejects on violation. Also DB-enforced via
       partial unique expression index (provisioned at Archetype
       activation).
-      `$gsm:validation` — **extensible subtypes**: evaluates
-      all CEL expressions declared in the keyword with `statement`
-      as `this`. All MUST return true. Rejects on failure.
       `$gsm:dataProtection` — **extensible subtypes**: applies
       phase-first protection measures per lifecycle phase:
       `atRest` (write-time — encryption/hash/mask/suppression
@@ -2937,9 +2917,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       `$gsm:dataProtection` + `$gsm:queryable` — mutual exclusion.
       Same property carrying both keywords is rejected (protected
       data MUST NOT be indexed in cleartext).
-      `$gsm:validation` — each expression MUST be parseable CEL,
-      deterministic, and side-effect-free (same restrictions as Norm
-      assertion profile; both use implicit root).
       `$gsm:identityBound` — the set of annotated properties MUST
       NOT differ from the first Ascription's schema for this
       Definition (immutable set — see §5 and §8).
@@ -2986,7 +2963,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       ('ACTIVE','DEPRECATED')`. Index is dropped when no in-effect
       Ascription of this Archetype remains.
       Other keywords (`$gsm:identityBound`,
-      `$gsm:validation`, `$gsm:dataProtection`)
+      `$gsm:dataProtection`)
       are enforced at application level (authoring-time validation)
       and do NOT require database infrastructure provisioning.
 

@@ -47,7 +47,22 @@ public class AppraisalService {
   private static final Set<Set<String>> CONTRADICTORY_VERB_PAIRS =
       Set.of(Set.of("ENSURE", "PREVENT"));
 
-  /** Modal precedence tiers: higher value = higher precedence. */
+  /**
+   * Modal precedence tiers aligned with RFC 2119 / BCP 14 deontic strength.
+   *
+   * <p>The integer value represents obligation strength, not direction:
+   *
+   * <ul>
+   *   <li><b>Tier 3</b> — MUST / MUST_NOT: absolute requirement or prohibition
+   *   <li><b>Tier 2</b> — SHOULD / SHOULD_NOT: strong recommendation
+   *   <li><b>Tier 1</b> — MAY: optional permission
+   * </ul>
+   *
+   * <p>A modal and its negation (e.g. MUST vs MUST_NOT) share the same tier because they carry
+   * equal obligation strength — they differ only in direction. Contradictions between a modal and
+   * its negation are detected separately by {@link #areModalContradictions(String, String)}, not by
+   * tier comparison.
+   */
   public static final Map<String, Integer> MODAL_PRECEDENCE =
       Map.of(
           "MUST", 3,
@@ -196,8 +211,7 @@ public class AppraisalService {
     String norm1 = a.replace("_NOT", "");
     String norm2 = b.replace("_NOT", "");
     if (!norm1.equals(norm2)) return false;
-    boolean oneIsNot = a.endsWith("_NOT") ^ b.endsWith("_NOT");
-    return oneIsNot;
+    return a.endsWith("_NOT") ^ b.endsWith("_NOT");
   }
 
   // ======================================================================

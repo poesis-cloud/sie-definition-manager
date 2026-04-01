@@ -67,7 +67,6 @@ Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema**
 | `$gsm:queryable`      | Query optimization                | Auto-provisions JSONB path index                                                        | Expression index or GIN         |
 | `$gsm:unique`         | Cross-Definition (same Archetype) | Enforces uniqueness among in-effect Ascriptions                                         | Partial unique expression index |
 | `$gsm:dataProtection` | Data protection                   | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time     |
-| `$gsm:validation`     | Intra-Ascription                  | Evaluates CEL CHECK constraints at authoring                                            | Authoring-time validation       |
 
 ### `$gsm:sealed: true`
 
@@ -112,79 +111,6 @@ is rejected (ciphertext is not indexable). `$gsm:queryable` +
 `atRest.hash` is allowed (DM hashes query inputs to match stored
 hashes).
 
-### `$gsm:validation: ["<expr>", ...]`
-
-Top-level schema keyword. CEL expressions evaluated as CHECK constraints at Ascription authoring time. Receives statement payload as `this`, MUST evaluate to `bool`. Covers cross-property invariants JSON Schema can't express:
-
-```json
-{
-  "$gsm:validation": [
-    "this.minReplicas <= this.maxReplicas",
-    "this.budget > 0.0 || this.budgetExempt == true"
-  ]
-}
-```
-
-Expressions conform to the **validation-expression CEL profile** — a restricted subset of CEL calibrated for deterministic, side-effect-free cross-property invariant checking at authoring time.
-
-**Validation-expression profile** (`$gsm:validation`):
-
-Structure — **boolean expression over statement properties**:
-The expression MUST evaluate to `bool`. Property paths are resolved against the Ascription's `statement` payload. The implicit root is `this`.
-
-Allowed constructs:
-
-- **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=`.
-- **Boolean connectives**: `&&` (AND), `||` (OR), `!` (NOT). Parenthesized sub-expressions.
-- **Set membership**: `in`, `!(... in ...)`.
-- **Arithmetic**: `+`, `-`, `*`, `/`, `%` on numeric values.
-- **String functions**: `matches(regex)`, `startsWith(prefix)`, `endsWith(suffix)`, `contains(substring)`.
-- **Collection functions**: `size()` on strings, lists, maps. `exists(x, predicate)`, `all(x, predicate)` macros on lists.
-- **Field presence**: `has(field)` macro.
-- **Type constructors**: `duration(string)`, `timestamp(string)` for temporal comparisons.
-- **Type conversions**: `int()`, `uint()`, `double()`, `string()`.
-- **Cross-property comparisons**: allowed (e.g., `this.minReplicas <= this.maxReplicas`).
-- **Ternary**: `cond ? a : b` for conditional expressions.
-
-Forbidden constructs:
-
-- **Non-deterministic functions**: `now()`, `uuid()`, or any function whose result varies across evaluations with the same input.
-- **Imperative constructs**: no variable declarations, no assignments, no loops.
-- **Side effects**: no mutation, no I/O.
-- **External data access**: expressions operate only on the statement payload.
-
-Examples:
-
-```cel
-// Cross-property ordering:
-this.minReplicas <= this.maxReplicas
-
-// Budget validation:
-this.budget > 0.0 || this.budgetExempt == true
-
-// Regex pattern:
-this.costCenter.matches('^[A-Z]{2,4}-[0-9]{4}$')
-
-// Conditional threshold:
-(this.tier == "critical" ? this.replicas >= 3 : this.replicas >= 1)
-
-// Collection check:
-this.tags.size() >= 1
-
-// Field presence:
-has(this.retentionPolicy) || this.dataClassification != "sensitive"
-```
-
-Invalid:
-
-```cel
-// Non-deterministic:
-this.lastReview > now() - duration("8760h")
-
-// Variable declaration:
-var min = this.minReplicas; min <= this.maxReplicas
-```
-
 ### Vocabulary keyword immutability
 
 Vocabulary keywords on a property can be added/changed across Ascription versions — **except** `$gsm:identityBound`, whose set is immutable per Archetype Definition (see GSM §5).
@@ -216,8 +142,7 @@ Tenant-defined Archetypes extending a base schema:
         "inTransit": { "suppression": true }
       }
     }
-  },
-  "$gsm:validation": ["this.costCenter.matches('^[A-Z]{2,4}-[0-9]{4}$')"]
+  }
 }
 ```
 

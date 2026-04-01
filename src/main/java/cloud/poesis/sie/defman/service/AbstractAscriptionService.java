@@ -11,9 +11,7 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -21,13 +19,6 @@ import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import com.networknt.schema.resource.DisallowSchemaLoader;
-import dev.cel.common.CelAbstractSyntaxTree;
-import dev.cel.common.CelValidationResult;
-import dev.cel.common.types.SimpleType;
-import dev.cel.compiler.CelCompiler;
-import dev.cel.compiler.CelCompilerFactory;
-import dev.cel.runtime.CelRuntime;
-import dev.cel.runtime.CelRuntimeFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
 import java.io.ByteArrayInputStream;
@@ -89,13 +80,6 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
                             String name = rest.split("/")[0];
                             return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
                           })));
-
-  /** CEL compiler + runtime for $gsm:validation enforcement at Ascription authoring. */
-  private final CelCompiler celCompiler =
-      CelCompilerFactory.standardCelCompilerBuilder().addVar("this", SimpleType.DYN).build();
-
-  private final CelRuntime celRuntime = CelRuntimeFactory.standardCelRuntimeBuilder().build();
-  private final ObjectMapper celMapper = new ObjectMapper();
 
   // Shared dependencies — constructor-injected into all subclasses
   private final DefinitionService definitionService;
@@ -1017,12 +1001,6 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
             propSchema.get("$gsm:dataProtection"), propName, (ObjectNode) statement);
       }
     }
-
-    // GSM §8: $gsm:validation — evaluate top-level CEL constraints against
-    // statement
-    if (archetypeStmt.has("$gsm:validation")) {
-      evaluateValidation(archetypeStmt.get("$gsm:validation"), statement);
-    }
   }
 
   private void enforceUnique(
@@ -1101,86 +1079,5 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
   private static boolean hasAnnotation(JsonNode node, String annotation) {
     return node.has(annotation) && node.get(annotation).asBoolean(false);
-  }
-
-  // ======================================================================
-  // $gsm:validation evaluation at Ascription authoring
-  // ======================================================================
-
-  /**
-   * Evaluates {@code $gsm:validation} CEL expressions against a statement payload.
-   *
-   * @param validationNode the JSON array of CEL expression strings
-   * @param statement the JSON statement payload ({@code this} in CEL context)
-   * @throws RuleViolationException if any expression fails or cannot be parsed
-   */
-  void evaluateValidation(JsonNode validationNode, JsonNode statement) {
-    if (!validationNode.isArray() || validationNode.isEmpty()) {
-      return;
-    }
-
-    Map<String, Object> statementMap =
-        celMapper.convertValue(statement, new TypeReference<Map<String, Object>>() {});
-
-    for (int i = 0; i < validationNode.size(); i++) {
-      JsonNode exprNode = validationNode.get(i);
-      if (!exprNode.isTextual()) {
-        continue;
-      }
-      String expr = exprNode.asText();
-      if (expr.isBlank()) {
-        continue;
-      }
-
-      try {
-        CelValidationResult compileResult = celCompiler.compile(expr);
-        if (compileResult.hasError()) {
-          throw RuleViolationException.of(
-              statementValidationRule(),
-              "$gsm:validation[" + i + "] CEL parse error: " + compileResult.getErrorString(),
-              "keyword",
-              "$gsm:validation",
-              "index",
-              i);
-        }
-        CelAbstractSyntaxTree ast = compileResult.getAst();
-        CelRuntime.Program program = celRuntime.createProgram(ast);
-        Object result = program.eval(Map.of("this", statementMap));
-
-        if (!(result instanceof Boolean b) || !b) {
-          throw RuleViolationException.of(
-              statementValidationRule(),
-              "$gsm:validation["
-                  + i
-                  + "] constraint failed: expression '"
-                  + expr
-                  + "' evaluated to "
-                  + result,
-              "keyword",
-              "$gsm:validation",
-              "index",
-              i,
-              "expression",
-              expr);
-        }
-      } catch (RuleViolationException e) {
-        throw e; // re-throw our own exceptions
-      } catch (Exception e) {
-        throw RuleViolationException.of(
-            statementValidationRule(),
-            "$gsm:validation["
-                + i
-                + "] evaluation error for expression '"
-                + expr
-                + "': "
-                + e.getMessage(),
-            "keyword",
-            "$gsm:validation",
-            "index",
-            i,
-            "expression",
-            expr);
-      }
-    }
   }
 }

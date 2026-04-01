@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
@@ -53,6 +53,8 @@ class NormServiceTest {
 
   @Mock private ArchetypeService archetypeService;
 
+  @Mock private AppraisalService appraisalService;
+
   private NormService service;
 
   @BeforeEach
@@ -68,11 +70,7 @@ class NormServiceTest {
             mock(AscriptionService.class),
             mock(EntityManager.class),
             mock(DataProtectionService.class),
-            null);
-    AppraisalService appraisalService =
-        new AppraisalService(directiveService, service, archetypeService);
-    org.springframework.test.util.ReflectionTestUtils.setField(
-        service, "appraisalService", appraisalService);
+            appraisalService);
   }
 
   // ========================================================================
@@ -1014,16 +1012,21 @@ class NormServiceTest {
   class GovernanceChain {
 
     @Test
-    void noDirectives_rejects() {
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
+    void delegatesToAppraisalService() {
+      NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
 
-      NormEntity norm = stubNormWithIds(structDefId, qualDefId, qualId, "encryptionLevel >= 1");
+      service.validateActivationUniqueness(norm);
 
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of());
+      verify(appraisalService).validateGovernanceChain(norm);
+      verify(appraisalService).validateNormCompatibility(norm);
+    }
+
+    @Test
+    void propagatesGovernanceChainException() {
+      NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
+      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_DIRECTED, "x"))
+          .when(appraisalService)
+          .validateGovernanceChain(norm);
 
       RuleViolationException ex =
           assertThrows(
@@ -1032,205 +1035,16 @@ class NormServiceTest {
     }
 
     @Test
-    void directiveWithMatchingPurposeAndQualifier_accepts() {
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
-      UUID normDefId = UUID.randomUUID();
-
-      NormEntity norm =
-          stubNormWithIds(structDefId, qualDefId, qualId, normDefId, "encryptionLevel >= 1");
-
-      UUID directiveQualId = UUID.randomUUID();
-      DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of(directive));
-
-      // Norm qualifier ancestors contain "SecurityProperties"
-      when(archetypeService.getAncestorTitles(qualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-      // Directive qualifier ancestors also contain "SecurityProperties"
-      when(archetypeService.getAncestorTitles(directiveQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-
-      // No in-effect siblings for conflict detection
-      when(normRepo.findAllByStructureDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
-          .thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.validateActivationUniqueness(norm));
-    }
-
-    @Test
-    void directiveWithDisjointQualifier_rejects() {
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
-
-      NormEntity norm = stubNormWithIds(structDefId, qualDefId, qualId, "encryptionLevel >= 1");
-
-      UUID directiveQualId = UUID.randomUUID();
-      DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of(directive));
-
-      // Disjoint lineages
-      when(archetypeService.getAncestorTitles(qualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-      when(archetypeService.getAncestorTitles(directiveQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("PerformanceProperties")));
+    void propagatesNormCompatibilityException() {
+      NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
+      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_COMPATIBILITY, "x"))
+          .when(appraisalService)
+          .validateNormCompatibility(norm);
 
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
-    }
-
-    @Test
-    void directiveWithAncestorQualifier_accepts() {
-      // Norm qualifier is "DetailedSecurity", Directive qualifier is
-      // "SecurityProperties"
-      // DetailedSecurity extends SecurityProperties → lineage overlap
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
-      UUID normDefId = UUID.randomUUID();
-
-      NormEntity norm =
-          stubNormWithIds(structDefId, qualDefId, qualId, normDefId, "encryptionLevel >= 1");
-
-      UUID directiveQualId = UUID.randomUUID();
-      DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of(directive));
-
-      // Norm qualifier lineage: DetailedSecurity -> SecurityProperties ->
-      // StructureArchetype
-      when(archetypeService.getAncestorTitles(qualId))
-          .thenReturn(
-              new java.util.LinkedHashSet<>(
-                  List.of("DetailedSecurity", "SecurityProperties", "StructureArchetype")));
-      // Directive qualifier lineage: SecurityProperties -> StructureArchetype
-      when(archetypeService.getAncestorTitles(directiveQualId))
-          .thenReturn(
-              new java.util.LinkedHashSet<>(List.of("SecurityProperties", "StructureArchetype")));
-
-      when(normRepo.findAllByStructureDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
-          .thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.validateActivationUniqueness(norm));
-    }
-  }
-
-  // ========================================================================
-  // NormConflict
-  // ========================================================================
-
-  @Nested
-  class NormConflict {
-
-    @Test
-    void noSiblings_noConflict() {
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
-      UUID normDefId = UUID.randomUUID();
-
-      NormEntity norm =
-          stubNormWithIds(structDefId, qualDefId, qualId, normDefId, "encryptionLevel >= 1");
-
-      // Governance chain passes
-      UUID directiveQualId = UUID.randomUUID();
-      DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of(directive));
-      when(archetypeService.getAncestorTitles(qualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-      when(archetypeService.getAncestorTitles(directiveQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-
-      when(normRepo.findAllByStructureDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
-          .thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.validateActivationUniqueness(norm));
-    }
-
-    @Test
-    void siblingWithDisjointQualifier_noConflict() {
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
-      UUID normDefId = UUID.randomUUID();
-
-      NormEntity norm =
-          stubNormWithIds(structDefId, qualDefId, qualId, normDefId, "encryptionLevel >= 1");
-
-      // Governance chain passes
-      UUID directiveQualId = UUID.randomUUID();
-      DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of(directive));
-      when(archetypeService.getAncestorTitles(qualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-      when(archetypeService.getAncestorTitles(directiveQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-
-      // Sibling targets different qualifier
-      UUID siblingQualId = UUID.randomUUID();
-      UUID siblingDefId = UUID.randomUUID();
-      NormEntity sibling =
-          stubNormWithIds(structDefId, siblingDefId, siblingQualId, "latency < 100");
-      when(normRepo.findAllByStructureDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
-          .thenReturn(List.of(sibling));
-
-      when(archetypeService.getAncestorTitles(siblingQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("PerformanceProperties")));
-
-      // No conflict: disjoint qualifiers
-      assertDoesNotThrow(() -> service.validateActivationUniqueness(norm));
-    }
-
-    @Test
-    void siblingWithOverlappingQualifierAndCommonProperties_warns() {
-      UUID structDefId = UUID.randomUUID();
-      UUID qualDefId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
-      UUID normDefId = UUID.randomUUID();
-
-      NormEntity norm =
-          stubNormWithIds(structDefId, qualDefId, qualId, normDefId, "encryptionLevel >= 1");
-
-      // Governance chain passes
-      UUID directiveQualId = UUID.randomUUID();
-      DirectiveEntity directive = stubDirectiveWithQualifier(directiveQualId);
-      when(directiveService.findAllByPurposeDefinitionIdAndStatusIn(
-              eq(structDefId), anyCollection()))
-          .thenReturn(List.of(directive));
-      when(archetypeService.getAncestorTitles(qualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-      when(archetypeService.getAncestorTitles(directiveQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-
-      // Sibling targets same qualifier with different assertion on same property
-      UUID siblingQualId = UUID.randomUUID();
-      UUID siblingDefId = UUID.randomUUID();
-      NormEntity sibling =
-          stubNormWithIds(structDefId, siblingDefId, siblingQualId, "encryptionLevel >= 2");
-      when(normRepo.findAllByStructureDefinitionIdAndStatusIn(eq(structDefId), anyCollection()))
-          .thenReturn(List.of(sibling));
-
-      when(archetypeService.getAncestorTitles(siblingQualId))
-          .thenReturn(new java.util.LinkedHashSet<>(List.of("SecurityProperties")));
-
-      // Warns but doesn't throw (conflict detection is advisory)
-      assertDoesNotThrow(() -> service.validateActivationUniqueness(norm));
+      assertEquals(AppraisalRuleType.NORM_COMPATIBILITY, ex.getRuleType());
     }
   }
 
