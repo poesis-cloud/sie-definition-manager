@@ -181,7 +181,14 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
           Map.entry("norm_qualifier_id_fkey", RuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
           // Effector / Receptor reference FKs
           Map.entry("effector_mechanism_id_fkey", RuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
+          Map.entry(
+              "effector_output_archetype_id_fkey", RuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY),
           Map.entry("receptor_mechanism_id_fkey", RuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
+          Map.entry(
+              "receptor_input_archetype_id_fkey", RuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY),
+          // Mechanism structure FK
+          Map.entry(
+              "mechanism_structure_id_fkey", RuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY),
           // Interaction reference FKs
           Map.entry(
               "interaction_effector_id_fkey", RuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
@@ -213,11 +220,6 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
     if (constraintName != null) {
       RuleType ruleType = CONSTRAINT_TO_RULE.get(constraintName);
       if (ruleType == null && constraintName.endsWith("_archetype_id_fkey")) {
-        ruleType = RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
-      }
-      if (ruleType == null
-          && (constraintName.endsWith("_output_archetype_id_fkey")
-              || constraintName.endsWith("_input_archetype_id_fkey"))) {
         ruleType = RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY;
       }
       if (ruleType != null) {

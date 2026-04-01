@@ -99,6 +99,17 @@ public enum RuleType {
           + "allowed on either chain."),
 
   // ====================================================================
+  // MECHANISM — reference integrity
+  // ====================================================================
+
+  MECHANISM_STRUCTURE_REFERENCE_INTEGRITY(
+      "gsm:rules/mechanism/structure/reference-integrity",
+      "Mechanism structure reference integrity",
+      "A Mechanism's structure reference must resolve to an existing "
+          + "Structure Definition — a non-existent or mistyped reference "
+          + "is rejected."),
+
+  // ====================================================================
   // EFFECTOR — reference integrity
   // ====================================================================
 
@@ -107,6 +118,13 @@ public enum RuleType {
       "Effector mechanism reference integrity",
       "An Effector's mechanism reference must resolve to an existing "
           + "Mechanism Definition — a non-existent or mistyped reference "
+          + "is rejected."),
+
+  EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY(
+      "gsm:rules/effector/archetype/reference-integrity",
+      "Effector data archetype reference integrity",
+      "An Effector's data archetype reference must resolve to an existing "
+          + "Archetype Definition — a non-existent or mistyped reference "
           + "is rejected."),
 
   // ====================================================================
@@ -118,6 +136,13 @@ public enum RuleType {
       "Receptor mechanism reference integrity",
       "A Receptor's mechanism reference must resolve to an existing "
           + "Mechanism Definition — a non-existent or mistyped reference "
+          + "is rejected."),
+
+  RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY(
+      "gsm:rules/receptor/archetype/reference-integrity",
+      "Receptor data archetype reference integrity",
+      "A Receptor's data archetype reference must resolve to an existing "
+          + "Archetype Definition — a non-existent or mistyped reference "
           + "is rejected."),
 
   // ====================================================================

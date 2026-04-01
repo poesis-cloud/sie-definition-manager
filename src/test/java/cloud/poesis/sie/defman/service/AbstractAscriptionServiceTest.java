@@ -1396,7 +1396,7 @@ class AbstractAscriptionServiceTest {
     }
 
     @Test
-    void outputArchetypeIdFkeySuffix_returnsArchetypeReferenceIntegrity() {
+    void outputArchetypeIdFkeySuffix_returnsEffectorArchetypeReferenceIntegrity() {
       var cve =
           new ConstraintViolationException("violation", null, "effector_output_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
@@ -1405,12 +1405,12 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+          RuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
           ((RuleViolationException) result).getRuleType());
     }
 
     @Test
-    void inputArchetypeIdFkeySuffix_returnsArchetypeReferenceIntegrity() {
+    void inputArchetypeIdFkeySuffix_returnsReceptorArchetypeReferenceIntegrity() {
       var cve =
           new ConstraintViolationException("violation", null, "receptor_input_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
@@ -1419,7 +1419,20 @@ class AbstractAscriptionServiceTest {
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
-          RuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+          RuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+          ((RuleViolationException) result).getRuleType());
+    }
+
+    @Test
+    void mechanismStructureIdFkey_returnsMechanismStructureReferenceIntegrity() {
+      var cve = new ConstraintViolationException("violation", null, "mechanism_structure_id_fkey");
+      var dive = new DataIntegrityViolationException("wrapped", cve);
+
+      RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
+
+      assertInstanceOf(RuleViolationException.class, result);
+      assertEquals(
+          RuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
           ((RuleViolationException) result).getRuleType());
     }
 
