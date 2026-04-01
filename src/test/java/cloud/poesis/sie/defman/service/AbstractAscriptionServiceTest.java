@@ -344,7 +344,7 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("Statement validation failed"));
     }
 
@@ -363,7 +363,7 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("Statement validation failed"));
     }
 
@@ -725,7 +725,7 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
       assertTrue(ex.getMessage().contains("constraint failed"));
     }
@@ -750,7 +750,7 @@ class AbstractAscriptionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.enforceAnnotations(statement, archetype, UUID.randomUUID()));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("$gsm:validation"));
       assertTrue(ex.getMessage().contains("constraint failed"));
     }
@@ -965,7 +965,7 @@ class AbstractAscriptionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.extractRequiredUuid(statement, "ref"));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("ref"));
     }
 

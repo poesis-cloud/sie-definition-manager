@@ -199,7 +199,7 @@ class InteractionServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("effector"));
     }
 
@@ -225,8 +225,7 @@ class InteractionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(
-          RuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("tenant-extended"));
     }
   }

@@ -6,7 +6,7 @@ package cloud.poesis.sie.defman.type;
  *
  * <p>Each value describes a <em>rule</em> (the constraint that must hold), not an error or
  * violation. The naming convention is {@code SUBTYPE_PROPERTY_CONSTRAINT} — e.g. {@code
- * STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE}.
+ * ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE}.
  *
  * <p>Every value carries:
  *
@@ -20,45 +20,6 @@ package cloud.poesis.sie.defman.type;
  * @since 1.0.0
  */
 public enum RuleType {
-
-  // ====================================================================
-  // STRUCTURE — statement validation
-  // ====================================================================
-
-  STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/structure/statement/compliance-to-gsm-archetype",
-      "Structure statement compliance to GSM archetype",
-      "A Structure Ascription statement must conform to the GSM base "
-          + "StructureArchetype schema — all required structural "
-          + "properties present, all values matching declared types, "
-          + "formats, and constraints."),
-
-  STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE(
-      "gsm:rules/structure/statement/compliance-to-non-gsm-archetype",
-      "Structure statement compliance to non-GSM archetype",
-      "A Structure Ascription statement must conform to the tenant-"
-          + "extended Archetype schema — all tenant-defined properties "
-          + "matching declared types, formats, patterns, ranges, enums, "
-          + "and $gsm:* vocabulary keyword constraints."),
-
-  // ====================================================================
-  // MECHANISM — statement validation
-  // ====================================================================
-
-  MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/mechanism/statement/compliance-to-gsm-archetype",
-      "Mechanism statement compliance to GSM archetype",
-      "A Mechanism Ascription statement must conform to the GSM base "
-          + "MechanismArchetype schema — structure reference, function, "
-          + "and rule fields present and correctly typed."),
-
-  MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE(
-      "gsm:rules/mechanism/statement/compliance-to-non-gsm-archetype",
-      "Mechanism statement compliance to non-GSM archetype",
-      "A Mechanism Ascription statement must conform to the tenant-"
-          + "extended Archetype schema — all tenant-defined properties "
-          + "matching declared types, formats, patterns, ranges, enums, "
-          + "and $gsm:* vocabulary keyword constraints."),
 
   // ====================================================================
   // MECHANISM — Starlark rule validation
@@ -138,15 +99,8 @@ public enum RuleType {
           + "allowed on either chain."),
 
   // ====================================================================
-  // EFFECTOR — statement validation and reference integrity
+  // EFFECTOR — reference integrity
   // ====================================================================
-
-  EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/effector/statement/compliance-to-gsm-archetype",
-      "Effector statement compliance to GSM archetype",
-      "An Effector Ascription statement must conform to the GSM "
-          + "EffectorArchetype schema — mechanism reference and data "
-          + "archetype reference present and correctly typed."),
 
   EFFECTOR_MECHANISM_REFERENCE_INTEGRITY(
       "gsm:rules/effector/mechanism/reference-integrity",
@@ -156,15 +110,8 @@ public enum RuleType {
           + "is rejected."),
 
   // ====================================================================
-  // RECEPTOR — statement validation and reference integrity
+  // RECEPTOR — reference integrity
   // ====================================================================
-
-  RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/receptor/statement/compliance-to-gsm-archetype",
-      "Receptor statement compliance to GSM archetype",
-      "A Receptor Ascription statement must conform to the GSM "
-          + "ReceptorArchetype schema — mechanism reference and data "
-          + "archetype reference present and correctly typed."),
 
   RECEPTOR_MECHANISM_REFERENCE_INTEGRITY(
       "gsm:rules/receptor/mechanism/reference-integrity",
@@ -174,23 +121,8 @@ public enum RuleType {
           + "is rejected."),
 
   // ====================================================================
-  // INTERACTION — statement validation, references, compatibility
+  // INTERACTION — references and compatibility
   // ====================================================================
-
-  INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/interaction/statement/compliance-to-gsm-archetype",
-      "Interaction statement compliance to GSM archetype",
-      "An Interaction Ascription statement must conform to the GSM base "
-          + "InteractionArchetype schema — effector and receptor "
-          + "references present and correctly typed."),
-
-  INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE(
-      "gsm:rules/interaction/statement/compliance-to-non-gsm-archetype",
-      "Interaction statement compliance to non-GSM archetype",
-      "An Interaction Ascription statement must conform to the tenant-"
-          + "extended Archetype schema — all tenant-defined properties "
-          + "matching declared types, formats, patterns, ranges, enums, "
-          + "and $gsm:* vocabulary keyword constraints."),
 
   INTERACTION_EFFECTOR_REFERENCE_INTEGRITY(
       "gsm:rules/interaction/effector/reference-integrity",
@@ -215,15 +147,8 @@ public enum RuleType {
           + "Archetype."),
 
   // ====================================================================
-  // DIRECTIVE — statement validation, references, governance consistency
+  // DIRECTIVE — references and governance consistency
   // ====================================================================
-
-  DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/directive/statement/compliance-to-gsm-archetype",
-      "Directive statement compliance to GSM archetype",
-      "A Directive Ascription statement must conform to the GSM "
-          + "DirectiveArchetype schema — structure, modal, verb, "
-          + "qualifier, and purpose fields present and correctly typed."),
 
   DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY(
       "gsm:rules/directive/structure/reference-integrity",
@@ -264,16 +189,8 @@ public enum RuleType {
           + "MUST_NOT on the same verb) — this is a contradiction."),
 
   // ====================================================================
-  // NORM — statement validation and reference integrity
+  // NORM — reference integrity
   // ====================================================================
-
-  NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/norm/statement/compliance-to-gsm-archetype",
-      "Norm statement compliance to GSM archetype",
-      "A Norm Ascription statement must conform to the GSM "
-          + "NormArchetype schema — structure, qualifier, applicability, "
-          + "assertion, and tolerance fields present and correctly "
-          + "typed."),
 
   NORM_STRUCTURE_REFERENCE_INTEGRITY(
       "gsm:rules/norm/structure/reference-integrity",
@@ -405,16 +322,8 @@ public enum RuleType {
           + "constraints indicate a governance design error."),
 
   // ====================================================================
-  // ARCHETYPE — statement validation and allOf chain constraints
+  // ARCHETYPE — allOf chain constraints
   // ====================================================================
-
-  ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
-      "gsm:rules/archetype/statement/compliance-to-gsm-archetype",
-      "Archetype statement compliance to GSM archetype",
-      "An Archetype Ascription statement (the JSON Schema document) must "
-          + "conform to the GSM Archetype meta-schema — valid JSON "
-          + "Schema 2020-12 structure and well-formed $gsm:* vocabulary "
-          + "keyword values."),
 
   ARCHETYPE_ALLOF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE(
       "gsm:rules/archetype/allof/chain-exclusive-base-convergence",
@@ -507,6 +416,26 @@ public enum RuleType {
       "Archetype $gsm:validation CEL boolean result",
       "Every $gsm:validation CEL expression must evaluate to bool — "
           + "non-boolean result types are rejected."),
+
+  // ====================================================================
+  // ASCRIPTION — cross-cutting statement validation
+  // ====================================================================
+
+  ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE(
+      "gsm:rules/ascription/statement/compliance-to-gsm-archetype",
+      "Ascription statement compliance to GSM archetype",
+      "An Ascription statement must conform to the GSM base Archetype "
+          + "schema for its subject type — all required structural "
+          + "properties present, all values matching declared types, "
+          + "formats, and constraints."),
+
+  ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE(
+      "gsm:rules/ascription/statement/compliance-to-non-gsm-archetype",
+      "Ascription statement compliance to non-GSM archetype",
+      "An Ascription statement must conform to the tenant-extended "
+          + "Archetype schema — all tenant-defined properties matching "
+          + "declared types, formats, patterns, ranges, enums, and "
+          + "$gsm:* vocabulary keyword constraints."),
 
   // ====================================================================
   // ASCRIPTION — cross-cutting lifecycle constraints

@@ -517,7 +517,7 @@ class ArchetypeServiceTest {
             assertThrows(
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
@@ -534,7 +534,7 @@ class ArchetypeServiceTest {
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("$gsm:foobar"));
-        assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
@@ -550,7 +550,7 @@ class ArchetypeServiceTest {
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("top-level only"));
-        assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
     }
 
@@ -814,7 +814,7 @@ class ArchetypeServiceTest {
                 RuleViolationException.class,
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("must be an array"));
-        assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
@@ -830,7 +830,7 @@ class ArchetypeServiceTest {
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
         assertTrue(ex.getMessage().contains("must be a string"));
-        assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
@@ -846,7 +846,7 @@ class ArchetypeServiceTest {
                 () -> service.validateArchetypeAnnotations(schema, defId));
         assertTrue(ex.getMessage().contains("$gsm:validation[0]"));
         assertTrue(ex.getMessage().contains("must not be blank"));
-        assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
@@ -967,7 +967,7 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.buildEntity(def, archetypeRef, null));
-      assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
     }
 
     @Test
@@ -979,7 +979,7 @@ class ArchetypeServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetypeRef, MAPPER.createArrayNode()));
-      assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
     }
   }
 

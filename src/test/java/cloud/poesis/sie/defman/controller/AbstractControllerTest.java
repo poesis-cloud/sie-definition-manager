@@ -314,7 +314,7 @@ class AbstractControllerTest {
     void ruleViolation_badRequest() {
       RuleViolationException ex =
           new RuleViolationException(
-              RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+              RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
               "Statement does not match schema");
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
@@ -399,7 +399,7 @@ class AbstractControllerTest {
     @Test
     void allBadRequestRuleTypes_mapToBadRequest() {
       RuleType[] badRequestTypes = {
-        RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+        RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
         RuleType.MECHANISM_RULE_STARLARK_PARSING,
         RuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
         RuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,

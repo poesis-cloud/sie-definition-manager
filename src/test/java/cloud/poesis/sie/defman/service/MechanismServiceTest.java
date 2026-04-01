@@ -655,21 +655,21 @@ class MechanismServiceTest {
       void nullRule_rejected() {
         RuleViolationException ex =
             assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(null));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
       void emptyRule_rejected() {
         RuleViolationException ex =
             assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(""));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
       void blankRule_rejected() {
         RuleViolationException ex =
             assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule("   "));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       }
 
       @Test
@@ -1069,7 +1069,7 @@ class MechanismServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("tenant-extended"));
     }
   }

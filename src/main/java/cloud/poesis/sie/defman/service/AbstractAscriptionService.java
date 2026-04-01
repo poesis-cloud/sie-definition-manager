@@ -252,16 +252,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    * @return the statement validation rule type
    */
   protected RuleType statementValidationRule() {
-    return switch (getSubjectType()) {
-      case STRUCTURE -> RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case MECHANISM -> RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case EFFECTOR -> RuleType.EFFECTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case RECEPTOR -> RuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case INTERACTION -> RuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case DIRECTIVE -> RuleType.DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case NORM -> RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-      case ARCHETYPE -> RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
-    };
+    return RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
   }
 
   /**
@@ -271,10 +262,9 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    */
   protected RuleType extensionStatementValidationRule() {
     return switch (getSubjectType()) {
-      case STRUCTURE -> RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
-      case MECHANISM -> RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
-      case INTERACTION -> RuleType.INTERACTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
-      default -> null; // Other types have no tenant-extensible base schemas
+      case STRUCTURE, MECHANISM, INTERACTION ->
+          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+      default -> null; // Other types have no tenant-extensible base schemas (yet — Step 2)
     };
   }
 

@@ -331,15 +331,15 @@ class NormServiceTest {
       void emptyAssertion_rejected() {
         RuleViolationException ex1 =
             assertThrows(RuleViolationException.class, () -> service.validateAssertion(null));
-        assertEquals(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex1.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex1.getRuleType());
 
         RuleViolationException ex2 =
             assertThrows(RuleViolationException.class, () -> service.validateAssertion(""));
-        assertEquals(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex2.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex2.getRuleType());
 
         RuleViolationException ex3 =
             assertThrows(RuleViolationException.class, () -> service.validateAssertion("   "));
-        assertEquals(RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex3.getRuleType());
+        assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex3.getRuleType());
       }
 
       @Test

@@ -384,7 +384,7 @@ class DirectiveServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.DIRECTIVE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("structure"));
     }
   }

@@ -162,7 +162,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
     if (statement == null || !statement.isObject()) {
       throw RuleViolationException.of(
-          RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "Archetype statement must be a JSON object",
           "field",
           "statement");
@@ -888,7 +888,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       String name = fieldNames.next();
       if (name.startsWith("$gsm:") && !KNOWN_ANNOTATIONS.contains(name)) {
         throw RuleViolationException.of(
-            RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
             "Unknown $gsm:* annotation '" + name + "' — sealed annotation vocabulary",
             "annotation",
             name);
@@ -903,7 +903,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       if (name.startsWith("$gsm:")) {
         if (!KNOWN_ANNOTATIONS.contains(name)) {
           throw RuleViolationException.of(
-              RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+              RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
               "Unknown $gsm:* annotation '"
                   + name
                   + "' on property '"
@@ -916,7 +916,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         }
         if (TOP_LEVEL_ANNOTATIONS.contains(name)) {
           throw RuleViolationException.of(
-              RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+              RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
               "Annotation '"
                   + name
                   + "' is top-level only, not valid on property '"
@@ -1037,7 +1037,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   void validateValidationExpressions(JsonNode validationNode) {
     if (!validationNode.isArray()) {
       throw RuleViolationException.of(
-          RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "$gsm:validation must be an array of CEL expression strings",
           "annotation",
           "$gsm:validation");
@@ -1049,7 +1049,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       JsonNode exprNode = validationNode.get(i);
       if (!exprNode.isTextual()) {
         throw RuleViolationException.of(
-            RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
             "$gsm:validation[" + i + "] must be a string, got " + exprNode.getNodeType(),
             "annotation",
             "$gsm:validation",
@@ -1059,7 +1059,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       String expr = exprNode.asText();
       if (expr.isBlank()) {
         throw RuleViolationException.of(
-            RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+            RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
             "$gsm:validation[" + i + "] must not be blank",
             "annotation",
             "$gsm:validation",

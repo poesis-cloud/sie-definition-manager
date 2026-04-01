@@ -278,7 +278,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   String validateStarlarkRule(String rule) {
     if (rule == null || rule.isBlank()) {
       throw RuleViolationException.of(
-          RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "Mechanism rule must not be null or blank",
           "field",
           "rule");

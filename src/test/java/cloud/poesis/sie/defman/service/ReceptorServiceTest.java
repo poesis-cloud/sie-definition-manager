@@ -167,7 +167,7 @@ class ReceptorServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(RuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("mechanism"));
     }
 
@@ -187,7 +187,7 @@ class ReceptorServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetypeRef, statement));
-      assertEquals(RuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("archetype"));
     }
 
@@ -203,7 +203,7 @@ class ReceptorServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.buildEntity(def, archetypeRef, statement));
-      assertEquals(RuleType.RECEPTOR_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
     }
   }
 

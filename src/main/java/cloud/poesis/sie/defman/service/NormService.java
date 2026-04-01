@@ -352,7 +352,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   void validateAssertion(String assertion) {
     if (assertion == null || assertion.isBlank()) {
       throw RuleViolationException.of(
-          RuleType.NORM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "Assertion must not be empty",
           "field",
           "assertion");

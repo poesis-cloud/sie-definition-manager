@@ -177,7 +177,7 @@ public class DataProtectionService {
       return hex.toString();
     } catch (NoSuchAlgorithmException e) {
       throw RuleViolationException.of(
-          RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
           "keyword",
           "$gsm:dataProtection",

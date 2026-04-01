@@ -464,7 +464,7 @@ class DataProtectionServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.computeHash("hello", "BOGUS-ALG"));
 
-      assertEquals(RuleType.ARCHETYPE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
+      assertEquals(RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("BOGUS-ALG"));
     }
   }
