@@ -126,7 +126,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
   // GSM base schema property sets for extensible subject types (sealed — derived
   // from
-  // PrimitiveType.statementProperties and never change at runtime).
+  // DefinitionSubjectType.statementProperties and never change at runtime).
   // Used to classify validation errors as GSM-base vs tenant-extension.
   private static final Map<DefinitionSubjectType, Set<String>> GSM_BASE_PROPERTIES;
 
@@ -134,7 +134,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
     var map =
         new java.util.EnumMap<DefinitionSubjectType, Set<String>>(DefinitionSubjectType.class);
     for (DefinitionSubjectType type : DefinitionSubjectType.values()) {
-      Set<String> props = type.getPrimitiveType().getStatementProperties();
+      Set<String> props = type.getStatementProperties();
       if (!props.isEmpty()) {
         map.put(type, props);
       }

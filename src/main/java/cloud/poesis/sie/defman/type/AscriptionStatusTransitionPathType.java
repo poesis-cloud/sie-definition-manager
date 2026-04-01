@@ -20,7 +20,7 @@ import java.util.Set;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public enum AscriptionLifecyclePathType {
+public enum AscriptionStatusTransitionPathType {
 
   // Progress path
   CREATE(null, AscriptionStatusType.DRAFT),
@@ -43,7 +43,7 @@ public enum AscriptionLifecyclePathType {
   private final AscriptionStatusType from;
   private final AscriptionStatusType to;
 
-  AscriptionLifecyclePathType(AscriptionStatusType from, AscriptionStatusType to) {
+  AscriptionStatusTransitionPathType(AscriptionStatusType from, AscriptionStatusType to) {
     this.from = from;
     this.to = to;
   }
@@ -77,7 +77,7 @@ public enum AscriptionLifecyclePathType {
   static {
     EnumMap<AscriptionStatusType, Set<AscriptionStatusType>> map =
         new EnumMap<>(AscriptionStatusType.class);
-    for (AscriptionLifecyclePathType path : values()) {
+    for (AscriptionStatusTransitionPathType path : values()) {
       if (path.from != null) {
         map.computeIfAbsent(path.from, k -> EnumSet.noneOf(AscriptionStatusType.class))
             .add(path.to);
