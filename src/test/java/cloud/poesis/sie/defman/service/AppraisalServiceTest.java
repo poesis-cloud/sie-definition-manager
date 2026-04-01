@@ -164,7 +164,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
+      assertEquals(AppraisalRuleType.DIRECTIVE_CONTRADICTION, ex.getRuleType());
       assertTrue(ex.getMessage().contains("ENSURE"));
       assertTrue(ex.getMessage().contains("PREVENT"));
     }
@@ -181,7 +181,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
+      assertEquals(AppraisalRuleType.DIRECTIVE_CONTRADICTION, ex.getRuleType());
     }
 
     @Test
@@ -227,7 +227,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
+      assertEquals(AppraisalRuleType.MODAL_TENSION, ex.getRuleType());
       assertTrue(ex.getMessage().contains("MUST"));
       assertTrue(ex.getMessage().contains("MUST_NOT"));
     }
@@ -244,7 +244,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
+      assertEquals(AppraisalRuleType.MODAL_TENSION, ex.getRuleType());
     }
 
     @Test
@@ -310,7 +310,7 @@ class AppraisalServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateGovernanceChain(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
+      assertEquals(AppraisalRuleType.NORM_WITHOUT_DIRECTIVE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("No in-effect Directive"));
     }
 
@@ -348,7 +348,7 @@ class AppraisalServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateGovernanceChain(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
+      assertEquals(AppraisalRuleType.NORM_WITHOUT_DIRECTIVE, ex.getRuleType());
       assertTrue(ex.getMessage().contains("no overlap"));
     }
 

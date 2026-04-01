@@ -86,7 +86,7 @@ class DirectiveServiceTest {
     @Test
     void propagatesAppraisalException() {
       DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-      doThrow(RuleViolationException.of(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, "x"))
+      doThrow(RuleViolationException.of(AppraisalRuleType.DIRECTIVE_CONTRADICTION, "x"))
           .when(appraisalService)
           .validateDirectiveCompatibility(directive);
 
