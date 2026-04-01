@@ -150,7 +150,21 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       Map.of(
           DefinitionSubjectType.STRUCTURE, Set.of("purpose"),
           DefinitionSubjectType.MECHANISM, Set.of("structure", "function", "rule"),
-          DefinitionSubjectType.INTERACTION, Set.of("effector", "receptor"));
+          DefinitionSubjectType.EFFECTOR, Set.of("mechanism", "archetype"),
+          DefinitionSubjectType.RECEPTOR, Set.of("mechanism", "archetype"),
+          DefinitionSubjectType.INTERACTION, Set.of("effector", "receptor"),
+          DefinitionSubjectType.DIRECTIVE,
+              Set.of("structure", "modal", "verb", "qualifier", "purpose"),
+          DefinitionSubjectType.NORM,
+              Set.of(
+                  "structure",
+                  "qualifier",
+                  "applicability",
+                  "assertion",
+                  "toleranceMode",
+                  "temporalWindow",
+                  "temporalAggregation",
+                  "sustainedThreshold"));
 
   // Known PostgreSQL constraint → RuleType mapping (auto-generated FK names
   // and partial unique indexes)
@@ -262,9 +276,9 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    */
   protected RuleType extensionStatementValidationRule() {
     return switch (getSubjectType()) {
-      case STRUCTURE, MECHANISM, INTERACTION ->
+      case STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, DIRECTIVE, NORM ->
           RuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
-      default -> null; // Other types have no tenant-extensible base schemas (yet — Step 2)
+      case ARCHETYPE -> null; // Archetype meta-schema is GSM-only, not tenant-extensible
     };
   }
 
