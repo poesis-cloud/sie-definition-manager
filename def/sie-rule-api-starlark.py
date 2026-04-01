@@ -12,7 +12,7 @@
 #   ┌─────────────────────────────────────────────────────┐
 #   │  Starlark sandbox                                   │
 #   │                                                     │
-#   │  1. sys         → SystemContext (fluent API)         │
+#   │  1. sys → SystemContext (fluent API)                │
 #   │  2. Injected functions (4 host-provided)            │
 #   │  3. Starlark built-ins (Python subset)              │
 #   │                                                     │
@@ -42,9 +42,7 @@
 #
 # ================================================================
 
-
 from typing import Any, Optional
-
 
 # ================================================================
 # 1. SYSTEM CONTEXT — the fluent effect API
@@ -182,7 +180,6 @@ class SystemContext:
         """
         ...
 
-
 class ReceptorBuilder:
     """Fluent builder returned by sys.receive(). Qualifies trigger port."""
 
@@ -263,15 +260,11 @@ class EffectorBuilder:
         """
         ...
 
-
 # ================================================================
 # 2. INJECTED FUNCTIONS (4 host-provided)
 # ================================================================
 #
 # Injected because Starlark sandbox lacks: clock, randomness, regex.
-#
-# Note: trigger declaration (formerly on()) is now sys.receive()
-# — see §1 SystemContext.
 #
 # All other computation is native Starlark:
 #   sum       → total = 0; for x in vals: total += x
@@ -334,7 +327,6 @@ def search(pattern: str, string: str) -> Optional[str]:
     """
     ...
 
-
 # ================================================================
 # 3. STARLARK BUILT-IN CAPABILITIES (native, not injected)
 # ================================================================
@@ -372,7 +364,6 @@ def search(pattern: str, string: str) -> Optional[str]:
 #     NOTE: / is integer division; use float(a)/b for true division.
 #
 # ================================================================
-
 
 # ================================================================
 # 4. GSM AUTO-DERIVATION
@@ -440,7 +431,6 @@ def search(pattern: str, string: str) -> Optional[str]:
 #
 # ================================================================
 
-
 # ================================================================
 # 5. VALIDATION (on save)
 # ================================================================
@@ -472,7 +462,6 @@ def search(pattern: str, string: str) -> Optional[str]:
 # 10. EXECUTION BUDGET: max steps (default 100k, configurable).
 #
 # ================================================================
-
 
 # ================================================================
 # 6. EXAMPLE
@@ -515,5 +504,4 @@ def search(pattern: str, string: str) -> Optional[str]:
 #               "fraudHold": True,
 #               "riskScore": assessment["riskScore"]
 #           })
-#
 #

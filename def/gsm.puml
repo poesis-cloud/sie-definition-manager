@@ -23,36 +23,6 @@ skinparam classFontColor #24292F
 skinparam noteBackgroundColor #FFF8C5
 skinparam noteBorderColor #57606A
 
-' ============================================================
-' TODO:
-' - Design inter-Structure governance patterns (governing
-'   Structure DNA → governed Structure Elements).
-' - Think to making a Structure child of a Structure... The rationale
-'   being that if a structure is an agglomerat of mechanisms, there
-'   should not be reasons it can't agglomerate structures... The criteria
-'   of structure agglomeration is governance designing governed structures' purposes,
-'   identities... Isolation might be a marker of a composition pattern.
-'   Or an aggregate of interactiong structure IS a superstructure... Composition
-'   is an illusion of perspective on governance patterns, not a structural fact?
-' - Formalize reflexive Mechanism patterns that produce DNA.
-' - Extract and formalize all Directives and Norms of GSM
-'   itself... Applying a pertinent/pragmatical way its own model. Many
-'   constraints are already present in GSM notes.
-' - Define Norms for Archetype schema handling of Ascription formats,
-'   and define formats (ITIP schemas presets).
-' - Challenge inter-system governance (Composition VS Relational) articulations
-'   mechanisms. Looks like relational governance governor produce Directives as
-'   state objects to consume and derivate by governed system's governor via its
-'   own designed Norms adapted to its purposes.
-' - Update planes specifications.
-' - Design the Justificational System Model (?SM) — a third model completing
-'   the GSM/DSM duality into a triad: GSM (what must be), DSM (what is),
-'   ?SM (why governance decisions are made). ?SM delivers justifications from
-'   description to definition — the reasoning that connects DSM evidence to
-'   GSM governance changes, making the Determination process's rationale
-'   persistent, auditable, and machine-interpretable. Analogies: KAOS
-'   rationale, argumentation frameworks (claims + evidence + reasoning).
-
 frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
   ' ============================================================

@@ -17,6 +17,28 @@
   },
   "allOf": [ {
     "$ref": "https://json-schema.org/draft/2020-12/schema"
+  }, {
+    "if": {
+      "properties": {
+        "$gsm:queryable": {
+          "const": true
+        }
+      },
+      "required": [ "$gsm:queryable" ]
+    },
+    "then": {
+      "properties": {
+        "$gsm:dataProtection": {
+          "properties": {
+            "atRest": {
+              "not": {
+                "required": [ "encryption" ]
+              }
+            }
+          }
+        }
+      }
+    }
   } ],
   "properties": {
     "$gsm:sealed": {
@@ -76,7 +98,38 @@
         }
       },
       "minProperties": 1,
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [ {
+        "if": {
+          "properties": {
+            "atRest": {
+              "required": [ "suppression" ]
+            }
+          },
+          "required": [ "atRest" ]
+        },
+        "then": {
+          "not": {
+            "required": [ "inTransit" ]
+          }
+        }
+      }, {
+        "if": {
+          "required": [ "atRest", "inTransit" ],
+          "properties": {
+            "atRest": {
+              "required": [ "hash" ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "inTransit": {
+              "required": [ "suppression" ]
+            }
+          }
+        }
+      } ]
     },
     "DataProtectionMeasures": {
       "type": "object",
