@@ -101,14 +101,9 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
   @Override
   public void validateActivationUniqueness(AscriptionEntity entity) {
     var stmt = entity.getStatement();
-    String purpose = stmt.has("purpose") ? stmt.get("purpose").asText() : null;
-    if (purpose == null || purpose.isBlank()) {
-      throw RuleViolationException.of(
-          RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-          "Structure purpose must not be empty",
-          "field",
-          "purpose");
-    }
+    // Statement is immutable and was validated at creation — purpose is guaranteed
+    // non-null/non-blank.
+    String purpose = stmt.get("purpose").asText();
     UUID thisDefId = entity.getDefinition().getId();
     List<StructureEntity> inEffect =
         structureRepo.findAllByStatusIn(

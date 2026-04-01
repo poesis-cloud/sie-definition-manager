@@ -237,16 +237,9 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   @Override
   public void validateActivationUniqueness(AscriptionEntity entity) {
     var m = (MechanismEntity) entity;
-
-    String function =
-        m.getStatement().has("function") ? m.getStatement().get("function").asText() : null;
-    if (function == null || function.isBlank()) {
-      throw RuleViolationException.of(
-          RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-          "Mechanism function must not be empty",
-          "property",
-          "function");
-    }
+    // Statement is immutable and was validated at creation — function is guaranteed
+    // non-null/non-blank.
+    String function = m.getStatement().get("function").asText();
     UUID structureDefId = m.getStructure().getDefinition().getId();
     UUID thisDefId = m.getDefinition().getId();
     List<MechanismEntity> inEffect =

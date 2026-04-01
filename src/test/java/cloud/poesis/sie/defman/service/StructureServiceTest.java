@@ -109,28 +109,6 @@ class StructureServiceTest {
     }
 
     @Test
-    void emptyPurpose_rejected() {
-      StructureEntity entity = stubStructure("", UUID.randomUUID());
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("must not be empty"));
-    }
-
-    @Test
-    void nullPurpose_rejected() {
-      StructureEntity entity = stubStructureNoPurpose(UUID.randomUUID());
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-      assertEquals(RuleType.STRUCTURE_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("must not be empty"));
-    }
-
-    @Test
     void differentPurpose_valid() {
       UUID thisDefId = UUID.randomUUID();
       UUID otherDefId = UUID.randomUUID();

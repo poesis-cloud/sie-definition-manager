@@ -194,21 +194,6 @@ class MechanismServiceTest {
       }
 
       @Test
-      void emptyFunction_rejected() {
-        UUID structureDefId = UUID.randomUUID();
-        UUID thisDefId = UUID.randomUUID();
-        MechanismEntity entity = stubMechanism("", structureDefId, thisDefId);
-
-        stubGenerativeModeValid(thisDefId);
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-        assertEquals(RuleType.MECHANISM_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE, ex.getRuleType());
-        assertTrue(ex.getMessage().contains("must not be empty"));
-      }
-
-      @Test
       void differentFunction_valid() {
         UUID structureDefId = UUID.randomUUID();
         UUID thisDefId = UUID.randomUUID();
