@@ -1002,6 +1002,189 @@ class AscriptionStatusTransitionServiceTest {
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
+
+    @Test
+    void constitutiveCascade_refereePreconditionFails_rethrows() {
+      UUID mechId = UUID.randomUUID();
+      UUID defId = UUID.randomUUID();
+      AscriptionEntity mechanism =
+          stubEntity(mechId, DefinitionSubjectType.MECHANISM, AscriptionStatusType.ACTIVE, defId);
+      when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+      stubRepoSave();
+
+      UUID effId = UUID.randomUUID();
+      AscriptionEntity effector =
+          stubEntity(effId, DefinitionSubjectType.EFFECTOR, AscriptionStatusType.ACTIVE, defId);
+      doReturn(List.of(effector))
+          .when(effectorSubtype)
+          .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+      // Make referee precondition fail for the target (effector has a referee in bad status)
+      AscriptionEntity badReferee =
+          stubEntity(
+              UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
+      doReturn(List.of(new RefereeReference(badReferee, "structure")))
+          .when(effectorSubtype)
+          .getRefereeReferences(effector);
+
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
+      assertTrue(ex.getMessage().contains("Constitutive cascade blocked"));
+    }
+  }
+
+  // ========================================================================
+  // Deactivation hook
+  // ========================================================================
+
+  @Nested
+  class DeactivationHook {
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void activeToSuspended_callsOnDeactivation() {
+      UUID entityId = UUID.randomUUID();
+      UUID defId = UUID.randomUUID();
+      AscriptionEntity entity =
+          stubEntity(entityId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE, defId);
+      when(entityManager.find(AscriptionEntity.class, entityId)).thenReturn(entity);
+      stubRepoSave();
+
+      service.transition(entityId, "SUSPENDED");
+
+      verify(structureSubtype).onDeactivation(entity);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deprecatedToRetired_callsOnDeactivation() {
+      UUID entityId = UUID.randomUUID();
+      UUID defId = UUID.randomUUID();
+      AscriptionEntity entity =
+          stubEntity(
+              entityId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DEPRECATED, defId);
+      when(entityManager.find(AscriptionEntity.class, entityId)).thenReturn(entity);
+      stubRepoSave();
+
+      service.transition(entityId, "RETIRED");
+
+      verify(structureSubtype).onDeactivation(entity);
+    }
+  }
+
+  // ========================================================================
+  // Governing cascade — referee precondition skips
+  // ========================================================================
+
+  @Nested
+  class GoverningCascadeRefereePrecondition {
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void governingCascade_refereePreconditionFails_skipsTarget() {
+      UUID structureId = UUID.randomUUID();
+      UUID defId = UUID.randomUUID();
+      AscriptionEntity structure =
+          stubEntity(
+              structureId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE, defId);
+      when(entityManager.find(AscriptionEntity.class, structureId)).thenReturn(structure);
+      stubRepoSave();
+
+      UUID mechId = UUID.randomUUID();
+      AscriptionEntity mechanism =
+          stubEntity(mechId, DefinitionSubjectType.MECHANISM, AscriptionStatusType.ACTIVE);
+      doReturn(List.of(mechanism))
+          .when(mechanismSubtype)
+          .findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, structureId);
+
+      // mechanism has a referee in bad status → precondition fails → skip
+      AscriptionEntity badReferee =
+          stubEntity(
+              UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
+      doReturn(List.of(new RefereeReference(badReferee, "other-structure")))
+          .when(mechanismSubtype)
+          .getRefereeReferences(mechanism);
+
+      // Should not throw — governing cascade is skipped on referee failure
+      assertDoesNotThrow(() -> service.transition(structureId, "DEPRECATED"));
+
+      // Only 1 transition recorded (the source), not 2
+      verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
+    }
+  }
+
+  // ========================================================================
+  // Dependent cascade — referee precondition skips
+  // ========================================================================
+
+  @Nested
+  class DependentCascadeRefereePrecondition {
+
+    private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
+    private AscriptionStatusTransitionService serviceWithDependent;
+
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    void setUp() {
+      AbstractAscriptionService<? extends AscriptionEntity> mechSvc =
+          mock(AbstractAscriptionService.class);
+      when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
+      when(mechSvc.getCascadeTargetRoles())
+          .thenReturn(
+              Map.of(
+                  DefinitionSubjectType.STRUCTURE,
+                  AscriptionStatusTransitionCascadeType.GOVERNING));
+
+      effectorSubtype = mock(AbstractAscriptionService.class);
+      when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
+      when(effectorSubtype.getCascadeTargetRoles())
+          .thenReturn(
+              Map.of(
+                  DefinitionSubjectType.MECHANISM,
+                  AscriptionStatusTransitionCascadeType.DEPENDENT));
+
+      AbstractAscriptionService<? extends AscriptionEntity> structSvc =
+          mock(AbstractAscriptionService.class);
+      when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+      when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
+
+      serviceWithDependent =
+          new AscriptionStatusTransitionService(
+              transitionRepo, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
+      serviceWithDependent.initCascadeGraph();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void dependentCascade_refereePreconditionFails_skipsTarget() {
+      UUID mechId = UUID.randomUUID();
+      AscriptionEntity mechanism =
+          stubEntity(mechId, DefinitionSubjectType.MECHANISM, AscriptionStatusType.ACTIVE);
+      when(entityManager.find(AscriptionEntity.class, mechId)).thenReturn(mechanism);
+      stubRepoSave();
+
+      UUID effId = UUID.randomUUID();
+      AscriptionEntity effector =
+          stubEntity(effId, DefinitionSubjectType.EFFECTOR, AscriptionStatusType.ACTIVE);
+      doReturn(List.of(effector))
+          .when(effectorSubtype)
+          .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
+
+      // effector has a referee in bad status → precondition fails → skip
+      AscriptionEntity badReferee =
+          stubEntity(
+              UUID.randomUUID(), DefinitionSubjectType.MECHANISM, AscriptionStatusType.DRAFT);
+      doReturn(List.of(new RefereeReference(badReferee, "mechanism")))
+          .when(effectorSubtype)
+          .getRefereeReferences(effector);
+
+      assertDoesNotThrow(() -> serviceWithDependent.transition(mechId, "DEPRECATED"));
+
+      // Only 1 transition (source), not 2
+      verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
+    }
   }
 
   // ========================================================================

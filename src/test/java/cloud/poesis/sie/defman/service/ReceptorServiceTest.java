@@ -279,6 +279,34 @@ class ReceptorServiceTest {
   }
 
   // ========================================================================
+  // findAllByMechanismDefinitionId
+  // ========================================================================
+
+  @Nested
+  class FindAllByMechanismDefinitionId {
+
+    @Test
+    void delegatesToRepo() {
+      UUID mechDefId = UUID.randomUUID();
+      ReceptorEntity r1 = mock(ReceptorEntity.class);
+      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of(r1));
+
+      var result = service.findAllByMechanismDefinitionId(mechDefId);
+      assertEquals(1, result.size());
+      assertSame(r1, result.get(0));
+    }
+
+    @Test
+    void noResults_returnsEmpty() {
+      UUID mechDefId = UUID.randomUUID();
+      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+      var result = service.findAllByMechanismDefinitionId(mechDefId);
+      assertTrue(result.isEmpty());
+    }
+  }
+
+  // ========================================================================
   // Helpers
   // ========================================================================
 

@@ -330,4 +330,66 @@ class DirectiveServiceTest {
   void getSubjectType_returnsDirective() {
     assertEquals(DefinitionSubjectType.DIRECTIVE, service.getSubjectType());
   }
+
+  // ========================================================================
+  // FindAllInEffectByPurpose
+  // ========================================================================
+
+  @Nested
+  class FindAllInEffectByPurposeTests {
+
+    @Test
+    void delegatesToRepo() {
+      DirectiveEntity d = mock(DirectiveEntity.class);
+      when(directiveRepo.findAllInEffectByPurpose("my-purpose")).thenReturn(List.of(d));
+
+      List<DirectiveEntity> result = service.findAllInEffectByPurpose("my-purpose");
+      assertEquals(1, result.size());
+      assertEquals(d, result.get(0));
+    }
+
+    @Test
+    void emptyPurpose_delegatesAndReturnsEmpty() {
+      when(directiveRepo.findAllInEffectByPurpose("nonexistent")).thenReturn(List.of());
+
+      List<DirectiveEntity> result = service.findAllInEffectByPurpose("nonexistent");
+      assertTrue(result.isEmpty());
+    }
+  }
+
+  // ========================================================================
+  // IdentityBound — purpose absent
+  // ========================================================================
+
+  @Nested
+  class IdentityBoundWithoutPurpose {
+
+    @Test
+    void noPurpose_excludesPurposeFromValues() {
+      UUID structDefId = UUID.randomUUID();
+      UUID qualDefId = UUID.randomUUID();
+
+      StructureEntity structure = mock(StructureEntity.class);
+      DefinitionEntity structDef = mock(DefinitionEntity.class);
+      when(structDef.getId()).thenReturn(structDefId);
+      when(structure.getDefinition()).thenReturn(structDef);
+
+      ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
+      DefinitionEntity qualDef = mock(DefinitionEntity.class);
+      when(qualDef.getId()).thenReturn(qualDefId);
+      when(qualifier.getDefinition()).thenReturn(qualDef);
+
+      ObjectNode stmt = MAPPER.createObjectNode(); // no "purpose" field
+
+      DirectiveEntity entity = mock(DirectiveEntity.class);
+      when(entity.getStructure()).thenReturn(structure);
+      when(entity.getQualifier()).thenReturn(qualifier);
+      when(entity.getStatement()).thenReturn(stmt);
+
+      var values = service.getIdentityBoundValues(entity);
+      assertEquals(2, values.size());
+      assertEquals(structDefId, values.get("structure"));
+      assertEquals(qualDefId, values.get("qualifier"));
+    }
+  }
 }

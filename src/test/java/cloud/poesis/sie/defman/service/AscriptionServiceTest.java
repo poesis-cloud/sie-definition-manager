@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,5 +50,24 @@ class AscriptionServiceTest {
     ResourceNotFoundException ex =
         assertThrows(ResourceNotFoundException.class, () -> service.getById(id));
     assertEquals(id, ex.getResourceId());
+  }
+
+  @Test
+  void findAllByArchetypeIdAndStatusInAndDefinitionIdNot_delegatesToRepo() {
+    UUID archetypeId = UUID.randomUUID();
+    UUID excludeDefId = UUID.randomUUID();
+    List<AscriptionStatusType> statuses =
+        List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
+    AscriptionEntity entity = org.mockito.Mockito.mock(AscriptionEntity.class);
+    when(ascriptionRepository.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+            archetypeId, statuses, excludeDefId))
+        .thenReturn(List.of(entity));
+
+    List<AscriptionEntity> result =
+        service.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+            archetypeId, statuses, excludeDefId);
+
+    assertEquals(1, result.size());
+    assertEquals(entity, result.get(0));
   }
 }

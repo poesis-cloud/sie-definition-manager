@@ -46,6 +46,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -1184,6 +1185,427 @@ class AbstractAscriptionServiceTest {
     void afterCreate_defaultNoOp() {
       AscriptionEntity entity = mock(AscriptionEntity.class);
       assertDoesNotThrow(() -> service.afterCreate(entity));
+    }
+  }
+
+  // ========================================================================
+  // Delegation methods via getRepository() — concrete base implementations
+  // ========================================================================
+
+  @Nested
+  class DelegationMethods {
+
+    @Mock private AbstractAscriptionRepository<AscriptionEntity> mockRepo;
+
+    private AbstractAscriptionService<AscriptionEntity> repoService;
+
+    @BeforeEach
+    void setUpRepoService() {
+      repoService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.STRUCTURE;
+            }
+
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return mockRepo;
+            }
+
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
+          };
+    }
+
+    @Test
+    void save_delegatesToRepo() {
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(mockRepo.save(entity)).thenReturn(entity);
+
+      AscriptionEntity result = repoService.save(entity);
+
+      assertEquals(entity, result);
+      verify(mockRepo).save(entity);
+    }
+
+    @Test
+    void findAll_delegatesToRepo() {
+      Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+      when(mockRepo.findAll(pageable)).thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result = repoService.findAll(pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAll(pageable);
+    }
+
+    @Test
+    void findAllByStatus_delegatesToRepo() {
+      Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+      when(mockRepo.findAllByStatus(AscriptionStatusType.ACTIVE, pageable))
+          .thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result =
+          repoService.findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
+    }
+
+    @Test
+    void findAllByDefinitionId_delegatesToRepo() {
+      UUID defId = UUID.randomUUID();
+      when(mockRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+      List<AscriptionEntity> result = repoService.findAllByDefinitionId(defId);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAllByDefinitionIdOrderByTimestampDesc(defId);
+    }
+
+    @Test
+    void findAllByDefinitionIdAndStatus_delegatesToRepo() {
+      UUID defId = UUID.randomUUID();
+      Collection<AscriptionStatusType> statuses =
+          List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
+      when(mockRepo.findAllByDefinitionIdAndStatusIn(defId, statuses)).thenReturn(List.of());
+
+      List<AscriptionEntity> result = repoService.findAllByDefinitionIdAndStatus(defId, statuses);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAllByDefinitionIdAndStatusIn(defId, statuses);
+    }
+
+    @Test
+    void getHistory_delegatesThroughFindAllByDefinitionId() {
+      UUID defId = UUID.randomUUID();
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(mockRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of(entity));
+
+      List<AscriptionEntity> result = repoService.getHistory(defId);
+
+      assertEquals(1, result.size());
+      assertEquals(entity, result.get(0));
+      verify(mockRepo).findAllByDefinitionIdOrderByTimestampDesc(defId);
+    }
+
+    @SuppressWarnings("unchecked") // Specification type erasure in JPA mock
+    @Test
+    void findAllFiltered_delegatesToRepoWithSpec() {
+      UUID archDefId = UUID.randomUUID();
+      Map<String, String> filters = Map.of("purpose", "compliance");
+      Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+      when(mockRepo.findAll(any(Specification.class), eq(pageable))).thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result =
+          repoService.findAllFiltered(archDefId, filters, AscriptionStatusType.ACTIVE, pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @SuppressWarnings("unchecked") // Specification type erasure in JPA mock
+    @Test
+    void findAllFiltered_withoutStatus_delegatesToRepo() {
+      UUID archDefId = UUID.randomUUID();
+      Map<String, String> filters = Map.of("region", "eu-west-1");
+      Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+      when(mockRepo.findAll(any(Specification.class), eq(pageable))).thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result =
+          repoService.findAllFiltered(archDefId, filters, null, pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAll(any(Specification.class), eq(pageable));
+    }
+  }
+
+  // ========================================================================
+  // Default lifecycle descriptor implementations
+  // ========================================================================
+
+  @Nested
+  class DefaultLifecycleDescriptors {
+
+    private AbstractAscriptionService<AscriptionEntity> defaultService;
+
+    @BeforeEach
+    void setUpDefault() {
+      defaultService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.STRUCTURE;
+            }
+
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return null;
+            }
+
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
+          };
+    }
+
+    @Test
+    void getRefereeReferences_defaultReturnsEmpty() {
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      assertTrue(defaultService.getRefereeReferences(entity).isEmpty());
+    }
+
+    @Test
+    void getCascadeTargetRoles_defaultReturnsEmpty() {
+      assertTrue(defaultService.getCascadeTargetRoles().isEmpty());
+    }
+
+    @Test
+    void findCascadeTargetsFrom_defaultReturnsEmpty() {
+      assertTrue(
+          defaultService
+              .findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID())
+              .isEmpty());
+    }
+
+    @Test
+    void getIdentityBoundValues_defaultReturnsEmpty() {
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      assertTrue(defaultService.getIdentityBoundValues(entity).isEmpty());
+    }
+
+    @Test
+    void validateActivationUniqueness_defaultDoesNothing() {
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      assertDoesNotThrow(() -> defaultService.validateActivationUniqueness(entity));
+    }
+  }
+
+  // ========================================================================
+  // ValidateStatement — GSM base property classification
+  // ========================================================================
+
+  @Nested
+  class ValidateStatementGsmBaseErrors {
+
+    @Test
+    void basePropertyViolation_throwsGsmRule() {
+      // Schema requiring "purpose" (a GSM base property for STRUCTURE)
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "StructureSchema");
+      schema.put("type", "object");
+      schema.putObject("properties").putObject("purpose").put("type", "string");
+      schema.putArray("required").add("purpose");
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+      ObjectNode statement = MAPPER.createObjectNode(); // missing "purpose"
+
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
+    }
+
+    @Test
+    void extensionPropertyViolation_throwsExtensionRule() {
+      // Schema requiring "customField" (not a GSM base property for STRUCTURE)
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "StructureSchema");
+      schema.put("type", "object");
+      ObjectNode props = schema.putObject("properties");
+      props.putObject("purpose").put("type", "string");
+      props.putObject("customField").put("type", "integer");
+      schema.putArray("required").add("customField");
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+      // Provide purpose but omit customField → extension violation
+      ObjectNode statement = MAPPER.createObjectNode().put("purpose", "demo");
+
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
+          ex.getRuleType());
+      assertTrue(ex.getMessage().contains("tenant-extended"));
+    }
+
+    @Test
+    void archetypeType_noExtensionRule_usesGsmRule() {
+      // Archetype type has no extension rule (sealed)
+      AbstractAscriptionService<AscriptionEntity> archetypeService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.ARCHETYPE;
+            }
+
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return null;
+            }
+
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
+          };
+
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "ArchetypeSchema");
+      schema.put("type", "object");
+      schema.putObject("properties").putObject("needed").put("type", "integer");
+      schema.putArray("required").add("needed");
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+      ObjectNode statement = MAPPER.createObjectNode(); // missing "needed"
+
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> archetypeService.validateStatement(statement, archetype));
+      // ARCHETYPE has extensionStatementValidationRule() → null → falls to non-extensible fallback
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          ex.getRuleType());
+    }
+  }
+
+  // ========================================================================
+  // BuildFilterSpec — predicate construction
+  // ========================================================================
+
+  @Nested
+  class BuildFilterSpec {
+
+    @Test
+    @SuppressWarnings("unchecked") // JPA Criteria API generics
+    void specWithStatusAndFilters_buildsPredicates() {
+      UUID archDefId = UUID.randomUUID();
+      Map<String, String> filters = Map.of("purpose", "compliance");
+
+      Specification<AscriptionEntity> spec =
+          AbstractAscriptionService.buildFilterSpec(
+              archDefId, filters, AscriptionStatusType.ACTIVE);
+
+      // Exercise the specification lambda by calling toPredicate with mocks
+      jakarta.persistence.criteria.Root<AscriptionEntity> root =
+          mock(jakarta.persistence.criteria.Root.class);
+      jakarta.persistence.criteria.CriteriaQuery<?> query =
+          mock(jakarta.persistence.criteria.CriteriaQuery.class);
+      jakarta.persistence.criteria.CriteriaBuilder cb =
+          mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+
+      // Stub the join path for archetype.definition.id
+      jakarta.persistence.criteria.Path<Object> archPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> defPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> idPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      when(root.get("archetype")).thenReturn(archPath);
+      when(archPath.get("definition")).thenReturn(defPath);
+      when(defPath.get("id")).thenReturn(idPath);
+
+      // Stub status path
+      jakarta.persistence.criteria.Path<Object> statusPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      when(root.get("status")).thenReturn(statusPath);
+
+      // Stub statement path for jsonb_extract_path_text
+      jakarta.persistence.criteria.Path<Object> stmtPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      when(root.get("statement")).thenReturn(stmtPath);
+
+      // Stub cb methods
+      jakarta.persistence.criteria.Predicate archPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate statusPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate jsonbPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate combined =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      when(cb.equal(idPath, archDefId)).thenReturn(archPred);
+      when(cb.equal(statusPath, AscriptionStatusType.ACTIVE)).thenReturn(statusPred);
+      jakarta.persistence.criteria.Expression<String> jsonExpr =
+          mock(jakarta.persistence.criteria.Expression.class);
+      when(cb.function(eq("jsonb_extract_path_text"), eq(String.class), eq(stmtPath), any()))
+          .thenReturn(jsonExpr);
+      when(cb.equal(jsonExpr, "compliance")).thenReturn(jsonbPred);
+      when(cb.and(any(jakarta.persistence.criteria.Predicate[].class))).thenReturn(combined);
+
+      jakarta.persistence.criteria.Predicate result = spec.toPredicate(root, query, cb);
+
+      assertEquals(combined, result);
+      verify(cb).equal(idPath, archDefId);
+      verify(cb).equal(statusPath, AscriptionStatusType.ACTIVE);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked") // JPA Criteria API generics
+    void specWithoutStatus_omitsStatusPredicate() {
+      UUID archDefId = UUID.randomUUID();
+      Map<String, String> filters = Map.of();
+
+      Specification<AscriptionEntity> spec =
+          AbstractAscriptionService.buildFilterSpec(archDefId, filters, null);
+
+      jakarta.persistence.criteria.Root<AscriptionEntity> root =
+          mock(jakarta.persistence.criteria.Root.class);
+      jakarta.persistence.criteria.CriteriaQuery<?> query =
+          mock(jakarta.persistence.criteria.CriteriaQuery.class);
+      jakarta.persistence.criteria.CriteriaBuilder cb =
+          mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+
+      jakarta.persistence.criteria.Path<Object> archPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> defPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> idPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      when(root.get("archetype")).thenReturn(archPath);
+      when(archPath.get("definition")).thenReturn(defPath);
+      when(defPath.get("id")).thenReturn(idPath);
+
+      jakarta.persistence.criteria.Predicate archPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate combined =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      when(cb.equal(idPath, archDefId)).thenReturn(archPred);
+      when(cb.and(any(jakarta.persistence.criteria.Predicate[].class))).thenReturn(combined);
+
+      spec.toPredicate(root, query, cb);
+
+      // Status should never be accessed
+      verify(root, never()).get("status");
     }
   }
 

@@ -16,6 +16,7 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -271,6 +272,46 @@ class InteractionServiceTest {
           service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
 
       assertTrue(result.isEmpty());
+    }
+  }
+
+  // ========================================================================
+  // CascadeTargetRoles — verifies Effector/Receptor dependent cascade roles
+  // ========================================================================
+
+  @Nested
+  class CascadeTargetRoles {
+
+    @Test
+    void returnsEffectorAndReceptorAsDependentCascade() {
+      var roles = service.getCascadeTargetRoles();
+
+      assertEquals(2, roles.size());
+      assertEquals(
+          AscriptionStatusTransitionCascadeType.DEPENDENT,
+          roles.get(DefinitionSubjectType.EFFECTOR));
+      assertEquals(
+          AscriptionStatusTransitionCascadeType.DEPENDENT,
+          roles.get(DefinitionSubjectType.RECEPTOR));
+    }
+  }
+
+  // ========================================================================
+  // GetRepository — verifies delegation target
+  // ========================================================================
+
+  @Nested
+  class GetRepository {
+
+    @Test
+    void returnsInteractionRepo() {
+      // Exercise getRepository indirectly via findAll (delegation to repo)
+      when(interactionRepo.findAll(org.springframework.data.domain.Pageable.unpaged()))
+          .thenReturn(org.springframework.data.domain.Page.empty());
+
+      var result = service.findAll(org.springframework.data.domain.Pageable.unpaged());
+
+      assertNotNull(result);
     }
   }
 

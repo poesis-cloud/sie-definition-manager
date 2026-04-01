@@ -1416,11 +1416,495 @@ class MechanismServiceTest {
   }
 
   // ========================================================================
+  // Receive chain .on() validation
+  // ========================================================================
+
+  @Nested
+  class ReceiveChainOnValidation {
+
+    @Test
+    void receiveOnWithNoArgs_rejected() {
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  sys.receive("Trigger").on()
+                  sys.effect("X", {})
+                  """));
+      assertEquals(
+          AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+      assertTrue(ex.getMessage().contains(".on()"));
+      assertTrue(ex.getMessage().contains("exactly 1 argument"));
+    }
+
+    @Test
+    void receiveOnWithNonStringArg_rejected() {
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  name = "Port"
+                  sys.receive("Trigger").on(name)
+                  sys.effect("X", {})
+                  """));
+      assertEquals(
+          AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("string literal"));
+    }
+
+    @Test
+    void receiveUnknownChainMethod_rejected() {
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  sys.receive("Trigger").then("X")
+                  sys.effect("Y", {})
+                  """));
+      assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("Unknown chain method on sys.receive()"));
+      assertTrue(ex.getMessage().contains("then"));
+    }
+
+    @Test
+    void receiveWithValidOn_accepted() {
+      String trigger =
+          service.validateStarlarkRule(
+              """
+              sys.receive("Trigger").on("ReceptorPort")
+              sys.effect("X", {})
+              """);
+      assertEquals("Trigger", trigger);
+    }
+  }
+
+  // ========================================================================
+  // Dict literal conformance (V11)
+  // ========================================================================
+
+  @Nested
+  class DictLiteralConformance {
+
+    @Test
+    void dictKeyInSchema_noError() {
+      // Archetype with "name" and "age" properties
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "PersonArchetype");
+      ObjectNode props = schema.putObject("properties");
+      props.putObject("name").put("type", "string");
+      props.putObject("age").put("type", "integer");
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(schema);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(UUID.randomUUID());
+      when(archetype.getDefinition()).thenReturn(archDef);
+      when(archetypeService.findInEffectBySchemaTitle("PersonArchetype")).thenReturn(archetype);
+
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  sys.effect("PersonArchetype", {"name": "John", "age": 30})
+                  """));
+    }
+
+    @Test
+    void dictKeyNotInSchema_stillValid() {
+      // Unknown key triggers LOG.warn but does NOT throw
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "PersonArchetype");
+      ObjectNode props = schema.putObject("properties");
+      props.putObject("name").put("type", "string");
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(schema);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(UUID.randomUUID());
+      when(archetype.getDefinition()).thenReturn(archDef);
+      when(archetypeService.findInEffectBySchemaTitle("PersonArchetype")).thenReturn(archetype);
+
+      // "unknownField" is not in schema → LOG.warn but no throw
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  sys.effect("PersonArchetype", {"name": "ok", "unknownField": True})
+                  """));
+    }
+
+    @Test
+    void archetypeNotInEffect_skipsValidation() {
+      when(archetypeService.findInEffectBySchemaTitle("SomeType")).thenReturn(null);
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  sys.effect("SomeType", {"key": "val"})
+                  """));
+    }
+
+    @Test
+    void schemaWithoutProperties_skipsValidation() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "BareType");
+      // No "properties" node
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(schema);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(UUID.randomUUID());
+      when(archetype.getDefinition()).thenReturn(archDef);
+      when(archetypeService.findInEffectBySchemaTitle("BareType")).thenReturn(archetype);
+
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  sys.effect("BareType", {"key": "val"})
+                  """));
+    }
+
+    @Test
+    void singleArgEffect_skipsDictCheck() {
+      // sys.effect("X") with only one arg → no dict to validate
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  sys.effect("SomeArch")
+                  """));
+    }
+
+    @Test
+    void dictLiteralInForBody_validated() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "ItemEvent");
+      ObjectNode props = schema.putObject("properties");
+      props.putObject("item").put("type", "integer");
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(schema);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(UUID.randomUUID());
+      when(archetype.getDefinition()).thenReturn(archDef);
+      when(archetypeService.findInEffectBySchemaTitle("ItemEvent")).thenReturn(archetype);
+
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  items = [1, 2]
+                  for x in items:
+                      sys.effect("ItemEvent", {"item": x, "bonus": True})
+                  """));
+    }
+
+    @Test
+    void dictLiteralInAssignment_validated() {
+      // dict literal conformance in an assignment statement
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "ResultType");
+      ObjectNode props = schema.putObject("properties");
+      props.putObject("data").put("type", "string");
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(schema);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(UUID.randomUUID());
+      when(archetype.getDefinition()).thenReturn(archDef);
+      when(archetypeService.findInEffectBySchemaTitle("ResultType")).thenReturn(archetype);
+
+      assertDoesNotThrow(
+          () ->
+              service.validateStarlarkRule(
+                  """
+                  sys.receive("Trigger")
+                  result = sys.effect("ResultType", {"data": "ok"})
+                  """));
+    }
+  }
+
+  // ========================================================================
+  // Collect unknown globals — for-loop body coverage
+  // ========================================================================
+
+  @Nested
+  class UnknownGlobalsForLoopBody {
+
+    @Test
+    void unknownInForBodyAssignment_rejected() {
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  sys.receive("Trigger")
+                  data = [1, 2, 3]
+                  for x in data:
+                      result = forbidden_func()
+                      sys.effect("Out", {"val": result})
+                  """));
+      assertEquals(
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("forbidden_func"));
+    }
+
+    @Test
+    void unknownInForCollection_rejected() {
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  sys.receive("Trigger")
+                  for x in external_list:
+                      sys.effect("Out", {"val": x})
+                  """));
+      assertEquals(
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("external_list"));
+    }
+
+    @Test
+    void unknownInListExpression_rejected() {
+      // Test ListExpression branch in collectUnknownGlobalsInExpr
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  sys.receive("Trigger")
+                  sys.effect("Out", {"list": [forbidden_var]})
+                  """));
+      assertEquals(
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("forbidden_var"));
+    }
+
+    @Test
+    void unknownInDictExpression_rejected() {
+      // Test DictExpression branch in collectUnknownGlobalsInExpr
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateStarlarkRule(
+                      """
+                  sys.receive("Trigger")
+                  sys.effect("Out", {forbidden_key: "val"})
+                  """));
+      assertEquals(
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
+      assertTrue(ex.getMessage().contains("forbidden_key"));
+    }
+  }
+
+  // ========================================================================
+  // ResolvePortArchetype — named archetype fallback
+  // ========================================================================
+
+  @Nested
+  class ResolvePortArchetypeFallback {
+
+    @Test
+    void namedPortArchetypeFound_usesIt() {
+      UUID mechDefId = UUID.randomUUID();
+      DefinitionEntity mechDef = mock(DefinitionEntity.class);
+      when(mechDef.getId()).thenReturn(mechDefId);
+
+      ObjectNode stmt = MAPPER.createObjectNode();
+      stmt.put(
+          "rule", "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"CustomEff\")");
+
+      MechanismEntity mechanism = mock(MechanismEntity.class);
+      when(mechanism.getStatement()).thenReturn(stmt);
+      when(mechanism.getDefinition()).thenReturn(mechDef);
+
+      ArchetypeEntity baseEff = mockArchetypeForPort("EffectorArchetype");
+      ArchetypeEntity baseRec = mockArchetypeForPort("ReceptorArchetype");
+      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
+      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(baseRec);
+
+      ArchetypeEntity inputType = mockArchetypeForPort("InputType");
+      ArchetypeEntity outputType = mockArchetypeForPort("OutputType");
+      ArchetypeEntity customEff = mockArchetypeForPort("CustomEff");
+      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
+      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
+      when(archetypeService.findInEffectBySchemaTitle("CustomEff")).thenReturn(customEff);
+
+      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+      DefinitionEntity effDef = mock(DefinitionEntity.class);
+      DefinitionEntity recDef = mock(DefinitionEntity.class);
+      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
+      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+
+      EffectorEntity savedEff = mock(EffectorEntity.class);
+      when(savedEff.getId()).thenReturn(UUID.randomUUID());
+      when(savedEff.getStatement()).thenReturn(stmt);
+      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
+
+      ReceptorEntity savedRec = mock(ReceptorEntity.class);
+      when(savedRec.getId()).thenReturn(UUID.randomUUID());
+      when(savedRec.getStatement()).thenReturn(stmt);
+      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+
+      service.afterCreate(mechanism);
+
+      verify(effectorService).save(any(EffectorEntity.class));
+      verify(receptorService).save(any(ReceptorEntity.class));
+    }
+
+    @Test
+    void namedPortArchetypeNotFound_fallsBackToBase() {
+      UUID mechDefId = UUID.randomUUID();
+      DefinitionEntity mechDef = mock(DefinitionEntity.class);
+      when(mechDef.getId()).thenReturn(mechDefId);
+
+      // .by("UnknownPort") — port archetype not in-effect → falls back to base
+      ObjectNode stmt = MAPPER.createObjectNode();
+      stmt.put(
+          "rule", "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"UnknownPort\")");
+
+      MechanismEntity mechanism = mock(MechanismEntity.class);
+      when(mechanism.getStatement()).thenReturn(stmt);
+      when(mechanism.getDefinition()).thenReturn(mechDef);
+
+      ArchetypeEntity baseEff = mockArchetypeForPort("EffectorArchetype");
+      ArchetypeEntity baseRec = mockArchetypeForPort("ReceptorArchetype");
+      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
+      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(baseRec);
+
+      ArchetypeEntity inputType = mockArchetypeForPort("InputType");
+      ArchetypeEntity outputType = mockArchetypeForPort("OutputType");
+      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
+      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
+      when(archetypeService.findInEffectBySchemaTitle("UnknownPort")).thenReturn(null);
+
+      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+      DefinitionEntity effDef = mock(DefinitionEntity.class);
+      DefinitionEntity recDef = mock(DefinitionEntity.class);
+      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
+      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+
+      EffectorEntity savedEff = mock(EffectorEntity.class);
+      when(savedEff.getId()).thenReturn(UUID.randomUUID());
+      when(savedEff.getStatement()).thenReturn(stmt);
+      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
+
+      ReceptorEntity savedRec = mock(ReceptorEntity.class);
+      when(savedRec.getId()).thenReturn(UUID.randomUUID());
+      when(savedRec.getStatement()).thenReturn(stmt);
+      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+
+      // Should not throw — falls back to base archetype
+      assertDoesNotThrow(() -> service.afterCreate(mechanism));
+      verify(effectorService).save(any(EffectorEntity.class));
+    }
+
+    @Test
+    void receiveChainWithOn_derivesTypedReceptor() {
+      UUID mechDefId = UUID.randomUUID();
+      DefinitionEntity mechDef = mock(DefinitionEntity.class);
+      when(mechDef.getId()).thenReturn(mechDefId);
+
+      // .receive("Ack").on("AckPort") — typed receptor port
+      ObjectNode stmt = MAPPER.createObjectNode();
+      stmt.put(
+          "rule",
+          "sys.receive(\"Trigger\")\nsys.effect(\"OutType\", {}).receive(\"AckType\").on(\"AckPort\")");
+
+      MechanismEntity mechanism = mock(MechanismEntity.class);
+      when(mechanism.getStatement()).thenReturn(stmt);
+      when(mechanism.getDefinition()).thenReturn(mechDef);
+
+      ArchetypeEntity baseEff = mockArchetypeForPort("EffectorArchetype");
+      ArchetypeEntity baseRec = mockArchetypeForPort("ReceptorArchetype");
+      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
+      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(baseRec);
+
+      ArchetypeEntity trigger = mockArchetypeForPort("Trigger");
+      ArchetypeEntity outType = mockArchetypeForPort("OutType");
+      ArchetypeEntity ackType = mockArchetypeForPort("AckType");
+      ArchetypeEntity ackPort = mockArchetypeForPort("AckPort");
+      when(archetypeService.findInEffectBySchemaTitle("Trigger")).thenReturn(trigger);
+      when(archetypeService.findInEffectBySchemaTitle("OutType")).thenReturn(outType);
+      when(archetypeService.findInEffectBySchemaTitle("AckType")).thenReturn(ackType);
+      when(archetypeService.findInEffectBySchemaTitle("AckPort")).thenReturn(ackPort);
+
+      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+      DefinitionEntity effDef = mock(DefinitionEntity.class);
+      DefinitionEntity recDef1 = mock(DefinitionEntity.class);
+      DefinitionEntity recDef2 = mock(DefinitionEntity.class);
+      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
+      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef1, recDef2);
+
+      EffectorEntity savedEff = mock(EffectorEntity.class);
+      when(savedEff.getId()).thenReturn(UUID.randomUUID());
+      when(savedEff.getStatement()).thenReturn(stmt);
+      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
+
+      ReceptorEntity savedRec = mock(ReceptorEntity.class);
+      when(savedRec.getId()).thenReturn(UUID.randomUUID());
+      when(savedRec.getStatement()).thenReturn(stmt);
+      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
+
+      service.afterCreate(mechanism);
+
+      // 2 receptors: trigger + feedback from .receive("AckType")
+      verify(receptorService, org.mockito.Mockito.atLeast(2)).save(any(ReceptorEntity.class));
+    }
+
+    private ArchetypeEntity mockArchetypeForPort(String title) {
+      UUID defId = UUID.randomUUID();
+      DefinitionEntity def = mock(DefinitionEntity.class);
+      when(def.getId()).thenReturn(defId);
+      ArchetypeEntity arch = mock(ArchetypeEntity.class);
+      when(arch.getDefinition()).thenReturn(def);
+      ObjectNode schema = MAPPER.createObjectNode().put("title", title);
+      when(arch.getStatement()).thenReturn(schema);
+      return arch;
+    }
+  }
+
+  // ========================================================================
   // GetSubjectType / GetRepository
   // ========================================================================
 
   @Test
   void getSubjectType_returnsMechanism() {
     assertEquals(DefinitionSubjectType.MECHANISM, service.getSubjectType());
+  }
+
+  @Test
+  void getRepository_returnsMechanismRepo() {
+    // Exercise getRepository() indirectly via findAll (Page)
+    org.springframework.data.domain.Pageable pageable =
+        org.springframework.data.domain.PageRequest.of(0, 10);
+    when(mechanismRepo.findAll(pageable)).thenReturn(org.springframework.data.domain.Page.empty());
+    var result = service.findAll(pageable);
+    assertTrue(result.isEmpty());
+    verify(mechanismRepo).findAll(pageable);
   }
 }

@@ -282,6 +282,34 @@ class EffectorServiceTest {
   }
 
   // ========================================================================
+  // findAllByMechanismDefinitionId
+  // ========================================================================
+
+  @Nested
+  class FindAllByMechanismDefinitionId {
+
+    @Test
+    void delegatesToRepo() {
+      UUID mechDefId = UUID.randomUUID();
+      EffectorEntity e1 = mock(EffectorEntity.class);
+      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of(e1));
+
+      var result = service.findAllByMechanismDefinitionId(mechDefId);
+      assertEquals(1, result.size());
+      assertSame(e1, result.get(0));
+    }
+
+    @Test
+    void noResults_returnsEmpty() {
+      UUID mechDefId = UUID.randomUUID();
+      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+
+      var result = service.findAllByMechanismDefinitionId(mechDefId);
+      assertTrue(result.isEmpty());
+    }
+  }
+
+  // ========================================================================
   // Helpers
   // ========================================================================
 
