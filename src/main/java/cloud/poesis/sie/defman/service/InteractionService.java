@@ -1,13 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -21,16 +13,18 @@ import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 /**
  * GSM Interaction ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link InteractionEntity} ascriptions
- * including
- * effector/receptor archetype compatibility validation and dependent cascade
- * from referenced
+ * <p>Manages lifecycle and persistence of {@link InteractionEntity} ascriptions including
+ * effector/receptor archetype compatibility validation and dependent cascade from referenced
  * Effector and Receptor.
  *
  * @author Clément Cazaud
@@ -46,13 +40,13 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
   /**
    * Constructs the Interaction service with its required dependencies.
    *
-   * @param interactionRepo       the interaction repository
-   * @param effectorService       the effector service for reference resolution
-   * @param receptorService       the receptor service for reference resolution
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param entityManager         the JPA entity manager
+   * @param interactionRepo the interaction repository
+   * @param effectorService the effector service for reference resolution
+   * @param receptorService the receptor service for reference resolution
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public InteractionService(

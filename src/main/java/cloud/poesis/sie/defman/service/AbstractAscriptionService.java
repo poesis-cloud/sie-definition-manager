@@ -1,35 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.hibernate.exception.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaValidatorsConfig;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
-import com.networknt.schema.resource.DisallowSchemaLoader;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -41,36 +11,56 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.resource.DisallowSchemaLoader;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Base class for all GSM ascription services. Provides:
  *
  * <ul>
- * <li>Subtype identity ({@link #getSubjectType()})
- * <li>Entity CRUD ({@link #buildEntity}, {@link #save}, find methods)
- * <li>Create template method ({@link #create})
- * <li>Lifecycle descriptors (referee references, cascade roles, identity-bound
- * values)
- * <li>Lifecycle hooks ({@link #onActivation}, {@link #onDeactivation})
- * <li>Statement JSON extraction utilities ({@link #extractRequiredUuid}, {@link
- * #extractUuidList})
+ *   <li>Subtype identity ({@link #getSubjectType()})
+ *   <li>Entity CRUD ({@link #buildEntity}, {@link #save}, find methods)
+ *   <li>Create template method ({@link #create})
+ *   <li>Lifecycle descriptors (referee references, cascade roles, identity-bound values)
+ *   <li>Lifecycle hooks ({@link #onActivation}, {@link #onDeactivation})
+ *   <li>Statement JSON extraction utilities ({@link #extractRequiredUuid}, {@link
+ *       #extractUuidList})
  * </ul>
  *
- * <p>
- * <b>Design decision — centralized entity responsibility:</b> Each concrete
- * subclass
- * intentionally concentrates all consistency responsibilities for its entity
- * type (CRUD, statement
- * validation, domain-specific rule validation, lifecycle hooks, port
- * derivation) in a single
- * service. This is not an SRP violation: the single responsibility is
- * <em>entity consistency</em>.
- * Extracting validators or lifecycle handlers into separate classes would
- * scatter entity invariants
- * across multiple locations, reducing coherence and increasing the risk of
- * partial updates.
+ * <p><b>Design decision — centralized entity responsibility:</b> Each concrete subclass
+ * intentionally concentrates all consistency responsibilities for its entity type (CRUD, statement
+ * validation, domain-specific rule validation, lifecycle hooks, port derivation) in a single
+ * service. This is not an SRP violation: the single responsibility is <em>entity consistency</em>.
+ * Extracting validators or lifecycle handlers into separate classes would scatter entity invariants
+ * across multiple locations, reducing coherence and increasing the risk of partial updates.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -80,25 +70,25 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractAscriptionService.class);
 
   /**
-   * Classpath-only JSON Schema factory for resolving GSM base archetype
-   * {@code gsm://} URIs. Used
-   * when no tenant archetypes need DB resolution. GSM §8 security invariant: DM
-   * MUST NOT resolve
-   * {@code $schema} URIs from incoming tenant schemas via network — all
-   * resolution is local.
+   * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsm://} URIs. Used
+   * when no tenant archetypes need DB resolution. GSM §8 security invariant: DM MUST NOT resolve
+   * {@code $schema} URIs from incoming tenant schemas via network — all resolution is local.
    */
-  private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY = JsonSchemaFactory.getInstance(
-      SpecVersion.VersionFlag.V202012,
-      builder -> builder.schemaMappers(
-          mappers -> mappers.mappings(
-              uri -> uri.startsWith("gsm://archetypes/"),
-              uri -> {
-                // gsm://archetypes/{Name}/v{N} →
-                // classpath:schemas/gsm-archetypes/{Name}.schema.json
-                String rest = uri.substring("gsm://archetypes/".length());
-                String name = rest.split("/")[0];
-                return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
-              })));
+  private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY =
+      JsonSchemaFactory.getInstance(
+          SpecVersion.VersionFlag.V202012,
+          builder ->
+              builder.schemaMappers(
+                  mappers ->
+                      mappers.mappings(
+                          uri -> uri.startsWith("gsm://archetypes/"),
+                          uri -> {
+                            // gsm://archetypes/{Name}/v{N} →
+                            // classpath:schemas/gsm-archetypes/{Name}.schema.json
+                            String rest = uri.substring("gsm://archetypes/".length());
+                            String name = rest.split("/")[0];
+                            return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                          })));
 
   // Shared dependencies — constructor-injected into all subclasses
   protected final DefinitionService definitionService;
@@ -111,14 +101,12 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   /**
    * Constructs the abstract ascription service with shared dependencies.
    *
-   * @param definitionService     the definition service for identity resolution
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param archetypeRepository   the archetype repository for tenant schema
-   *                              resolution (documented
-   *                              exception: ArchetypeService extends this class,
-   *                              preventing clean service injection)
-   * @param entityManager         the JPA entity manager
+   * @param definitionService the definition service for identity resolution
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param archetypeRepository the archetype repository for tenant schema resolution (documented
+   *     exception: ArchetypeService extends this class, preventing clean service injection)
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   protected AbstractAscriptionService(
@@ -143,7 +131,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   private static final Map<DefinitionSubjectType, Set<String>> GSM_BASE_PROPERTIES;
 
   static {
-    var map = new java.util.EnumMap<DefinitionSubjectType, Set<String>>(DefinitionSubjectType.class);
+    var map =
+        new java.util.EnumMap<DefinitionSubjectType, Set<String>>(DefinitionSubjectType.class);
     for (DefinitionSubjectType type : DefinitionSubjectType.values()) {
       Set<String> props = type.getPrimitiveType().getStatementProperties();
       if (!props.isEmpty()) {
@@ -156,59 +145,60 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   // Known PostgreSQL constraint → AscriptionConsistencyRuleType mapping
   // (auto-generated FK names
   // and partial unique indexes)
-  static final Map<String, AscriptionConsistencyRuleType> CONSTRAINT_TO_RULE = Map.ofEntries(
-      // Directive reference FKs
-      Map.entry(
-          "directive_structure_id_fkey",
-          AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY),
-      Map.entry(
-          "directive_qualifier_id_fkey",
-          AscriptionConsistencyRuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
-      // Norm reference FKs
-      Map.entry(
-          "norm_structure_id_fkey",
-          AscriptionConsistencyRuleType.NORM_STRUCTURE_REFERENCE_INTEGRITY),
-      Map.entry(
-          "norm_qualifier_id_fkey",
-          AscriptionConsistencyRuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
-      // Effector / Receptor reference FKs
-      Map.entry(
-          "effector_mechanism_id_fkey",
-          AscriptionConsistencyRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
-      Map.entry(
-          "effector_output_archetype_id_fkey",
-          AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY),
-      Map.entry(
-          "receptor_mechanism_id_fkey",
-          AscriptionConsistencyRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
-      Map.entry(
-          "receptor_input_archetype_id_fkey",
-          AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY),
-      // Mechanism structure FK
-      Map.entry(
-          "mechanism_structure_id_fkey",
-          AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY),
-      // Interaction reference FKs
-      Map.entry(
-          "interaction_effector_id_fkey",
-          AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
-      Map.entry(
-          "interaction_receptor_id_fkey",
-          AscriptionConsistencyRuleType.INTERACTION_RECEPTOR_REFERENCE_INTEGRITY),
-      // Archetype self-typing FK
-      Map.entry(
-          "archetype_typed_by_fk",
-          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY),
-      // Identity uniqueness indexes
-      Map.entry(
-          "uq_structure_purpose",
-          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
-      Map.entry(
-          "uq_mechanism_function",
-          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
-      Map.entry(
-          "uq_archetype_title",
-          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS));
+  static final Map<String, AscriptionConsistencyRuleType> CONSTRAINT_TO_RULE =
+      Map.ofEntries(
+          // Directive reference FKs
+          Map.entry(
+              "directive_structure_id_fkey",
+              AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY),
+          Map.entry(
+              "directive_qualifier_id_fkey",
+              AscriptionConsistencyRuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
+          // Norm reference FKs
+          Map.entry(
+              "norm_structure_id_fkey",
+              AscriptionConsistencyRuleType.NORM_STRUCTURE_REFERENCE_INTEGRITY),
+          Map.entry(
+              "norm_qualifier_id_fkey",
+              AscriptionConsistencyRuleType.NORM_QUALIFIER_REFERENCE_INTEGRITY),
+          // Effector / Receptor reference FKs
+          Map.entry(
+              "effector_mechanism_id_fkey",
+              AscriptionConsistencyRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY),
+          Map.entry(
+              "effector_output_archetype_id_fkey",
+              AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY),
+          Map.entry(
+              "receptor_mechanism_id_fkey",
+              AscriptionConsistencyRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY),
+          Map.entry(
+              "receptor_input_archetype_id_fkey",
+              AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY),
+          // Mechanism structure FK
+          Map.entry(
+              "mechanism_structure_id_fkey",
+              AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY),
+          // Interaction reference FKs
+          Map.entry(
+              "interaction_effector_id_fkey",
+              AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_REFERENCE_INTEGRITY),
+          Map.entry(
+              "interaction_receptor_id_fkey",
+              AscriptionConsistencyRuleType.INTERACTION_RECEPTOR_REFERENCE_INTEGRITY),
+          // Archetype self-typing FK
+          Map.entry(
+              "archetype_typed_by_fk",
+              AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY),
+          // Identity uniqueness indexes
+          Map.entry(
+              "uq_structure_purpose",
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+          Map.entry(
+              "uq_mechanism_function",
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS),
+          Map.entry(
+              "uq_archetype_title",
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS));
 
   // ======================================================================
   // Persistence exception translation
@@ -218,9 +208,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    * Translates a {@link DataIntegrityViolationException} to a domain exception.
    *
    * @param ex the persistence exception to translate
-   * @return a {@link RuleViolationException} for known constraints, or a
-   *         {@link InternalException}
-   *         for unmapped constraints
+   * @return a {@link RuleViolationException} for known constraints, or a {@link InternalException}
+   *     for unmapped constraints
    */
   static RuntimeException translatePersistenceException(DataIntegrityViolationException ex) {
     String constraintName = extractConstraintName(ex);
@@ -279,16 +268,14 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Returns the GSM rule type for non-GSM (tenant-extension) statement validation
-   * violations.
+   * Returns the GSM rule type for non-GSM (tenant-extension) statement validation violations.
    *
-   * @return the non-GSM statement validation rule type, or {@code null} for
-   *         sealed types
+   * @return the non-GSM statement validation rule type, or {@code null} for sealed types
    */
   protected AscriptionConsistencyRuleType extensionStatementValidationRule() {
     return switch (getSubjectType()) {
       case STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, DIRECTIVE, NORM ->
-        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
       case ARCHETYPE -> null; // Archetype meta-schema is GSM-only, not tenant-extensible
     };
   }
@@ -305,12 +292,11 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   protected abstract AbstractAscriptionRepository<T> getRepository();
 
   /**
-   * Builds a subtype-specific entity from the given definition, archetype, and
-   * statement.
+   * Builds a subtype-specific entity from the given definition, archetype, and statement.
    *
-   * @param definition   the stable identity
+   * @param definition the stable identity
    * @param archetypeRef the typing archetype
-   * @param statement    the JSON statement payload
+   * @param statement the JSON statement payload
    * @return the constructed entity (not yet persisted)
    */
   public abstract T buildEntity(
@@ -339,7 +325,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   /**
    * Returns a page of ascriptions filtered by status.
    *
-   * @param status   the status filter
+   * @param status the status filter
    * @param pageable pagination parameters
    * @return a page of matching ascription entities
    */
@@ -361,7 +347,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    * Returns all ascriptions for a given definition filtered by statuses.
    *
    * @param definitionId the definition UUID
-   * @param statuses     the status filter
+   * @param statuses the status filter
    * @return list of matching ascription entities
    */
   public List<T> findAllByDefinitionIdAndStatus(
@@ -370,14 +356,13 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Returns a page of ascriptions filtered by archetype, statement properties,
-   * and optionally by
+   * Returns a page of ascriptions filtered by archetype, statement properties, and optionally by
    * status. Used for {@code $gsm:queryable} statement filtering.
    *
    * @param archetypeDefinitionId the archetype's Definition UUID
-   * @param statementFilters      map of property name → value (strict equality)
-   * @param status                optional status filter (may be {@code null})
-   * @param pageable              pagination parameters
+   * @param statementFilters map of property name → value (strict equality)
+   * @param status optional status filter (may be {@code null})
+   * @param pageable pagination parameters
    * @return a page of matching ascription entities
    */
   public Page<T> findAllFiltered(
@@ -390,16 +375,14 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Builds a JPA {@link Specification} for filtered ascription queries. Combines
-   * archetype
-   * definition filtering (via JPA join), optional status filtering, and JSONB
-   * property equality
+   * Builds a JPA {@link Specification} for filtered ascription queries. Combines archetype
+   * definition filtering (via JPA join), optional status filtering, and JSONB property equality
    * matching via PostgreSQL {@code jsonb_extract_path_text}.
    *
-   * @param <T>                   the entity type
+   * @param <T> the entity type
    * @param archetypeDefinitionId the archetype's Definition UUID (required)
-   * @param statementFilters      map of property name → value (strict equality)
-   * @param status                optional status filter (may be {@code null})
+   * @param statementFilters map of property name → value (strict equality)
+   * @param status optional status filter (may be {@code null})
    * @return a composed JPA Specification
    */
   protected static <T extends AscriptionEntity> Specification<T> buildFilterSpec(
@@ -428,8 +411,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Returns Ascription history for a Definition, with definition and archetype
-   * eagerly fetched via
+   * Returns Ascription history for a Definition, with definition and archetype eagerly fetched via
    * {@code @EntityGraph} on the repository method.
    *
    * @param definitionId the definition UUID
@@ -447,17 +429,13 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   /**
    * Creates a new ascription through the GSM template method.
    *
-   * <p>
-   * Validates the statement against the archetype schema, resolves or creates the
-   * definition,
-   * enforces {@code $gsm:*} annotations, validates identity-bound invariants and
-   * referee
+   * <p>Validates the statement against the archetype schema, resolves or creates the definition,
+   * enforces {@code $gsm:*} annotations, validates identity-bound invariants and referee
    * preconditions, persists, and records the initial DRAFT transition.
    *
    * @param archetypeRef the typing archetype
-   * @param statement    the JSON statement payload
-   * @param definitionId optional definition UUID (may be {@code null} for new
-   *                     definitions)
+   * @param statement the JSON statement payload
+   * @param definitionId optional definition UUID (may be {@code null} for new definitions)
    * @return the persisted ascription entity in DRAFT status
    * @throws RuleViolationException if validation fails
    */
@@ -506,16 +484,13 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   // ======================================================================
 
   /**
-   * A reference edge: the entity being referenced (referee → reference). Used by
-   * the lifecycle
+   * A reference edge: the entity being referenced (referee → reference). Used by the lifecycle
    * service to check referee preconditions.
    *
    * @param reference the referenced ascription entity
-   * @param label     human-readable label for the reference (used in error
-   *                  messages)
+   * @param label human-readable label for the reference (used in error messages)
    */
-  public record RefereeReference(AscriptionEntity reference, String label) {
-  }
+  public record RefereeReference(AscriptionEntity reference, String label) {}
 
   // ======================================================================
   // Lifecycle descriptor methods (overridable)
@@ -543,7 +518,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   /**
    * Finds cascade target entities originating from a source ascription.
    *
-   * @param sourceType         the source subject type
+   * @param sourceType the source subject type
    * @param sourceAscriptionId the source ascription UUID
    * @return list of target entities (empty by default)
    */
@@ -563,8 +538,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Validates activation uniqueness constraints (e.g., Structure purpose,
-   * Mechanism function).
+   * Validates activation uniqueness constraints (e.g., Structure purpose, Mechanism function).
    *
    * @param entity the ascription entity being activated
    * @throws RuleViolationException if a uniqueness constraint is violated
@@ -574,16 +548,13 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Checks that no in-effect sibling (different {@link DefinitionEntity}) has the
-   * same value for
-   * the given statement property. Subclasses supply the property name and the
-   * pre-fetched sibling
+   * Checks that no in-effect sibling (different {@link DefinitionEntity}) has the same value for
+   * the given statement property. Subclasses supply the property name and the pre-fetched sibling
    * collection (which may be globally scoped or narrowed to a parent).
    *
-   * @param propertyName     the JSON statement field to compare
-   * @param propertyValue    the value of that field on the entity being activated
-   * @param thisDefId        the definition ID of the entity being activated
-   *                         (excluded from comparison)
+   * @param propertyName the JSON statement field to compare
+   * @param propertyValue the value of that field on the entity being activated
+   * @param thisDefId the definition ID of the entity being activated (excluded from comparison)
    * @param inEffectSiblings the in-effect ascriptions to check against
    * @throws RuleViolationException if a duplicate is found
    */
@@ -593,12 +564,12 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       UUID thisDefId,
       Collection<? extends AscriptionEntity> inEffectSiblings) {
     for (AscriptionEntity sibling : inEffectSiblings) {
-      if (sibling.getDefinition().getId().equals(thisDefId))
-        continue;
+      if (sibling.getDefinition().getId().equals(thisDefId)) continue;
       JsonNode sibStmt = sibling.getStatement();
-      String sibValue = (sibStmt != null && sibStmt.has(propertyName))
-          ? sibStmt.get(propertyName).asText()
-          : null;
+      String sibValue =
+          (sibStmt != null && sibStmt.has(propertyName))
+              ? sibStmt.get(propertyName).asText()
+              : null;
       if (propertyValue.equals(sibValue)) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
@@ -625,8 +596,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   // ======================================================================
 
   /**
-   * Hook called when an entity transitions to ACTIVE. Override in concrete
-   * services for
+   * Hook called when an entity transitions to ACTIVE. Override in concrete services for
    * subtype-specific activation logic (e.g., index provisioning for Archetypes).
    *
    * @param entity the ascription entity being activated
@@ -636,10 +606,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Hook called when an entity leaves in-effect status (ACTIVE/DEPRECATED).
-   * Override in concrete
-   * services for subtype-specific deactivation logic (e.g., index deprovisioning
-   * for Archetypes).
+   * Hook called when an entity leaves in-effect status (ACTIVE/DEPRECATED). Override in concrete
+   * services for subtype-specific deactivation logic (e.g., index deprovisioning for Archetypes).
    *
    * @param entity the ascription entity being deactivated
    */
@@ -648,10 +616,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Hook called after an entity is created and persisted. Override in concrete
-   * services for
-   * subtype-specific post-creation logic (e.g., auto-derivation of
-   * Effectors/Receptors for
+   * Hook called after an entity is created and persisted. Override in concrete services for
+   * subtype-specific post-creation logic (e.g., auto-derivation of Effectors/Receptors for
    * generative Mechanisms).
    *
    * @param saved the persisted ascription entity
@@ -668,7 +634,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    * Extracts a list of UUIDs from a statement JSON array field.
    *
    * @param statement the JSON statement
-   * @param field     the field name
+   * @param field the field name
    * @return the extracted UUID list (empty if field is absent)
    * @throws RuleViolationException if any element is not a valid UUID
    */
@@ -764,7 +730,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   void validateStatement(JsonNode statement, ArchetypeEntity archetype) {
     JsonNode archetypeStatement = archetype.getStatement();
 
-    SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
+    SchemaValidatorsConfig config =
+        SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
     JsonSchemaFactory factory = buildSchemaFactory(archetypeStatement);
     JsonSchema schema = factory.getSchema(archetypeStatement, config);
     Set<ValidationMessage> errors = schema.validate(statement);
@@ -834,24 +801,23 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   // --- Schema factory with tenant-aware resolution (R1 from E1 gap register) ---
 
   /** GSM base archetype titles that live on classpath. */
-  private static final Set<String> CLASSPATH_ARCHETYPE_TITLES = Set.of(
-      "Archetype",
-      "StructureArchetype",
-      "MechanismArchetype",
-      "EffectorArchetype",
-      "ReceptorArchetype",
-      "InteractionArchetype",
-      "DirectiveArchetype",
-      "NormArchetype");
+  private static final Set<String> CLASSPATH_ARCHETYPE_TITLES =
+      Set.of(
+          "Archetype",
+          "StructureArchetype",
+          "MechanismArchetype",
+          "EffectorArchetype",
+          "ReceptorArchetype",
+          "InteractionArchetype",
+          "DirectiveArchetype",
+          "NormArchetype");
 
-  private static final java.util.regex.Pattern GSM_URI_PATTERN = java.util.regex.Pattern
-      .compile("^gsm://archetypes/([^/]+)/v\\d+$");
+  private static final java.util.regex.Pattern GSM_URI_PATTERN =
+      java.util.regex.Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
 
   /**
-   * Builds a {@link JsonSchemaFactory} that resolves gsm:// URIs. GSM base
-   * archetypes are resolved
-   * from classpath; tenant archetypes are resolved from the database.
-   * Network-based resolution is
+   * Builds a {@link JsonSchemaFactory} that resolves gsm:// URIs. GSM base archetypes are resolved
+   * from classpath; tenant archetypes are resolved from the database. Network-based resolution is
    * blocked via {@link DisallowSchemaLoader}.
    */
   private JsonSchemaFactory buildSchemaFactory(JsonNode archetypeSchema) {
@@ -863,35 +829,37 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
     return JsonSchemaFactory.getInstance(
         SpecVersion.VersionFlag.V202012,
-        builder -> builder
-            .schemaLoaders(
-                loaders -> loaders.add(
-                    iri -> {
-                      String uri = iri.toString();
-                      String json = tenantSchemaJsonByUri.get(uri);
-                      if (json != null) {
-                        return () -> new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
-                      }
-                      return null;
-                    }))
-            .schemaMappers(
-                mappers -> mappers.mappings(
-                    uri -> uri.startsWith("gsm://archetypes/"),
-                    uri -> {
-                      if (tenantSchemaJsonByUri.containsKey(uri)) {
-                        return uri;
-                      }
-                      String rest = uri.substring("gsm://archetypes/".length());
-                      String name = rest.split("/")[0];
-                      return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
-                    })));
+        builder ->
+            builder
+                .schemaLoaders(
+                    loaders ->
+                        loaders.add(
+                            iri -> {
+                              String uri = iri.toString();
+                              String json = tenantSchemaJsonByUri.get(uri);
+                              if (json != null) {
+                                return () ->
+                                    new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+                              }
+                              return null;
+                            }))
+                .schemaMappers(
+                    mappers ->
+                        mappers.mappings(
+                            uri -> uri.startsWith("gsm://archetypes/"),
+                            uri -> {
+                              if (tenantSchemaJsonByUri.containsKey(uri)) {
+                                return uri;
+                              }
+                              String rest = uri.substring("gsm://archetypes/".length());
+                              String name = rest.split("/")[0];
+                              return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                            })));
   }
 
   /**
-   * Scans the archetype schema for gsm:// $ref URIs that reference tenant
-   * archetypes (not on
-   * classpath) and preloads them from the database. Returns a map from gsm:// URI
-   * to the JSON
+   * Scans the archetype schema for gsm:// $ref URIs that reference tenant archetypes (not on
+   * classpath) and preloads them from the database. Returns a map from gsm:// URI to the JSON
    * content of the resolved schema.
    */
   private Map<String, String> collectTenantSchemaMap(JsonNode schema) {
@@ -944,8 +912,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   /**
-   * Determines whether a validation error pertains to a GSM base schema property.
-   * Uses instance
+   * Determines whether a validation error pertains to a GSM base schema property. Uses instance
    * location path and the property hint from the validation message.
    */
   private static boolean isBaseSchemaError(ValidationMessage error, Set<String> baseProps) {
@@ -971,8 +938,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   /**
    * Enforces {@code $gsm:*} vocabulary keywords on a statement at authoring time.
    *
-   * @param statement    the JSON statement payload
-   * @param archetype    the archetype carrying vocabulary annotations
+   * @param statement the JSON statement payload
+   * @param archetype the archetype carrying vocabulary annotations
    * @param definitionId the definition UUID (for uniqueness scoping)
    * @throws RuleViolationException if an annotation constraint is violated
    */
@@ -1014,15 +981,19 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
 
   private void enforceUnique(
       String propName, JsonNode value, ArchetypeEntity archetype, UUID definitionId) {
-    List<AscriptionEntity> inEffect = ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-        archetype.getId(), AscriptionStatusType.IN_EFFECT, definitionId);
+    List<AscriptionEntity> inEffect =
+        ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+            archetype.getId(),
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED),
+            definitionId);
 
     String valueStr = value.isTextual() ? value.asText() : value.toString();
     for (AscriptionEntity existing : inEffect) {
       JsonNode existingStmt = existing.getStatement();
       if (existingStmt.has(propName)) {
         JsonNode existingVal = existingStmt.get(propName);
-        String existingStr = existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
+        String existingStr =
+            existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
         if (valueStr.equals(existingStr)) {
           throw RuleViolationException.of(
               AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,

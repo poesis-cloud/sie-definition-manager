@@ -1,5 +1,7 @@
 package cloud.poesis.sie.defman.type;
 
+import java.util.Set;
+
 /**
  * Canonical primitive/resource types used by GSM entities and diagnostics.
  *
@@ -7,24 +9,38 @@ package cloud.poesis.sie.defman.type;
  * @since 1.0.0
  */
 public enum PrimitiveType {
-  DEFINITION("definition", "Definition"),
-  ASCRIPTION("ascription", "Ascription"),
-  ASCRIPTION_STATUS_TRANSITION("ascription-status-transition", "AscriptionStatusTransition"),
-  ARCHETYPE("archetype", "Archetype"),
-  STRUCTURE("structure", "Structure"),
-  MECHANISM("mechanism", "Mechanism"),
-  EFFECTOR("effector", "Effector"),
-  RECEPTOR("receptor", "Receptor"),
-  INTERACTION("interaction", "Interaction"),
-  DIRECTIVE("directive", "Directive"),
-  NORM("norm", "Norm");
+  DEFINITION("definition", "Definition", Set.of()),
+  ASCRIPTION("ascription", "Ascription", Set.of()),
+  ASCRIPTION_STATUS_TRANSITION(
+      "ascription-status-transition", "AscriptionStatusTransition", Set.of()),
+  ARCHETYPE("archetype", "Archetype", Set.of()),
+  STRUCTURE("structure", "Structure", Set.of("purpose")),
+  MECHANISM("mechanism", "Mechanism", Set.of("structure", "function", "rule")),
+  EFFECTOR("effector", "Effector", Set.of("mechanism", "archetype")),
+  RECEPTOR("receptor", "Receptor", Set.of("mechanism", "archetype")),
+  INTERACTION("interaction", "Interaction", Set.of("effector", "receptor")),
+  DIRECTIVE("directive", "Directive", Set.of("structure", "modal", "verb", "qualifier", "purpose")),
+  NORM(
+      "norm",
+      "Norm",
+      Set.of(
+          "structure",
+          "qualifier",
+          "applicability",
+          "assertion",
+          "toleranceMode",
+          "temporalWindow",
+          "temporalAggregation",
+          "sustainedThreshold"));
 
   private final String value;
   private final String label;
+  private final Set<String> statementProperties;
 
-  PrimitiveType(String value, String label) {
+  PrimitiveType(String value, String label, Set<String> statementProperties) {
     this.value = value;
     this.label = label;
+    this.statementProperties = statementProperties;
   }
 
   /**
@@ -43,6 +59,15 @@ public enum PrimitiveType {
    */
   public String getLabel() {
     return label;
+  }
+
+  /**
+   * Returns the GSM base archetype statement property names for this primitive type.
+   *
+   * @return unmodifiable set of property names; empty for non-ascription types
+   */
+  public Set<String> getStatementProperties() {
+    return statementProperties;
   }
 
   /**

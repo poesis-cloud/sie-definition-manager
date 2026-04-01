@@ -1,17 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
@@ -21,21 +9,28 @@ import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.ast.CelExpr;
 import dev.cel.compiler.CelCompiler;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Governance appraisal service. Implements ONLY {@link AppraisalRuleType}
- * rules.
+ * Governance appraisal service. Implements ONLY {@link AppraisalRuleType} rules.
  *
- * <p>
- * Evaluates cross-ascription governance compatibility at activation time:
+ * <p>Evaluates cross-ascription governance compatibility at activation time:
  *
  * <ul>
- * <li>{@link AppraisalRuleType#DIRECTIVE_COMPATIBILITY_ON_VERB} — contradictory
- * verb detection
- * <li>{@link AppraisalRuleType#DIRECTIVE_COMPATIBILITY_ON_MODAL} —
- * contradictory modal detection
- * <li>{@link AppraisalRuleType#NORM_DIRECTED} — directive backing validation
- * <li>{@link AppraisalRuleType#NORM_COMPATIBILITY} — overlapping norm detection
+ *   <li>{@link AppraisalRuleType#DIRECTIVE_COMPATIBILITY_ON_VERB} — contradictory verb detection
+ *   <li>{@link AppraisalRuleType#DIRECTIVE_COMPATIBILITY_ON_MODAL} — contradictory modal detection
+ *   <li>{@link AppraisalRuleType#NORM_DIRECTED} — directive backing validation
+ *   <li>{@link AppraisalRuleType#NORM_COMPATIBILITY} — overlapping norm detection
  * </ul>
  *
  * @author Clément Cazaud
@@ -47,35 +42,32 @@ public class AppraisalService {
 
   private static final Logger LOG = LoggerFactory.getLogger(AppraisalService.class);
 
-  private static final Set<Set<String>> CONTRADICTORY_VERB_PAIRS = Set.of(Set.of("ENSURE", "PREVENT"));
+  private static final Set<Set<String>> CONTRADICTORY_VERB_PAIRS =
+      Set.of(Set.of("ENSURE", "PREVENT"));
 
   /**
    * Modal precedence tiers aligned with RFC 2119 / BCP 14 deontic strength.
    *
-   * <p>
-   * The integer value represents obligation strength, not direction:
+   * <p>The integer value represents obligation strength, not direction:
    *
    * <ul>
-   * <li><b>Tier 3</b> — MUST / MUST_NOT: absolute requirement or prohibition
-   * <li><b>Tier 2</b> — SHOULD / SHOULD_NOT: strong recommendation
-   * <li><b>Tier 1</b> — MAY: optional permission
+   *   <li><b>Tier 3</b> — MUST / MUST_NOT: absolute requirement or prohibition
+   *   <li><b>Tier 2</b> — SHOULD / SHOULD_NOT: strong recommendation
+   *   <li><b>Tier 1</b> — MAY: optional permission
    * </ul>
    *
-   * <p>
-   * A modal and its negation (e.g. MUST vs MUST_NOT) share the same tier because
-   * they carry
-   * equal obligation strength — they differ only in direction. Contradictions
-   * between a modal and
-   * its negation are detected separately by
-   * {@link #areModalContradictions(String, String)}, not by
+   * <p>A modal and its negation (e.g. MUST vs MUST_NOT) share the same tier because they carry
+   * equal obligation strength — they differ only in direction. Contradictions between a modal and
+   * its negation are detected separately by {@link #areModalContradictions(String, String)}, not by
    * tier comparison.
    */
-  public static final Map<String, Integer> MODAL_PRECEDENCE = Map.of(
-      "MUST", 3,
-      "MUST_NOT", 3,
-      "SHOULD", 2,
-      "SHOULD_NOT", 2,
-      "MAY", 1);
+  public static final Map<String, Integer> MODAL_PRECEDENCE =
+      Map.of(
+          "MUST", 3,
+          "MUST_NOT", 3,
+          "SHOULD", 2,
+          "SHOULD_NOT", 2,
+          "MAY", 1);
 
   private final DirectiveService directiveService;
   private final NormService normService;
@@ -98,8 +90,7 @@ public class AppraisalService {
   // ======================================================================
 
   /**
-   * Validates that a directive being activated does not contradict existing
-   * in-effect directives on
+   * Validates that a directive being activated does not contradict existing in-effect directives on
    * the same qualifier + purpose axis.
    *
    * @param directive the directive being activated
@@ -113,9 +104,10 @@ public class AppraisalService {
     String verb = directive.getStatement().get("verb").asText();
     String modal = directive.getStatement().get("modal").asText();
 
-    List<DirectiveEntity> siblings = directiveService.findAllInEffectByPurpose(purpose).stream()
-        .filter(d -> d.getQualifier().getDefinition().getId().equals(qualifierDefId))
-        .toList();
+    List<DirectiveEntity> siblings =
+        directiveService.findAllInEffectByPurpose(purpose).stream()
+            .filter(d -> d.getQualifier().getDefinition().getId().equals(qualifierDefId))
+            .toList();
 
     for (DirectiveEntity sibling : siblings) {
       if (sibling.getDefinition().getId().equals(thisDefId)) {
@@ -207,20 +199,17 @@ public class AppraisalService {
   }
 
   /**
-   * Returns {@code true} if two modals form a contradiction (e.g. MUST vs
-   * MUST_NOT).
+   * Returns {@code true} if two modals form a contradiction (e.g. MUST vs MUST_NOT).
    *
    * @param a first modal
    * @param b second modal
    * @return true if the pair is contradictory
    */
   public static boolean areModalContradictions(String a, String b) {
-    if (a.equals(b))
-      return false;
+    if (a.equals(b)) return false;
     String norm1 = a.replace("_NOT", "");
     String norm2 = b.replace("_NOT", "");
-    if (!norm1.equals(norm2))
-      return false;
+    if (!norm1.equals(norm2)) return false;
     return a.endsWith("_NOT") ^ b.endsWith("_NOT");
   }
 
@@ -229,8 +218,7 @@ public class AppraisalService {
   // ======================================================================
 
   /**
-   * Validates that a norm being activated has directive backing (governance
-   * chain).
+   * Validates that a norm being activated has directive backing (governance chain).
    *
    * @param norm the norm being activated
    * @throws RuleViolationException if no in-effect directive legitimates the norm
@@ -253,17 +241,19 @@ public class AppraisalService {
 
     Set<String> normAncestors = archetypeService.getAncestorTitles(qualifierId);
 
-    boolean hasLegitimatingDirective = directives.stream()
-        .anyMatch(
-            d -> {
-              Set<String> directiveAncestors = archetypeService.getAncestorTitles(d.getQualifier().getId());
-              for (String da : directiveAncestors) {
-                if (normAncestors.contains(da)) {
-                  return true;
-                }
-              }
-              return false;
-            });
+    boolean hasLegitimatingDirective =
+        directives.stream()
+            .anyMatch(
+                d -> {
+                  Set<String> directiveAncestors =
+                      archetypeService.getAncestorTitles(d.getQualifier().getId());
+                  for (String da : directiveAncestors) {
+                    if (normAncestors.contains(da)) {
+                      return true;
+                    }
+                  }
+                  return false;
+                });
 
     if (!hasLegitimatingDirective) {
       throw RuleViolationException.of(
@@ -286,8 +276,7 @@ public class AppraisalService {
   // ======================================================================
 
   /**
-   * Detects potential conflicts between a norm being activated and existing
-   * in-effect norms on the
+   * Detects potential conflicts between a norm being activated and existing in-effect norms on the
    * same structure.
    *
    * @param norm the norm being activated
@@ -298,17 +287,21 @@ public class AppraisalService {
     UUID qualifierId = norm.getQualifier().getId();
 
     Set<String> normAncestors = archetypeService.getAncestorTitles(qualifierId);
-    String normAssertion = norm.getStatement().has("assertion") ? norm.getStatement().get("assertion").asText() : "";
+    String normAssertion =
+        norm.getStatement().has("assertion") ? norm.getStatement().get("assertion").asText() : "";
 
-    List<NormEntity> siblings = normService.findAllByStructureDefinitionIdAndStatusIn(
-        structureDefId, AscriptionStatusType.IN_EFFECT);
+    List<NormEntity> siblings =
+        normService.findAllByStructureDefinitionIdAndStatusIn(
+            structureDefId,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
 
     for (NormEntity sibling : siblings) {
       if (sibling.getDefinition().getId().equals(thisDefId)) {
         continue;
       }
 
-      Set<String> siblingAncestors = archetypeService.getAncestorTitles(sibling.getQualifier().getId());
+      Set<String> siblingAncestors =
+          archetypeService.getAncestorTitles(sibling.getQualifier().getId());
       boolean qualifierOverlap = false;
       for (String sa : siblingAncestors) {
         if (normAncestors.contains(sa)) {
@@ -320,9 +313,10 @@ public class AppraisalService {
         continue;
       }
 
-      String siblingAssertion = sibling.getStatement().has("assertion")
-          ? sibling.getStatement().get("assertion").asText()
-          : "";
+      String siblingAssertion =
+          sibling.getStatement().has("assertion")
+              ? sibling.getStatement().get("assertion").asText()
+              : "";
       if (normAssertion.equals(siblingAssertion)) {
         continue;
       }

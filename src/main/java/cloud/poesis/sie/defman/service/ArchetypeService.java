@@ -1,26 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -32,16 +11,32 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
 
 /**
  * GSM Archetype ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link ArchetypeEntity} ascriptions
- * including allOf chain
- * validation, {@code $gsm:*} annotation well-formedness, subject type
- * resolution, and
+ * <p>Manages lifecycle and persistence of {@link ArchetypeEntity} ascriptions including allOf chain
+ * validation, {@code $gsm:*} annotation well-formedness, subject type resolution, and
  * vocabulary-driven index provisioning.
  *
  * @author Clément Cazaud
@@ -51,47 +46,50 @@ import jakarta.persistence.EntityManager;
 public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity> {
 
   /** Maps schema title to DefinitionSubjectType for base archetypes. */
-  private static final Map<String, DefinitionSubjectType> SCHEMA_TITLE_TO_SUBJECT_TYPE = Map.of(
-      "Archetype", DefinitionSubjectType.ARCHETYPE,
-      "StructureArchetype", DefinitionSubjectType.STRUCTURE,
-      "MechanismArchetype", DefinitionSubjectType.MECHANISM,
-      "EffectorArchetype", DefinitionSubjectType.EFFECTOR,
-      "ReceptorArchetype", DefinitionSubjectType.RECEPTOR,
-      "InteractionArchetype", DefinitionSubjectType.INTERACTION,
-      "DirectiveArchetype", DefinitionSubjectType.DIRECTIVE,
-      "NormArchetype", DefinitionSubjectType.NORM);
+  private static final Map<String, DefinitionSubjectType> SCHEMA_TITLE_TO_SUBJECT_TYPE =
+      Map.of(
+          "Archetype", DefinitionSubjectType.ARCHETYPE,
+          "StructureArchetype", DefinitionSubjectType.STRUCTURE,
+          "MechanismArchetype", DefinitionSubjectType.MECHANISM,
+          "EffectorArchetype", DefinitionSubjectType.EFFECTOR,
+          "ReceptorArchetype", DefinitionSubjectType.RECEPTOR,
+          "InteractionArchetype", DefinitionSubjectType.INTERACTION,
+          "DirectiveArchetype", DefinitionSubjectType.DIRECTIVE,
+          "NormArchetype", DefinitionSubjectType.NORM);
 
   // ======================================================================
   // AllOf chain validation constants (from AllOfChainValidator)
   // ======================================================================
 
-  private static final Set<String> GSM_BASE_TITLES = Set.of(
-      "StructureArchetype",
-      "MechanismArchetype",
-      "InteractionArchetype",
-      "Archetype",
-      "EffectorArchetype",
-      "ReceptorArchetype",
-      "DirectiveArchetype",
-      "NormArchetype");
+  private static final Set<String> GSM_BASE_TITLES =
+      Set.of(
+          "StructureArchetype",
+          "MechanismArchetype",
+          "InteractionArchetype",
+          "Archetype",
+          "EffectorArchetype",
+          "ReceptorArchetype",
+          "DirectiveArchetype",
+          "NormArchetype");
 
-  private static final Pattern GSM_URI_PATTERN = Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
+  private static final Pattern GSM_URI_PATTERN =
+      Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
 
   // ======================================================================
   // $gsm:* annotation constants
   // ======================================================================
 
-  private static final Set<String> KNOWN_ANNOTATIONS = Set.of(
-      "$gsm:sealed",
-      "$gsm:identityBound",
-      "$gsm:queryable",
-      "$gsm:unique",
-      "$gsm:dataProtection");
+  private static final Set<String> KNOWN_ANNOTATIONS =
+      Set.of(
+          "$gsm:sealed",
+          "$gsm:identityBound",
+          "$gsm:queryable",
+          "$gsm:unique",
+          "$gsm:dataProtection");
 
   private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed");
 
-  public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {
-  }
+  public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {}
 
   private static final Logger LOG = LoggerFactory.getLogger(ArchetypeService.class);
 
@@ -101,12 +99,12 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   /**
    * Constructs the Archetype service with its required dependencies.
    *
-   * @param archetypeRepo         the archetype repository
-   * @param jdbcTemplate          the JDBC template for index provisioning
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param entityManager         the JPA entity manager
+   * @param archetypeRepo the archetype repository
+   * @param jdbcTemplate the JDBC template for index provisioning
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public ArchetypeService(
@@ -166,15 +164,13 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   // ======================================================================
 
   /**
-   * Resolves an Archetype by id and derives the DefinitionSubjectType from its
-   * schema title. Used
+   * Resolves an Archetype by id and derives the DefinitionSubjectType from its schema title. Used
    * by the controller to dispatch creation requests.
    *
    * @param archetypeId the archetype UUID
    * @return the resolved archetype with its derived subject type
    * @throws ResourceNotFoundException if no archetype exists with the given id
-   * @throws RuleViolationException    if the archetype has no title or is
-   *                                   rootless
+   * @throws RuleViolationException if the archetype has no title or is rootless
    */
   public ArchetypeResolution resolveForCreation(UUID archetypeId) {
     ArchetypeEntity archetype = findEntityById(archetypeId);
@@ -208,13 +204,11 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   /**
    * Batch-fetches Archetypes by their IDs.
    *
-   * <p>
-   * Part of the explicit-fetch design (see README.md § "Batch fetch pattern").
+   * <p>Part of the explicit-fetch design (see README.md § "Batch fetch pattern").
    *
    * @param ids collection of Archetype IDs to retrieve
-   * @return map of ID → ArchetypeEntity; IDs not found in the database are
-   *         silently absent from the
-   *         returned map
+   * @return map of ID → ArchetypeEntity; IDs not found in the database are silently absent from the
+   *     returned map
    */
   public Map<UUID, ArchetypeEntity> getByIds(Collection<UUID> ids) {
     return archetypeRepo.findAllById(ids).stream()
@@ -222,8 +216,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   }
 
   /**
-   * Find an in-effect Archetype by its title. Returns null if no matching
-   * in-effect Archetype
+   * Find an in-effect Archetype by its title. Returns null if no matching in-effect Archetype
    * exists.
    *
    * @param title the Archetype's schema title
@@ -306,8 +299,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     JsonNode stmt = entity.getStatement();
-    if (stmt == null || !stmt.has("title"))
-      return Map.of();
+    if (stmt == null || !stmt.has("title")) return Map.of();
     return Map.of("title", stmt.get("title").asText());
   }
 
@@ -320,7 +312,8 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         "title",
         title,
         entity.getDefinition().getId(),
-        archetypeRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT));
+        archetypeRepo.findAllByStatusIn(
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)));
   }
 
   // ---- Lifecycle hooks ----
@@ -347,8 +340,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   // Annotation-driven index management (from AnnotationIndexManager)
   // ========================================================================
 
-  private record IndexSpec(String indexName, String ddl, String type, String propertyName) {
-  }
+  private record IndexSpec(String indexName, String ddl, String type, String propertyName) {}
 
   private void provisionIndexes(ArchetypeEntity archetype) {
     JsonNode stmt = archetype.getStatement();
@@ -432,25 +424,27 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         String ddl;
         if ("GIN".equals(indexType)) {
           jsonbPath = "(statement->'" + escapeJsonbKey(propName) + "')";
-          ddl = "CREATE INDEX IF NOT EXISTS "
-              + indexName
-              + " ON "
-              + tableName
-              + " USING GIN ("
-              + jsonbPath
-              + ")"
-              + " WHERE archetype_id = "
-              + archetypeIdLiteral;
+          ddl =
+              "CREATE INDEX IF NOT EXISTS "
+                  + indexName
+                  + " ON "
+                  + tableName
+                  + " USING GIN ("
+                  + jsonbPath
+                  + ")"
+                  + " WHERE archetype_id = "
+                  + archetypeIdLiteral;
         } else {
-          ddl = "CREATE INDEX IF NOT EXISTS "
-              + indexName
-              + " ON "
-              + tableName
-              + " ("
-              + jsonbPath
-              + ")"
-              + " WHERE archetype_id = "
-              + archetypeIdLiteral;
+          ddl =
+              "CREATE INDEX IF NOT EXISTS "
+                  + indexName
+                  + " ON "
+                  + tableName
+                  + " ("
+                  + jsonbPath
+                  + ")"
+                  + " WHERE archetype_id = "
+                  + archetypeIdLiteral;
         }
 
         specs.add(new IndexSpec(indexName, ddl, "queryable/" + indexType, propName));
@@ -461,16 +455,17 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         String indexName = "idx_gsm_u_" + sanitizedTitle + "_" + sanitizedProp;
         String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
 
-        String ddl = "CREATE UNIQUE INDEX IF NOT EXISTS "
-            + indexName
-            + " ON "
-            + tableName
-            + " ("
-            + jsonbPath
-            + ")"
-            + " WHERE archetype_id = "
-            + archetypeIdLiteral
-            + " AND status IN ('ACTIVE','DEPRECATED')";
+        String ddl =
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+                + indexName
+                + " ON "
+                + tableName
+                + " ("
+                + jsonbPath
+                + ")"
+                + " WHERE archetype_id = "
+                + archetypeIdLiteral
+                + " AND status IN ('ACTIVE','DEPRECATED')";
 
         specs.add(new IndexSpec(indexName, ddl, "unique", propName));
       }
@@ -508,26 +503,18 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   // ---- Public descendant resolution API ----
 
   /**
-   * Returns the set of all ancestor Archetype titles reachable through the allOf
-   * chain of the given
-   * archetype. Includes the archetype's own title if present. Does not include
-   * titles that cannot
-   * be resolved at the time of the call (lenient mode). GSM base titles are
-   * included when reached.
+   * Returns the set of all ancestor Archetype titles reachable through the allOf chain of the given
+   * archetype. Includes the archetype's own title if present. Does not include titles that cannot
+   * be resolved at the time of the call (lenient mode). GSM base titles are included when reached.
    *
-   * <p>
-   * <b>Ordering guarantee:</b> the returned {@link LinkedHashSet} preserves
-   * insertion order,
-   * which is nearest-ancestor-first (depth-first, left-to-right traversal of the
-   * allOf chain). The
-   * archetype's own title, when present, is always the first element. Callers
-   * (e.g., {@code
+   * <p><b>Ordering guarantee:</b> the returned {@link LinkedHashSet} preserves insertion order,
+   * which is nearest-ancestor-first (depth-first, left-to-right traversal of the allOf chain). The
+   * archetype's own title, when present, is always the first element. Callers (e.g., {@code
    * NormService} governance chain validation) may rely on this ordering.
    *
    * @param archetypeId the ascription ID of the archetype to inspect
-   * @return the set of ancestor titles in nearest-ancestor-first order (may be
-   *         empty for rootless
-   *         archetypes)
+   * @return the set of ancestor titles in nearest-ancestor-first order (may be empty for rootless
+   *     archetypes)
    */
   public Set<String> getAncestorTitles(UUID archetypeId) {
     ArchetypeEntity archetype = findEntityById(archetypeId);
@@ -553,12 +540,10 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   }
 
   /**
-   * Checks whether the given archetype is a descendant (via allOf chain) of an
-   * ancestor identified
-   * by title. Returns true if the archetype's own title matches, or if any allOf
-   * ancestor matches.
+   * Checks whether the given archetype is a descendant (via allOf chain) of an ancestor identified
+   * by title. Returns true if the archetype's own title matches, or if any allOf ancestor matches.
    *
-   * @param archetypeId   the ascription ID of the archetype to check
+   * @param archetypeId the ascription ID of the archetype to check
    * @param ancestorTitle the title of the potential ancestor
    * @return true if the archetype descends from the ancestor
    */
@@ -739,19 +724,13 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   // ========================================================================
 
   /**
-   * Recursively scans the entire schema tree for {@code $ref} values and enforces
-   * the URI policy:
-   * only local JSON Pointers ({@code #/...}) and
-   * {@code gsm://archetypes/{title}/v{version}} URIs
-   * are allowed. Rejects external URIs (http, https, file, etc.) to prevent SSRF
-   * and ensure all
+   * Recursively scans the entire schema tree for {@code $ref} values and enforces the URI policy:
+   * only local JSON Pointers ({@code #/...}) and {@code gsm://archetypes/{title}/v{version}} URIs
+   * are allowed. Rejects external URIs (http, https, file, etc.) to prevent SSRF and ensure all
    * schema resolution is local.
    *
-   * <p>
-   * Called at authoring time (buildEntity) to catch prohibited URIs early. The
-   * allOf-specific
-   * validation in {@link #walkAllOfChain} remains the authoritative check for
-   * allOf chain
+   * <p>Called at authoring time (buildEntity) to catch prohibited URIs early. The allOf-specific
+   * validation in {@link #walkAllOfChain} remains the authoritative check for allOf chain
    * semantics; this method is a complementary breadth scan.
    *
    * @param schema the archetype JSON Schema to scan
@@ -885,7 +864,8 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       return;
     }
 
-    List<ArchetypeEntity> existing = archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
+    List<ArchetypeEntity> existing =
+        archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
     if (existing.isEmpty()) {
       return;
     }

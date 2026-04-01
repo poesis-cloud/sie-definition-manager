@@ -1,14 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -19,16 +10,19 @@ import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
 
 /**
  * GSM Directive ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link DirectiveEntity} ascriptions
- * including Directive
- * consistency validation (verb/modal contradiction detection) and governing
- * cascade from owning
+ * <p>Manages lifecycle and persistence of {@link DirectiveEntity} ascriptions including Directive
+ * consistency validation (verb/modal contradiction detection) and governing cascade from owning
  * Structure.
  *
  * @author Clément Cazaud
@@ -45,17 +39,16 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   /**
    * Constructs the Directive service with its required dependencies.
    *
-   * @param directiveRepo         the directive repository
-   * @param structureService      the structure service for reference resolution
-   * @param archetypeService      the archetype service for qualifier resolution
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param entityManager         the JPA entity manager
+   * @param directiveRepo the directive repository
+   * @param structureService the structure service for reference resolution
+   * @param archetypeService the archetype service for qualifier resolution
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
-   * @param appraisalService      the appraisal service for governance
-   *                              compatibility checks (lazy to
-   *                              break circular dependency)
+   * @param appraisalService the appraisal service for governance compatibility checks (lazy to
+   *     break circular dependency)
    */
   public DirectiveService(
       DirectiveRepository directiveRepo,
@@ -131,8 +124,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   }
 
   /**
-   * Returns in-effect directives whose statement purpose matches the given
-   * string.
+   * Returns in-effect directives whose statement purpose matches the given string.
    *
    * @param purpose the governed purpose string
    * @return the matching directive entities

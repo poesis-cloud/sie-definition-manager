@@ -22,11 +22,8 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Receptor ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link ReceptorEntity} ascriptions with
- * constitutive
- * cascade from owning Mechanism and dependent cascade to downstream
- * Interactions.
+ * <p>Manages lifecycle and persistence of {@link ReceptorEntity} ascriptions with constitutive
+ * cascade from owning Mechanism and dependent cascade to downstream Interactions.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -41,14 +38,13 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
   /**
    * Constructs the Receptor service with its required dependencies.
    *
-   * @param receptorRepo          the receptor repository
-   * @param mechanismService      the mechanism service for reference resolution
-   * @param archetypeService      the archetype service for data archetype
-   *                              resolution
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param entityManager         the JPA entity manager
+   * @param receptorRepo the receptor repository
+   * @param mechanismService the mechanism service for reference resolution
+   * @param archetypeService the archetype service for data archetype resolution
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public ReceptorService(

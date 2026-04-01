@@ -14,11 +14,26 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.AscriptionEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.exception.InternalException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -33,44 +48,21 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.AscriptionEntity;
-import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.exception.InternalException;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
-import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import jakarta.persistence.EntityManager;
-
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AbstractAscriptionServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private DefinitionService definitionService;
+  @Mock private DefinitionService definitionService;
 
-  @Mock
-  private AscriptionService ascriptionService;
+  @Mock private AscriptionService ascriptionService;
 
-  @Mock
-  private AscriptionStatusTransitionService transitionService;
+  @Mock private AscriptionStatusTransitionService transitionService;
 
-  @Mock
-  private ArchetypeRepository archetypeRepo;
+  @Mock private ArchetypeRepository archetypeRepo;
 
-  @Mock
-  private EntityManager entityManager;
+  @Mock private EntityManager entityManager;
 
   /** Minimal concrete subclass for testing package-private base methods. */
   private AbstractAscriptionService<AscriptionEntity> service;
@@ -82,65 +74,66 @@ class AbstractAscriptionServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new AbstractAscriptionService<>(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepo,
-        entityManager,
-        new DataProtectionService()) {
-      @Override
-      public DefinitionSubjectType getSubjectType() {
-        return DefinitionSubjectType.STRUCTURE;
-      }
+    service =
+        new AbstractAscriptionService<>(
+            definitionService,
+            transitionService,
+            ascriptionService,
+            archetypeRepo,
+            entityManager,
+            new DataProtectionService()) {
+          @Override
+          public DefinitionSubjectType getSubjectType() {
+            return DefinitionSubjectType.STRUCTURE;
+          }
 
-      @Override
-      protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-        return null;
-      }
+          @Override
+          protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+            return null;
+          }
 
-      @Override
-      public AscriptionEntity buildEntity(
-          DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
-        return null;
-      }
+          @Override
+          public AscriptionEntity buildEntity(
+              DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+            return null;
+          }
 
-      @Override
-      public AscriptionEntity save(AscriptionEntity entity) {
-        return null;
-      }
+          @Override
+          public AscriptionEntity save(AscriptionEntity entity) {
+            return null;
+          }
 
-      @Override
-      public Page<AscriptionEntity> findAll(Pageable pageable) {
-        return null;
-      }
+          @Override
+          public Page<AscriptionEntity> findAll(Pageable pageable) {
+            return null;
+          }
 
-      @Override
-      public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
-        return null;
-      }
+          @Override
+          public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
+            return null;
+          }
 
-      @Override
-      public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
-        return existingAscriptions;
-      }
+          @Override
+          public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
+            return existingAscriptions;
+          }
 
-      @Override
-      public List<AscriptionEntity> findAllByDefinitionIdAndStatus(
-          UUID id, Collection<AscriptionStatusType> s) {
-        return List.of();
-      }
+          @Override
+          public List<AscriptionEntity> findAllByDefinitionIdAndStatus(
+              UUID id, Collection<AscriptionStatusType> s) {
+            return List.of();
+          }
 
-      @Override
-      public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
-        return identityBoundValues;
-      }
+          @Override
+          public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
+            return identityBoundValues;
+          }
 
-      @Override
-      public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
-        return refereeReferences;
-      }
-    };
+          @Override
+          public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+            return refereeReferences;
+          }
+        };
   }
 
   // ========================================================================
@@ -162,7 +155,7 @@ class AbstractAscriptionServiceTest {
 
       // No in-effect ascriptions with same archetype
       when(ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-          any(), any(), eq(defId)))
+              any(), any(), eq(defId)))
           .thenReturn(List.of());
 
       assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
@@ -187,12 +180,13 @@ class AbstractAscriptionServiceTest {
       when(existing.getStatement()).thenReturn(MAPPER.createObjectNode().put("code", "ALPHA"));
 
       when(ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-          any(), any(), eq(defId)))
+              any(), any(), eq(defId)))
           .thenReturn(List.of(existing));
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.enforceAnnotations(statement, archetype, defId));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.enforceAnnotations(statement, archetype, defId));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
           ex.getRuleType());
@@ -215,7 +209,7 @@ class AbstractAscriptionServiceTest {
       when(existing.getStatement()).thenReturn(MAPPER.createObjectNode().put("code", "BETA"));
 
       when(ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-          any(), any(), eq(defId)))
+              any(), any(), eq(defId)))
           .thenReturn(List.of(existing));
 
       assertDoesNotThrow(() -> service.enforceAnnotations(statement, archetype, defId));
@@ -285,9 +279,10 @@ class AbstractAscriptionServiceTest {
 
       existingAscriptions = List.of(existing);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.enforceAnnotations(statement, archetype, defId));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.enforceAnnotations(statement, archetype, defId));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());
@@ -352,8 +347,9 @@ class AbstractAscriptionServiceTest {
       // Missing required field
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -372,8 +368,9 @@ class AbstractAscriptionServiceTest {
       // Wrong type: string where integer expected
       ObjectNode statement = MAPPER.createObjectNode().put("count", "not-a-number");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -486,66 +483,68 @@ class AbstractAscriptionServiceTest {
       final Map<String, Object> oldValues = Map.of("purpose", "old-purpose");
       final Map<String, Object> newValues = Map.of("purpose", "new-purpose");
 
-      AbstractAscriptionService<AscriptionEntity> spyService = new AbstractAscriptionService<>(
-          definitionService,
-          transitionService,
-          ascriptionService,
-          archetypeRepo,
-          entityManager,
-          new DataProtectionService()) {
-        @Override
-        public DefinitionSubjectType getSubjectType() {
-          return DefinitionSubjectType.STRUCTURE;
-        }
+      AbstractAscriptionService<AscriptionEntity> spyService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.STRUCTURE;
+            }
 
-        @Override
-        protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-          return null;
-        }
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return null;
+            }
 
-        @Override
-        public AscriptionEntity buildEntity(
-            DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
-          return null;
-        }
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
 
-        @Override
-        public AscriptionEntity save(AscriptionEntity entity) {
-          return null;
-        }
+            @Override
+            public AscriptionEntity save(AscriptionEntity entity) {
+              return null;
+            }
 
-        @Override
-        public Page<AscriptionEntity> findAll(Pageable pageable) {
-          return null;
-        }
+            @Override
+            public Page<AscriptionEntity> findAll(Pageable pageable) {
+              return null;
+            }
 
-        @Override
-        public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
-          return null;
-        }
+            @Override
+            public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
+              return null;
+            }
 
-        @Override
-        public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
-          return existingAscriptions;
-        }
+            @Override
+            public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
+              return existingAscriptions;
+            }
 
-        @Override
-        public List<AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID id, Collection<AscriptionStatusType> s) {
-          return List.of();
-        }
+            @Override
+            public List<AscriptionEntity> findAllByDefinitionIdAndStatus(
+                UUID id, Collection<AscriptionStatusType> s) {
+              return List.of();
+            }
 
-        @Override
-        public Map<String, Object> getIdentityBoundValues(AscriptionEntity e) {
-          if (e == existing) {
-            return oldValues;
-          }
-          return newValues;
-        }
-      };
+            @Override
+            public Map<String, Object> getIdentityBoundValues(AscriptionEntity e) {
+              if (e == existing) {
+                return oldValues;
+              }
+              return newValues;
+            }
+          };
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> spyService.validateIdentityBound(newEntity));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> spyService.validateIdentityBound(newEntity));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());
@@ -574,10 +573,11 @@ class AbstractAscriptionServiceTest {
 
     @BeforeEach
     void setUpRealTransitionService() {
-      AscriptionStatusTransitionService realTransition = new AscriptionStatusTransitionService(
-          mock(cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository.class),
-          entityManager,
-          List.of());
+      AscriptionStatusTransitionService realTransition =
+          new AscriptionStatusTransitionService(
+              mock(cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository.class),
+              entityManager,
+              List.of());
       realTransition.initCascadeGraph();
       org.springframework.test.util.ReflectionTestUtils.setField(
           service, "transitionService", realTransition);
@@ -648,10 +648,12 @@ class AbstractAscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
       assertTrue(ex.getMessage().contains("RETIRED"));
@@ -666,10 +668,12 @@ class AbstractAscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
     }
@@ -683,10 +687,12 @@ class AbstractAscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
     }
@@ -700,10 +706,12 @@ class AbstractAscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateCreationPreconditions(entity));
       assertEquals(
-          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          AscriptionStatusTransitionRuleType
+              .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("Referee"));
     }
@@ -918,8 +926,9 @@ class AbstractAscriptionServiceTest {
       ObjectNode statement = MAPPER.createObjectNode();
       statement.putArray("ids").add("not-a-uuid");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.extractUuidList(statement, "ids"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.extractUuidList(statement, "ids"));
       assertTrue(ex.getMessage().contains("Invalid UUID"));
     }
   }
@@ -952,65 +961,66 @@ class AbstractAscriptionServiceTest {
 
       // Override buildEntity and save for this test via a service that delegates
       // properly
-      AbstractAscriptionService<AscriptionEntity> createService = new AbstractAscriptionService<>(
-          definitionService,
-          transitionService,
-          ascriptionService,
-          archetypeRepo,
-          entityManager,
-          new DataProtectionService()) {
-        @Override
-        public DefinitionSubjectType getSubjectType() {
-          return DefinitionSubjectType.STRUCTURE;
-        }
+      AbstractAscriptionService<AscriptionEntity> createService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.STRUCTURE;
+            }
 
-        @Override
-        protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-          return null;
-        }
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return null;
+            }
 
-        @Override
-        public AscriptionEntity buildEntity(
-            DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
-          return entity;
-        }
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return entity;
+            }
 
-        @Override
-        public AscriptionEntity save(AscriptionEntity e) {
-          return e;
-        }
+            @Override
+            public AscriptionEntity save(AscriptionEntity e) {
+              return e;
+            }
 
-        @Override
-        public Page<AscriptionEntity> findAll(Pageable p) {
-          return null;
-        }
+            @Override
+            public Page<AscriptionEntity> findAll(Pageable p) {
+              return null;
+            }
 
-        @Override
-        public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
-          return null;
-        }
+            @Override
+            public Page<AscriptionEntity> findAllByStatus(AscriptionStatusType s, Pageable p) {
+              return null;
+            }
 
-        @Override
-        public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
-          return List.of();
-        }
+            @Override
+            public List<AscriptionEntity> findAllByDefinitionId(UUID id) {
+              return List.of();
+            }
 
-        @Override
-        public List<AscriptionEntity> findAllByDefinitionIdAndStatus(
-            UUID id, Collection<AscriptionStatusType> s) {
-          return List.of();
-        }
+            @Override
+            public List<AscriptionEntity> findAllByDefinitionIdAndStatus(
+                UUID id, Collection<AscriptionStatusType> s) {
+              return List.of();
+            }
 
-        @Override
-        public Map<String, Object> getIdentityBoundValues(AscriptionEntity e) {
-          return Map.of();
-        }
+            @Override
+            public Map<String, Object> getIdentityBoundValues(AscriptionEntity e) {
+              return Map.of();
+            }
 
-        @Override
-        public List<RefereeReference> getRefereeReferences(AscriptionEntity e) {
-          return List.of();
-        }
-      };
+            @Override
+            public List<RefereeReference> getRefereeReferences(AscriptionEntity e) {
+              return List.of();
+            }
+          };
 
       AscriptionEntity result = createService.create(archetypeRef, statement, defId);
 
@@ -1132,36 +1142,36 @@ class AbstractAscriptionServiceTest {
   @Nested
   class DelegationMethods {
 
-    @Mock
-    private AbstractAscriptionRepository<AscriptionEntity> mockRepo;
+    @Mock private AbstractAscriptionRepository<AscriptionEntity> mockRepo;
 
     private AbstractAscriptionService<AscriptionEntity> repoService;
 
     @BeforeEach
     void setUpRepoService() {
-      repoService = new AbstractAscriptionService<>(
-          definitionService,
-          transitionService,
-          ascriptionService,
-          archetypeRepo,
-          entityManager,
-          new DataProtectionService()) {
-        @Override
-        public DefinitionSubjectType getSubjectType() {
-          return DefinitionSubjectType.STRUCTURE;
-        }
+      repoService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.STRUCTURE;
+            }
 
-        @Override
-        protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-          return mockRepo;
-        }
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return mockRepo;
+            }
 
-        @Override
-        public AscriptionEntity buildEntity(
-            DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
-          return null;
-        }
-      };
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
+          };
     }
 
     @Test
@@ -1192,7 +1202,8 @@ class AbstractAscriptionServiceTest {
       when(mockRepo.findAllByStatus(AscriptionStatusType.ACTIVE, pageable))
           .thenReturn(Page.empty());
 
-      Page<AscriptionEntity> result = repoService.findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
+      Page<AscriptionEntity> result =
+          repoService.findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
 
       assertTrue(result.isEmpty());
       verify(mockRepo).findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
@@ -1212,7 +1223,8 @@ class AbstractAscriptionServiceTest {
     @Test
     void findAllByDefinitionIdAndStatus_delegatesToRepo() {
       UUID defId = UUID.randomUUID();
-      Collection<AscriptionStatusType> statuses = List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
+      Collection<AscriptionStatusType> statuses =
+          List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
       when(mockRepo.findAllByDefinitionIdAndStatusIn(defId, statuses)).thenReturn(List.of());
 
       List<AscriptionEntity> result = repoService.findAllByDefinitionIdAndStatus(defId, statuses);
@@ -1242,8 +1254,8 @@ class AbstractAscriptionServiceTest {
       Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
       when(mockRepo.findAll(any(Specification.class), eq(pageable))).thenReturn(Page.empty());
 
-      Page<AscriptionEntity> result = repoService.findAllFiltered(archDefId, filters, AscriptionStatusType.ACTIVE,
-          pageable);
+      Page<AscriptionEntity> result =
+          repoService.findAllFiltered(archDefId, filters, AscriptionStatusType.ACTIVE, pageable);
 
       assertTrue(result.isEmpty());
       verify(mockRepo).findAll(any(Specification.class), eq(pageable));
@@ -1257,7 +1269,8 @@ class AbstractAscriptionServiceTest {
       Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
       when(mockRepo.findAll(any(Specification.class), eq(pageable))).thenReturn(Page.empty());
 
-      Page<AscriptionEntity> result = repoService.findAllFiltered(archDefId, filters, null, pageable);
+      Page<AscriptionEntity> result =
+          repoService.findAllFiltered(archDefId, filters, null, pageable);
 
       assertTrue(result.isEmpty());
       verify(mockRepo).findAll(any(Specification.class), eq(pageable));
@@ -1275,29 +1288,30 @@ class AbstractAscriptionServiceTest {
 
     @BeforeEach
     void setUpDefault() {
-      defaultService = new AbstractAscriptionService<>(
-          definitionService,
-          transitionService,
-          ascriptionService,
-          archetypeRepo,
-          entityManager,
-          new DataProtectionService()) {
-        @Override
-        public DefinitionSubjectType getSubjectType() {
-          return DefinitionSubjectType.STRUCTURE;
-        }
+      defaultService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.STRUCTURE;
+            }
 
-        @Override
-        protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-          return null;
-        }
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return null;
+            }
 
-        @Override
-        public AscriptionEntity buildEntity(
-            DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
-          return null;
-        }
-      };
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
+          };
     }
 
     @Test
@@ -1351,8 +1365,9 @@ class AbstractAscriptionServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode(); // missing "purpose"
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -1373,8 +1388,9 @@ class AbstractAscriptionServiceTest {
       // Provide purpose but omit customField → extension violation
       ObjectNode statement = MAPPER.createObjectNode().put("purpose", "demo");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -1384,29 +1400,30 @@ class AbstractAscriptionServiceTest {
     @Test
     void archetypeType_noExtensionRule_usesGsmRule() {
       // Archetype type has no extension rule (sealed)
-      AbstractAscriptionService<AscriptionEntity> archetypeService = new AbstractAscriptionService<>(
-          definitionService,
-          transitionService,
-          ascriptionService,
-          archetypeRepo,
-          entityManager,
-          new DataProtectionService()) {
-        @Override
-        public DefinitionSubjectType getSubjectType() {
-          return DefinitionSubjectType.ARCHETYPE;
-        }
+      AbstractAscriptionService<AscriptionEntity> archetypeService =
+          new AbstractAscriptionService<>(
+              definitionService,
+              transitionService,
+              ascriptionService,
+              archetypeRepo,
+              entityManager,
+              new DataProtectionService()) {
+            @Override
+            public DefinitionSubjectType getSubjectType() {
+              return DefinitionSubjectType.ARCHETYPE;
+            }
 
-        @Override
-        protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-          return null;
-        }
+            @Override
+            protected AbstractAscriptionRepository<AscriptionEntity> getRepository() {
+              return null;
+            }
 
-        @Override
-        public AscriptionEntity buildEntity(
-            DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
-          return null;
-        }
-      };
+            @Override
+            public AscriptionEntity buildEntity(
+                DefinitionEntity def, ArchetypeEntity arch, JsonNode stmt) {
+              return null;
+            }
+          };
 
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "ArchetypeSchema");
@@ -1417,9 +1434,10 @@ class AbstractAscriptionServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode(); // missing "needed"
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> archetypeService.validateStatement(statement, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> archetypeService.validateStatement(statement, archetype));
       // ARCHETYPE has extensionStatementValidationRule() → null → falls to
       // non-extensible fallback
       assertEquals(
@@ -1441,38 +1459,52 @@ class AbstractAscriptionServiceTest {
       UUID archDefId = UUID.randomUUID();
       Map<String, String> filters = Map.of("purpose", "compliance");
 
-      Specification<AscriptionEntity> spec = AbstractAscriptionService.buildFilterSpec(
-          archDefId, filters, AscriptionStatusType.ACTIVE);
+      Specification<AscriptionEntity> spec =
+          AbstractAscriptionService.buildFilterSpec(
+              archDefId, filters, AscriptionStatusType.ACTIVE);
 
       // Exercise the specification lambda by calling toPredicate with mocks
-      jakarta.persistence.criteria.Root<AscriptionEntity> root = mock(jakarta.persistence.criteria.Root.class);
-      jakarta.persistence.criteria.CriteriaQuery<?> query = mock(jakarta.persistence.criteria.CriteriaQuery.class);
-      jakarta.persistence.criteria.CriteriaBuilder cb = mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+      jakarta.persistence.criteria.Root<AscriptionEntity> root =
+          mock(jakarta.persistence.criteria.Root.class);
+      jakarta.persistence.criteria.CriteriaQuery<?> query =
+          mock(jakarta.persistence.criteria.CriteriaQuery.class);
+      jakarta.persistence.criteria.CriteriaBuilder cb =
+          mock(jakarta.persistence.criteria.CriteriaBuilder.class);
 
       // Stub the join path for archetype.definition.id
-      jakarta.persistence.criteria.Path<Object> archPath = mock(jakarta.persistence.criteria.Path.class);
-      jakarta.persistence.criteria.Path<Object> defPath = mock(jakarta.persistence.criteria.Path.class);
-      jakarta.persistence.criteria.Path<Object> idPath = mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> archPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> defPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> idPath =
+          mock(jakarta.persistence.criteria.Path.class);
       when(root.get("archetype")).thenReturn(archPath);
       when(archPath.get("definition")).thenReturn(defPath);
       when(defPath.get("id")).thenReturn(idPath);
 
       // Stub status path
-      jakarta.persistence.criteria.Path<Object> statusPath = mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> statusPath =
+          mock(jakarta.persistence.criteria.Path.class);
       when(root.get("status")).thenReturn(statusPath);
 
       // Stub statement path for jsonb_extract_path_text
-      jakarta.persistence.criteria.Path<Object> stmtPath = mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> stmtPath =
+          mock(jakarta.persistence.criteria.Path.class);
       when(root.get("statement")).thenReturn(stmtPath);
 
       // Stub cb methods
-      jakarta.persistence.criteria.Predicate archPred = mock(jakarta.persistence.criteria.Predicate.class);
-      jakarta.persistence.criteria.Predicate statusPred = mock(jakarta.persistence.criteria.Predicate.class);
-      jakarta.persistence.criteria.Predicate jsonbPred = mock(jakarta.persistence.criteria.Predicate.class);
-      jakarta.persistence.criteria.Predicate combined = mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate archPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate statusPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate jsonbPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate combined =
+          mock(jakarta.persistence.criteria.Predicate.class);
       when(cb.equal(idPath, archDefId)).thenReturn(archPred);
       when(cb.equal(statusPath, AscriptionStatusType.ACTIVE)).thenReturn(statusPred);
-      jakarta.persistence.criteria.Expression<String> jsonExpr = mock(jakarta.persistence.criteria.Expression.class);
+      jakarta.persistence.criteria.Expression<String> jsonExpr =
+          mock(jakarta.persistence.criteria.Expression.class);
       when(cb.function(eq("jsonb_extract_path_text"), eq(String.class), eq(stmtPath), any()))
           .thenReturn(jsonExpr);
       when(cb.equal(jsonExpr, "compliance")).thenReturn(jsonbPred);
@@ -1491,21 +1523,30 @@ class AbstractAscriptionServiceTest {
       UUID archDefId = UUID.randomUUID();
       Map<String, String> filters = Map.of();
 
-      Specification<AscriptionEntity> spec = AbstractAscriptionService.buildFilterSpec(archDefId, filters, null);
+      Specification<AscriptionEntity> spec =
+          AbstractAscriptionService.buildFilterSpec(archDefId, filters, null);
 
-      jakarta.persistence.criteria.Root<AscriptionEntity> root = mock(jakarta.persistence.criteria.Root.class);
-      jakarta.persistence.criteria.CriteriaQuery<?> query = mock(jakarta.persistence.criteria.CriteriaQuery.class);
-      jakarta.persistence.criteria.CriteriaBuilder cb = mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+      jakarta.persistence.criteria.Root<AscriptionEntity> root =
+          mock(jakarta.persistence.criteria.Root.class);
+      jakarta.persistence.criteria.CriteriaQuery<?> query =
+          mock(jakarta.persistence.criteria.CriteriaQuery.class);
+      jakarta.persistence.criteria.CriteriaBuilder cb =
+          mock(jakarta.persistence.criteria.CriteriaBuilder.class);
 
-      jakarta.persistence.criteria.Path<Object> archPath = mock(jakarta.persistence.criteria.Path.class);
-      jakarta.persistence.criteria.Path<Object> defPath = mock(jakarta.persistence.criteria.Path.class);
-      jakarta.persistence.criteria.Path<Object> idPath = mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> archPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> defPath =
+          mock(jakarta.persistence.criteria.Path.class);
+      jakarta.persistence.criteria.Path<Object> idPath =
+          mock(jakarta.persistence.criteria.Path.class);
       when(root.get("archetype")).thenReturn(archPath);
       when(archPath.get("definition")).thenReturn(defPath);
       when(defPath.get("id")).thenReturn(idPath);
 
-      jakarta.persistence.criteria.Predicate archPred = mock(jakarta.persistence.criteria.Predicate.class);
-      jakarta.persistence.criteria.Predicate combined = mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate archPred =
+          mock(jakarta.persistence.criteria.Predicate.class);
+      jakarta.persistence.criteria.Predicate combined =
+          mock(jakarta.persistence.criteria.Predicate.class);
       when(cb.equal(idPath, archDefId)).thenReturn(archPred);
       when(cb.and(any(jakarta.persistence.criteria.Predicate[].class))).thenReturn(combined);
 
@@ -1533,8 +1574,9 @@ class AbstractAscriptionServiceTest {
 
     @Test
     void returnsNullWhenCauseIsNotConstraintViolation() {
-      var dive = new DataIntegrityViolationException(
-          "no hibernate cause", new RuntimeException("something else"));
+      var dive =
+          new DataIntegrityViolationException(
+              "no hibernate cause", new RuntimeException("something else"));
 
       assertNull(AbstractAscriptionService.extractConstraintName(dive));
     }
@@ -1578,7 +1620,8 @@ class AbstractAscriptionServiceTest {
 
     @Test
     void outputArchetypeIdFkeySuffix_returnsEffectorArchetypeReferenceIntegrity() {
-      var cve = new ConstraintViolationException("violation", null, "effector_output_archetype_id_fkey");
+      var cve =
+          new ConstraintViolationException("violation", null, "effector_output_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
       RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);
@@ -1591,7 +1634,8 @@ class AbstractAscriptionServiceTest {
 
     @Test
     void inputArchetypeIdFkeySuffix_returnsReceptorArchetypeReferenceIntegrity() {
-      var cve = new ConstraintViolationException("violation", null, "receptor_input_archetype_id_fkey");
+      var cve =
+          new ConstraintViolationException("violation", null, "receptor_input_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
       RuntimeException result = AbstractAscriptionService.translatePersistenceException(dive);

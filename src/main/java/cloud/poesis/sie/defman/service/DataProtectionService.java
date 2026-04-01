@@ -1,29 +1,23 @@
 package cloud.poesis.sie.defman.service;
 
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
-
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
-
 /**
- * GSM §8 {@code $gsm:dataProtection} — applies data protection measures (hash,
- * mask, suppression)
+ * GSM §8 {@code $gsm:dataProtection} — applies data protection measures (hash, mask, suppression)
  * at two lifecycle phases:
  *
  * <ul>
- * <li><b>atRest</b>: write-time transformation before persistence (called from
- * {@link
- * AbstractAscriptionService#enforceAnnotations})
- * <li><b>inTransit</b>: read-time transformation before API responses (called
- * from controllers)
+ *   <li><b>atRest</b>: write-time transformation before persistence (called from {@link
+ *       AbstractAscriptionService#enforceAnnotations})
+ *   <li><b>inTransit</b>: read-time transformation before API responses (called from controllers)
  * </ul>
  *
  * @author Clément Cazaud
@@ -37,13 +31,11 @@ public class DataProtectionService {
   // ======================================================================
 
   /**
-   * Applies {@code $gsm:dataProtection.atRest} measures to a single statement
-   * property. Mutates the
+   * Applies {@code $gsm:dataProtection.atRest} measures to a single statement property. Mutates the
    * statement in place.
    *
-   * @param dpNode    the {@code $gsm:dataProtection} JSON node from the archetype
-   *                  schema
-   * @param propName  the property name being protected
+   * @param dpNode the {@code $gsm:dataProtection} JSON node from the archetype schema
+   * @param propName the property name being protected
    * @param statement the statement object node (mutated in place)
    */
   public void applyAtRestProtection(JsonNode dpNode, String propName, ObjectNode statement) {
@@ -85,16 +77,12 @@ public class DataProtectionService {
   // ======================================================================
 
   /**
-   * Applies {@code $gsm:dataProtection.inTransit} measures to the statement,
-   * returning a (possibly
-   * deep-copied) result safe for API responses. The original statement is never
-   * mutated.
+   * Applies {@code $gsm:dataProtection.inTransit} measures to the statement, returning a (possibly
+   * deep-copied) result safe for API responses. The original statement is never mutated.
    *
-   * @param statement       the ascription statement payload
-   * @param archetypeSchema the archetype schema containing
-   *                        {@code $gsm:dataProtection} annotations
-   * @return the transformed statement (deep-copied only when transformation is
-   *         needed)
+   * @param statement the ascription statement payload
+   * @param archetypeSchema the archetype schema containing {@code $gsm:dataProtection} annotations
+   * @return the transformed statement (deep-copied only when transformation is needed)
    */
   public JsonNode applyInTransitProtection(JsonNode statement, JsonNode archetypeSchema) {
     if (archetypeSchema == null) {
@@ -173,7 +161,7 @@ public class DataProtectionService {
   /**
    * Computes a hex-encoded hash of the given value.
    *
-   * @param value     the plaintext value to hash
+   * @param value the plaintext value to hash
    * @param algorithm the hash algorithm name (e.g. {@code "SHA-256"})
    * @return hex-encoded hash string
    * @throws RuleViolationException if the algorithm is not supported
@@ -201,7 +189,7 @@ public class DataProtectionService {
   /**
    * Applies a masking transformation to the given value.
    *
-   * @param value    the plaintext value to mask
+   * @param value the plaintext value to mask
    * @param maskNode the mask configuration node ({@code from}, {@code with})
    * @return the masked string
    */

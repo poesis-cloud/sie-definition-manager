@@ -1,12 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -18,14 +11,17 @@ import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 /**
  * GSM Structure ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link StructureEntity} ascriptions
- * including purpose
+ * <p>Manages lifecycle and persistence of {@link StructureEntity} ascriptions including purpose
  * uniqueness validation at activation.
  *
  * @author Clément Cazaud
@@ -39,11 +35,11 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
   /**
    * Constructs the Structure service with its required dependencies.
    *
-   * @param structureRepo         the structure repository
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param entityManager         the JPA entity manager
+   * @param structureRepo the structure repository
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public StructureService(
@@ -109,6 +105,7 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
         "purpose",
         purpose,
         entity.getDefinition().getId(),
-        structureRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT));
+        structureRepo.findAllByStatusIn(
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)));
   }
 }

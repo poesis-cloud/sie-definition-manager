@@ -9,25 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
@@ -41,7 +22,23 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -49,37 +46,33 @@ class NormServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private NormRepository normRepo;
+  @Mock private NormRepository normRepo;
 
-  @Mock
-  private DirectiveService directiveService;
+  @Mock private DirectiveService directiveService;
 
-  @Mock
-  private StructureService structureService;
+  @Mock private StructureService structureService;
 
-  @Mock
-  private ArchetypeService archetypeService;
+  @Mock private ArchetypeService archetypeService;
 
-  @Mock
-  private AppraisalService appraisalService;
+  @Mock private AppraisalService appraisalService;
 
   private NormService service;
 
   @BeforeEach
   void setUp() {
-    service = new NormService(
-        normRepo,
-        structureService,
-        archetypeService,
-        mock(ArchetypeRepository.class),
-        mock(DefinitionService.class),
-        mock(AscriptionStatusTransitionService.class),
-        mock(AscriptionService.class),
-        mock(EntityManager.class),
-        mock(DataProtectionService.class),
-        appraisalService,
-        dev.cel.compiler.CelCompilerFactory.standardCelCompilerBuilder().build());
+    service =
+        new NormService(
+            normRepo,
+            structureService,
+            archetypeService,
+            mock(ArchetypeRepository.class),
+            mock(DefinitionService.class),
+            mock(AscriptionStatusTransitionService.class),
+            mock(AscriptionService.class),
+            mock(EntityManager.class),
+            mock(DataProtectionService.class),
+            appraisalService,
+            dev.cel.compiler.CelCompilerFactory.standardCelCompilerBuilder().build());
   }
 
   // ========================================================================
@@ -117,7 +110,7 @@ class NormServiceTest {
 
       @ParameterizedTest
       @NullAndEmptySource
-      @ValueSource(strings = { "true", " true ", "  " })
+      @ValueSource(strings = {"true", " true ", "  "})
       void unconditionalApplicability_accepted(String applicability) {
         assertDoesNotThrow(() -> service.validateApplicability(applicability));
       }
@@ -125,8 +118,9 @@ class NormServiceTest {
       @Test
       void singleAxisEquality_accepted() {
         assertDoesNotThrow(
-            () -> service.validateApplicability(
-                "DeploymentProperties.environment == \"production\""));
+            () ->
+                service.validateApplicability(
+                    "DeploymentProperties.environment == \"production\""));
       }
 
       @Test
@@ -138,15 +132,17 @@ class NormServiceTest {
       @Test
       void singleAxisSetMembership_accepted() {
         assertDoesNotThrow(
-            () -> service.validateApplicability(
-                "DeploymentProperties.tier in [\"production\", \"staging\"]"));
+            () ->
+                service.validateApplicability(
+                    "DeploymentProperties.tier in [\"production\", \"staging\"]"));
       }
 
       @Test
       void singleAxisNegatedSetMembership_accepted() {
         assertDoesNotThrow(
-            () -> service.validateApplicability(
-                "!(DeploymentProperties.region in [\"cn-north-1\", \"cn-northwest-1\"])"));
+            () ->
+                service.validateApplicability(
+                    "!(DeploymentProperties.region in [\"cn-north-1\", \"cn-northwest-1\"])"));
       }
 
       @Test
@@ -158,27 +154,31 @@ class NormServiceTest {
       @Test
       void multiAxisConjunction_accepted() {
         assertDoesNotThrow(
-            () -> service.validateApplicability(
-                "DeploymentProperties.environment == \"production\" "
-                    + "&& ServiceProperties.classification == \"PII\""));
+            () ->
+                service.validateApplicability(
+                    "DeploymentProperties.environment == \"production\" "
+                        + "&& ServiceProperties.classification == \"PII\""));
       }
 
       @Test
       void threeAxisConjunction_accepted() {
         assertDoesNotThrow(
-            () -> service.validateApplicability(
-                "DeploymentProperties.environment == \"production\" "
-                    + "&& DataProperties.classification == \"confidential\" "
-                    + "&& ServiceProperties.owner != \"deprecated-team\""));
+            () ->
+                service.validateApplicability(
+                    "DeploymentProperties.environment == \"production\" "
+                        + "&& DataProperties.classification == \"confidential\" "
+                        + "&& ServiceProperties.owner != \"deprecated-team\""));
       }
 
       @Test
       void disjunction_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability(
-                "DeploymentProperties.env == \"prod\" "
-                    + "|| DeploymentProperties.env == \"staging\""));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicability(
+                        "DeploymentProperties.env == \"prod\" "
+                            + "|| DeploymentProperties.env == \"staging\""));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             ex.getRuleType());
@@ -188,10 +188,12 @@ class NormServiceTest {
 
       @Test
       void ternary_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability(
-                "DeploymentProperties.env == \"prod\" ? true : false"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicability(
+                        "DeploymentProperties.env == \"prod\" ? true : false"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             ex.getRuleType());
@@ -200,9 +202,10 @@ class NormServiceTest {
 
       @Test
       void arithmetic_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability("PerformanceProperties.score + 1 > 5"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateApplicability("PerformanceProperties.score + 1 > 5"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             ex.getRuleType());
@@ -211,10 +214,12 @@ class NormServiceTest {
 
       @Test
       void crossPropertyComparison_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability(
-                "PerformanceProperties.actual > PerformanceProperties.budget"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicability(
+                        "PerformanceProperties.actual > PerformanceProperties.budget"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             ex.getRuleType());
@@ -225,11 +230,13 @@ class NormServiceTest {
 
       @Test
       void duplicateAxis_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability(
-                "DeploymentProperties.env == \"prod\" "
-                    + "&& DeploymentProperties.env == \"staging\""));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicability(
+                        "DeploymentProperties.env == \"prod\" "
+                            + "&& DeploymentProperties.env == \"staging\""));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             ex.getRuleType());
@@ -238,9 +245,10 @@ class NormServiceTest {
 
       @Test
       void forbiddenFunction_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability("DeploymentProperties.tags.size() > 0"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateApplicability("DeploymentProperties.tags.size() > 0"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
             ex.getRuleType());
@@ -249,9 +257,10 @@ class NormServiceTest {
 
       @Test
       void syntaxError_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability("DeploymentProperties.env ==== \"prod\""));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateApplicability("DeploymentProperties.env ==== \"prod\""));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING, ex.getRuleType());
         assertTrue(ex.getMessage().contains("parse error"));
@@ -261,9 +270,10 @@ class NormServiceTest {
 
       @Test
       void inListSingleElement_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability("DeploymentProperties.env in [\"prod\"]"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateApplicability("DeploymentProperties.env in [\"prod\"]"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
             ex.getRuleType());
@@ -272,9 +282,10 @@ class NormServiceTest {
 
       @Test
       void inListMixedTypes_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability("DeploymentProperties.tier in [\"prod\", 1]"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateApplicability("DeploymentProperties.tier in [\"prod\", 1]"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
             ex.getRuleType());
@@ -283,10 +294,12 @@ class NormServiceTest {
 
       @Test
       void inListDuplicates_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicability(
-                "DeploymentProperties.tier in [\"prod\", \"staging\", \"prod\"]"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicability(
+                        "DeploymentProperties.tier in [\"prod\", \"staging\", \"prod\"]"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
             ex.getRuleType());
@@ -299,10 +312,12 @@ class NormServiceTest {
       void applicabilityArchetypeNotFound_rejected() {
         when(archetypeService.findInEffectByTitle("NonExistent")).thenReturn(Optional.empty());
 
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicabilityReferences(
-                "NonExistent.environment == \"production\""));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicabilityReferences(
+                        "NonExistent.environment == \"production\""));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION,
             ex.getRuleType());
@@ -324,10 +339,12 @@ class NormServiceTest {
         when(archetypeService.findInEffectByTitle("DeploymentProperties"))
             .thenReturn(Optional.of(archetype));
 
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateApplicabilityReferences(
-                "DeploymentProperties.nonExistentProp == \"x\""));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () ->
+                    service.validateApplicabilityReferences(
+                        "DeploymentProperties.nonExistentProp == \"x\""));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION,
             ex.getRuleType());
@@ -348,8 +365,9 @@ class NormServiceTest {
             .thenReturn(Optional.of(archetype));
 
         assertDoesNotThrow(
-            () -> service.validateApplicabilityReferences(
-                "ServiceProperties.name.matches(\"^payment-.*\")"));
+            () ->
+                service.validateApplicabilityReferences(
+                    "ServiceProperties.name.matches(\"^payment-.*\")"));
       }
 
       @Test
@@ -366,8 +384,9 @@ class NormServiceTest {
             .thenReturn(Optional.of(archetype));
 
         assertDoesNotThrow(
-            () -> service.validateApplicabilityReferences(
-                "DeploymentProperties.region == \"us-east-1\""));
+            () ->
+                service.validateApplicabilityReferences(
+                    "DeploymentProperties.region == \"us-east-1\""));
       }
     }
 
@@ -376,17 +395,20 @@ class NormServiceTest {
 
       @Test
       void emptyAssertion_rejected() {
-        RuleViolationException ex1 = assertThrows(RuleViolationException.class, () -> service.validateAssertion(null));
+        RuleViolationException ex1 =
+            assertThrows(RuleViolationException.class, () -> service.validateAssertion(null));
         assertEquals(
             AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
             ex1.getRuleType());
 
-        RuleViolationException ex2 = assertThrows(RuleViolationException.class, () -> service.validateAssertion(""));
+        RuleViolationException ex2 =
+            assertThrows(RuleViolationException.class, () -> service.validateAssertion(""));
         assertEquals(
             AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
             ex2.getRuleType());
 
-        RuleViolationException ex3 = assertThrows(RuleViolationException.class, () -> service.validateAssertion("   "));
+        RuleViolationException ex3 =
+            assertThrows(RuleViolationException.class, () -> service.validateAssertion("   "));
         assertEquals(
             AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
             ex3.getRuleType());
@@ -427,15 +449,17 @@ class NormServiceTest {
       @Test
       void setMembership_accepted() {
         assertDoesNotThrow(
-            () -> service.validateAssertion(
-                "cipherSuite in [\"TLS_AES_128_GCM_SHA256\", \"TLS_AES_256_GCM_SHA384\"]"));
+            () ->
+                service.validateAssertion(
+                    "cipherSuite in [\"TLS_AES_128_GCM_SHA256\", \"TLS_AES_256_GCM_SHA384\"]"));
       }
 
       @Test
       void stringFunctions_accepted() {
         assertDoesNotThrow(
-            () -> service.validateAssertion(
-                "schema.matches(\"^https://.*\") && !owner.endsWith(\"-deprecated\")"));
+            () ->
+                service.validateAssertion(
+                    "schema.matches(\"^https://.*\") && !owner.endsWith(\"-deprecated\")"));
       }
 
       @Test
@@ -446,8 +470,9 @@ class NormServiceTest {
       @Test
       void collectionMacroExists_accepted() {
         assertDoesNotThrow(
-            () -> service.validateAssertion(
-                "certifications.exists(c, c == \"SOC2\" || c == \"ISO27001\")"));
+            () ->
+                service.validateAssertion(
+                    "certifications.exists(c, c == \"SOC2\" || c == \"ISO27001\")"));
       }
 
       @Test
@@ -463,8 +488,9 @@ class NormServiceTest {
       @Test
       void ternary_accepted() {
         assertDoesNotThrow(
-            () -> service.validateAssertion(
-                "(tier == \"critical\" ? p99Latency < 100 : p99Latency < 500)"));
+            () ->
+                service.validateAssertion(
+                    "(tier == \"critical\" ? p99Latency < 100 : p99Latency < 500)"));
       }
 
       @Test
@@ -474,9 +500,10 @@ class NormServiceTest {
 
       @Test
       void nonDeterministicNow_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateAssertion("lastReview > now()"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateAssertion("lastReview > now()"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_AS_DETERMINISTIC_EXPRESSION,
             ex.getRuleType());
@@ -485,8 +512,9 @@ class NormServiceTest {
 
       @Test
       void nonDeterministicUuid_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class, () -> service.validateAssertion("id == uuid()"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class, () -> service.validateAssertion("id == uuid()"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_AS_DETERMINISTIC_EXPRESSION,
             ex.getRuleType());
@@ -495,9 +523,10 @@ class NormServiceTest {
 
       @Test
       void explicitArchetypeName_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateAssertion("SecurityProperties.tlsEnabled == true"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateAssertion("SecurityProperties.tlsEnabled == true"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
             ex.getRuleType());
@@ -506,9 +535,10 @@ class NormServiceTest {
 
       @Test
       void selfPrefix_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateAssertion("self.tlsEnabled == true"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateAssertion("self.tlsEnabled == true"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_AS_ARCHETYPE_BOUND_EXPRESSION,
             ex.getRuleType());
@@ -517,8 +547,9 @@ class NormServiceTest {
 
       @Test
       void syntaxError_rejected() {
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class, () -> service.validateAssertion("value >>>= 5"));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class, () -> service.validateAssertion("value >>>= 5"));
         assertEquals(AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING, ex.getRuleType());
       }
 
@@ -526,8 +557,8 @@ class NormServiceTest {
 
       @Test
       void arithmeticTopLevel_rejected() {
-        RuleViolationException ex = assertThrows(RuleViolationException.class,
-            () -> service.validateAssertion("a + b"));
+        RuleViolationException ex =
+            assertThrows(RuleViolationException.class, () -> service.validateAssertion("a + b"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT, ex.getRuleType());
         assertTrue(ex.getMessage().contains("arithmetic"));
@@ -535,7 +566,8 @@ class NormServiceTest {
 
       @Test
       void nonBooleanConstant_rejected() {
-        RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.validateAssertion("42"));
+        RuleViolationException ex =
+            assertThrows(RuleViolationException.class, () -> service.validateAssertion("42"));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT, ex.getRuleType());
         assertTrue(ex.getMessage().contains("non-boolean constant"));
@@ -554,9 +586,10 @@ class NormServiceTest {
         ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
         when(qualifier.getStatement()).thenReturn(schema);
 
-        RuleViolationException ex = assertThrows(
-            RuleViolationException.class,
-            () -> service.validateAssertionPropertyPaths("nonExistentField > 0", qualifier));
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateAssertionPropertyPaths("nonExistentField > 0", qualifier));
         assertEquals(
             AscriptionConsistencyRuleType.NORM_ASSERTION_PROPERTY_PATH_RESOLUTION,
             ex.getRuleType());
@@ -797,9 +830,10 @@ class NormServiceTest {
     @Test
     void bareFunctionCall_rejected() {
       // A bare function call (non-targeted, non-comparison) → rejected
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability("timestamp(\"2024-01-01T00:00:00Z\")"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateApplicability("timestamp(\"2024-01-01T00:00:00Z\")"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
           ex.getRuleType());
@@ -809,8 +843,8 @@ class NormServiceTest {
     void topLevelArithmetic_rejected() {
       // Arithmetic op at top level of applicability → early arithmetic check (line
       // 312-320)
-      RuleViolationException ex = assertThrows(RuleViolationException.class,
-          () -> service.validateApplicability("1 + 2"));
+      RuleViolationException ex =
+          assertThrows(RuleViolationException.class, () -> service.validateApplicability("1 + 2"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
           ex.getRuleType());
@@ -839,9 +873,10 @@ class NormServiceTest {
     @Test
     void guardOperandWithNonArithmeticFunction_rejected() {
       // Function call in comparison operand that is not arithmetic
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability("DeploymentProps.x == size(\"abc\")"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateApplicability("DeploymentProps.x == size(\"abc\")"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
           ex.getRuleType());
@@ -858,11 +893,13 @@ class NormServiceTest {
     void duplicateMatchesAxis_rejected() {
       // Two .matches() predicates on the same axis → exercises the duplicate axis
       // throw inside the call.target().isPresent() + matches path
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability(
-              "DeploymentProps.name.matches(\"^a\") "
-                  + "&& DeploymentProps.name.matches(\"^b\")"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateApplicability(
+                      "DeploymentProps.name.matches(\"^a\") "
+                          + "&& DeploymentProps.name.matches(\"^b\")"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
           ex.getRuleType());
@@ -906,7 +943,8 @@ class NormServiceTest {
     @Test
     void nonBooleanConstantAtTopLevel_rejected() {
       // CONSTANT with non-BOOLEAN kind → validateAssertionBooleanResult rejects
-      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.validateAssertion("42"));
+      RuleViolationException ex =
+          assertThrows(RuleViolationException.class, () -> service.validateAssertion("42"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT, ex.getRuleType());
       assertTrue(ex.getMessage().contains("non-boolean constant"));
@@ -915,7 +953,8 @@ class NormServiceTest {
     @Test
     void arithmeticAtTopLevel_rejected() {
       // CALL with arithmetic fn → validateAssertionBooleanResult rejects
-      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.validateAssertion("1 + 2"));
+      RuleViolationException ex =
+          assertThrows(RuleViolationException.class, () -> service.validateAssertion("1 + 2"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_ASSERTION_AS_BOOLEAN_RESULT, ex.getRuleType());
       assertTrue(ex.getMessage().contains("arithmetic"));
@@ -959,8 +998,9 @@ class NormServiceTest {
           .when(appraisalService)
           .validateGovernanceChain(norm);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
       assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
     }
 
@@ -971,8 +1011,9 @@ class NormServiceTest {
           .when(appraisalService)
           .validateNormCompatibility(norm);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
       assertEquals(AppraisalRuleType.NORM_COMPATIBILITY, ex.getRuleType());
     }
   }
@@ -1032,9 +1073,10 @@ class NormServiceTest {
       // Exercises UINT64_VALUE branch indirectly via constant type detection.
       // CEL integer literals parse as INT64; UINT64 requires a u suffix.
       // We test duplicate detection works for numeric constants.
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability("DeploymentProps.level in [1, 2, 1]"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateApplicability("DeploymentProps.level in [1, 2, 1]"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
           ex.getRuleType());
@@ -1067,19 +1109,22 @@ class NormServiceTest {
     void threeLevelSelect_extractsRootAndFirstField() {
       // DeploymentProperties.config.nested.env → axis = "DeploymentProperties.config"
       assertDoesNotThrow(
-          () -> service.validateApplicability(
-              "DeploymentProperties.config.nested.env == \"production\""));
+          () ->
+              service.validateApplicability(
+                  "DeploymentProperties.config.nested.env == \"production\""));
     }
 
     @Test
     void duplicateDeepAxis_rejected() {
       // Two predicates with same root axis (DeploymentProperties.config) should be
       // rejected.
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability(
-              "DeploymentProperties.config.env == \"prod\" "
-                  + "&& DeploymentProperties.config.region == \"us\""));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateApplicability(
+                      "DeploymentProperties.config.env == \"prod\" "
+                          + "&& DeploymentProperties.config.region == \"us\""));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
           ex.getRuleType());
@@ -1099,10 +1144,12 @@ class NormServiceTest {
       // CEL parse() does NOT expand macros, so .exists() stays as a CALL node.
       // The applicability validator only allows .matches() as function call,
       // so .exists() is correctly rejected.
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability(
-              "DeploymentProperties.items.exists(x, x == \"prod\")"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.validateApplicability(
+                      "DeploymentProperties.items.exists(x, x == \"prod\")"));
       assertTrue(ex.getMessage().contains("matches"));
     }
 
@@ -1110,8 +1157,9 @@ class NormServiceTest {
     void nestedNegation_accepted() {
       // Negation of an @in call exercises the !_ → recurse → @in path
       assertDoesNotThrow(
-          () -> service.validateApplicability(
-              "!(DeploymentProperties.tier in [\"internal\", \"dev\"])"));
+          () ->
+              service.validateApplicability(
+                  "!(DeploymentProperties.tier in [\"internal\", \"dev\"])"));
     }
 
     @Test
@@ -1125,7 +1173,8 @@ class NormServiceTest {
       // LIST as leaf in @in comparison (exercised already via in-list tests, but
       // here explicitly at validateApplicabilityExpr level for the LIST case branch)
       assertDoesNotThrow(
-          () -> service.validateApplicability("DeploymentProperties.env in [\"prod\", \"staging\"]"));
+          () ->
+              service.validateApplicability("DeploymentProperties.env in [\"prod\", \"staging\"]"));
     }
 
     @Test
@@ -1139,9 +1188,10 @@ class NormServiceTest {
     void inListWithNullElement_rejectsAsMixedType() {
       // null (NULL_VALUE) mixed with other types is rejected at type homogeneity
       // check
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateApplicability("DeploymentProperties.x in [null, 1]"));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateApplicability("DeploymentProperties.x in [null, 1]"));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_COMPARISON_CONSISTENCY,
           ex.getRuleType());
@@ -1274,9 +1324,10 @@ class NormServiceTest {
       ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
       when(qualifier.getStatement()).thenReturn(schema);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateAssertionPropertyPaths("unknownProp > 0", qualifier));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateAssertionPropertyPaths("unknownProp > 0", qualifier));
       assertEquals(
           AscriptionConsistencyRuleType.NORM_ASSERTION_PROPERTY_PATH_RESOLUTION, ex.getRuleType());
       assertTrue(ex.getMessage().contains("unknownProp"));
@@ -1291,9 +1342,10 @@ class NormServiceTest {
       ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
       when(qualifier.getStatement()).thenReturn(schema);
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateAssertionPropertyPaths("missing > 0", qualifier));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateAssertionPropertyPaths("missing > 0", qualifier));
       assertTrue(ex.getMessage().contains("(unknown)"));
     }
 

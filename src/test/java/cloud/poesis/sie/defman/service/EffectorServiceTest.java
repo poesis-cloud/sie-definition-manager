@@ -8,23 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
@@ -34,11 +17,24 @@ import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 /**
- * Tests Effector lifecycle descriptors: identity-bound values, referee
- * references, cascade target
+ * Tests Effector lifecycle descriptors: identity-bound values, referee references, cascade target
  * roles, buildEntity, findEntityById, and findCascadeTargetsFrom.
  */
 @ExtendWith(MockitoExtension.class)
@@ -47,29 +43,27 @@ class EffectorServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private EffectorRepository effectorRepo;
+  @Mock private EffectorRepository effectorRepo;
 
-  @Mock
-  private MechanismService mechanismService;
+  @Mock private MechanismService mechanismService;
 
-  @Mock
-  private ArchetypeService archetypeService;
+  @Mock private ArchetypeService archetypeService;
 
   private EffectorService service;
 
   @BeforeEach
   void setUp() {
-    service = new EffectorService(
-        effectorRepo,
-        mechanismService,
-        archetypeService,
-        mock(ArchetypeRepository.class),
-        mock(DefinitionService.class),
-        mock(AscriptionStatusTransitionService.class),
-        mock(AscriptionService.class),
-        mock(EntityManager.class),
-        mock(DataProtectionService.class));
+    service =
+        new EffectorService(
+            effectorRepo,
+            mechanismService,
+            archetypeService,
+            mock(ArchetypeRepository.class),
+            mock(DefinitionService.class),
+            mock(AscriptionStatusTransitionService.class),
+            mock(AscriptionService.class),
+            mock(EntityManager.class),
+            mock(DataProtectionService.class));
   }
 
   // ========================================================================
@@ -209,7 +203,8 @@ class EffectorServiceTest {
 
     @Test
     void otherType_returnsEmpty() {
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
+      var result =
+          service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
 
       assertTrue(result.isEmpty());
     }

@@ -1,13 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -20,16 +12,18 @@ import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 /**
  * GSM Effector ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link EffectorEntity} ascriptions with
- * constitutive
- * cascade from owning Mechanism and dependent cascade to downstream
- * Interactions.
+ * <p>Manages lifecycle and persistence of {@link EffectorEntity} ascriptions with constitutive
+ * cascade from owning Mechanism and dependent cascade to downstream Interactions.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -44,14 +38,13 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
   /**
    * Constructs the Effector service with its required dependencies.
    *
-   * @param effectorRepo          the effector repository
-   * @param mechanismService      the mechanism service for reference resolution
-   * @param archetypeService      the archetype service for data archetype
-   *                              resolution
-   * @param definitionService     the definition service
-   * @param transitionService     the status transition service
-   * @param ascriptionService     the ascription service for cross-subtype queries
-   * @param entityManager         the JPA entity manager
+   * @param effectorRepo the effector repository
+   * @param mechanismService the mechanism service for reference resolution
+   * @param archetypeService the archetype service for data archetype resolution
+   * @param definitionService the definition service
+   * @param transitionService the status transition service
+   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public EffectorService(

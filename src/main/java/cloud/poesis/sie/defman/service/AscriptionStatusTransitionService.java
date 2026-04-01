@@ -1,24 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
@@ -32,15 +13,29 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Ascription status transition service. Implements ONLY
- * {@link AscriptionStatusTransitionRuleType}
+ * Ascription status transition service. Implements ONLY {@link AscriptionStatusTransitionRuleType}
  * rules.
  *
- * <p>
- * Orchestrates GSM lifecycle transitions with referee preconditions,
- * inter-transition cascades,
+ * <p>Orchestrates GSM lifecycle transitions with referee preconditions, inter-transition cascades,
  * governance convergence, and identity-bound validation. Owns {@link
  * AscriptionStatusTransitionRepository}.
  *
@@ -51,7 +46,8 @@ import jakarta.persistence.EntityManager;
 @Transactional("transactionManager")
 public class AscriptionStatusTransitionService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
 
   // ======================================================================
   // State machine: valid transitions
@@ -88,27 +84,24 @@ public class AscriptionStatusTransitionService {
   // Referee precondition: allowed reference statuses per transition
   // ======================================================================
 
-  private static final Set<AscriptionStatusType> IN_EFFECT_OR_SUSPENDED = EnumSet.of(
-      AscriptionStatusType.ACTIVE,
-      AscriptionStatusType.SUSPENDED,
-      AscriptionStatusType.DEPRECATED);
+  private static final Set<AscriptionStatusType> IN_EFFECT_OR_SUSPENDED =
+      EnumSet.of(
+          AscriptionStatusType.ACTIVE,
+          AscriptionStatusType.SUSPENDED,
+          AscriptionStatusType.DEPRECATED);
 
-  private static final Set<AscriptionStatusType> IN_EFFECT_OR_SUSPENDED_OR_RETIRED = EnumSet.of(
-      AscriptionStatusType.ACTIVE, AscriptionStatusType.SUSPENDED,
-      AscriptionStatusType.DEPRECATED, AscriptionStatusType.RETIRED);
+  private static final Set<AscriptionStatusType> IN_EFFECT_OR_SUSPENDED_OR_RETIRED =
+      EnumSet.of(
+          AscriptionStatusType.ACTIVE, AscriptionStatusType.SUSPENDED,
+          AscriptionStatusType.DEPRECATED, AscriptionStatusType.RETIRED);
 
-  private static final Set<AscriptionStatusType> ANY_STATUS = EnumSet.allOf(AscriptionStatusType.class);
+  private static final Set<AscriptionStatusType> ANY_STATUS =
+      EnumSet.allOf(AscriptionStatusType.class);
 
-  /**
-   * Composite key for REFEREE_ALLOWED map — replaces String-based "from->to" key.
-   */
-  private record TransitionKey(AscriptionStatusType from, AscriptionStatusType to) {
-  }
+  /** Composite key for REFEREE_ALLOWED map — replaces String-based "from->to" key. */
+  private record TransitionKey(AscriptionStatusType from, AscriptionStatusType to) {}
 
-  /**
-   * Per-transition referee precondition: which statuses each reference must be
-   * in.
-   */
+  /** Per-transition referee precondition: which statuses each reference must be in. */
   private static final Map<TransitionKey, Set<AscriptionStatusType>> REFEREE_ALLOWED;
 
   static {
@@ -137,7 +130,7 @@ public class AscriptionStatusTransitionService {
         IN_EFFECT_OR_SUSPENDED);
     REFEREE_ALLOWED.put(
         new TransitionKey(AscriptionStatusType.SUSPENDED, AscriptionStatusType.ACTIVE),
-        AscriptionStatusType.IN_EFFECT);
+        EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
     REFEREE_ALLOWED.put(
         new TransitionKey(AscriptionStatusType.SUSPENDED, AscriptionStatusType.DEPRECATED),
         IN_EFFECT_OR_SUSPENDED);
@@ -194,8 +187,7 @@ public class AscriptionStatusTransitionService {
 
   private record CascadeTargetEntry(
       AbstractAscriptionService<?> targetService,
-      AscriptionStatusTransitionCascadeType cascadeType) {
-  }
+      AscriptionStatusTransitionCascadeType cascadeType) {}
 
   private final AscriptionStatusTransitionRepository transitionRepo;
   private final EntityManager entityManager;
@@ -207,11 +199,10 @@ public class AscriptionStatusTransitionService {
   /**
    * Constructs the service with its required dependencies.
    *
-   * @param transitionRepo  the status transition repository
-   * @param entityManager   the JPA entity manager
-   * @param subtypeServices all ascription subtype services (lazy to break
-   *                        circular dependency with
-   *                        AbstractAscriptionService)
+   * @param transitionRepo the status transition repository
+   * @param entityManager the JPA entity manager
+   * @param subtypeServices all ascription subtype services (lazy to break circular dependency with
+   *     AbstractAscriptionService)
    */
   public AscriptionStatusTransitionService(
       AscriptionStatusTransitionRepository transitionRepo,
@@ -222,19 +213,18 @@ public class AscriptionStatusTransitionService {
     this.subtypeServices = subtypeServices;
   }
 
-  /**
-   * Builds the subtype lookup map and cascade graph after all beans are
-   * constructed.
-   */
+  /** Builds the subtype lookup map and cascade graph after all beans are constructed. */
   @PostConstruct
   void initCascadeGraph() {
-    Map<DefinitionSubjectType, AbstractAscriptionService<?>> byType = new EnumMap<>(DefinitionSubjectType.class);
+    Map<DefinitionSubjectType, AbstractAscriptionService<?>> byType =
+        new EnumMap<>(DefinitionSubjectType.class);
     for (AbstractAscriptionService<?> svc : subtypeServices) {
       byType.put(svc.getSubjectType(), svc);
     }
     this.subtypeByType = Map.copyOf(byType);
 
-    Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeMap = new EnumMap<>(DefinitionSubjectType.class);
+    Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeMap =
+        new EnumMap<>(DefinitionSubjectType.class);
     for (AbstractAscriptionService<?> svc : subtypeServices) {
       for (var entry : svc.getCascadeTargetRoles().entrySet()) {
         cascadeMap
@@ -250,17 +240,15 @@ public class AscriptionStatusTransitionService {
   // ======================================================================
 
   /**
-   * Executes a lifecycle transition with full lifecycle governance: validation,
-   * referee
+   * Executes a lifecycle transition with full lifecycle governance: validation, referee
    * preconditions, cascades, convergence.
    *
    * @param ascriptionId the ascription to transition
    * @param targetStatus the requested target status
    * @return the persisted transition record
    * @throws ResourceNotFoundException if the ascription does not exist
-   * @throws RuleViolationException    if the transition violates state machine,
-   *                                   referee, or cascade
-   *                                   constraints
+   * @throws RuleViolationException if the transition violates state machine, referee, or cascade
+   *     constraints
    */
   public AscriptionStatusTransitionEntity transition(UUID ascriptionId, String targetStatus) {
     AscriptionStatusType targetStatusType = AscriptionStatusType.valueOf(targetStatus);
@@ -294,8 +282,10 @@ public class AscriptionStatusTransitionService {
     }
 
     // 3c. Subtype-specific deactivation hook (leaving in-effect)
-    if (AscriptionStatusType.IN_EFFECT.contains(currentStatus)
-        && !AscriptionStatusType.IN_EFFECT.contains(targetStatusType)) {
+    if (EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
+            .contains(currentStatus)
+        && !EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
+            .contains(targetStatusType)) {
       AbstractAscriptionService<?> svc = subtypeByType.get(type);
       if (svc != null) {
         svc.onDeactivation(entity);
@@ -311,7 +301,8 @@ public class AscriptionStatusTransitionService {
       }
 
       // 5. Record transition (DB trigger updates entity status/version)
-      AscriptionStatusTransitionEntity saved = recordTransition(entity, currentStatus, targetStatusType);
+      AscriptionStatusTransitionEntity saved =
+          recordTransition(entity, currentStatus, targetStatusType);
 
       // 6. Governance convergence (APPROVED → sibling termination)
       if (targetStatusType == AscriptionStatusType.APPROVED) {
@@ -363,14 +354,14 @@ public class AscriptionStatusTransitionService {
    * Persists a transition record, flushes, and returns the refreshed entity.
    *
    * @param entity the ascription being transitioned
-   * @param from   the pre-transition status
-   * @param to     the post-transition status
+   * @param from the pre-transition status
+   * @param to the post-transition status
    * @return the persisted and refreshed transition entity
    */
   public AscriptionStatusTransitionEntity recordTransition(
       AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
-    AscriptionStatusTransitionEntity transition = transitionRepo
-        .save(new AscriptionStatusTransitionEntity(entity, from, to));
+    AscriptionStatusTransitionEntity transition =
+        transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
     entityManager.flush();
     entityManager.detach(transition);
     UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
@@ -386,7 +377,7 @@ public class AscriptionStatusTransitionService {
    *
    * @param refs the referee references to validate
    * @param from the pre-transition status (null for creation)
-   * @param to   the post-transition status
+   * @param to the post-transition status
    * @throws RuleViolationException if any referee is in a disallowed status
    */
   public void validateRefereePreconditions(
@@ -409,7 +400,8 @@ public class AscriptionStatusTransitionService {
           allowedNames.add(s.name());
         }
         throw RuleViolationException.of(
-            AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+            AscriptionStatusTransitionRuleType
+                .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
             "Referee '"
                 + ref.label()
                 + "' ("
@@ -453,8 +445,8 @@ public class AscriptionStatusTransitionService {
 
   private void validateTransition(
       UUID ascriptionId, AscriptionStatusType from, AscriptionStatusType to) {
-    Set<AscriptionStatusType> allowed = VALID_TRANSITIONS.getOrDefault(from,
-        EnumSet.noneOf(AscriptionStatusType.class));
+    Set<AscriptionStatusType> allowed =
+        VALID_TRANSITIONS.getOrDefault(from, EnumSet.noneOf(AscriptionStatusType.class));
     if (allowed.isEmpty()) {
       throw RuleViolationException.of(
           AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_TERMINAL_IMMUTABILITY,
@@ -524,14 +516,15 @@ public class AscriptionStatusTransitionService {
         continue;
       }
 
-      List<? extends AscriptionEntity> targets = entry.targetService().findCascadeTargetsFrom(sourceType,
-          source.getId());
+      List<? extends AscriptionEntity> targets =
+          entry.targetService().findCascadeTargetsFrom(sourceType, source.getId());
 
       for (AscriptionEntity target : targets) {
         if (target.getStatus() != fromStatus) {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
-                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                 "Constitutive cascade failed: target "
                     + target.getId()
                     + " ("
@@ -563,7 +556,8 @@ public class AscriptionStatusTransitionService {
           } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
             LOG.debug(
                 "[{}] Dependent cascade skipped: target {} ({}) is {}, expected {}",
-                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
                     .getType(),
                 target.getId(),
                 entry.targetService().getSubjectType().name(),
@@ -579,7 +573,8 @@ public class AscriptionStatusTransitionService {
         } catch (RuleViolationException e) {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
-                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                 "Constitutive cascade blocked: " + e.getMessage(),
                 e,
                 "cascadeType",
@@ -595,7 +590,8 @@ public class AscriptionStatusTransitionService {
           } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
             LOG.debug(
                 "[{}] Dependent cascade skipped (referee precondition): target {} — {}",
-                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
+                AscriptionStatusTransitionRuleType
+                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
                     .getType(),
                 target.getId(),
                 e.getMessage());
@@ -621,13 +617,11 @@ public class AscriptionStatusTransitionService {
   private void handleApproval(DefinitionSubjectType type, AscriptionEntity approved) {
     UUID definitionId = approved.getDefinition().getId();
     AbstractAscriptionService<?> svc = subtypeByType.get(type);
-    if (svc == null)
-      return;
+    if (svc == null) return;
 
     List<? extends AscriptionEntity> allAscriptions = svc.findAllByDefinitionId(definitionId);
     for (AscriptionEntity sibling : allAscriptions) {
-      if (sibling.getId().equals(approved.getId()))
-        continue;
+      if (sibling.getId().equals(approved.getId())) continue;
       AscriptionStatusType siblingStatus = sibling.getStatus();
       AscriptionStatusType terminalStatus;
       if (siblingStatus == AscriptionStatusType.DRAFT) {
@@ -651,14 +645,12 @@ public class AscriptionStatusTransitionService {
   private void handleActivation(DefinitionSubjectType type, AscriptionEntity activating) {
     UUID definitionId = activating.getDefinition().getId();
     AbstractAscriptionService<?> svc = subtypeByType.get(type);
-    if (svc == null)
-      return;
+    if (svc == null) return;
 
-    List<? extends AscriptionEntity> activeAscriptions = svc.findAllByDefinitionIdAndStatus(definitionId,
-        List.of(AscriptionStatusType.ACTIVE));
+    List<? extends AscriptionEntity> activeAscriptions =
+        svc.findAllByDefinitionIdAndStatus(definitionId, List.of(AscriptionStatusType.ACTIVE));
     for (AscriptionEntity prev : activeAscriptions) {
-      if (prev.getId().equals(activating.getId()))
-        continue;
+      if (prev.getId().equals(activating.getId())) continue;
       LOG.debug(
           "[{}] Activation handoff: predecessor {} (ACTIVE → DEPRECATED)",
           AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF
