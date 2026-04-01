@@ -17,13 +17,11 @@ class DirectiveEntityTest {
     ArchetypeEntity arch = mock(ArchetypeEntity.class);
     StructureEntity struct = mock(StructureEntity.class);
     ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
-    StructureEntity purpose = mock(StructureEntity.class);
 
     DirectiveEntity entity =
-        new DirectiveEntity(def, arch, MAPPER.createObjectNode(), struct, qualifier, purpose);
+        new DirectiveEntity(def, arch, MAPPER.createObjectNode(), struct, qualifier);
     assertEquals(struct, entity.getStructure());
     assertEquals(qualifier, entity.getQualifier());
-    assertEquals(purpose, entity.getPurpose());
   }
 
   @Test
@@ -34,12 +32,7 @@ class DirectiveEntityTest {
         NullPointerException.class,
         () ->
             new DirectiveEntity(
-                def,
-                arch,
-                MAPPER.createObjectNode(),
-                null,
-                mock(ArchetypeEntity.class),
-                mock(StructureEntity.class)));
+                def, arch, MAPPER.createObjectNode(), null, mock(ArchetypeEntity.class)));
   }
 
   @Test
@@ -50,27 +43,6 @@ class DirectiveEntityTest {
         NullPointerException.class,
         () ->
             new DirectiveEntity(
-                def,
-                arch,
-                MAPPER.createObjectNode(),
-                mock(StructureEntity.class),
-                null,
-                mock(StructureEntity.class)));
-  }
-
-  @Test
-  void constructorRejectsNullPurpose() {
-    DefinitionEntity def = mock(DefinitionEntity.class);
-    ArchetypeEntity arch = mock(ArchetypeEntity.class);
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new DirectiveEntity(
-                def,
-                arch,
-                MAPPER.createObjectNode(),
-                mock(StructureEntity.class),
-                mock(ArchetypeEntity.class),
-                null));
+                def, arch, MAPPER.createObjectNode(), mock(StructureEntity.class), null));
   }
 }

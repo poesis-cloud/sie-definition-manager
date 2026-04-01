@@ -1,12 +1,11 @@
 package cloud.poesis.sie.defman.repository;
 
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * Spring Data JPA repository for {@link DirectiveEntity} (the {@code directive} table).
@@ -34,25 +33,16 @@ public interface DirectiveRepository extends AbstractAscriptionRepository<Direct
   List<DirectiveEntity> findAllByStructureId(UUID structureId);
 
   /**
-   * Returns directives targeting the given qualifier and purpose pair.
+   * Returns in-effect directives whose statement purpose matches the given string.
    *
-   * @param qualifierDefinitionId the qualifier archetype definition UUID
-   * @param purposeDefinitionId the purpose structure definition UUID
-   * @param statuses the lifecycle statuses to match
+   * @param purpose the governed purpose string (from statement JSONB)
    * @return the matching directive entities
    */
-  List<DirectiveEntity> findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
-      UUID qualifierDefinitionId,
-      UUID purposeDefinitionId,
-      Collection<AscriptionStatusType> statuses);
-
-  /**
-   * Returns directives whose purpose targets the given structure definition.
-   *
-   * @param purposeDefinitionId the purpose structure definition UUID
-   * @param statuses the lifecycle statuses to match
-   * @return the matching directive entities
-   */
-  List<DirectiveEntity> findAllByPurposeDefinitionIdAndStatusIn(
-      UUID purposeDefinitionId, Collection<AscriptionStatusType> statuses);
+  @Query(
+      value =
+          "SELECT * FROM directive"
+              + " WHERE statement->>'purpose' = ?1"
+              + " AND status IN ('ACTIVE', 'DEPRECATED')",
+      nativeQuery = true)
+  List<DirectiveEntity> findAllInEffectByPurpose(String purpose);
 }

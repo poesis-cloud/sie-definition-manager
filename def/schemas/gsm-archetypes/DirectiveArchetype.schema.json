@@ -2,14 +2,14 @@
   "$schema": "gsm://archetypes/Archetype/v1",
   "$id": "gsm://archetypes/DirectiveArchetype/v1",
   "title": "DirectiveArchetype",
-  "description": "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). A Directive is a constitutive act that opens a governance relationship between a governing Structure (structure) and a governed Structure (purpose) along a viability dimension (qualifier Archetype). Without a Directive, there is no governance scope — no Norms can constrain the governed Structure's internal Elements along that dimension. Natural grammar: {structure} {modal} {verb} {qualifier} FOR {purpose}. Extensible — tenant-defined archetypes MAY extend Directive via allOf to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
+  "description": "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). A Directive is a constitutive act that opens a governance relationship between a governing Structure (structure) and a governed purpose (purpose string) along a viability dimension (qualifier Archetype). The purpose MAY name a Structure that does not yet exist, enabling anticipatory governance — the Directive becomes a generative specification for a required Structure. Without a Directive, there is no governance scope — no Norms can constrain the governed Structure's internal Elements along that dimension. Natural grammar: {structure} {modal} {verb} {qualifier} FOR {purpose}. Extensible — tenant-defined archetypes MAY extend Directive via allOf to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type": "object",
   "examples": [ {
     "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
     "modal": "MUST",
     "verb": "ENSURE",
     "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
-    "purpose": "019cc49a-dc5a-7003-98e1-c214032f0420"
+    "purpose": "payment-processing"
   } ],
   "required": [ "structure", "modal", "verb", "qualifier", "purpose" ],
   "properties": {
@@ -37,9 +37,10 @@
     },
     "purpose": {
       "type": "string",
-      "format": "uuid",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
       "$gsm:identityBound": true,
-      "description": "ID reference to the purposed Structure whose purpose is governed by this Directive."
+      "description": "The governed Structure's purpose string — names the Structure whose purpose is governed by this Directive. MAY reference a Structure that does not yet exist, enabling anticipatory governance (governance intent preceding structure creation). When matched, must equal an in-effect Structure's purpose field. Kebab-case format enforced for canonicalization."
     }
   },
   "unevaluatedProperties": false

@@ -182,13 +182,6 @@ public enum AscriptionConsistencyRuleType implements RuleType {
           + "existing Structure Definition — a non-existent or mistyped "
           + "reference is rejected."),
 
-  DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY(
-      "gsm:rules/directive/purpose/reference-integrity",
-      "Directive purpose reference integrity",
-      "A Directive's purpose reference must resolve to an existing "
-          + "Structure Definition — a non-existent or mistyped reference "
-          + "is rejected."),
-
   DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY(
       "gsm:rules/directive/qualifier/reference-integrity",
       "Directive qualifier reference integrity",

@@ -14,8 +14,9 @@
     "purpose": {
       "type": "string",
       "minLength": 1,
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
       "$gsm:identityBound": true,
-      "description": "The Structure's raison d'être. Globally unique among in-effect Structures — serves as both identity discriminator and governance address. Directives reference the purpose via their purpose field."
+      "description": "The Structure's raison d'être. Globally unique among in-effect Structures — serves as both identity discriminator and governance address. Directives reference the purpose via their purpose field. Kebab-case format enforced for canonicalization."
     }
   },
   "unevaluatedProperties": false

@@ -159,9 +159,6 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
           Map.entry(
               "directive_qualifier_id_fkey",
               AscriptionConsistencyRuleType.DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY),
-          Map.entry(
-              "directive_purpose_id_fkey",
-              AscriptionConsistencyRuleType.DIRECTIVE_PURPOSE_REFERENCE_INTEGRITY),
           // Norm reference FKs
           Map.entry(
               "norm_structure_id_fkey",

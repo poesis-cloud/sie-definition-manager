@@ -109,15 +109,15 @@ class DirectiveServiceTest {
       void structureQualifierPurposeExtracted() {
         UUID structDefId = UUID.randomUUID();
         UUID qualDefId = UUID.randomUUID();
-        UUID purposeDefId = UUID.randomUUID();
+        String purpose = "test-purpose";
 
-        DirectiveEntity entity = stubDirectiveLifecycle(structDefId, qualDefId, purposeDefId);
+        DirectiveEntity entity = stubDirectiveLifecycle(structDefId, qualDefId, purpose);
 
         var values = service.getIdentityBoundValues(entity);
 
         assertEquals(structDefId, values.get("structure"));
         assertEquals(qualDefId, values.get("qualifier"));
-        assertEquals(purposeDefId, values.get("purpose"));
+        assertEquals(purpose, values.get("purpose"));
       }
     }
 
@@ -128,16 +128,15 @@ class DirectiveServiceTest {
       void referencesStructureQualifierPurpose() {
         UUID structDefId = UUID.randomUUID();
         UUID qualDefId = UUID.randomUUID();
-        UUID purposeDefId = UUID.randomUUID();
+        String purpose = "test-purpose";
 
-        DirectiveEntity entity = stubDirectiveLifecycle(structDefId, qualDefId, purposeDefId);
+        DirectiveEntity entity = stubDirectiveLifecycle(structDefId, qualDefId, purpose);
 
         var refs = service.getRefereeReferences(entity);
 
-        assertEquals(3, refs.size());
+        assertEquals(2, refs.size());
         assertTrue(refs.stream().anyMatch(r -> r.label().equals("structure")));
         assertTrue(refs.stream().anyMatch(r -> r.label().equals("qualifier")));
-        assertTrue(refs.stream().anyMatch(r -> r.label().equals("purpose")));
       }
     }
 
@@ -191,7 +190,7 @@ class DirectiveServiceTest {
 
   private DirectiveEntity stubDirectiveWithDefId(String verb, String modal, UUID definitionId) {
     UUID qualifierDefId = UUID.randomUUID();
-    UUID purposeDefId = UUID.randomUUID();
+    String purpose = "test-purpose";
 
     DefinitionEntity defEntity = mock(DefinitionEntity.class);
     when(defEntity.getId()).thenReturn(definitionId);
@@ -201,25 +200,19 @@ class DirectiveServiceTest {
     ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
     when(qualifier.getDefinition()).thenReturn(qualifierDef);
 
-    DefinitionEntity purposeDef = mock(DefinitionEntity.class);
-    when(purposeDef.getId()).thenReturn(purposeDefId);
-    StructureEntity purpose = mock(StructureEntity.class);
-    when(purpose.getDefinition()).thenReturn(purposeDef);
-
-    ObjectNode stmt = MAPPER.createObjectNode().put("verb", verb).put("modal", modal);
+    ObjectNode stmt =
+        MAPPER.createObjectNode().put("verb", verb).put("modal", modal).put("purpose", purpose);
 
     DirectiveEntity directive = mock(DirectiveEntity.class);
     when(directive.getDefinition()).thenReturn(defEntity);
     when(directive.getQualifier()).thenReturn(qualifier);
-    when(directive.getPurpose()).thenReturn(purpose);
     when(directive.getStatement()).thenReturn(stmt);
     when(directive.getId()).thenReturn(UUID.randomUUID());
 
     return directive;
   }
 
-  private DirectiveEntity stubDirectiveLifecycle(
-      UUID structDefId, UUID qualDefId, UUID purposeDefId) {
+  private DirectiveEntity stubDirectiveLifecycle(UUID structDefId, UUID qualDefId, String purpose) {
     StructureEntity structure = mock(StructureEntity.class);
     DefinitionEntity structDef = mock(DefinitionEntity.class);
     when(structDef.getId()).thenReturn(structDefId);
@@ -230,15 +223,12 @@ class DirectiveServiceTest {
     when(qualDef.getId()).thenReturn(qualDefId);
     when(qualifier.getDefinition()).thenReturn(qualDef);
 
-    StructureEntity purpose = mock(StructureEntity.class);
-    DefinitionEntity purposeDef = mock(DefinitionEntity.class);
-    when(purposeDef.getId()).thenReturn(purposeDefId);
-    when(purpose.getDefinition()).thenReturn(purposeDef);
+    ObjectNode stmt = MAPPER.createObjectNode().put("purpose", purpose);
 
     DirectiveEntity entity = mock(DirectiveEntity.class);
     when(entity.getStructure()).thenReturn(structure);
     when(entity.getQualifier()).thenReturn(qualifier);
-    when(entity.getPurpose()).thenReturn(purpose);
+    when(entity.getStatement()).thenReturn(stmt);
 
     return entity;
   }
@@ -254,7 +244,7 @@ class DirectiveServiceTest {
     void validStatement_returnsEntity() {
       UUID structId = UUID.randomUUID();
       UUID qualId = UUID.randomUUID();
-      UUID purposeId = UUID.randomUUID();
+      String purpose = "payment-processing";
 
       StructureEntity structure = mock(StructureEntity.class);
       when(structureService.findEntityById(structId)).thenReturn(structure);
@@ -262,16 +252,13 @@ class DirectiveServiceTest {
       ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
       when(archetypeService.findEntityById(qualId)).thenReturn(qualifier);
 
-      StructureEntity purpose = mock(StructureEntity.class);
-      when(structureService.findEntityById(purposeId)).thenReturn(purpose);
-
       DefinitionEntity def = mock(DefinitionEntity.class);
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
 
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structId.toString());
       stmt.put("qualifier", qualId.toString());
-      stmt.put("purpose", purposeId.toString());
+      stmt.put("purpose", purpose);
       stmt.put("modal", "MUST");
       stmt.put("verb", "ENSURE");
 
@@ -279,7 +266,6 @@ class DirectiveServiceTest {
       assertEquals(def, result.getDefinition());
       assertEquals(structure, result.getStructure());
       assertEquals(qualifier, result.getQualifier());
-      assertEquals(purpose, result.getPurpose());
     }
 
     @Test
@@ -288,7 +274,7 @@ class DirectiveServiceTest {
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("qualifier", UUID.randomUUID().toString());
-      stmt.put("purpose", UUID.randomUUID().toString());
+      stmt.put("purpose", "some-purpose");
 
       assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
     }
@@ -304,7 +290,7 @@ class DirectiveServiceTest {
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structId.toString());
       stmt.put("qualifier", UUID.randomUUID().toString());
-      stmt.put("purpose", UUID.randomUUID().toString());
+      stmt.put("purpose", "some-purpose");
 
       assertThrows(
           ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));

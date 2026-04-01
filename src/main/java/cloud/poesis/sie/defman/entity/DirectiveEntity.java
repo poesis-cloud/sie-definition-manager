@@ -29,10 +29,6 @@ public class DirectiveEntity extends AscriptionEntity {
   @JoinColumn(name = "qualifier_id", nullable = false, updatable = false)
   private ArchetypeEntity qualifier;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "purpose_id", nullable = false, updatable = false)
-  private StructureEntity purpose;
-
   protected DirectiveEntity() {}
 
   /**
@@ -43,19 +39,16 @@ public class DirectiveEntity extends AscriptionEntity {
    * @param statement the JSON payload containing modal, verb, and governance grammar
    * @param structure the authoring structure
    * @param qualifier the archetype defining the viability dimension being governed
-   * @param purpose the purposed structure targeted by this directive
    */
   public DirectiveEntity(
       DefinitionEntity definition,
       ArchetypeEntity archetype,
       JsonNode statement,
       StructureEntity structure,
-      ArchetypeEntity qualifier,
-      StructureEntity purpose) {
+      ArchetypeEntity qualifier) {
     super(definition, archetype, statement);
     this.structure = Objects.requireNonNull(structure, "structure");
     this.qualifier = Objects.requireNonNull(qualifier, "qualifier");
-    this.purpose = Objects.requireNonNull(purpose, "purpose");
   }
 
   /**
@@ -74,14 +67,5 @@ public class DirectiveEntity extends AscriptionEntity {
    */
   public ArchetypeEntity getQualifier() {
     return qualifier;
-  }
-
-  /**
-   * Returns the purposed structure targeted by this directive.
-   *
-   * @return the purpose structure, never {@code null}
-   */
-  public StructureEntity getPurpose() {
-    return purpose;
   }
 }

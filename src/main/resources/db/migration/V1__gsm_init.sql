@@ -9,7 +9,7 @@
 --   4. Version CHECK fixed: >= 0 (V5 set DEFAULT 0 but kept > 0).
 --   5. subject_type dropped from transition table (V6 change).
 --   6. Effector/Receptor columns: output/input_archetype_id (V9).
---   7. directive.purpose_id NOT NULL (V7).
+--   7. directive.purpose dematerialized (V7) — stored in statement JSONB only.
 -- ============================================================
 BEGIN;
 
@@ -240,7 +240,6 @@ CREATE
             version INTEGER NOT NULL DEFAULT 0,
             structure_id uuid NOT NULL REFERENCES STRUCTURE(id),
             qualifier_id uuid NOT NULL REFERENCES archetype(id),
-            purpose_id uuid NOT NULL REFERENCES STRUCTURE(id),
             CONSTRAINT directive_pk PRIMARY KEY(id),
             CONSTRAINT directive_version_check CHECK(
                 version >= 0
@@ -422,8 +421,12 @@ CREATE
     directive(qualifier_id);
 
 CREATE
-    INDEX IF NOT EXISTS idx_directive_purpose ON
-    directive(purpose_id);
+    INDEX IF NOT EXISTS idx_directive_stmt_purpose ON
+    directive(
+        (
+            STATEMENT ->> 'purpose'
+        )
+    );
 
 CREATE
     INDEX IF NOT EXISTS gin_directive_stmt ON

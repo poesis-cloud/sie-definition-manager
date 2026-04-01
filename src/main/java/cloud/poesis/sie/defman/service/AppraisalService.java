@@ -99,15 +99,16 @@ public class AppraisalService {
    */
   public void validateDirectiveCompatibility(DirectiveEntity directive) {
     UUID qualifierDefId = directive.getQualifier().getDefinition().getId();
-    UUID purposeDefId = directive.getPurpose().getDefinition().getId();
+    String purpose = directive.getStatement().get("purpose").asText();
     UUID thisDefId = directive.getDefinition().getId();
 
     String verb = directive.getStatement().get("verb").asText();
     String modal = directive.getStatement().get("modal").asText();
 
     List<DirectiveEntity> siblings =
-        directiveService.findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
-            qualifierDefId, purposeDefId, IN_EFFECT);
+        directiveService.findAllInEffectByPurpose(purpose).stream()
+            .filter(d -> d.getQualifier().getDefinition().getId().equals(qualifierDefId))
+            .toList();
 
     for (DirectiveEntity sibling : siblings) {
       if (sibling.getDefinition().getId().equals(thisDefId)) {
@@ -126,9 +127,9 @@ public class AppraisalService {
                 + sibVerb
                 + " on same qualifier (definition "
                 + qualifierDefId
-                + ") and purpose (definition "
-                + purposeDefId
-                + "). Conflicting directive: "
+                + ") and purpose "
+                + purpose
+                + ". Conflicting directive: "
                 + sibling.getId(),
             "verb",
             verb,
@@ -136,8 +137,8 @@ public class AppraisalService {
             sibVerb,
             "qualifierDefinitionId",
             qualifierDefId,
-            "purposeDefinitionId",
-            purposeDefId,
+            "purpose",
+            purpose,
             "conflictingDirectiveId",
             sibling.getId());
       }
@@ -155,9 +156,9 @@ public class AppraisalService {
                 + sibVerb
                 + " on same qualifier (definition "
                 + qualifierDefId
-                + ") and purpose (definition "
-                + purposeDefId
-                + "). Conflicting directive: "
+                + ") and purpose "
+                + purpose
+                + ". Conflicting directive: "
                 + sibling.getId(),
             "verb",
             verb,
@@ -169,13 +170,12 @@ public class AppraisalService {
             sibModal,
             "qualifierDefinitionId",
             qualifierDefId,
-            "purposeDefinitionId",
-            purposeDefId,
+            "purpose",
+            purpose,
             "conflictingDirectiveId",
             sibling.getId());
       }
 
-      // GSM §DirectiveModal: modal precedence — higher tier overrides lower tier
       if (verb.equals(sibVerb) && !modal.equals(sibModal)) {
         int thisTier = MODAL_PRECEDENCE.getOrDefault(modal, 0);
         int sibTier = MODAL_PRECEDENCE.getOrDefault(sibModal, 0);
@@ -184,7 +184,7 @@ public class AppraisalService {
           String loser = thisTier > sibTier ? sibModal : modal;
           LOG.warn(
               "Directive modal precedence: {} {} overrides {} {} on verb {} "
-                  + "for qualifier (definition {}) and purpose (definition {}). "
+                  + "for qualifier (definition {}) and purpose {}. "
                   + "Overridden directive: {}",
               winner,
               verb,
@@ -192,7 +192,7 @@ public class AppraisalService {
               verb,
               verb,
               qualifierDefId,
-              purposeDefId,
+              purpose,
               sibling.getId());
         }
       }
@@ -225,20 +225,19 @@ public class AppraisalService {
    * @throws RuleViolationException if no in-effect directive legitimates the norm
    */
   public void validateGovernanceChain(NormEntity norm) {
-    UUID structureDefId = norm.getStructure().getDefinition().getId();
+    String structurePurpose = norm.getStructure().getStatement().get("purpose").asText();
     UUID qualifierId = norm.getQualifier().getId();
 
-    List<DirectiveEntity> directives =
-        directiveService.findAllByPurposeDefinitionIdAndStatusIn(structureDefId, IN_EFFECT);
+    List<DirectiveEntity> directives = directiveService.findAllInEffectByPurpose(structurePurpose);
 
     if (directives.isEmpty()) {
       throw RuleViolationException.of(
           AppraisalRuleType.NORM_DIRECTED,
-          "No in-effect Directive targets structure (definition "
-              + structureDefId
-              + ") as purpose — Norm has no governance authority",
-          "structureDefinitionId",
-          structureDefId);
+          "No in-effect Directive targets purpose '"
+              + structurePurpose
+              + "' — Norm has no governance authority",
+          "structurePurpose",
+          structurePurpose);
     }
 
     Set<String> normAncestors = archetypeService.getAncestorTitles(qualifierId);
@@ -260,14 +259,14 @@ public class AppraisalService {
     if (!hasLegitimatingDirective) {
       throw RuleViolationException.of(
           AppraisalRuleType.NORM_DIRECTED,
-          "No in-effect Directive with purpose (definition "
-              + structureDefId
-              + ") has a qualifier that is ancestor-or-equal of Norm qualifier — "
+          "No in-effect Directive with purpose '"
+              + structurePurpose
+              + "' has a qualifier that is ancestor-or-equal of Norm qualifier — "
               + "Norm qualifier lineage "
               + normAncestors
               + " has no overlap with any Directive qualifier lineage",
-          "structureDefinitionId",
-          structureDefId,
+          "structurePurpose",
+          structurePurpose,
           "normQualifierAncestors",
           normAncestors.toString());
     }

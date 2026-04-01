@@ -9,11 +9,9 @@ import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -95,10 +93,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
     UUID qualifierId = extractRequiredUuid(statement, "qualifier");
     ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
 
-    UUID purposeId = extractRequiredUuid(statement, "purpose");
-    StructureEntity purpose = structureService.findEntityById(purposeId);
-
-    return new DirectiveEntity(definition, archetypeRef, statement, structure, qualifier, purpose);
+    return new DirectiveEntity(definition, archetypeRef, statement, structure, qualifier);
   }
 
   // ---- Lifecycle descriptors ----
@@ -108,8 +103,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
     var d = (DirectiveEntity) entity;
     return List.of(
         new RefereeReference(d.getStructure(), "structure"),
-        new RefereeReference(d.getQualifier(), "qualifier"),
-        new RefereeReference(d.getPurpose(), "purpose"));
+        new RefereeReference(d.getQualifier(), "qualifier"));
   }
 
   @Override
@@ -127,40 +121,28 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   }
 
   /**
-   * Returns directives whose purpose targets the given structure definition, filtered by statuses.
+   * Returns in-effect directives whose statement purpose matches the given string.
    *
-   * @param purposeDefinitionId the purpose structure definition UUID
-   * @param statuses the lifecycle statuses to match
+   * @param purpose the governed purpose string
    * @return the matching directive entities
    */
-  public List<DirectiveEntity> findAllByPurposeDefinitionIdAndStatusIn(
-      UUID purposeDefinitionId, Collection<AscriptionStatusType> statuses) {
-    return directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(purposeDefinitionId, statuses);
-  }
-
-  /**
-   * Returns directives sharing the same qualifier + purpose axis, filtered by statuses.
-   *
-   * @param qualifierDefinitionId the qualifier definition UUID
-   * @param purposeDefinitionId the purpose definition UUID
-   * @param statuses the lifecycle statuses to match
-   * @return the matching directive entities
-   */
-  public List<DirectiveEntity> findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
-      UUID qualifierDefinitionId,
-      UUID purposeDefinitionId,
-      Collection<AscriptionStatusType> statuses) {
-    return directiveRepo.findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
-        qualifierDefinitionId, purposeDefinitionId, statuses);
+  public List<DirectiveEntity> findAllInEffectByPurpose(String purpose) {
+    return directiveRepo.findAllInEffectByPurpose(purpose);
   }
 
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     var d = (DirectiveEntity) entity;
-    return Map.of(
-        "structure", d.getStructure().getDefinition().getId(),
-        "qualifier", d.getQualifier().getDefinition().getId(),
-        "purpose", d.getPurpose().getDefinition().getId());
+    var stmt = d.getStatement();
+    var purpose = stmt.has("purpose") ? stmt.get("purpose").asText() : null;
+    return purpose != null
+        ? Map.of(
+            "structure", d.getStructure().getDefinition().getId(),
+            "qualifier", d.getQualifier().getDefinition().getId(),
+            "purpose", purpose)
+        : Map.of(
+            "structure", d.getStructure().getDefinition().getId(),
+            "qualifier", d.getQualifier().getDefinition().getId());
   }
 
   @Override

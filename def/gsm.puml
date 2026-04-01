@@ -951,7 +951,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     | `ascription` | `timestamp` | (DB-assigned) | — | ordering |
     | `ascription` | `structure_id` | `statement.structure` | `definition(id)` [STRUCTURE] | FK + reverse lookup — Directive, Norm, Mechanism |
     | `ascription` | `qualifier_id` | `statement.qualifier` | `definition(id)` [ARCHETYPE] | FK + reverse lookup — Directive, Norm |
-    | `ascription` | `purpose_id` | `statement.purpose` | `definition(id)` [STRUCTURE] | FK — Directive |
+    | `directive` | `purpose` | `statement.purpose` | — (text, no FK) | **Dematerialized** — JSONB expression index only |
     | `ascription` | `mechanism_id` | `statement.mechanism` | `definition(id)` [MECHANISM] | FK + reverse lookup — Effector, Receptor |
     | `ascription` | `effector_id` | `statement.effector` | `definition(id)` [EFFECTOR] | FK — Interaction |
     | `ascription` | `receptor_id` | `statement.receptor` | `definition(id)` [RECEPTOR] | FK — Interaction |
@@ -1126,7 +1126,6 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     +getModal(): DirectiveModal
     +getVerb(): DirectiveVerb
     +getQualifier(): Archetype
-    +getPurpose(): Structure
   }
 
   note bottom of Directive
@@ -1205,7 +1204,15 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       measurable properties; Norms operationalizing this Directive
       reference this same Archetype in their applicability/assertion CEL
       expressions.
-    - `purpose`: Reference to the purposed Structure.
+    - `purpose`: The governed purpose string — names the Structure
+      whose purpose is governed by this Directive. This is a string
+      (not a UUID FK) to enable **anticipatory governance**: a
+      Directive MAY reference a purpose that does not yet correspond
+      to any existing Structure. This restores teleological primacy
+      (governance intent precedes structure creation) and makes the
+      Directive a generative specification for required Structures.
+      Governance chain linkage: `Directive.purpose == Structure.purpose`
+      (string equality). Kebab-case format enforced.
 
     **Validation Rules**:
 
@@ -1217,8 +1224,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statement.qualifier` MUST reference an existing Archetype.
     - `statement.qualifier` is **identity-bound**: MUST NOT change across
       Ascriptions of the same Definition (see Ascription identity invariant).
-    - `statement.purpose` MUST reference the purpose of an existing
-      Structure.
+    - `statement.purpose` MUST be a non-empty, kebab-case string.
+    - `statement.purpose` MAY name a Structure that does not yet exist
+      (anticipatory governance). No referential integrity check against
+      the Structure table is performed.
     - `statement.purpose` is **identity-bound**: MUST NOT change across
       Ascriptions of the same Definition (see Ascription identity invariant).
 
@@ -1239,10 +1248,10 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - See `gsm-ascription-lifecycle` state machine diagram
       for valid transitions, preconditions, cascades,
       and audit-log invariants.
-    - **Referee**: References Structure (definedBy), Archetype
-      (qualifier), and Structure (purpose). On every transition,
-      ALL three MUST satisfy the lifecycle referential integrity
-      precondition for the target status.
+    - **Referee**: References Structure (definedBy) and Archetype
+      (qualifier). On every transition, both MUST satisfy the
+      lifecycle referential integrity precondition for the target
+      status. Purpose is a string, not a referee reference.
     - **Governing cascade target**: receives cascades from its
       owning Structure (no-op on failure).
 
@@ -1254,10 +1263,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `statement.qualifier` → column `qualifier_id`
       (FK → `definition(id)` [ARCHETYPE]). Enables reverse lookup:
       "all Directives governing Archetype Y".
-    - `statement.purpose` → column `purpose_id`
-      (FK → `definition(id)` [STRUCTURE]). Enables reverse lookup:
-      "all Directives targeting Structure Z's purpose".
-    - All three derived at authoring time by DM; see §9.
+    - `statement.purpose` → **not materialized** (stored in JSONB only).
+      No FK — purpose is a string naming the governed purpose.
+      Reverse lookup via JSONB expression index:
+      `((statement->>'purpose'))`. See §9.
+    - Structure and qualifier derived at authoring time by DM; see §9.
 
     **Derivation Rules**:
 
@@ -1265,13 +1275,12 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - `getModal()` → `statement.modal`
     - `getVerb()` → `statement.verb`
     - `getQualifier()` → column `qualifier_id` → resolves Archetype
-    - `getPurpose()` → column `purpose_id` → resolves Structure
+    - purpose → `statement.purpose` (string, JSONB-only, no resolution)
   end note
 
   Directive --|> Ascription
   Directive "0..*" --> "1" Structure: definedBy
   Directive "0..*" --> "1" Archetype: qualifies
-  Directive "0..*" --> "1" Structure: qualifiedPurposeOf
 
   enum DirectiveModal {
     MUST
@@ -2116,7 +2125,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       authoring time by DM):
       `structure_id` (FK) — Directive, Norm, Mechanism.
       `qualifier_id` (FK) — Directive, Norm.
-      `purpose_id` (FK) — Directive.
+      `purpose` (TEXT, NOT NULL) — Directive (governed purpose string,
+      no FK — enables anticipatory governance).
       `mechanism_id` (FK) — Effector, Receptor.
       `effector_id` (FK) — Interaction.
       `receptor_id` (FK) — Interaction.
@@ -2281,18 +2291,26 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       is never accidental authoring. A Structure's element set and topology
       exist **for a purpose** and are the product of governance.
     - **Governing Structure (governance relation)**: a Structure `G` governs a
-      Structure `S` when `G` produces a Directive whose `purpose` references `S`
-      (by referencing `StructureArchetype.purpose`), and `S` bears Norms
+      Structure `S` when `G` produces a Directive whose `purpose` string equals
+      `S`'s `StructureArchetype.purpose`, and `S` bears Norms
       operationalizing that Directive which constrain `S`'s own internal
       Elements. This is how inter-Structure governance is expressed in GSM:
       not by containment, but by Directive + Norm targeting.
     - **Formalization**: `G` governs `S` **iff** (a) there exists at least one
-      Directive with `structure` = `G` whose `purpose` field references
-      `S`, and (b) those Directives are operationalized by Norms with
+      Directive with `structure` = `G` whose `purpose` string equals `S`'s
+      purpose, and (b) those Directives are operationalized by Norms with
       `structure` = `S` that constrain `S`'s internal Elements.
-    - **Governance chain linkage**: `Directive.purpose == Norm.structure` = `S`.
+    - **Governance chain linkage**: `Directive.purpose == Structure.purpose`
+      (string equality). `Norm.structure` references the governed Structure
+      by FK; the governance chain is validated by comparing
+      `Directive.purpose` against the Norm's Structure's purpose string.
       The governor (`G`) defines what governance applies; the governed (`S`)
       bears the constraints and is accountable for compliance.
+    - **Anticipatory governance**: a Directive MAY reference a purpose
+      string that does not yet correspond to any existing Structure.
+      This enables governance intent to precede structure creation —
+      the Directive becomes a generative specification for a required
+      Structure.
     - **Scope rule**: Norm scope = governed Structure's internal Elements only.
       A Norm's `structure` field identifies the governed Structure; the Norm
       constrains only that Structure's Mechanisms, Effectors, Receptors, and
