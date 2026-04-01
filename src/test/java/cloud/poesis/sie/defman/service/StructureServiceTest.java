@@ -7,6 +7,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
@@ -17,21 +34,7 @@ import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -39,21 +42,21 @@ class StructureServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private StructureRepository structureRepo;
+  @Mock
+  private StructureRepository structureRepo;
 
   private StructureService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new StructureService(
-            structureRepo,
-            mock(ArchetypeRepository.class),
-            mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
+    service = new StructureService(
+        structureRepo,
+        mock(ArchetypeRepository.class),
+        mock(DefinitionService.class),
+        mock(AscriptionStatusTransitionService.class),
+        mock(AscriptionService.class),
+        mock(EntityManager.class),
+        mock(DataProtectionService.class));
   }
 
   // ========================================================================
@@ -67,9 +70,7 @@ class StructureServiceTest {
     void uniquePurpose_valid() {
       StructureEntity entity = stubStructure("order-processing", UUID.randomUUID());
 
-      when(structureRepo.findAllByStatusIn(
-              List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-          .thenReturn(List.of());
+      when(structureRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT)).thenReturn(List.of());
 
       assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
     }
@@ -82,13 +83,11 @@ class StructureServiceTest {
       StructureEntity entity = stubStructure("order-processing", thisDefId);
       StructureEntity existing = stubStructure("order-processing", otherDefId);
 
-      when(structureRepo.findAllByStatusIn(
-              List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+      when(structureRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT))
           .thenReturn(List.of(existing));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
           ex.getRuleType());
@@ -103,8 +102,7 @@ class StructureServiceTest {
       StructureEntity entity = stubStructure("order-processing", defId);
       StructureEntity existing = stubStructure("order-processing", defId);
 
-      when(structureRepo.findAllByStatusIn(
-              List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+      when(structureRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT))
           .thenReturn(List.of(existing));
 
       assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -118,8 +116,7 @@ class StructureServiceTest {
       StructureEntity entity = stubStructure("order-processing", thisDefId);
       StructureEntity existing = stubStructure("payment-service", otherDefId);
 
-      when(structureRepo.findAllByStatusIn(
-              List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+      when(structureRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT))
           .thenReturn(List.of(existing));
 
       assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));

@@ -1,5 +1,22 @@
 package cloud.poesis.sie.defman.service;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -13,33 +30,21 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import com.fasterxml.jackson.databind.JsonNode;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
 import dev.cel.common.ast.CelConstant;
 import dev.cel.common.ast.CelExpr;
 import dev.cel.compiler.CelCompiler;
-import dev.cel.compiler.CelCompilerFactory;
 import jakarta.persistence.EntityManager;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
 
 /**
  * GSM Norm ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link NormEntity} ascriptions including CEL
- * applicability/assertion profile validation (applicability and assertion profiles) and governing
+ * <p>
+ * Manages lifecycle and persistence of {@link NormEntity} ascriptions including
+ * CEL
+ * applicability/assertion profile validation (applicability and assertion
+ * profiles) and governing
  * cascade from owning Structure.
  *
  * @author Clément Cazaud
@@ -54,11 +59,10 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   // CEL profile constants (from CelProfileValidator)
   // ======================================================================
 
-  private static final Set<String> APPLICABILITY_COMPARISON_OPS =
-      Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
+  private static final Set<String> APPLICABILITY_COMPARISON_OPS = Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_",
+      "@in");
   private static final Set<String> APPLICABILITY_ALLOWED_FUNCTIONS = Set.of("matches");
-  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS =
-      Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
+  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS = Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
   private static final Set<String> ASSERTION_FORBIDDEN_FUNCTIONS = Set.of("now", "uuid");
 
   private final NormRepository normRepo;
@@ -70,16 +74,17 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   /**
    * Constructs the Norm service with its required dependencies.
    *
-   * @param normRepo the norm repository
-   * @param structureService the structure service for reference resolution
-   * @param archetypeService the archetype service for qualifier resolution
-   * @param definitionService the definition service
-   * @param transitionService the status transition service
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
+   * @param normRepo              the norm repository
+   * @param structureService      the structure service for reference resolution
+   * @param archetypeService      the archetype service for qualifier resolution
+   * @param definitionService     the definition service
+   * @param transitionService     the status transition service
+   * @param ascriptionService     the ascription service for cross-subtype queries
+   * @param entityManager         the JPA entity manager
    * @param dataProtectionService the data protection service
-   * @param appraisalService the appraisal service for governance compatibility checks (lazy to
-   *     break circular dependency)
+   * @param appraisalService      the appraisal service for governance
+   *                              compatibility checks (lazy to
+   *                              break circular dependency)
    */
   public NormService(
       NormRepository normRepo,
@@ -91,7 +96,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService,
-      @Lazy AppraisalService appraisalService) {
+      @Lazy AppraisalService appraisalService,
+      CelCompiler celParser) {
     super(
         definitionService,
         transitionService,
@@ -103,7 +109,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     this.structureService = structureService;
     this.archetypeService = archetypeService;
     this.appraisalService = appraisalService;
-    this.celParser = CelCompilerFactory.standardCelCompilerBuilder().build();
+    this.celParser = celParser;
   }
 
   @Override
@@ -127,10 +133,10 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       validateAssertion(statement.get("assertion").asText());
     }
 
-    UUID structureId = extractRequiredUuid(statement, "structure");
+    UUID structureId = UUID.fromString(statement.get("structure").asText());
     StructureEntity structure = structureService.findEntityById(structureId);
 
-    UUID qualifierId = extractRequiredUuid(statement, "qualifier");
+    UUID qualifierId = UUID.fromString(statement.get("qualifier").asText());
     ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
 
     // Semantic validations (after references are resolved)
@@ -145,7 +151,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     if (statement.has("assertion")) {
       validateAssertionPropertyPaths(statement.get("assertion").asText(), qualifier);
     }
-    validateToleranceModeConsistency(statement);
 
     return new NormEntity(definition, archetypeRef, statement, structure, qualifier);
   }
@@ -154,7 +159,10 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   @Override
   public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
-    var n = (NormEntity) entity;
+    if (!(entity instanceof NormEntity n)) {
+      throw new IllegalArgumentException(
+          "Expected NormEntity, got " + entity.getClass().getSimpleName());
+    }
     return List.of(
         new RefereeReference(n.getStructure(), "structure"),
         new RefereeReference(n.getQualifier(), "qualifier"));
@@ -176,7 +184,10 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
-    var n = (NormEntity) entity;
+    if (!(entity instanceof NormEntity n)) {
+      throw new IllegalArgumentException(
+          "Expected NormEntity, got " + entity.getClass().getSimpleName());
+    }
     var values = new LinkedHashMap<String, Object>();
     values.put("structure", n.getStructure().getDefinition().getId());
     values.put("qualifier", n.getQualifier().getDefinition().getId());
@@ -189,7 +200,10 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
 
   @Override
   public void validateActivationUniqueness(AscriptionEntity entity) {
-    var norm = (NormEntity) entity;
+    if (!(entity instanceof NormEntity norm)) {
+      throw new IllegalArgumentException(
+          "Expected NormEntity, got " + entity.getClass().getSimpleName());
+    }
     appraisalService.validateGovernanceChain(norm);
     appraisalService.validateNormCompatibility(norm);
   }
@@ -198,7 +212,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
    * Returns norms sharing the same structure definition, filtered by statuses.
    *
    * @param structureDefinitionId the structure definition UUID
-   * @param statuses the lifecycle statuses to match
+   * @param statuses              the lifecycle statuses to match
    * @return the matching norm entities
    */
   public List<NormEntity> findAllByStructureDefinitionIdAndStatusIn(
@@ -207,7 +221,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // CEL Applicability profile validation (inlined from CelProfileValidator)
+  // CEL Applicability profile validation
   // ======================================================================
 
   /** Package-private for test access. */
@@ -458,7 +472,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     switch (kind.getKind()) {
       case SELECT -> {
         String axis = extractAxis(expr);
-        if (axis != null) axes.add(axis);
+        if (axis != null)
+          axes.add(axis);
       }
       case CALL -> {
         CelExpr.CelCall call = kind.call();
@@ -474,7 +489,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   private static String extractAxis(CelExpr expr) {
-    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT) return null;
+    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT)
+      return null;
     CelExpr.CelSelect sel = expr.exprKind().select();
     String field = sel.field();
     CelExpr operand = sel.operand();
@@ -488,8 +504,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
       CelExpr firstSelect = operand;
       while (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT
-          && firstSelect.exprKind().select().operand().exprKind().getKind()
-              != CelExpr.ExprKind.Kind.IDENT) {
+          && firstSelect.exprKind().select().operand().exprKind().getKind() != CelExpr.ExprKind.Kind.IDENT) {
         firstSelect = firstSelect.exprKind().select().operand();
       }
       if (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
@@ -653,7 +668,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     collectAxes(ast, axes);
     for (String axis : axes) {
       int dot = axis.indexOf('.');
-      if (dot <= 0) continue;
+      if (dot <= 0)
+        continue;
       String archetypeName = axis.substring(0, dot);
       String propertyPath = axis.substring(dot + 1);
       // NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION
@@ -693,27 +709,26 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   // NORM_ASSERTION_AS_BOOLEAN_RESULT
   // ======================================================================
 
-  private static final Set<String> BOOLEAN_PRODUCING_OPS =
-      Set.of(
-          "_==_",
-          "_!=_",
-          "_<_",
-          "_<=_",
-          "_>_",
-          "_>=_",
-          "_&&_",
-          "_||_",
-          "!_",
-          "_!_",
-          "@in",
-          "matches",
-          "startsWith",
-          "endsWith",
-          "contains",
-          "has",
-          "exists",
-          "all",
-          "exists_one");
+  private static final Set<String> BOOLEAN_PRODUCING_OPS = Set.of(
+      "_==_",
+      "_!=_",
+      "_<_",
+      "_<=_",
+      "_>_",
+      "_>=_",
+      "_&&_",
+      "_||_",
+      "!_",
+      "_!_",
+      "@in",
+      "matches",
+      "startsWith",
+      "endsWith",
+      "contains",
+      "has",
+      "exists",
+      "all",
+      "exists_one");
 
   private static void validateAssertionBooleanResult(CelExpr ast) {
     CelExpr.ExprKind kind = ast.exprKind();
@@ -835,90 +850,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   // ======================================================================
-  // NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY
-  // ======================================================================
-
-  /** Package-private for test access. */
-  static void validateToleranceModeConsistency(JsonNode statement) {
-    if (!statement.has("toleranceMode")) return;
-    String mode = statement.get("toleranceMode").asText();
-    boolean hasWindow =
-        statement.has("temporalWindow") && !statement.get("temporalWindow").isNull();
-    boolean hasAggregation =
-        statement.has("temporalAggregation") && !statement.get("temporalAggregation").isNull();
-    boolean hasThreshold =
-        statement.has("sustainedThreshold") && !statement.get("sustainedThreshold").isNull();
-
-    switch (mode) {
-      case "INSTANTANEOUS" -> {
-        if (hasWindow || hasAggregation || hasThreshold) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-              "INSTANTANEOUS mode forbids temporalWindow, temporalAggregation,"
-                  + " and sustainedThreshold",
-              "toleranceMode",
-              mode,
-              "hasTemporalWindow",
-              hasWindow,
-              "hasTemporalAggregation",
-              hasAggregation,
-              "hasSustainedThreshold",
-              hasThreshold);
-        }
-      }
-      case "AGGREGATED" -> {
-        if (!hasWindow || !hasAggregation) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-              "AGGREGATED mode requires temporalWindow and temporalAggregation",
-              "toleranceMode",
-              mode,
-              "hasTemporalWindow",
-              hasWindow,
-              "hasTemporalAggregation",
-              hasAggregation);
-        }
-        if (hasThreshold) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-              "AGGREGATED mode forbids sustainedThreshold",
-              "toleranceMode",
-              mode);
-        }
-      }
-      case "SUSTAINED" -> {
-        if (!hasWindow || !hasAggregation || !hasThreshold) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-              "SUSTAINED mode requires temporalWindow, temporalAggregation,"
-                  + " and sustainedThreshold",
-              "toleranceMode",
-              mode,
-              "hasTemporalWindow",
-              hasWindow,
-              "hasTemporalAggregation",
-              hasAggregation,
-              "hasSustainedThreshold",
-              hasThreshold);
-        }
-        double threshold = statement.get("sustainedThreshold").asDouble();
-        if (threshold < 0.0 || threshold > 1.0) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-              "sustainedThreshold must be in [0, 1]. Found: " + threshold,
-              "toleranceMode",
-              mode,
-              "sustainedThreshold",
-              threshold);
-        }
-      }
-      default -> {
-        /* unknown mode — schema validation catches this */
-      }
-    }
-  }
-
-  // ======================================================================
   // Schema property resolution helper
   // ======================================================================
 
@@ -927,7 +858,8 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     JsonNode current = schema;
     for (String part : parts) {
       JsonNode props = current.get("properties");
-      if (props == null || !props.has(part)) return false;
+      if (props == null || !props.has(part))
+        return false;
       current = props.get(part);
     }
     return true;

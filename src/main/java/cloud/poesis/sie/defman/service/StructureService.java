@@ -1,29 +1,31 @@
 package cloud.poesis.sie.defman.service;
 
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
-import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import org.springframework.stereotype.Service;
 
 /**
  * GSM Structure ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link StructureEntity} ascriptions including purpose
+ * <p>
+ * Manages lifecycle and persistence of {@link StructureEntity} ascriptions
+ * including purpose
  * uniqueness validation at activation.
  *
  * @author Clément Cazaud
@@ -37,11 +39,11 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
   /**
    * Constructs the Structure service with its required dependencies.
    *
-   * @param structureRepo the structure repository
-   * @param definitionService the definition service
-   * @param transitionService the status transition service
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
+   * @param structureRepo         the structure repository
+   * @param definitionService     the definition service
+   * @param transitionService     the status transition service
+   * @param ascriptionService     the ascription service for cross-subtype queries
+   * @param entityManager         the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public StructureService(
@@ -100,31 +102,13 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
 
   @Override
   public void validateActivationUniqueness(AscriptionEntity entity) {
-    var stmt = entity.getStatement();
     // Statement is immutable and was validated at creation — purpose is guaranteed
     // non-null/non-blank.
-    String purpose = stmt.get("purpose").asText();
-    UUID thisDefId = entity.getDefinition().getId();
-    List<StructureEntity> inEffect =
-        structureRepo.findAllByStatusIn(
-            List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
-    for (StructureEntity s : inEffect) {
-      if (s.getDefinition().getId().equals(thisDefId)) continue;
-      String sPurpose =
-          s.getStatement().has("purpose") ? s.getStatement().get("purpose").asText() : null;
-      if (purpose.equals(sPurpose)) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-            "Structure purpose '" + purpose + "' already in effect",
-            "field",
-            "purpose",
-            "value",
-            purpose,
-            "conflictingAscriptionId",
-            s.getId(),
-            "conflictingDefinitionId",
-            s.getDefinition().getId());
-      }
-    }
+    String purpose = entity.getStatement().get("purpose").asText();
+    validatePropertyUniquenessAcrossDefinitions(
+        "purpose",
+        purpose,
+        entity.getDefinition().getId(),
+        structureRepo.findAllByStatusIn(AscriptionStatusType.IN_EFFECT));
   }
 }

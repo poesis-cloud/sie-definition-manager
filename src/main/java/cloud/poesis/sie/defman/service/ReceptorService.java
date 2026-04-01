@@ -22,8 +22,11 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Receptor ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link ReceptorEntity} ascriptions with constitutive
- * cascade from owning Mechanism and dependent cascade to downstream Interactions.
+ * <p>
+ * Manages lifecycle and persistence of {@link ReceptorEntity} ascriptions with
+ * constitutive
+ * cascade from owning Mechanism and dependent cascade to downstream
+ * Interactions.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -38,13 +41,14 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
   /**
    * Constructs the Receptor service with its required dependencies.
    *
-   * @param receptorRepo the receptor repository
-   * @param mechanismService the mechanism service for reference resolution
-   * @param archetypeService the archetype service for data archetype resolution
-   * @param definitionService the definition service
-   * @param transitionService the status transition service
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
+   * @param receptorRepo          the receptor repository
+   * @param mechanismService      the mechanism service for reference resolution
+   * @param archetypeService      the archetype service for data archetype
+   *                              resolution
+   * @param definitionService     the definition service
+   * @param transitionService     the status transition service
+   * @param ascriptionService     the ascription service for cross-subtype queries
+   * @param entityManager         the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public ReceptorService(
@@ -82,10 +86,10 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
   @Override
   public ReceptorEntity buildEntity(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID mechanismId = extractRequiredUuid(statement, "mechanism");
+    UUID mechanismId = UUID.fromString(statement.get("mechanism").asText());
     MechanismEntity mechanism = mechanismService.findEntityById(mechanismId);
 
-    UUID dataArchetypeId = extractRequiredUuid(statement, "archetype");
+    UUID dataArchetypeId = UUID.fromString(statement.get("archetype").asText());
     ArchetypeEntity dataArchetype = archetypeService.findEntityById(dataArchetypeId);
 
     return new ReceptorEntity(definition, archetypeRef, statement, mechanism, dataArchetype);

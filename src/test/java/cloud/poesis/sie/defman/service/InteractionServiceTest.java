@@ -7,6 +7,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
@@ -18,22 +33,11 @@ import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 /**
- * Tests Interaction-specific validation rules: - Effector/Receptor archetype compatibility (GSM
+ * Tests Interaction-specific validation rules: - Effector/Receptor archetype
+ * compatibility (GSM
  * Interaction validation rules) - Referee references and identity-bound values
  */
 @ExtendWith(MockitoExtension.class)
@@ -42,27 +46,29 @@ class InteractionServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private EffectorService effectorService;
+  @Mock
+  private EffectorService effectorService;
 
-  @Mock private ReceptorService receptorService;
+  @Mock
+  private ReceptorService receptorService;
 
-  @Mock private InteractionRepository interactionRepo;
+  @Mock
+  private InteractionRepository interactionRepo;
 
   private InteractionService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new InteractionService(
-            interactionRepo,
-            effectorService,
-            receptorService,
-            mock(ArchetypeRepository.class),
-            mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
+    service = new InteractionService(
+        interactionRepo,
+        effectorService,
+        receptorService,
+        mock(ArchetypeRepository.class),
+        mock(DefinitionService.class),
+        mock(AscriptionStatusTransitionService.class),
+        mock(AscriptionService.class),
+        mock(EntityManager.class),
+        mock(DataProtectionService.class));
   }
 
   // ========================================================================
@@ -114,10 +120,9 @@ class InteractionServiceTest {
       DefinitionEntity definition = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(definition, archetypeRef, statement));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.buildEntity(definition, archetypeRef, statement));
       assertEquals(
           AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
           ex.getRuleType());
@@ -193,22 +198,6 @@ class InteractionServiceTest {
   class StatementCompliance {
 
     @Test
-    void missingRequiredField_rejected() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode emptyStatement = MAPPER.createObjectNode();
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-          ex.getRuleType());
-      assertTrue(ex.getMessage().contains("effector"));
-    }
-
-    @Test
     void extensionSchemaViolation_rejected() {
       // Schema with a required tenant-extension property (not GSM-base:
       // effector/receptor)
@@ -227,9 +216,8 @@ class InteractionServiceTest {
 
       ObjectNode statement = MAPPER.createObjectNode(); // missing customField
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class, () -> service.validateStatement(statement, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -268,8 +256,7 @@ class InteractionServiceTest {
 
     @Test
     void otherType_returnsEmpty() {
-      var result =
-          service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
+      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
 
       assertTrue(result.isEmpty());
     }

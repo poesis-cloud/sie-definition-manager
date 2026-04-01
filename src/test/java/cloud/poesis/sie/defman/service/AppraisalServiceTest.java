@@ -9,18 +9,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.entity.DirectiveEntity;
-import cloud.poesis.sie.defman.entity.NormEntity;
-import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,17 +22,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.entity.DirectiveEntity;
+import cloud.poesis.sie.defman.entity.NormEntity;
+import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
+
 /**
  * Tests AppraisalService governance appraisal rules:
  *
  * <ul>
- *   <li>DIRECTIVE_COMPATIBILITY_ON_VERB — contradictory verb detection
- *   <li>DIRECTIVE_COMPATIBILITY_ON_MODAL — contradictory modal detection
- *   <li>NORM_DIRECTED — directive backing validation (governance chain)
- *   <li>NORM_COMPATIBILITY — overlapping norm detection
+ * <li>DIRECTIVE_COMPATIBILITY_ON_VERB — contradictory verb detection
+ * <li>DIRECTIVE_COMPATIBILITY_ON_MODAL — contradictory modal detection
+ * <li>NORM_DIRECTED — directive backing validation (governance chain)
+ * <li>NORM_COMPATIBILITY — overlapping norm detection
  * </ul>
  *
- * <p>These rules enforce inter-ascription governance coherence at activation time, which is
+ * <p>
+ * These rules enforce inter-ascription governance coherence at activation time,
+ * which is
  * fundamental to GSM's DNA governance grammar integrity.
  */
 @ExtendWith(MockitoExtension.class)
@@ -49,15 +54,22 @@ class AppraisalServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private DirectiveService directiveService;
-  @Mock private NormService normService;
-  @Mock private ArchetypeService archetypeService;
+  @Mock
+  private DirectiveService directiveService;
+  @Mock
+  private NormService normService;
+  @Mock
+  private ArchetypeService archetypeService;
 
   private AppraisalService service;
 
   @BeforeEach
   void setUp() {
-    service = new AppraisalService(directiveService, normService, archetypeService);
+    service = new AppraisalService(
+        directiveService,
+        normService,
+        archetypeService,
+        dev.cel.compiler.CelCompilerFactory.standardCelCompilerBuilder().build());
   }
 
   // ========================================================================
@@ -155,15 +167,13 @@ class AppraisalServiceTest {
     @Test
     void ensureVsPrevent_contradicts() {
       DirectiveEntity directive = stubDirective("ENSURE", "MUST", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "PREVENT", "MUST", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "PREVENT", "MUST", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.validateDirectiveCompatibility(directive));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateDirectiveCompatibility(directive));
       assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
       assertTrue(ex.getMessage().contains("ENSURE"));
       assertTrue(ex.getMessage().contains("PREVENT"));
@@ -172,15 +182,13 @@ class AppraisalServiceTest {
     @Test
     void preventVsEnsure_contradicts() {
       DirectiveEntity directive = stubDirective("PREVENT", "MUST", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.validateDirectiveCompatibility(directive));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateDirectiveCompatibility(directive));
       assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
     }
 
@@ -188,8 +196,7 @@ class AppraisalServiceTest {
     void nonContradictoryVerbs_passes() {
       // ENSURE vs MAINTAIN — not in CONTRADICTORY_VERB_PAIRS
       DirectiveEntity directive = stubDirective("ENSURE", "MUST", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "MAINTAIN", "MUST", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "MAINTAIN", "MUST", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
@@ -218,15 +225,13 @@ class AppraisalServiceTest {
     @Test
     void sameVerbMustVsMustNot_contradicts() {
       DirectiveEntity directive = stubDirective("ENSURE", "MUST", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST_NOT", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST_NOT", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.validateDirectiveCompatibility(directive));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateDirectiveCompatibility(directive));
       assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
       assertTrue(ex.getMessage().contains("MUST"));
       assertTrue(ex.getMessage().contains("MUST_NOT"));
@@ -235,24 +240,22 @@ class AppraisalServiceTest {
     @Test
     void sameVerbShouldVsShouldNot_contradicts() {
       DirectiveEntity directive = stubDirective("OPTIMIZE", "SHOULD", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "OPTIMIZE", "SHOULD_NOT", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "OPTIMIZE", "SHOULD_NOT", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.validateDirectiveCompatibility(directive));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateDirectiveCompatibility(directive));
       assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
     }
 
     @Test
     void sameVerbDifferentTier_logsWarning_noException() {
-      // MUST ENSURE vs MAY ENSURE — different tiers, no contradiction, just precedence warning
+      // MUST ENSURE vs MAY ENSURE — different tiers, no contradiction, just
+      // precedence warning
       DirectiveEntity directive = stubDirective("ENSURE", "MUST", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "ENSURE", "MAY", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "ENSURE", "MAY", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
@@ -262,8 +265,7 @@ class AppraisalServiceTest {
     @Test
     void sameVerbSameTierSameModal_noConflict() {
       DirectiveEntity directive = stubDirective("ENSURE", "MUST", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
@@ -273,10 +275,10 @@ class AppraisalServiceTest {
 
     @Test
     void sameVerbDifferentModal_shouldVsMay_logsWarning() {
-      // SHOULD ENSURE vs MAY ENSURE — different modal, both not contradictions, tier differs
+      // SHOULD ENSURE vs MAY ENSURE — different modal, both not contradictions, tier
+      // differs
       DirectiveEntity directive = stubDirective("ENSURE", "SHOULD", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "ENSURE", "MAY", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "ENSURE", "MAY", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
@@ -287,8 +289,7 @@ class AppraisalServiceTest {
     void sameVerbDifferentModal_mayVsMust_reverseWinnerPath() {
       // MAY ENSURE vs MUST ENSURE — "this" has lower precedence than sibling
       DirectiveEntity directive = stubDirective("ENSURE", "MAY", "test-purpose");
-      DirectiveEntity sibling =
-          stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST", "test-purpose");
+      DirectiveEntity sibling = stubDirectiveWithSameQualifier(directive, "ENSURE", "MUST", "test-purpose");
 
       when(directiveService.findAllInEffectByPurpose("test-purpose")).thenReturn(List.of(sibling));
 
@@ -308,8 +309,8 @@ class AppraisalServiceTest {
       NormEntity norm = stubNorm("structure-purpose");
       when(directiveService.findAllInEffectByPurpose("structure-purpose")).thenReturn(List.of());
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.validateGovernanceChain(norm));
+      RuleViolationException ex = assertThrows(RuleViolationException.class,
+          () -> service.validateGovernanceChain(norm));
       assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
       assertTrue(ex.getMessage().contains("No in-effect Directive"));
     }
@@ -346,8 +347,8 @@ class AppraisalServiceTest {
       when(archetypeService.getAncestorTitles(directive.getQualifier().getId()))
           .thenReturn(Set.of("Security"));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.validateGovernanceChain(norm));
+      RuleViolationException ex = assertThrows(RuleViolationException.class,
+          () -> service.validateGovernanceChain(norm));
       assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
       assertTrue(ex.getMessage().contains("no overlap"));
     }
@@ -486,7 +487,8 @@ class AppraisalServiceTest {
 
     @Test
     void siblingWithMissingAssertionField_noError() {
-      // Sibling has no "assertion" key in statement → exercises ternary fallback to ""
+      // Sibling has no "assertion" key in statement → exercises ternary fallback to
+      // ""
       NormEntity norm = stubNormForCompatibility("score > 0.5", UUID.randomUUID());
       NormEntity sibling = stubNormForCompatibility("", UUID.randomUUID());
       setSameStructureDef(norm, sibling);
@@ -616,7 +618,8 @@ class AppraisalServiceTest {
 
   private DirectiveEntity stubDirectiveWithSameQualifier(
       DirectiveEntity ref, String verb, String modal, String purpose) {
-    // Extract qualifier reference BEFORE any when() to avoid Mockito state confusion
+    // Extract qualifier reference BEFORE any when() to avoid Mockito state
+    // confusion
     ArchetypeEntity sharedQualifier = ref.getQualifier();
 
     UUID sibDefId = UUID.randomUUID();

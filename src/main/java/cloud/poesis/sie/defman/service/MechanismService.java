@@ -1,5 +1,22 @@
 package cloud.poesis.sie.defman.service;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -17,17 +34,7 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import net.starlark.java.syntax.Argument;
 import net.starlark.java.syntax.AssignmentStatement;
 import net.starlark.java.syntax.CallExpression;
@@ -45,16 +52,15 @@ import net.starlark.java.syntax.StarlarkFile;
 import net.starlark.java.syntax.Statement;
 import net.starlark.java.syntax.StringLiteral;
 import net.starlark.java.syntax.SyntaxError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
 
 /**
  * GSM Mechanism ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link MechanismEntity} ascriptions including Starlark
- * rule structural validation, auto-derivation of Effectors and Receptors from the rule AST, and
+ * <p>
+ * Manages lifecycle and persistence of {@link MechanismEntity} ascriptions
+ * including Starlark
+ * rule structural validation, auto-derivation of Effectors and Receptors from
+ * the rule AST, and
  * governing cascade from owning Structure.
  *
  * @author Clément Cazaud
@@ -67,43 +73,41 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   // Starlark validation constants (from StarlarkRuleValidator)
   // ======================================================================
 
-  private static final Set<String> ALLOWED_GLOBALS =
-      Set.of("sys", "now", "uuid7", "fullmatch", "search");
+  private static final Set<String> ALLOWED_GLOBALS = Set.of("sys", "now", "uuid7", "fullmatch", "search");
 
-  private static final Set<String> STARLARK_BUILTINS =
-      Set.of(
-          "True",
-          "False",
-          "None",
-          "bool",
-          "dict",
-          "float",
-          "int",
-          "list",
-          "str",
-          "tuple",
-          "type",
-          "abs",
-          "all",
-          "any",
-          "dir",
-          "enumerate",
-          "fail",
-          "getattr",
-          "hasattr",
-          "hash",
-          "len",
-          "max",
-          "min",
-          "print",
-          "range",
-          "repr",
-          "reversed",
-          "sorted",
-          "zip",
-          "map",
-          "filter",
-          "struct");
+  private static final Set<String> STARLARK_BUILTINS = Set.of(
+      "True",
+      "False",
+      "None",
+      "bool",
+      "dict",
+      "float",
+      "int",
+      "list",
+      "str",
+      "tuple",
+      "type",
+      "abs",
+      "all",
+      "any",
+      "dir",
+      "enumerate",
+      "fail",
+      "getattr",
+      "hasattr",
+      "hash",
+      "len",
+      "max",
+      "min",
+      "print",
+      "range",
+      "repr",
+      "reversed",
+      "sorted",
+      "zip",
+      "map",
+      "filter",
+      "struct");
 
   private static final Set<String> SYS_METHODS = Set.of("effect", "receive");
 
@@ -116,7 +120,10 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   /** Valid read-only properties on the sys namespace object. */
   private static final Set<String> SYS_PROPERTIES = Set.of("id");
 
-  /** GSM §Mechanism V14: maximum number of top-level statements allowed in a Mechanism rule. */
+  /**
+   * GSM §Mechanism V14: maximum number of top-level statements allowed in a
+   * Mechanism rule.
+   */
   static final int MAX_RULE_STATEMENTS = 200;
 
   private static final Logger LOG = LoggerFactory.getLogger(MechanismService.class);
@@ -126,20 +133,25 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   private final ArchetypeService archetypeService;
   private final EffectorService effectorService;
   private final ReceptorService receptorService;
+  private final ObjectMapper objectMapper;
 
   /**
    * Constructs the Mechanism service with its required dependencies.
    *
-   * @param mechanismRepo the mechanism repository
-   * @param structureService the structure service for reference resolution
-   * @param archetypeService the archetype service for data archetype resolution
-   * @param effectorService the effector service for port auto-derivation (lazy to break cycle)
-   * @param receptorService the receptor service for port auto-derivation (lazy to break cycle)
-   * @param definitionService the definition service
-   * @param transitionService the status transition service
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
+   * @param mechanismRepo         the mechanism repository
+   * @param structureService      the structure service for reference resolution
+   * @param archetypeService      the archetype service for data archetype
+   *                              resolution
+   * @param effectorService       the effector service for port auto-derivation
+   *                              (lazy to break cycle)
+   * @param receptorService       the receptor service for port auto-derivation
+   *                              (lazy to break cycle)
+   * @param definitionService     the definition service
+   * @param transitionService     the status transition service
+   * @param ascriptionService     the ascription service for cross-subtype queries
+   * @param entityManager         the JPA entity manager
    * @param dataProtectionService the data protection service
+   * @param objectMapper          the shared Jackson ObjectMapper
    */
   public MechanismService(
       MechanismRepository mechanismRepo,
@@ -152,7 +164,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       AscriptionStatusTransitionService transitionService,
       AscriptionService ascriptionService,
       EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
+      DataProtectionService dataProtectionService,
+      ObjectMapper objectMapper) {
     super(
         definitionService,
         transitionService,
@@ -165,6 +178,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     this.archetypeService = archetypeService;
     this.effectorService = effectorService;
     this.receptorService = receptorService;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -180,7 +194,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   @Override
   public MechanismEntity buildEntity(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID structureId = extractRequiredUuid(statement, "structure");
+    UUID structureId = UUID.fromString(statement.get("structure").asText());
     StructureEntity structure = structureService.findEntityById(structureId);
 
     MechanismEntity entity = new MechanismEntity(definition, archetypeRef, statement, structure);
@@ -208,7 +222,10 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   @Override
   public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
-    var m = (MechanismEntity) entity;
+    if (!(entity instanceof MechanismEntity m)) {
+      throw new IllegalArgumentException(
+          "Expected MechanismEntity, got " + entity.getClass().getSimpleName());
+    }
     return List.of(new RefereeReference(m.getStructure(), "structure"));
   }
 
@@ -228,7 +245,10 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
-    var m = (MechanismEntity) entity;
+    if (!(entity instanceof MechanismEntity m)) {
+      throw new IllegalArgumentException(
+          "Expected MechanismEntity, got " + entity.getClass().getSimpleName());
+    }
     return Map.of(
         "structure", m.getStructure().getDefinition().getId(),
         "function", m.getStatement().get("function").asText());
@@ -236,54 +256,32 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
 
   @Override
   public void validateActivationUniqueness(AscriptionEntity entity) {
-    var m = (MechanismEntity) entity;
+    if (!(entity instanceof MechanismEntity m)) {
+      throw new IllegalArgumentException(
+          "Expected MechanismEntity, got " + entity.getClass().getSimpleName());
+    }
     // Statement is immutable and was validated at creation — function is guaranteed
     // non-null/non-blank.
     String function = m.getStatement().get("function").asText();
     UUID structureDefId = m.getStructure().getDefinition().getId();
-    UUID thisDefId = m.getDefinition().getId();
-    List<MechanismEntity> inEffect =
+    validatePropertyUniquenessAcrossDefinitions(
+        "function",
+        function,
+        m.getDefinition().getId(),
         mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-            structureDefId, List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED));
-    for (MechanismEntity sibling : inEffect) {
-      if (sibling.getDefinition().getId().equals(thisDefId)) continue;
-      String sibFunc =
-          sibling.getStatement().has("function")
-              ? sibling.getStatement().get("function").asText()
-              : null;
-      if (function.equals(sibFunc)) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-            "Mechanism function '" + function + "' already in-effect for another definition",
-            "property",
-            "function",
-            "value",
-            function,
-            "conflictingAscriptionId",
-            sibling.getId(),
-            "conflictingDefinitionId",
-            sibling.getDefinition().getId());
-      }
-    }
+            structureDefId, AscriptionStatusType.IN_EFFECT));
   }
 
   // ======================================================================
-  // Starlark rule validation (inlined from StarlarkRuleValidator)
+  // Starlark rule validation
   // ======================================================================
 
   /**
-   * Validates a Starlark rule and returns the trigger archetype name. Package-private for test
+   * Validates a Starlark rule and returns the trigger archetype name.
+   * Package-private for test
    * access.
    */
   String validateStarlarkRule(String rule) {
-    if (rule == null || rule.isBlank()) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-          "Mechanism rule must not be null or blank",
-          "field",
-          "rule");
-    }
-
     StarlarkFile file = parseStarlark(rule);
 
     // GSM §Mechanism V14: execution budget — reject rules exceeding statement limit
@@ -494,7 +492,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   private CallExpression extractSysReceiveCall(StarlarkFile file) {
     for (Statement stmt : file.getStatements()) {
       CallExpression found = extractSysReceiveFromExpr(stmt);
-      if (found != null) return found;
+      if (found != null)
+        return found;
     }
     return null;
   }
@@ -517,10 +516,12 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     for (Statement stmt : file.getStatements()) {
       if (stmt instanceof ExpressionStatement es
           && es.getExpression() instanceof CallExpression call) {
-        if (isSysReceiveChain(call)) count++;
+        if (isSysReceiveChain(call))
+          count++;
       }
       if (stmt instanceof AssignmentStatement as && as.getRHS() instanceof CallExpression call) {
-        if (isSysReceiveChain(call)) count++;
+        if (isSysReceiveChain(call))
+          count++;
       }
     }
     return count;
@@ -535,12 +536,14 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   private void validateSysCallsInExpr(Expression expr) {
-    if (!(expr instanceof CallExpression call)) return;
+    if (!(expr instanceof CallExpression call))
+      return;
 
     // sys.effect() chains
     if (isSysEffectChain(call)) {
       List<ChainLink> chain = unwrapEffectChain(call);
-      if (chain.isEmpty()) return;
+      if (chain.isEmpty())
+        return;
 
       // Validate chain order: effect → [by] → [receive → [on]]
       validateChainOrder(chain);
@@ -590,10 +593,12 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   /** A link in a sys.effect() fluent chain. */
-  private record ChainLink(String method, List<Argument> args) {}
+  private record ChainLink(String method, List<Argument> args) {
+  }
 
   /**
-   * Check if a CallExpression is a sys.effect() chain (possibly with .by/.receive/.on methods).
+   * Check if a CallExpression is a sys.effect() chain (possibly with
+   * .by/.receive/.on methods).
    * Walks from outermost call to innermost, looking for sys.effect root.
    */
   private boolean isSysEffectChain(CallExpression call) {
@@ -608,7 +613,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   /**
-   * Check if a CallExpression is a sys.receive() chain (possibly with .on). Walks from outermost
+   * Check if a CallExpression is a sys.receive() chain (possibly with .on). Walks
+   * from outermost
    * call to innermost, looking for sys.receive root.
    */
   private boolean isSysReceiveChain(CallExpression call) {
@@ -623,7 +629,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   /**
-   * Unwrap a sys.effect() fluent chain from outermost to innermost, returning links in natural
+   * Unwrap a sys.effect() fluent chain from outermost to innermost, returning
+   * links in natural
    * order: [effect, by, receive, on].
    */
   private List<ChainLink> unwrapEffectChain(CallExpression call) {
@@ -632,14 +639,16 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
       links.add(new ChainLink(dot.getField().getName(), c.getArguments()));
       current = dot.getObject();
-      if (current instanceof Identifier) break;
+      if (current instanceof Identifier)
+        break;
     }
     Collections.reverse(links);
     return links;
   }
 
   /**
-   * Unwrap a sys.receive() fluent chain from outermost to innermost, returning links in natural
+   * Unwrap a sys.receive() fluent chain from outermost to innermost, returning
+   * links in natural
    * order: [receive, on].
    */
   private List<ChainLink> unwrapReceiveChain(CallExpression call) {
@@ -648,14 +657,16 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
       links.add(new ChainLink(dot.getField().getName(), c.getArguments()));
       current = dot.getObject();
-      if (current instanceof Identifier) break;
+      if (current instanceof Identifier)
+        break;
     }
     Collections.reverse(links);
     return links;
   }
 
   /**
-   * Validate chain order: effect → [by] → [receive → [on]]. State machine with 4 states: EFFECT →
+   * Validate chain order: effect → [by] → [receive → [on]]. State machine with 4
+   * states: EFFECT →
    * BY → RECEIVE → ON.
    */
   private void validateChainOrder(List<ChainLink> chain) {
@@ -671,13 +682,12 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     int state = 0; // 0=effect, 1=by, 2=receive, 3=on
     for (int i = 1; i < chain.size(); i++) {
       String method = chain.get(i).method();
-      int next =
-          switch (method) {
-            case "by" -> 1;
-            case "receive" -> 2;
-            case "on" -> 3;
-            default -> -1;
-          };
+      int next = switch (method) {
+        case "by" -> 1;
+        case "receive" -> 2;
+        case "on" -> 3;
+        default -> -1;
+      };
       if (next == -1) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
@@ -813,7 +823,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   private void collectSysArchetypeNamesInExpr(Expression expr, Set<String> names) {
-    if (!(expr instanceof CallExpression call)) return;
+    if (!(expr instanceof CallExpression call))
+      return;
 
     if (isSysEffectChain(call)) {
       List<ChainLink> chain = unwrapEffectChain(call);
@@ -845,30 +856,38 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   private void validateDictLiteralInSysCall(Expression expr) {
-    if (!(expr instanceof CallExpression call)) return;
-    if (!isSysEffectChain(call)) return;
+    if (!(expr instanceof CallExpression call))
+      return;
+    if (!isSysEffectChain(call))
+      return;
 
     // Unwrap chain to find root effect() args
     List<ChainLink> chain = unwrapEffectChain(call);
-    if (chain.isEmpty()) return;
+    if (chain.isEmpty())
+      return;
 
     ChainLink effectLink = chain.get(0);
     List<Argument> args = effectLink.args();
-    if (args.size() < 2) return;
+    if (args.size() < 2)
+      return;
 
     // First arg = archetype name; second arg = data dict
     Expression firstArg = args.get(0).getValue();
-    if (!(firstArg instanceof StringLiteral sl)) return;
+    if (!(firstArg instanceof StringLiteral sl))
+      return;
     String archetypeName = sl.getValue();
 
     Expression secondArg = args.get(1).getValue();
-    if (!(secondArg instanceof DictExpression dict)) return;
+    if (!(secondArg instanceof DictExpression dict))
+      return;
 
     ArchetypeEntity archetype = archetypeService.findInEffectBySchemaTitle(archetypeName);
-    if (archetype == null) return; // Archetype not yet in-effect; can't validate
+    if (archetype == null)
+      return; // Archetype not yet in-effect; can't validate
 
     JsonNode schema = archetype.getStatement();
-    if (schema == null || !schema.has("properties")) return;
+    if (schema == null || !schema.has("properties"))
+      return;
 
     JsonNode properties = schema.get("properties");
     Set<String> schemaKeys = new HashSet<>();
@@ -893,15 +912,22 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   // ======================================================================
 
   /**
-   * A derived port signature from Starlark AST analysis. direction: "effector" or "receptor"
-   * dataArchetypeName: the data archetype schema.title portArchetypeName: optional port archetype
-   * name (from .by()/.on()); null means use base EffectorArchetype/ReceptorArchetype
+   * A derived port signature from Starlark AST analysis. direction: "effector" or
+   * "receptor"
+   * dataArchetypeName: the data archetype schema.title portArchetypeName:
+   * optional port archetype
+   * name (from .by()/.on()); null means use base
+   * EffectorArchetype/ReceptorArchetype
    */
-  record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {}
+  record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {
+  }
 
   @Override
   protected void afterCreate(AscriptionEntity saved) {
-    MechanismEntity mechanism = (MechanismEntity) saved;
+    if (!(saved instanceof MechanismEntity mechanism)) {
+      throw new IllegalArgumentException(
+          "Expected MechanismEntity, got " + saved.getClass().getSimpleName());
+    }
     String rule = mechanism.getStatement().get("rule").asText();
     StarlarkFile file = parseStarlark(rule);
     List<PortSignature> signatures = collectPortSignatures(file);
@@ -916,15 +942,18 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
    * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
    *
    * <ul>
-   *   <li>sys.receive("X") → Receptor for X (trigger, base ReceptorArchetype)
-   *   <li>sys.receive("X").on("R") → Receptor for X (trigger, port type R)
-   *   <li>sys.effect("A", data) → Effector for A (base EffectorArchetype)
-   *   <li>sys.effect("A", data).by("E") → Effector for A (port type E)
-   *   <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F (base types)
-   *   <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor for F (port type
-   *       R)
-   *   <li>sys.effect("A", data).by("E").receive("F").on("R") → Effector for A (port type E) +
-   *       Receptor for F (port type R)
+   * <li>sys.receive("X") → Receptor for X (trigger, base ReceptorArchetype)
+   * <li>sys.receive("X").on("R") → Receptor for X (trigger, port type R)
+   * <li>sys.effect("A", data) → Effector for A (base EffectorArchetype)
+   * <li>sys.effect("A", data).by("E") → Effector for A (port type E)
+   * <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F
+   * (base types)
+   * <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor
+   * for F (port type
+   * R)
+   * <li>sys.effect("A", data).by("E").receive("F").on("R") → Effector for A (port
+   * type E) +
+   * Receptor for F (port type R)
    * </ul>
    */
   List<PortSignature> collectPortSignatures(StarlarkFile file) {
@@ -952,24 +981,28 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     } else if (stmt instanceof AssignmentStatement as) {
       expr = as.getRHS();
     }
-    if (expr == null) return;
-    if (!(expr instanceof CallExpression call)) return;
-    if (!isSysReceiveChain(call)) return;
+    if (expr == null)
+      return;
+    if (!(expr instanceof CallExpression call))
+      return;
+    if (!isSysReceiveChain(call))
+      return;
 
     List<ChainLink> chain = unwrapReceiveChain(call);
-    if (chain.isEmpty()) return;
+    if (chain.isEmpty())
+      return;
 
     String dataArchetype = null;
     String portArchetype = null;
     for (ChainLink link : chain) {
-      String arg =
-          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
-              ? sl.getValue()
-              : null;
+      String arg = (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
+          ? sl.getValue()
+          : null;
       switch (link.method()) {
         case "receive" -> dataArchetype = arg;
         case "on" -> portArchetype = arg;
-        default -> {}
+        default -> {
+        }
       }
     }
     if (dataArchetype != null) {
@@ -986,12 +1019,16 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       expr = as.getRHS();
     }
 
-    if (expr == null) return;
-    if (!(expr instanceof CallExpression call)) return;
-    if (!isSysEffectChain(call)) return;
+    if (expr == null)
+      return;
+    if (!(expr instanceof CallExpression call))
+      return;
+    if (!isSysEffectChain(call))
+      return;
 
     List<ChainLink> chain = unwrapEffectChain(call);
-    if (chain.isEmpty()) return;
+    if (chain.isEmpty())
+      return;
 
     // Extract data from chain: effect("A"), by("E"), receive("F"), on("R")
     String dataArchetype = null;
@@ -1000,20 +1037,21 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     String receptorPortArchetype = null;
 
     for (ChainLink link : chain) {
-      String arg =
-          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
-              ? sl.getValue()
-              : null;
+      String arg = (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
+          ? sl.getValue()
+          : null;
       switch (link.method()) {
         case "effect" -> dataArchetype = arg;
         case "by" -> effectorPortArchetype = arg;
         case "receive" -> receiveArchetype = arg;
         case "on" -> receptorPortArchetype = arg;
-        default -> {}
+        default -> {
+        }
       }
     }
 
-    if (dataArchetype == null) return;
+    if (dataArchetype == null)
+      return;
 
     // Always derive Effector for the effect() data archetype
     signatures.add(new PortSignature("effector", dataArchetype, effectorPortArchetype));
@@ -1025,30 +1063,29 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   /**
-   * GSM §Mechanism U12: derive port entities with Definition reuse. Match existing Definitions by
-   * (Mechanism Definition, data Archetype, direction). Resolves tenant port archetypes from
-   * PortSignature.portArchetypeName (falls back to base EffectorArchetype/ReceptorArchetype).
+   * GSM §Mechanism U12: derive port entities with Definition reuse. Match
+   * existing Definitions by
+   * (Mechanism Definition, data Archetype, direction). Resolves tenant port
+   * archetypes from
+   * PortSignature.portArchetypeName (falls back to base
+   * EffectorArchetype/ReceptorArchetype).
    */
   private void derivePortEntities(MechanismEntity mechanism, List<PortSignature> signatures) {
     // Resolve base typing archetypes (fallback when no port archetype specified)
-    ArchetypeEntity baseEffectorArchetype =
-        archetypeService.findInEffectBySchemaTitle("EffectorArchetype");
-    ArchetypeEntity baseReceptorArchetype =
-        archetypeService.findInEffectBySchemaTitle("ReceptorArchetype");
+    ArchetypeEntity baseEffectorArchetype = archetypeService.findInEffectBySchemaTitle("EffectorArchetype");
+    ArchetypeEntity baseReceptorArchetype = archetypeService.findInEffectBySchemaTitle("ReceptorArchetype");
     if (baseEffectorArchetype == null || baseReceptorArchetype == null) {
       LOG.warn("Base EffectorArchetype/ReceptorArchetype not in-effect; skipping auto-derivation");
       return;
     }
 
     UUID mechanismDefId = mechanism.getDefinition().getId();
-    ObjectMapper mapper = new ObjectMapper();
 
     // Deduplicate signatures
     Set<PortSignature> unique = new HashSet<>(signatures);
 
     for (PortSignature sig : unique) {
-      ArchetypeEntity dataArchetype =
-          archetypeService.findInEffectBySchemaTitle(sig.dataArchetypeName());
+      ArchetypeEntity dataArchetype = archetypeService.findInEffectBySchemaTitle(sig.dataArchetypeName());
       if (dataArchetype == null) {
         LOG.warn(
             "Auto-derivation: data Archetype '{}' not in-effect; skipping port",
@@ -1057,19 +1094,20 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       }
 
       if ("effector".equals(sig.direction())) {
-        ArchetypeEntity portArchetype =
-            resolvePortArchetype(sig.portArchetypeName(), baseEffectorArchetype, "Effector");
-        deriveEffector(mechanism, mechanismDefId, portArchetype, dataArchetype, mapper);
+        ArchetypeEntity portArchetype = resolvePortArchetype(sig.portArchetypeName(), baseEffectorArchetype,
+            "Effector");
+        deriveEffector(mechanism, mechanismDefId, portArchetype, dataArchetype);
       } else {
-        ArchetypeEntity portArchetype =
-            resolvePortArchetype(sig.portArchetypeName(), baseReceptorArchetype, "Receptor");
-        deriveReceptor(mechanism, mechanismDefId, portArchetype, dataArchetype, mapper);
+        ArchetypeEntity portArchetype = resolvePortArchetype(sig.portArchetypeName(), baseReceptorArchetype,
+            "Receptor");
+        deriveReceptor(mechanism, mechanismDefId, portArchetype, dataArchetype);
       }
     }
   }
 
   /**
-   * Resolve a port archetype by name, falling back to the base archetype if the name is null or the
+   * Resolve a port archetype by name, falling back to the base archetype if the
+   * name is null or the
    * named archetype is not in-effect.
    */
   private ArchetypeEntity resolvePortArchetype(
@@ -1093,32 +1131,28 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       MechanismEntity mechanism,
       UUID mechanismDefId,
       ArchetypeEntity effectorArchetype,
-      ArchetypeEntity dataArchetype,
-      ObjectMapper mapper) {
+      ArchetypeEntity dataArchetype) {
     // U12: reuse existing Definition by matching (mechanism def, data archetype,
     // direction)
-    DefinitionEntity definition =
-        findOrCreatePortDefinition(
-            mechanismDefId,
-            dataArchetype.getDefinition().getId(),
-            effectorService.findAllByMechanismDefinitionId(mechanismDefId),
-            e ->
-                ((EffectorEntity) e)
-                    .getOutputArchetype()
-                    .getDefinition()
-                    .getId()
-                    .equals(dataArchetype.getDefinition().getId()),
-            DefinitionSubjectType.EFFECTOR);
+    DefinitionEntity definition = findOrCreatePortDefinition(
+        mechanismDefId,
+        dataArchetype.getDefinition().getId(),
+        effectorService.findAllByMechanismDefinitionId(mechanismDefId),
+        e -> ((EffectorEntity) e)
+            .getOutputArchetype()
+            .getDefinition()
+            .getId()
+            .equals(dataArchetype.getDefinition().getId()),
+        DefinitionSubjectType.EFFECTOR);
 
-    ObjectNode statement = mapper.createObjectNode();
+    ObjectNode statement = objectMapper.createObjectNode();
     statement.put("mechanism", mechanismDefId.toString());
     statement.put("archetype", dataArchetype.getDefinition().getId().toString());
 
-    EffectorEntity effector =
-        new EffectorEntity(definition, effectorArchetype, statement, mechanism, dataArchetype);
+    EffectorEntity effector = new EffectorEntity(definition, effectorArchetype, statement, mechanism, dataArchetype);
     EffectorEntity saved = effectorService.save(effector);
-    getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
-    getEntityManager().refresh(saved);
+    transitionService.recordTransition(saved, null, AscriptionStatusType.DRAFT);
+    entityManager.refresh(saved);
     LOG.debug(
         "Auto-derived Effector {} for data archetype {}",
         saved.getId(),
@@ -1129,32 +1163,28 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
       MechanismEntity mechanism,
       UUID mechanismDefId,
       ArchetypeEntity receptorArchetype,
-      ArchetypeEntity dataArchetype,
-      ObjectMapper mapper) {
+      ArchetypeEntity dataArchetype) {
     // U12: reuse existing Definition by matching (mechanism def, data archetype,
     // direction)
-    DefinitionEntity definition =
-        findOrCreatePortDefinition(
-            mechanismDefId,
-            dataArchetype.getDefinition().getId(),
-            receptorService.findAllByMechanismDefinitionId(mechanismDefId),
-            e ->
-                ((ReceptorEntity) e)
-                    .getInputArchetype()
-                    .getDefinition()
-                    .getId()
-                    .equals(dataArchetype.getDefinition().getId()),
-            DefinitionSubjectType.RECEPTOR);
+    DefinitionEntity definition = findOrCreatePortDefinition(
+        mechanismDefId,
+        dataArchetype.getDefinition().getId(),
+        receptorService.findAllByMechanismDefinitionId(mechanismDefId),
+        e -> ((ReceptorEntity) e)
+            .getInputArchetype()
+            .getDefinition()
+            .getId()
+            .equals(dataArchetype.getDefinition().getId()),
+        DefinitionSubjectType.RECEPTOR);
 
-    ObjectNode statement = mapper.createObjectNode();
+    ObjectNode statement = objectMapper.createObjectNode();
     statement.put("mechanism", mechanismDefId.toString());
     statement.put("archetype", dataArchetype.getDefinition().getId().toString());
 
-    ReceptorEntity receptor =
-        new ReceptorEntity(definition, receptorArchetype, statement, mechanism, dataArchetype);
+    ReceptorEntity receptor = new ReceptorEntity(definition, receptorArchetype, statement, mechanism, dataArchetype);
     ReceptorEntity saved = receptorService.save(receptor);
-    getTransitionService().recordTransition(saved, null, AscriptionStatusType.DRAFT);
-    getEntityManager().refresh(saved);
+    transitionService.recordTransition(saved, null, AscriptionStatusType.DRAFT);
+    entityManager.refresh(saved);
     LOG.debug(
         "Auto-derived Receptor {} for data archetype {}",
         saved.getId(),
@@ -1162,7 +1192,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   /**
-   * GSM §Mechanism U12: find existing port Definition matching (mechanism def, data archetype), or
+   * GSM §Mechanism U12: find existing port Definition matching (mechanism def,
+   * data archetype), or
    * create a new one.
    */
   private DefinitionEntity findOrCreatePortDefinition(
@@ -1176,6 +1207,6 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
         return existing.getDefinition();
       }
     }
-    return getDefinitionService().create(portType);
+    return definitionService.create(portType);
   }
 }

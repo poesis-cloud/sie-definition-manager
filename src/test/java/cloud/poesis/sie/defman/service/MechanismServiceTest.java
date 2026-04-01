@@ -10,6 +10,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
@@ -26,24 +43,10 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 import net.starlark.java.syntax.FileOptions;
 import net.starlark.java.syntax.ParserInput;
 import net.starlark.java.syntax.StarlarkFile;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -51,39 +54,47 @@ class MechanismServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private MechanismRepository mechanismRepo;
+  @Mock
+  private MechanismRepository mechanismRepo;
 
-  @Mock private EffectorService effectorService;
+  @Mock
+  private EffectorService effectorService;
 
-  @Mock private ReceptorService receptorService;
+  @Mock
+  private ReceptorService receptorService;
 
-  @Mock private StructureService structureService;
+  @Mock
+  private StructureService structureService;
 
-  @Mock private ArchetypeService archetypeService;
+  @Mock
+  private ArchetypeService archetypeService;
 
-  @Mock private DefinitionService definitionService;
+  @Mock
+  private DefinitionService definitionService;
 
-  @Mock private AscriptionStatusTransitionService transitionService;
+  @Mock
+  private AscriptionStatusTransitionService transitionService;
 
-  @Mock private EntityManager entityManager;
+  @Mock
+  private EntityManager entityManager;
 
   private MechanismService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new MechanismService(
-            mechanismRepo,
-            structureService,
-            archetypeService,
-            mock(ArchetypeRepository.class),
-            effectorService,
-            receptorService,
-            definitionService,
-            transitionService,
-            mock(AscriptionService.class),
-            entityManager,
-            mock(DataProtectionService.class));
+    service = new MechanismService(
+        mechanismRepo,
+        structureService,
+        archetypeService,
+        mock(ArchetypeRepository.class),
+        effectorService,
+        receptorService,
+        definitionService,
+        transitionService,
+        mock(AscriptionService.class),
+        entityManager,
+        mock(DataProtectionService.class),
+        new com.fasterxml.jackson.databind.ObjectMapper());
   }
 
   // ========================================================================
@@ -144,8 +155,7 @@ class MechanismServiceTest {
         stubGenerativeModeValid(thisDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId, AscriptionStatusType.IN_EFFECT))
             .thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -163,13 +173,11 @@ class MechanismServiceTest {
         stubGenerativeModeValid(thisDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId, AscriptionStatusType.IN_EFFECT))
             .thenReturn(List.of(existing));
 
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
         assertEquals(
             AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
             ex.getRuleType());
@@ -188,8 +196,7 @@ class MechanismServiceTest {
         stubGenerativeModeValid(defId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId, AscriptionStatusType.IN_EFFECT))
             .thenReturn(List.of(existing));
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -207,8 +214,7 @@ class MechanismServiceTest {
         stubGenerativeModeValid(thisDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId, AscriptionStatusType.IN_EFFECT))
             .thenReturn(List.of(existing));
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -224,8 +230,7 @@ class MechanismServiceTest {
         stubGenerativeModeValid(thisDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId1,
-                List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId1, AscriptionStatusType.IN_EFFECT))
             .thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -284,10 +289,9 @@ class MechanismServiceTest {
 
       @Test
       void onTrigger_producesReceptor() {
-        List<PortSignature> sigs =
-            service.collectPortSignatures(
-                parse(
-                    """
+        List<PortSignature> sigs = service.collectPortSignatures(
+            parse(
+                """
                     sys.receive("AlertEvent")
                     sys.effect("NotificationEvent", {"level": "warn"})
                     """));
@@ -295,17 +299,15 @@ class MechanismServiceTest {
         assertTrue(
             sigs.stream()
                 .anyMatch(
-                    s ->
-                        "receptor".equals(s.direction())
-                            && "AlertEvent".equals(s.dataArchetypeName())));
+                    s -> "receptor".equals(s.direction())
+                        && "AlertEvent".equals(s.dataArchetypeName())));
       }
 
       @Test
       void onAssigned_producesReceptor() {
-        List<PortSignature> sigs =
-            service.collectPortSignatures(
-                parse(
-                    """
+        List<PortSignature> sigs = service.collectPortSignatures(
+            parse(
+                """
                     evt = sys.receive("IncomingOrder")
                     sys.effect("OrderAck", {"ok": True})
                     """));
@@ -313,9 +315,8 @@ class MechanismServiceTest {
         assertTrue(
             sigs.stream()
                 .anyMatch(
-                    s ->
-                        "receptor".equals(s.direction())
-                            && "IncomingOrder".equals(s.dataArchetypeName())));
+                    s -> "receptor".equals(s.direction())
+                        && "IncomingOrder".equals(s.dataArchetypeName())));
       }
     }
 
@@ -324,9 +325,8 @@ class MechanismServiceTest {
 
       @Test
       void sysEffect_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("OutputEvent", {"data": 1})
                 """);
@@ -336,9 +336,8 @@ class MechanismServiceTest {
 
       @Test
       void sysEffectWithBy_producesTypedEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("OutputEvent", {"data": 1}).by("CustomEffector")
                 """);
@@ -348,9 +347,8 @@ class MechanismServiceTest {
 
       @Test
       void multipleSysEffects_eachProducesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("A", {})
                 sys.effect("B", {"x": 1})
@@ -368,9 +366,8 @@ class MechanismServiceTest {
 
       @Test
       void effectWithReceive_producesEffectorAndReceptor() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("NewRecord", {"id": "x"}).receive("Feedback")
                 """);
@@ -381,9 +378,8 @@ class MechanismServiceTest {
 
       @Test
       void effectWithReceiveAndOn_producesTypedReceptor() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("Record", {"id": "x"}).receive("Ack").on("AckPort")
                 """);
@@ -394,21 +390,18 @@ class MechanismServiceTest {
 
       @Test
       void effectWithoutReceive_noFeedbackReceptor() {
-        List<PortSignature> sigs =
-            service.collectPortSignatures(
-                parse(
-                    """
+        List<PortSignature> sigs = service.collectPortSignatures(
+            parse(
+                """
                     sys.receive("Trigger")
                     sys.effect("NewRecord", {"id": "x"})
                     """));
 
-        long receptorCount =
-            sigs.stream()
-                .filter(
-                    s ->
-                        "receptor".equals(s.direction())
-                            && "NewRecord".equals(s.dataArchetypeName()))
-                .count();
+        long receptorCount = sigs.stream()
+            .filter(
+                s -> "receptor".equals(s.direction())
+                    && "NewRecord".equals(s.dataArchetypeName()))
+            .count();
         assertEquals(0, receptorCount, "effect() without .receive() should not produce receptor");
       }
     }
@@ -418,9 +411,8 @@ class MechanismServiceTest {
 
       @Test
       void effectWithReceive_producesFeedbackReceptor() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("Request", {}).receive("ResponseType")
                 """);
@@ -435,9 +427,8 @@ class MechanismServiceTest {
 
       @Test
       void sysCallInsideForLoop_producesEffector() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Batch")
                 items = [1, 2, 3]
                 for item in items:
@@ -449,9 +440,8 @@ class MechanismServiceTest {
 
       @Test
       void sysCallWithReceiveInForLoop_producesClosedLoop() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Batch")
                 items = [1, 2, 3]
                 for item in items:
@@ -468,9 +458,8 @@ class MechanismServiceTest {
 
       @Test
       void complexRule_allPortTypes() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 evt = sys.receive("PaymentRequest")
                 sys.effect("PaymentRecord", {"amount": 100}).receive("PaymentAck")
                 sys.effect("PaymentProcessed", {"status": "ok"})
@@ -487,9 +476,8 @@ class MechanismServiceTest {
 
       @Test
       void complexRule_correctCounts() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 evt = sys.receive("PaymentRequest")
                 sys.effect("PaymentRecord", {"amount": 100}).receive("PaymentAck")
                 sys.effect("PaymentProcessed", {"status": "ok"})
@@ -508,21 +496,18 @@ class MechanismServiceTest {
 
       @Test
       void duplicateEffectors_deduplicatedInUniqueSet() {
-        Set<PortSignature> sigs =
-            uniqueSignatures(
-                """
+        Set<PortSignature> sigs = uniqueSignatures(
+            """
                 sys.receive("Trigger")
                 sys.effect("SameEvent", {"a": 1})
                 sys.effect("SameEvent", {"b": 2})
                 """);
 
-        long effectorCount =
-            sigs.stream()
-                .filter(
-                    s ->
-                        "effector".equals(s.direction())
-                            && "SameEvent".equals(s.dataArchetypeName()))
-                .count();
+        long effectorCount = sigs.stream()
+            .filter(
+                s -> "effector".equals(s.direction())
+                    && "SameEvent".equals(s.dataArchetypeName()))
+            .count();
         assertEquals(1, effectorCount, "Duplicate effectors should be deduplicated");
       }
     }
@@ -540,8 +525,7 @@ class MechanismServiceTest {
 
       @Test
       void minimalRule_onTriggerOnly() {
-        String rule =
-            """
+        String rule = """
             sys.receive("AlertEvent")
             sys.effect("NotificationEvent", {"level": "warn"})
             """;
@@ -551,8 +535,7 @@ class MechanismServiceTest {
 
       @Test
       void onWithAssignment() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("IncomingOrder")
             sys.effect("OrderRecord", {"id": uuid7(), "data": evt})
             """;
@@ -562,8 +545,7 @@ class MechanismServiceTest {
 
       @Test
       void multipleSysCalls() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("PaymentRequest")
             sys.effect("PaymentRecord", {"amount": evt}).receive("PaymentAck")
             sys.effect("PaymentProcessed", {"status": "ok"})
@@ -575,8 +557,7 @@ class MechanismServiceTest {
 
       @Test
       void withConditionalLogic() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("ValidationRequest")
             if evt:
                 sys.effect("ValidationOk", {"valid": True})
@@ -587,8 +568,7 @@ class MechanismServiceTest {
 
       @Test
       void withForLoop() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("BatchInput")
             items = [1, 2, 3]
             for item in items:
@@ -599,8 +579,7 @@ class MechanismServiceTest {
 
       @Test
       void withLocalVariables() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("SomeEvent")
             x = 42
             name = "hello"
@@ -611,8 +590,7 @@ class MechanismServiceTest {
 
       @Test
       void withBuiltinFunctions() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("Input")
             length = len("hello")
             items = sorted([3, 1, 2])
@@ -623,8 +601,7 @@ class MechanismServiceTest {
 
       @Test
       void withHostFunctions() {
-        String rule =
-            """
+        String rule = """
             evt = sys.receive("Input")
             ts = now()
             id = uuid7()
@@ -637,8 +614,7 @@ class MechanismServiceTest {
 
       @Test
       void allChainPatterns() {
-        String rule =
-            """
+        String rule = """
             sys.receive("Trigger")
             sys.effect("A", {})
             sys.effect("B", {}).by("BPort")
@@ -654,37 +630,9 @@ class MechanismServiceTest {
     class SyntaxErrors {
 
       @Test
-      void nullRule_rejected() {
-        RuleViolationException ex =
-            assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(null));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            ex.getRuleType());
-      }
-
-      @Test
-      void emptyRule_rejected() {
-        RuleViolationException ex =
-            assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule(""));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            ex.getRuleType());
-      }
-
-      @Test
-      void blankRule_rejected() {
-        RuleViolationException ex =
-            assertThrows(RuleViolationException.class, () -> service.validateStarlarkRule("   "));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            ex.getRuleType());
-      }
-
-      @Test
       void invalidSyntax_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateStarlarkRule("def foo(:::"));
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class, () -> service.validateStarlarkRule("def foo(:::"));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING, ex.getRuleType());
         assertTrue(ex.getMessage().contains("syntax error"));
@@ -696,10 +644,9 @@ class MechanismServiceTest {
 
       @Test
       void missingOnTrigger_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateStarlarkRule("sys.effect(\"X\", {})"));
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule("sys.effect(\"X\", {})"));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
             ex.getRuleType());
@@ -708,12 +655,10 @@ class MechanismServiceTest {
 
       @Test
       void onWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive()
                     sys.effect("X", {})
                     """));
@@ -725,12 +670,10 @@ class MechanismServiceTest {
 
       @Test
       void onWithVariableArg_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     name = "Foo"
                     sys.receive(name)
                     sys.effect("X", {})
@@ -743,12 +686,10 @@ class MechanismServiceTest {
 
       @Test
       void onWithEmptyString_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("")
                     sys.effect("X", {})
                     """));
@@ -760,12 +701,10 @@ class MechanismServiceTest {
 
       @Test
       void multipleOnCalls_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("First")
                     sys.receive("Second")
                     """));
@@ -781,12 +720,10 @@ class MechanismServiceTest {
 
       @Test
       void loadStatement_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     load("module.bzl", "helper")
                     sys.receive("X")
                     sys.effect("Y", {})
@@ -803,12 +740,10 @@ class MechanismServiceTest {
 
       @Test
       void sysEffectWithVariableArchetype_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     archetype = "DynamicType"
                     sys.effect(archetype, {})
@@ -820,12 +755,10 @@ class MechanismServiceTest {
 
       @Test
       void sysEffectWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect()
                     """));
@@ -836,12 +769,10 @@ class MechanismServiceTest {
 
       @Test
       void sysEffectWithTooManyArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("A", {}, "extra")
                     """));
@@ -852,12 +783,10 @@ class MechanismServiceTest {
 
       @Test
       void chainByWithVariableArg_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     port = "MyPort"
                     sys.effect("Output", {}).by(port)
@@ -869,12 +798,10 @@ class MechanismServiceTest {
 
       @Test
       void chainReceiveWithNoArgs_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {}).receive()
                     """));
@@ -885,12 +812,10 @@ class MechanismServiceTest {
 
       @Test
       void chainOnWithoutReceive_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {}).on("MyPort")
                     """));
@@ -900,12 +825,10 @@ class MechanismServiceTest {
 
       @Test
       void chainWrongOrder_receiveBeforeBy_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {}).receive("Ack").by("Port")
                     """));
@@ -915,12 +838,10 @@ class MechanismServiceTest {
 
       @Test
       void chainUnknownMethod_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {}).then("X")
                     """));
@@ -930,12 +851,10 @@ class MechanismServiceTest {
 
       @Test
       void chainDuplicateReceive_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {}).receive("A").receive("B")
                     """));
@@ -948,12 +867,10 @@ class MechanismServiceTest {
 
       @Test
       void unknownGlobal_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     result = unknown_func()
                     sys.effect("Output", {"r": result})
@@ -967,12 +884,10 @@ class MechanismServiceTest {
 
       @Test
       void unknownVariable_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {"val": external_var})
                     """));
@@ -988,8 +903,7 @@ class MechanismServiceTest {
 
       @Test
       void sysId_valid() {
-        String rule =
-            """
+        String rule = """
             sys.receive("Input")
             sys.effect("Output", {"mechanismId": sys.id})
             """;
@@ -998,12 +912,10 @@ class MechanismServiceTest {
 
       @Test
       void sysUnknownProperty_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {"name": sys.name})
                     """));
@@ -1016,12 +928,10 @@ class MechanismServiceTest {
 
       @Test
       void sysUnknownProperty_version_rejected() {
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () ->
-                    service.validateStarlarkRule(
-                        """
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStarlarkRule(
+                """
                     sys.receive("Input")
                     sys.effect("Output", {"v": sys.version})
                     """));
@@ -1050,9 +960,8 @@ class MechanismServiceTest {
         for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
           sb.append("sys.effect(\"E\", {\"i\": ").append(i).append("})\n");
         }
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
         assertTrue(ex.getMessage().contains("execution budget"));
@@ -1065,9 +974,8 @@ class MechanismServiceTest {
         for (int i = 0; i < MechanismService.MAX_RULE_STATEMENTS; i++) {
           sb.append("    sys.effect(\"E\", {\"i\": ").append(i).append("})\n");
         }
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class, () -> service.validateStarlarkRule(sb.toString()));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
         assertTrue(ex.getMessage().contains("execution budget"));
@@ -1095,16 +1003,15 @@ class MechanismServiceTest {
 
       DefinitionEntity archDef = mock(DefinitionEntity.class);
       when(archDef.getId()).thenReturn(UUID.randomUUID());
-      cloud.poesis.sie.defman.entity.ArchetypeEntity archetype =
-          mock(cloud.poesis.sie.defman.entity.ArchetypeEntity.class);
+      cloud.poesis.sie.defman.entity.ArchetypeEntity archetype = mock(
+          cloud.poesis.sie.defman.entity.ArchetypeEntity.class);
       when(archetype.getStatement()).thenReturn(schema);
       when(archetype.getDefinition()).thenReturn(archDef);
 
       ObjectNode statement = MAPPER.createObjectNode(); // missing customField
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class, () -> service.validateStatement(statement, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -1137,17 +1044,6 @@ class MechanismServiceTest {
       assertNotNull(result);
       assertEquals(def, result.getDefinition());
       assertEquals(structure, result.getStructure());
-    }
-
-    @Test
-    void missingStructure_rejected() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("function", "X");
-      stmt.put("rule", "sys.receive(\"A\")\nsys.effect(\"B\", {})");
-
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
     }
 
     @Test
@@ -1424,12 +1320,10 @@ class MechanismServiceTest {
 
     @Test
     void receiveOnWithNoArgs_rejected() {
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger").on()
                   sys.effect("X", {})
                   """));
@@ -1441,12 +1335,10 @@ class MechanismServiceTest {
 
     @Test
     void receiveOnWithNonStringArg_rejected() {
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   name = "Port"
                   sys.receive("Trigger").on(name)
                   sys.effect("X", {})
@@ -1458,12 +1350,10 @@ class MechanismServiceTest {
 
     @Test
     void receiveUnknownChainMethod_rejected() {
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger").then("X")
                   sys.effect("Y", {})
                   """));
@@ -1474,9 +1364,8 @@ class MechanismServiceTest {
 
     @Test
     void receiveWithValidOn_accepted() {
-      String trigger =
-          service.validateStarlarkRule(
-              """
+      String trigger = service.validateStarlarkRule(
+          """
               sys.receive("Trigger").on("ReceptorPort")
               sys.effect("X", {})
               """);
@@ -1508,9 +1397,8 @@ class MechanismServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("PersonArchetype")).thenReturn(archetype);
 
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("PersonArchetype", {"name": "John", "age": 30})
                   """));
@@ -1533,9 +1421,8 @@ class MechanismServiceTest {
 
       // "unknownField" is not in schema → LOG.warn but no throw
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("PersonArchetype", {"name": "ok", "unknownField": True})
                   """));
@@ -1545,9 +1432,8 @@ class MechanismServiceTest {
     void archetypeNotInEffect_skipsValidation() {
       when(archetypeService.findInEffectBySchemaTitle("SomeType")).thenReturn(null);
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("SomeType", {"key": "val"})
                   """));
@@ -1567,9 +1453,8 @@ class MechanismServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("BareType")).thenReturn(archetype);
 
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("BareType", {"key": "val"})
                   """));
@@ -1579,9 +1464,8 @@ class MechanismServiceTest {
     void singleArgEffect_skipsDictCheck() {
       // sys.effect("X") with only one arg → no dict to validate
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("SomeArch")
                   """));
@@ -1602,9 +1486,8 @@ class MechanismServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("ItemEvent")).thenReturn(archetype);
 
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   items = [1, 2]
                   for x in items:
@@ -1628,9 +1511,8 @@ class MechanismServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("ResultType")).thenReturn(archetype);
 
       assertDoesNotThrow(
-          () ->
-              service.validateStarlarkRule(
-                  """
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   result = sys.effect("ResultType", {"data": "ok"})
                   """));
@@ -1646,12 +1528,10 @@ class MechanismServiceTest {
 
     @Test
     void unknownInForBodyAssignment_rejected() {
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   data = [1, 2, 3]
                   for x in data:
@@ -1665,12 +1545,10 @@ class MechanismServiceTest {
 
     @Test
     void unknownInForCollection_rejected() {
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   for x in external_list:
                       sys.effect("Out", {"val": x})
@@ -1683,12 +1561,10 @@ class MechanismServiceTest {
     @Test
     void unknownInListExpression_rejected() {
       // Test ListExpression branch in collectUnknownGlobalsInExpr
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("Out", {"list": [forbidden_var]})
                   """));
@@ -1700,12 +1576,10 @@ class MechanismServiceTest {
     @Test
     void unknownInDictExpression_rejected() {
       // Test DictExpression branch in collectUnknownGlobalsInExpr
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  service.validateStarlarkRule(
-                      """
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.validateStarlarkRule(
+              """
                   sys.receive("Trigger")
                   sys.effect("Out", {forbidden_key: "val"})
                   """));
@@ -1900,8 +1774,7 @@ class MechanismServiceTest {
   @Test
   void getRepository_returnsMechanismRepo() {
     // Exercise getRepository() indirectly via findAll (Page)
-    org.springframework.data.domain.Pageable pageable =
-        org.springframework.data.domain.PageRequest.of(0, 10);
+    org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
     when(mechanismRepo.findAll(pageable)).thenReturn(org.springframework.data.domain.Page.empty());
     var result = service.findAll(pageable);
     assertTrue(result.isEmpty());

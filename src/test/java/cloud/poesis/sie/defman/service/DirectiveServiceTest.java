@@ -8,24 +8,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.entity.DirectiveEntity;
-import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import cloud.poesis.sie.defman.repository.DirectiveRepository;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
-import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.PrimitiveType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,36 +20,56 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import cloud.poesis.sie.defman.entity.DirectiveEntity;
+import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.repository.DirectiveRepository;
+import cloud.poesis.sie.defman.type.AppraisalRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.PrimitiveType;
+import jakarta.persistence.EntityManager;
+
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DirectiveServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private DirectiveRepository directiveRepo;
+  @Mock
+  private DirectiveRepository directiveRepo;
 
-  @Mock private StructureService structureService;
+  @Mock
+  private StructureService structureService;
 
-  @Mock private ArchetypeService archetypeService;
+  @Mock
+  private ArchetypeService archetypeService;
 
-  @Mock private AppraisalService appraisalService;
+  @Mock
+  private AppraisalService appraisalService;
 
   private DirectiveService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new DirectiveService(
-            directiveRepo,
-            structureService,
-            archetypeService,
-            mock(ArchetypeRepository.class),
-            mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class),
-            appraisalService);
+    service = new DirectiveService(
+        directiveRepo,
+        structureService,
+        archetypeService,
+        mock(ArchetypeRepository.class),
+        mock(DefinitionService.class),
+        mock(AscriptionStatusTransitionService.class),
+        mock(AscriptionService.class),
+        mock(EntityManager.class),
+        mock(DataProtectionService.class),
+        appraisalService);
   }
 
   // ========================================================================
@@ -157,30 +162,6 @@ class DirectiveServiceTest {
   }
 
   // ========================================================================
-  // Statement Compliance
-  // ========================================================================
-
-  @Nested
-  class StatementCompliance {
-
-    @Test
-    void missingRequiredField_rejected() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode emptyStatement = MAPPER.createObjectNode();
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(def, archetype, emptyStatement));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-          ex.getRuleType());
-      assertTrue(ex.getMessage().contains("structure"));
-    }
-  }
-
-  // ========================================================================
   // Helpers
   // ========================================================================
 
@@ -200,8 +181,7 @@ class DirectiveServiceTest {
     ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
     when(qualifier.getDefinition()).thenReturn(qualifierDef);
 
-    ObjectNode stmt =
-        MAPPER.createObjectNode().put("verb", verb).put("modal", modal).put("purpose", purpose);
+    ObjectNode stmt = MAPPER.createObjectNode().put("verb", verb).put("modal", modal).put("purpose", purpose);
 
     DirectiveEntity directive = mock(DirectiveEntity.class);
     when(directive.getDefinition()).thenReturn(defEntity);
@@ -269,17 +249,6 @@ class DirectiveServiceTest {
     }
 
     @Test
-    void missingStructure_rejected() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("qualifier", UUID.randomUUID().toString());
-      stmt.put("purpose", "some-purpose");
-
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
-    }
-
-    @Test
     void structureNotFound_rejected() {
       UUID structId = UUID.randomUUID();
       when(structureService.findEntityById(structId))
@@ -316,8 +285,7 @@ class DirectiveServiceTest {
 
     @Test
     void nonStructureSource_returnsEmpty() {
-      var result =
-          service.findCascadeTargetsFrom(DefinitionSubjectType.DIRECTIVE, UUID.randomUUID());
+      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.DIRECTIVE, UUID.randomUUID());
       assertTrue(result.isEmpty());
     }
   }
