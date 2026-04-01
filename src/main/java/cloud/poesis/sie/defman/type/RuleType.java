@@ -16,7 +16,7 @@ package cloud.poesis.sie.defman.type;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public sealed interface GsmRuleType
+public sealed interface RuleType
     permits AscriptionConsistencyRuleType, AscriptionStatusTransitionRuleType, AppraisalRuleType {
 
   /**

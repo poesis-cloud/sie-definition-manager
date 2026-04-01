@@ -570,6 +570,18 @@ class AbstractAscriptionServiceTest {
   @Nested
   class ValidateCreationPreconditions {
 
+    @BeforeEach
+    void setUpRealTransitionService() {
+      AscriptionStatusTransitionService realTransition =
+          new AscriptionStatusTransitionService(
+              mock(cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository.class),
+              entityManager,
+              List.of());
+      realTransition.initCascadeGraph();
+      org.springframework.test.util.ReflectionTestUtils.setField(
+          service, "transitionService", realTransition);
+    }
+
     @Test
     void noReferences_passes() {
       refereeReferences = List.of();

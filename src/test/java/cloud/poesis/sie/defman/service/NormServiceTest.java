@@ -60,7 +60,6 @@ class NormServiceTest {
     service =
         new NormService(
             normRepo,
-            directiveService,
             structureService,
             archetypeService,
             mock(ArchetypeRepository.class),
@@ -68,7 +67,12 @@ class NormServiceTest {
             mock(AscriptionStatusTransitionService.class),
             mock(AscriptionService.class),
             mock(EntityManager.class),
-            mock(DataProtectionService.class));
+            mock(DataProtectionService.class),
+            null);
+    AppraisalService appraisalService =
+        new AppraisalService(directiveService, service, archetypeService);
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        service, "appraisalService", appraisalService);
   }
 
   // ========================================================================

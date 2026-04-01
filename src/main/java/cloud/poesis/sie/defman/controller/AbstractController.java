@@ -13,7 +13,7 @@ import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URI;
 import java.util.Map;
@@ -181,7 +181,7 @@ public abstract class AbstractController {
    * @return the corresponding HTTP status
    */
   private static HttpStatus mapRuleViolationTypeToHttpStatus(RuleViolationException exception) {
-    GsmRuleType rule = exception.getRuleType();
+    RuleType rule = exception.getRuleType();
     if (rule instanceof AscriptionConsistencyRuleType rt) {
       return mapRuleTypeToHttpStatus(rt);
     }
@@ -191,7 +191,7 @@ public abstract class AbstractController {
     if (rule instanceof AppraisalRuleType) {
       return HttpStatus.CONFLICT;
     }
-    throw new IllegalStateException("Unhandled GsmRuleType: " + rule);
+    throw new IllegalStateException("Unhandled RuleType: " + rule);
   }
 
   private static HttpStatus mapRuleTypeToHttpStatus(AscriptionConsistencyRuleType rt) {

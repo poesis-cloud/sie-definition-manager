@@ -5,7 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionLifecycleService;
+import cloud.poesis.sie.defman.service.AscriptionStatusTransitionService;
 import cloud.poesis.sie.defman.service.DataProtectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -63,18 +63,19 @@ import org.springframework.web.server.ResponseStatusException;
 @Tag(name = "Transitions", description = "Lifecycle transitions for GSM ascriptions")
 public class AscriptionStatusTransitionController extends AbstractController {
 
-  private final AscriptionLifecycleService lifecycleService;
+  private final AscriptionStatusTransitionService transitionService;
 
   /**
    * Constructs the transition controller with its required services.
    *
-   * @param lifecycleService the lifecycle transition service
+   * @param transitionService the status transition service
    * @param dataProtectionService the data protection service
    */
   public AscriptionStatusTransitionController(
-      AscriptionLifecycleService lifecycleService, DataProtectionService dataProtectionService) {
+      AscriptionStatusTransitionService transitionService,
+      DataProtectionService dataProtectionService) {
     super(dataProtectionService);
-    this.lifecycleService = lifecycleService;
+    this.transitionService = transitionService;
   }
 
   @GetMapping
@@ -87,7 +88,7 @@ public class AscriptionStatusTransitionController extends AbstractController {
   public CollectionModel<EntityModel<AscriptionStatusTransitionDto>> getTransitions(
       @Parameter(description = "Ascription ID") @PathVariable UUID ascriptionId) {
     List<AscriptionStatusTransitionEntity> transitions =
-        lifecycleService.getTransitions(ascriptionId);
+        transitionService.getTransitions(ascriptionId);
     List<EntityModel<AscriptionStatusTransitionDto>> items = new ArrayList<>();
     for (int i = 0; i < transitions.size(); i++) {
       AscriptionStatusTransitionEntity t = transitions.get(i);
@@ -111,7 +112,7 @@ public class AscriptionStatusTransitionController extends AbstractController {
       @Parameter(description = "Ascription ID") @PathVariable UUID ascriptionId,
       @Parameter(description = "Transition ID") @PathVariable UUID transitionId) {
     AscriptionStatusTransitionEntity transition =
-        lifecycleService
+        transitionService
             .getTransition(transitionId, ascriptionId)
             .orElseThrow(
                 () ->
@@ -122,7 +123,7 @@ public class AscriptionStatusTransitionController extends AbstractController {
                             + " not found for ascription "
                             + ascriptionId));
     List<AscriptionStatusTransitionEntity> allTransitions =
-        lifecycleService.getTransitions(ascriptionId);
+        transitionService.getTransitions(ascriptionId);
     int index = -1;
     for (int i = 0; i < allTransitions.size(); i++) {
       if (allTransitions.get(i).getId().equals(transitionId)) {
@@ -155,11 +156,11 @@ public class AscriptionStatusTransitionController extends AbstractController {
       @Parameter(description = "Ascription ID") @PathVariable UUID ascriptionId,
       @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
     AscriptionStatusTransitionEntity saved =
-        lifecycleService.transition(ascriptionId, request.getTargetStatus().name());
+        transitionService.transition(ascriptionId, request.getTargetStatus().name());
     EntityModel<AscriptionStatusTransitionDto> model =
         EntityModel.of(mapEntityToAscriptionStatusTransitionDto(saved));
     List<AscriptionStatusTransitionEntity> allTransitions =
-        lifecycleService.getTransitions(ascriptionId);
+        transitionService.getTransitions(ascriptionId);
     int index = -1;
     for (int i = 0; i < allTransitions.size(); i++) {
       if (allTransitions.get(i).getId().equals(saved.getId())) {

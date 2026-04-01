@@ -9,7 +9,6 @@ import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
-import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -35,14 +34,12 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,12 +130,6 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
     this.entityManager = entityManager;
     this.dataProtectionService = dataProtectionService;
   }
-
-  // Referee precondition for [*]→DRAFT creation
-  private static final Set<AscriptionStatusType> CREATION_REFEREE_ALLOWED =
-      EnumSet.of(
-          AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED,
-          AscriptionStatusType.APPROVED, AscriptionStatusType.ACTIVE);
 
   // In-effect statuses for $gsm:unique enforcement
   private static final List<AscriptionStatusType> GSM_IN_EFFECT =
@@ -581,7 +572,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   // ======================================================================
-  // Lifecycle hooks (called by AscriptionLifecycleService)
+  // Lifecycle hooks (called by AscriptionStatusTransitionService)
   // ======================================================================
 
   /**
@@ -753,43 +744,12 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   // ======================================================================
-  // Creation referee preconditions (private — called from create())
+  // Creation referee preconditions (delegates to AscriptionStatusTransitionService)
   // ======================================================================
 
   void validateCreationPreconditions(AscriptionEntity entity) {
-    List<RefereeReference> refs = getRefereeReferences(entity);
-    if (refs.isEmpty()) {
-      return;
-    }
-
-    for (RefereeReference ref : refs) {
-      AscriptionStatusType refStatus = ref.reference().getStatus();
-      if (!CREATION_REFEREE_ALLOWED.contains(refStatus)) {
-        throw RuleViolationException.of(
-            AscriptionStatusTransitionRuleType
-                .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
-            "Referee '"
-                + ref.label()
-                + "' ("
-                + ref.reference().getId()
-                + ") is "
-                + refStatus.name()
-                + "; creation requires one of "
-                + CREATION_REFEREE_ALLOWED.stream().map(Enum::name).collect(Collectors.toSet()),
-            "fromStatus",
-            null,
-            "toStatus",
-            AscriptionStatusType.DRAFT.name(),
-            "refereeLabel",
-            ref.label(),
-            "refereeId",
-            ref.reference().getId(),
-            "refereeStatus",
-            refStatus.name(),
-            "requiredStatuses",
-            CREATION_REFEREE_ALLOWED.stream().map(Enum::name).collect(Collectors.toSet()));
-      }
-    }
+    transitionService.validateRefereePreconditions(
+        getRefereeReferences(entity), null, AscriptionStatusType.DRAFT);
   }
 
   // ======================================================================

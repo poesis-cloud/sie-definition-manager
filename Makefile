@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .EXPORT_ALL_VARIABLES:
 
-.PHONY: dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify
+.PHONY: dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime
 
 -include .env
 -include .env.dev
@@ -20,6 +20,12 @@ PORT_FORWARD_PID_FILE ?= .dev-port-forwards.pids
 define kill_port_listener
 	@ss -ltnp '( sport = :$(1) )' 2>/dev/null | awk -F'pid=' '/kubectl/ {split($$2, parts, /[,)]/); print parts[1]}' | xargs -r kill
 endef
+
+ensure-runtime:
+	@if [[ -n "$$XDG_RUNTIME_DIR" ]] && [[ ! -d "$$XDG_RUNTIME_DIR" ]]; then \
+		echo "Creating missing XDG_RUNTIME_DIR ($$XDG_RUNTIME_DIR)..."; \
+		sudo mkdir -p "$$XDG_RUNTIME_DIR" && sudo chown $$(id -u):$$(id -g) "$$XDG_RUNTIME_DIR" && chmod 700 "$$XDG_RUNTIME_DIR"; \
+	fi
 
 dev-check:
 	@command -v kubectl >/dev/null 2>&1 || { echo "Missing required command: kubectl"; exit 1; }
@@ -44,7 +50,7 @@ deploy-check:
 	@echo "deploy-check passed"
 
 dev-up:
-	@$(MAKE) dev-check
+	@$(MAKE) ensure-runtime
 	@: "$${DB_USER:?Missing DB_USER in .env.dev}"
 	@: "$${DB_PASSWORD:?Missing DB_PASSWORD in .env.dev}"
 	@: "$${DEF_DB_ADMIN_PASSWORD:?Missing DEF_DB_ADMIN_PASSWORD in .env.dev}"

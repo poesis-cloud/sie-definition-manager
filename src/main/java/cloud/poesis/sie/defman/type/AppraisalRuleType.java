@@ -11,7 +11,7 @@ package cloud.poesis.sie.defman.type;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public enum AppraisalRuleType implements GsmRuleType {
+public enum AppraisalRuleType implements RuleType {
 
   // ====================================================================
   // DIRECTIVE — governance compatibility

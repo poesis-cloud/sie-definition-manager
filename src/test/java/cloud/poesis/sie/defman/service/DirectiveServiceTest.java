@@ -61,7 +61,12 @@ class DirectiveServiceTest {
             mock(AscriptionStatusTransitionService.class),
             mock(AscriptionService.class),
             mock(EntityManager.class),
-            mock(DataProtectionService.class));
+            mock(DataProtectionService.class),
+            null);
+    AppraisalService appraisalService =
+        new AppraisalService(service, mock(NormService.class), archetypeService);
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        service, "appraisalService", appraisalService);
   }
 
   // ========================================================================

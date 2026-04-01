@@ -5,11 +5,9 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -18,10 +16,8 @@ import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -37,26 +33,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class DirectiveService extends AbstractAscriptionService<DirectiveEntity> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DirectiveService.class);
-
-  private static final Collection<AscriptionStatusType> CONSISTENCY_IN_EFFECT =
-      List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
-
-  private static final Set<Set<String>> CONTRADICTORY_VERB_PAIRS =
-      Set.of(Set.of("ENSURE", "PREVENT"));
-
-  /** Modal precedence tiers: higher value = higher precedence. */
-  static final Map<String, Integer> MODAL_PRECEDENCE =
-      Map.of(
-          "MUST", 3,
-          "MUST_NOT", 3,
-          "SHOULD", 2,
-          "SHOULD_NOT", 2,
-          "MAY", 1);
-
   private final DirectiveRepository directiveRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
+  private final AppraisalService appraisalService;
 
   /**
    * Constructs the Directive service with its required dependencies.
@@ -69,6 +49,8 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
+   * @param appraisalService the appraisal service for governance compatibility checks (lazy to
+   *     break circular dependency)
    */
   public DirectiveService(
       DirectiveRepository directiveRepo,
@@ -79,7 +61,8 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
       AscriptionStatusTransitionService transitionService,
       AscriptionService ascriptionService,
       EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
+      DataProtectionService dataProtectionService,
+      @Lazy AppraisalService appraisalService) {
     super(
         definitionService,
         transitionService,
@@ -90,6 +73,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
     this.directiveRepo = directiveRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
+    this.appraisalService = appraisalService;
   }
 
   @Override
@@ -154,6 +138,22 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
     return directiveRepo.findAllByPurposeDefinitionIdAndStatusIn(purposeDefinitionId, statuses);
   }
 
+  /**
+   * Returns directives sharing the same qualifier + purpose axis, filtered by statuses.
+   *
+   * @param qualifierDefinitionId the qualifier definition UUID
+   * @param purposeDefinitionId the purpose definition UUID
+   * @param statuses the lifecycle statuses to match
+   * @return the matching directive entities
+   */
+  public List<DirectiveEntity> findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
+      UUID qualifierDefinitionId,
+      UUID purposeDefinitionId,
+      Collection<AscriptionStatusType> statuses) {
+    return directiveRepo.findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
+        qualifierDefinitionId, purposeDefinitionId, statuses);
+  }
+
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     var d = (DirectiveEntity) entity;
@@ -165,119 +165,6 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
 
   @Override
   public void validateActivationUniqueness(AscriptionEntity entity) {
-    validateDirectiveConsistency((DirectiveEntity) entity);
-  }
-
-  // ======================================================================
-  // Directive consistency validation (inlined from DirectiveConsistencyValidator)
-  // ======================================================================
-
-  private void validateDirectiveConsistency(DirectiveEntity directive) {
-    UUID qualifierDefId = directive.getQualifier().getDefinition().getId();
-    UUID purposeDefId = directive.getPurpose().getDefinition().getId();
-    UUID thisDefId = directive.getDefinition().getId();
-
-    String verb = directive.getStatement().get("verb").asText();
-    String modal = directive.getStatement().get("modal").asText();
-
-    List<DirectiveEntity> siblings =
-        directiveRepo.findAllByQualifierDefinitionIdAndPurposeDefinitionIdAndStatusIn(
-            qualifierDefId, purposeDefId, CONSISTENCY_IN_EFFECT);
-
-    for (DirectiveEntity sibling : siblings) {
-      if (sibling.getDefinition().getId().equals(thisDefId)) {
-        continue;
-      }
-
-      String sibVerb = sibling.getStatement().get("verb").asText();
-      String sibModal = sibling.getStatement().get("modal").asText();
-
-      if (!verb.equals(sibVerb) && CONTRADICTORY_VERB_PAIRS.contains(Set.of(verb, sibVerb))) {
-        throw RuleViolationException.of(
-            AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB,
-            "Directive contradiction: "
-                + verb
-                + " and "
-                + sibVerb
-                + " on same qualifier (definition "
-                + qualifierDefId
-                + ") and purpose (definition "
-                + purposeDefId
-                + "). Conflicting directive: "
-                + sibling.getId(),
-            "verb",
-            verb,
-            "siblingVerb",
-            sibVerb,
-            "qualifierDefinitionId",
-            qualifierDefId,
-            "purposeDefinitionId",
-            purposeDefId,
-            "conflictingDirectiveId",
-            sibling.getId());
-      }
-
-      if (verb.equals(sibVerb) && areModalContradictions(modal, sibModal)) {
-        throw RuleViolationException.of(
-            AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL,
-            "Directive modal contradiction: "
-                + modal
-                + " "
-                + verb
-                + " vs "
-                + sibModal
-                + " "
-                + sibVerb
-                + " on same qualifier (definition "
-                + qualifierDefId
-                + ") and purpose (definition "
-                + purposeDefId
-                + "). Conflicting directive: "
-                + sibling.getId(),
-            "verb",
-            verb,
-            "siblingVerb",
-            sibVerb,
-            "modal",
-            modal,
-            "siblingModal",
-            sibModal,
-            "qualifierDefinitionId",
-            qualifierDefId,
-            "purposeDefinitionId",
-            purposeDefId,
-            "conflictingDirectiveId",
-            sibling.getId());
-      }
-
-      // GSM §DirectiveModal: modal precedence — higher tier overrides lower tier
-      if (verb.equals(sibVerb) && !modal.equals(sibModal)) {
-        int thisTier = MODAL_PRECEDENCE.getOrDefault(modal, 0);
-        int sibTier = MODAL_PRECEDENCE.getOrDefault(sibModal, 0);
-        if (thisTier != sibTier) {
-          String winner = thisTier > sibTier ? modal : sibModal;
-          String loser = thisTier > sibTier ? sibModal : modal;
-          LOG.warn(
-              "Directive modal precedence: {} {} overrides {} {} on verb {} "
-                  + "for qualifier (definition {}) and purpose (definition {}). "
-                  + "Overridden directive: {}",
-              winner,
-              verb,
-              loser,
-              verb,
-              verb,
-              qualifierDefId,
-              purposeDefId,
-              sibling.getId());
-        }
-      }
-    }
-  }
-
-  private static boolean areModalContradictions(String a, String b) {
-    return (a.equals("MUST") && b.equals("MUST_NOT"))
-        || (a.equals("MUST_NOT") && b.equals("MUST"))
-        || (a.equals("SHOULD") && b.equals("SHOULD_NOT"))
-        || (a.equals("SHOULD_NOT") && b.equals("SHOULD"));
+    appraisalService.validateDirectiveCompatibility((DirectiveEntity) entity);
   }
 }

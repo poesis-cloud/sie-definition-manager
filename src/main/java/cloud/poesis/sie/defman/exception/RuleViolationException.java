@@ -1,17 +1,17 @@
 package cloud.poesis.sie.defman.exception;
 
-import cloud.poesis.sie.defman.type.GsmRuleType;
+import cloud.poesis.sie.defman.type.RuleType;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Generic GSM rule-violation exception.
  *
- * <p>The {@link GsmRuleType} carries all semantic weight (which rule was violated); this class is a
+ * <p>The {@link RuleType} carries all semantic weight (which rule was violated); this class is a
  * thin carrier of {@code ruleType} + contextual {@code site} data describing the violating input
  * instances.
  *
- * <p>Depending on the {@code GsmRuleType}, the API layer maps instances of this exception to HTTP
+ * <p>Depending on the {@code RuleType}, the API layer maps instances of this exception to HTTP
  * {@code 400 Bad Request} or {@code 409 Conflict} responses, rendered as RFC 9457 {@code
  * ProblemDetail}.
  *
@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public class RuleViolationException extends RuntimeException {
 
-  private final GsmRuleType ruleType;
+  private final RuleType ruleType;
   private final Map<String, Object> site;
 
   /**
@@ -31,7 +31,7 @@ public class RuleViolationException extends RuntimeException {
    * @param site contextual key-value pairs describing the violating input instances; may be {@code
    *     null} (treated as empty)
    */
-  public RuleViolationException(GsmRuleType ruleType, String detail, Map<String, Object> site) {
+  public RuleViolationException(RuleType ruleType, String detail, Map<String, Object> site) {
     super(detail);
     this.ruleType = ruleType;
     this.site = site != null ? Map.copyOf(site) : Map.of();
@@ -43,7 +43,7 @@ public class RuleViolationException extends RuntimeException {
    * @param ruleType the violated GSM rule
    * @param detail human-readable description of the violation
    */
-  public RuleViolationException(GsmRuleType ruleType, String detail) {
+  public RuleViolationException(RuleType ruleType, String detail) {
     this(ruleType, detail, Map.of());
   }
 
@@ -57,7 +57,7 @@ public class RuleViolationException extends RuntimeException {
    * @param cause the underlying throwable that triggered this violation
    */
   public RuleViolationException(
-      GsmRuleType ruleType, String detail, Map<String, Object> site, Throwable cause) {
+      RuleType ruleType, String detail, Map<String, Object> site, Throwable cause) {
     super(detail, cause);
     this.ruleType = ruleType;
     this.site = site != null ? Map.copyOf(site) : Map.of();
@@ -66,10 +66,10 @@ public class RuleViolationException extends RuntimeException {
   /**
    * Returns the violated GSM rule.
    *
-   * @return the {@link GsmRuleType} identifying the specific rule that was violated; never {@code
+   * @return the {@link RuleType} identifying the specific rule that was violated; never {@code
    *     null}
    */
-  public GsmRuleType getRuleType() {
+  public RuleType getRuleType() {
     return ruleType;
   }
 
@@ -129,7 +129,7 @@ public class RuleViolationException extends RuntimeException {
    * @throws IllegalArgumentException if the varargs array has odd length
    */
   public static RuleViolationException of(
-      GsmRuleType ruleType, String detail, Object... siteKeyValuePairs) {
+      RuleType ruleType, String detail, Object... siteKeyValuePairs) {
     return new RuleViolationException(ruleType, detail, toSite(siteKeyValuePairs));
   }
 
@@ -146,7 +146,7 @@ public class RuleViolationException extends RuntimeException {
    * @throws IllegalArgumentException if the varargs array has odd length
    */
   public static RuleViolationException of(
-      GsmRuleType ruleType, String detail, Throwable cause, Object... siteKeyValuePairs) {
+      RuleType ruleType, String detail, Throwable cause, Object... siteKeyValuePairs) {
     return new RuleViolationException(ruleType, detail, toSite(siteKeyValuePairs), cause);
   }
 

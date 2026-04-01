@@ -19,7 +19,7 @@ package cloud.poesis.sie.defman.type;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public enum AscriptionStatusTransitionRuleType implements GsmRuleType {
+public enum AscriptionStatusTransitionRuleType implements RuleType {
   ASCRIPTION_STATUS_TRANSITION_PATH(
       "gsm:rules/ascription/status-transition/path",
       "Ascription status transition path",

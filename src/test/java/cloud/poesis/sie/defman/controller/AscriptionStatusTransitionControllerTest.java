@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionLifecycleService;
+import cloud.poesis.sie.defman.service.AscriptionStatusTransitionService;
 import cloud.poesis.sie.defman.service.DataProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,7 +41,7 @@ class AscriptionStatusTransitionControllerTest {
 
   @Autowired private ObjectMapper objectMapper;
 
-  @MockitoBean private AscriptionLifecycleService lifecycleService;
+  @MockitoBean private AscriptionStatusTransitionService transitionService;
 
   @MockitoBean private DataProtectionService dataProtectionService;
 
@@ -78,7 +78,7 @@ class AscriptionStatusTransitionControllerTest {
 
     @Test
     void getTransitions_returnsCollectionWithLinks() throws Exception {
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+      when(transitionService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
       mockMvc
           .perform(
@@ -112,7 +112,8 @@ class AscriptionStatusTransitionControllerTest {
       when(t2.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
       when(t2.getTimestamp()).thenReturn(Instant.parse("2025-01-02T00:00:00Z"));
 
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity, t2));
+      when(transitionService.getTransitions(ascriptionId))
+          .thenReturn(List.of(transitionEntity, t2));
 
       mockMvc
           .perform(
@@ -135,9 +136,9 @@ class AscriptionStatusTransitionControllerTest {
 
     @Test
     void getTransition_returnsWithNavigationLinks() throws Exception {
-      when(lifecycleService.getTransition(transitionId, ascriptionId))
+      when(transitionService.getTransition(transitionId, ascriptionId))
           .thenReturn(Optional.of(transitionEntity));
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+      when(transitionService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
       mockMvc
           .perform(
@@ -152,7 +153,7 @@ class AscriptionStatusTransitionControllerTest {
     @Test
     void getTransition_notFound_returns404() throws Exception {
       UUID badId = UUID.randomUUID();
-      when(lifecycleService.getTransition(badId, ascriptionId)).thenReturn(Optional.empty());
+      when(transitionService.getTransition(badId, ascriptionId)).thenReturn(Optional.empty());
 
       mockMvc
           .perform(
@@ -171,9 +172,9 @@ class AscriptionStatusTransitionControllerTest {
 
     @Test
     void transition_returns201WithLocationAndBody() throws Exception {
-      when(lifecycleService.transition(ascriptionId, "PROPOSED")).thenReturn(transitionEntity);
+      when(transitionService.transition(ascriptionId, "PROPOSED")).thenReturn(transitionEntity);
       when(transitionEntity.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
-      when(lifecycleService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+      when(transitionService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
       ObjectNode body = objectMapper.createObjectNode();
       body.put("targetStatus", "PROPOSED");

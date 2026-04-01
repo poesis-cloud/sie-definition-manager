@@ -19,7 +19,7 @@ package cloud.poesis.sie.defman.type;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public enum AscriptionConsistencyRuleType implements GsmRuleType {
+public enum AscriptionConsistencyRuleType implements RuleType {
 
   // ====================================================================
   // MECHANISM — Starlark rule validation
