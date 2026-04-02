@@ -2,7 +2,7 @@
 
 JSON Schema (draft 2020-12) definitions for the 8 GSM base Archetypes.
 
-These are the **governance contract** between DM and tenants. Each schema types the `statement` payload of Ascriptions for one GSM class. Tenants extend structural schemas via `allOf`; sealed schemas cannot be extended. Rootless archetypes (no `allOf` or no structural base) are valid for qualifier, facet, and data archetype roles.
+These are the **governance contract** between DM and tenants. Each schema types the `statement` payload of Ascriptions for one GSM class. Tenants extend base schemas via top-level `$ref`; sealed schemas cannot be extended. Rootless archetypes (no `$ref` base) are valid for qualifier, facet, and data archetype roles.
 
 ## URI Convention
 
@@ -16,7 +16,7 @@ All base schemas use the URI convention:
 
 All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "gsm://archetypes/Archetype/v1"`. This is the truthful declaration: Archetype schemas are governed by the seed Archetype (the GSM meta-schema), not just standard JSON Schema 2020-12.
 
-**DM validation mechanism**: DM loads `Archetype.schema.json` (the seed Archetype's statement) at startup as a compiled JSON Schema validator. When an Archetype Ascription arrives, DM treats the `statement` (the incoming Archetype schema document) as a JSON instance and validates it against the seed Archetype validator. This validates standard JSON Schema 2020-12 structure (inherited via `allOf`) AND `$gsm:*` keyword value shapes — in one pass.
+**DM validation mechanism**: DM loads `Archetype.schema.json` (the seed Archetype's statement) at startup as a compiled JSON Schema validator. When an Archetype Ascription arrives, DM treats the `statement` (the incoming Archetype schema document) as a JSON instance and validates it against the seed Archetype validator. This validates standard JSON Schema 2020-12 structure (inherited via `allOf` in the meta-schema) AND `$gsm:*` keyword value shapes — in one pass.
 
 **Security invariant**: DM MUST NOT resolve `$schema` URIs from incoming tenant schemas for validation purposes. DM always validates against its own bundled seed Archetype. A tenant declaring `"$schema": "https://evil.com/permissive.json"` does not affect which meta-schema DM uses. The `$schema` field is a declaration, not an enforcement vector.
 
@@ -24,31 +24,31 @@ All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "g
 
 | Schema                    | GSM Class   | Sealed | Tenant-Extensible | Identity-bound fields                 |
 | ------------------------- | ----------- | ------ | ----------------- | ------------------------------------- |
-| `Structure.schema.json`   | Structure   | No     | Yes (`allOf`)     | `purpose`                             |
-| `Mechanism.schema.json`   | Mechanism   | No     | Yes (`allOf`)     | `structure`, `function`               |
-| `Effector.schema.json`    | Effector    | No     | Yes (`allOf`)     | `mechanism`, `archetype`              |
-| `Receptor.schema.json`    | Receptor    | No     | Yes (`allOf`)     | `mechanism`, `archetype`              |
-| `Interaction.schema.json` | Interaction | No     | Yes (`allOf`)     | `effector`, `receptor`                |
+| `Structure.schema.json`   | Structure   | No     | Yes (`$ref`)      | `purpose`                             |
+| `Mechanism.schema.json`   | Mechanism   | No     | Yes (`$ref`)      | `structure`, `function`               |
+| `Effector.schema.json`    | Effector    | No     | Yes (`$ref`)      | `mechanism`, `archetype`              |
+| `Receptor.schema.json`    | Receptor    | No     | Yes (`$ref`)      | `mechanism`, `archetype`              |
+| `Interaction.schema.json` | Interaction | No     | Yes (`$ref`)      | `effector`, `receptor`                |
 | `Archetype.schema.json`   | Archetype   | Yes    | No                | `title` (DM-enforced)                 |
-| `Directive.schema.json`   | Directive   | No     | Yes (`allOf`)     | `structure`, `qualifier`, `purpose`   |
-| `Norm.schema.json`        | Norm        | No     | Yes (`allOf`)     | `structure`, `qualifier`, `assertion` |
+| `Directive.schema.json`   | Directive   | No     | Yes (`$ref`)      | `structure`, `qualifier`, `purpose`   |
+| `Norm.schema.json`        | Norm        | No     | Yes (`$ref`)      | `structure`, `qualifier`, `assertion` |
 
-**Extensible** schemas use `unevaluatedProperties: false` (allows `allOf` additions).
+**Extensible** schemas use `unevaluatedProperties: false` (allows `allOf` facet additions and `$ref` base extension).
 **Sealed** schemas use `additionalProperties: false` and carry `$gsm:sealed: true`.
 
 ## Archetype's Triple Relational Role
 
 A single Archetype construct serves three distinct relational roles across the GSM class model, differentiated not by class hierarchy or table structure, but by which FK column references it:
 
-| Role          | FK Column                                    | Where              | Structural base required?                                                                    |
-| ------------- | -------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
-| **Typing**    | `archetype_id`                               | Every Ascription   | Yes — allOf chain must converge to exactly one GSM base (determines `DefinitionSubjectType`) |
-| **Qualifier** | `qualifier_id`                               | Directive, Norm    | No — rootless (facet) archetypes allowed; defines the viability dimension being governed     |
-| **Data**      | `output_archetype_id` / `input_archetype_id` | Effector, Receptor | No — rootless archetypes allowed; declares the information type a port emits/consumes        |
+| Role          | FK Column                                    | Where              | Structural base required?                                                                     |
+| ------------- | -------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------- |
+| **Typing**    | `archetype_id`                               | Every Ascription   | Yes — `$ref` chain must converge to exactly one GSM base (determines `DefinitionSubjectType`) |
+| **Qualifier** | `qualifier_id`                               | Directive, Norm    | No — rootless (facet) archetypes allowed; defines the viability dimension being governed      |
+| **Data**      | `output_archetype_id` / `input_archetype_id` | Effector, Receptor | No — rootless archetypes allowed; declares the information type a port emits/consumes         |
 
 **Why one construct and one table suffice**: all three roles share the same identity model (Definition + Ascription lifecycle), the same schema validation surface (JSON Schema + `$gsm:*` vocabulary), and the same governance process (authoring → review → activation). The roles differ only in referential position (which FK column) and in structural-base requirement (typing requires a base; qualifier and data do not). Splitting into separate entities would duplicate the entire Ascription lifecycle, schema validation, and vocabulary infrastructure for no semantic gain.
 
-The allOf chain presence/absence IS the discriminant: DM enforces structural-base convergence at two points — Archetype authoring (allOf validation) and Ascription creation (`archetype_id` must resolve to a structural base). Rootless archetypes pass authoring validation and are usable in qualifier/data positions, but DM rejects them as `archetype_id`.
+The `$ref` chain presence/absence IS the discriminant: DM enforces structural-base convergence at two points — Archetype authoring (`$ref` chain validation) and Ascription creation (`archetype_id` must resolve to a based archetype). Rootless archetypes pass authoring validation and are usable in qualifier/data positions, but DM rejects them as `archetype_id`.
 
 ## `$gsm:*` Schema Vocabulary
 
@@ -56,13 +56,13 @@ Archetype schemas carry `$gsm:*` vocabulary keywords — schema-level declaratio
 
 DM introspects vocabulary keywords at **Archetype authoring time** (validates well-formedness, provisions infrastructure) and enforces them at **Ascription authoring time** (validates data). No runtime behavior — pure definition-plane governance signals.
 
-Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema** ([`Archetype.schema.json`](Archetype.schema.json) — the seed Archetype's own statement). DM validates every incoming Archetype schema against this meta-schema at authoring time — this validates standard JSON Schema 2020-12 structure AND `$gsm:*` keyword value shapes in one pass. Archetype schemas do NOT reference this file via `allOf` or `$ref` — vocabulary keywords are schema-level (like `type`, `required`), not data-level.
+Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema** ([`Archetype.schema.json`](Archetype.schema.json) — the seed Archetype's own statement). DM validates every incoming Archetype schema against this meta-schema at authoring time — this validates standard JSON Schema 2020-12 structure AND `$gsm:*` keyword value shapes in one pass. Archetype schemas do NOT reference this file via `allOf` or `$ref` for vocabulary — vocabulary keywords are schema-level (like `type`, `required`), not data-level.
 
 ### Sealed vocabulary keywords (GSM-defined, DM-implemented)
 
 | Keyword               | Scope                             | DM Behavior                                                                             | PostgreSQL Mechanism            |
 | --------------------- | --------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------- |
-| `$gsm:sealed`         | Archetype (top-level)             | Rejects tenant `allOf` extension                                                        | Authoring-time validation       |
+| `$gsm:sealed`         | Archetype (top-level)             | Rejects tenant `$ref` extension                                                         | Authoring-time validation       |
 | `$gsm:identityBound`  | Cross-version (same Definition)   | Rejects Ascription if value differs from first                                          | Authoring-time validation       |
 | `$gsm:queryable`      | Query optimization                | Auto-provisions JSONB path index                                                        | Expression index or GIN         |
 | `$gsm:unique`         | Cross-Definition (same Archetype) | Enforces uniqueness among in-effect Ascriptions                                         | Partial unique expression index |
@@ -70,7 +70,7 @@ Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema**
 
 ### `$gsm:sealed: true`
 
-Top-level schema keyword. Marks a schema as non-extensible. Tenant `allOf` referencing a sealed schema is rejected.
+Top-level schema keyword. Marks a schema as non-extensible. Tenant `$ref` pointing to a sealed schema is rejected.
 
 ### `$gsm:identityBound: true`
 
@@ -115,15 +115,43 @@ hashes).
 
 Vocabulary keywords on a property can be added/changed across Ascription versions — **except** `$gsm:identityBound`, whose set is immutable per Archetype Definition (see GSM §5).
 
+## Schema Composition Terminology
+
+Archetype schemas use three orthogonal JSON Schema keywords, each with a distinct semantic role:
+
+| Keyword   | Semantic role                                                                                                    | Example                                                              |
+| --------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `$schema` | **Who validates me** — declares the meta-schema (always the GSM seed Archetype)                                  | `"$schema": "gsm://archetypes/Archetype/v1"`                         |
+| `$ref`    | **What I am / extend** — base extension; determines the GSM subject type via the `$ref` chain                    | `"$ref": "gsm://archetypes/StructureArchetype/v1"`                   |
+| `allOf`   | **What facets I include** — applicable property sets; additional cross-cutting concerns composed into the schema | `"allOf": [{"$ref": "itip://frameworks/.../SecurityProperties/v1"}]` |
+
+### Definitions
+
+**Based archetype** — An Archetype whose schema declares a top-level `$ref` pointing to a GSM base archetype (or to an intermediate tenant archetype whose `$ref` chain eventually reaches a GSM base). The `$ref` chain determines the `DefinitionSubjectType`. Based archetypes are required for the **typing** role (`archetype_id` on Ascriptions). Formerly called "structural archetype."
+
+**Rootless archetype** — An Archetype whose schema does NOT declare a top-level `$ref` to any GSM base. It has no structural base and cannot be used as `archetype_id` (typing role). Valid for **qualifier** (`qualifier_id` on Directive/Norm), **data** (`output_archetype_id`/`input_archetype_id` on Effector/Receptor), and **facet** (included via `allOf`) roles. Examples: quality dimensions (SecurityProperties, PerformanceProperties), domain-scoped classifications, cross-structural patterns.
+
+**GSM base archetype** — One of the 8 JSON Schema files shipped with DM, corresponding to the 8 GSM classes: StructureArchetype, MechanismArchetype, EffectorArchetype, ReceptorArchetype, InteractionArchetype, DirectiveArchetype, NormArchetype, and the Archetype meta-schema. 7 of 8 are extensible (via `$ref`); the Archetype meta-schema is sealed.
+
+**GSM subtype** (informal) — A based archetype that extends a GSM base. For example, a `ServiceProperties` archetype with `"$ref": "gsm://archetypes/StructureArchetype/v1"` is informally a "GSM subtype" of Structure. The formal term is "based archetype with base = StructureArchetype."
+
+**Extension** — The act of creating a tenant-defined archetype that references a GSM base (or intermediate) via top-level `$ref`. The extending schema inherits the base's properties (via JSON Schema 2020-12 `$ref` resolution) and adds its own domain-specific properties.
+
+**Applicable property set** (facet) — A schema (typically rootless) included in another archetype's `allOf` array. It contributes additional properties as a cross-cutting concern without affecting the archetype's structural base. Multiple facets can be composed into a single archetype. Example: a based `ServiceProperties` archetype may include `SecurityProperties` and `PerformanceProperties` facets via `allOf`.
+
+**`$ref` chain** — The linear chain of top-level `$ref` references from a tenant archetype through zero or more intermediate tenant archetypes to a GSM base. DM walks this chain to determine the `DefinitionSubjectType`. The chain must be acyclic and converge to exactly one GSM base for based archetypes.
+
+**Sealed** — A schema annotated with `$gsm:sealed: true`. Tenant archetypes MUST NOT declare a `$ref` pointing to a sealed schema. Currently only the Archetype meta-schema is sealed; all other GSM bases are extensible.
+
 ## Extension Pattern
 
-Tenant-defined Archetypes extending a base schema:
+Tenant-defined Archetypes extend a base schema via top-level `$ref`:
 
 ```json
 {
   "$schema": "gsm://archetypes/Archetype/v1",
+  "$ref": "gsm://archetypes/Structure/v1",
   "title": "CostCenterProperties",
-  "allOf": [{ "$ref": "gsm://archetypes/Structure/v1" }],
   "properties": {
     "costCenter": {
       "type": "string",
@@ -146,11 +174,11 @@ Tenant-defined Archetypes extending a base schema:
 }
 ```
 
-The `allOf` chain MUST converge to exactly one GSM base schema when the Archetype is used as a **typing archetype** (`archetype_id`). Depth-N chains through intermediate tenant archetypes are permitted.
+The `$ref` chain MUST converge to exactly one GSM base schema when the Archetype is used as a **typing archetype** (`archetype_id`). Depth-N chains through intermediate tenant archetypes are permitted.
 
-**Rootless archetypes** (facet / qualifier / data archetypes) either omit `allOf` entirely or declare `allOf` entries whose chains do NOT converge to any GSM structural base. They are valid first-class Archetypes usable as `qualifier_id` (Directive/Norm facet) or `output_archetype_id` / `input_archetype_id` (Effector/Receptor data type), but MUST NOT be used as `archetype_id`.
+**Rootless archetypes** (facet / qualifier / data archetypes) omit the top-level `$ref` (no base extension). They MAY declare `allOf` entries as applicable property sets (facets) but these do NOT establish a structural base. They are valid first-class Archetypes usable as `qualifier_id` (Directive/Norm facet) or `output_archetype_id` / `input_archetype_id` (Effector/Receptor data type), but MUST NOT be used as `archetype_id`.
 
-A single schema MAY mix structural and rootless `allOf` entries (e.g., extending `StructureArchetype` AND a rootless `SecurityProperties` facet). The structural convergence rule applies only to the subset of paths that reach a GSM base.
+A based Archetype schema MAY also declare `allOf` entries as applicable property sets (e.g., extending `StructureArchetype` via `$ref` AND including a rootless `SecurityProperties` facet in `allOf`). The base is determined exclusively by the `$ref` chain — `allOf` entries are facets and never determine the structural base.
 
 Example rootless facet archetype:
 
@@ -500,7 +528,7 @@ Example: an ITIP domain classifying "PII", "Credential", and non-sensitive data:
 ```json
 {
   "title": "CustomerProperties",
-  "allOf": [{ "$ref": "gsm://archetypes/Structure/v1" }],
+  "$ref": "gsm://archetypes/Structure/v1",
   "properties": {
     "fullName": {
       "type": "string",

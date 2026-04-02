@@ -27,10 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Evaluates cross-ascription governance compatibility at activation time:
  *
  * <ul>
- *   <li>{@link AppraisalRuleType#DIRECTIVE_COMPATIBILITY_ON_VERB} — contradictory verb detection
- *   <li>{@link AppraisalRuleType#DIRECTIVE_COMPATIBILITY_ON_MODAL} — contradictory modal detection
- *   <li>{@link AppraisalRuleType#NORM_DIRECTED} — directive backing validation
- *   <li>{@link AppraisalRuleType#NORM_COMPATIBILITY} — overlapping norm detection
+ *   <li>{@link AppraisalRuleType#DIRECTIVE_VERB_COMPATIBILITY} — contradictory verb detection
+ *   <li>{@link AppraisalRuleType#DIRECTIVE_MODAL_COMPATIBILITY} — contradictory modal detection
+ *   <li>{@link AppraisalRuleType#NORM_DIRECTIVE_BACKING} — directive backing validation
+ *   <li>{@link AppraisalRuleType#NORM_ASSERTION_COMPATIBILITY} — overlapping norm detection
  * </ul>
  *
  * @author Clément Cazaud
@@ -119,7 +119,7 @@ public class AppraisalService {
 
       if (!verb.equals(sibVerb) && CONTRADICTORY_VERB_PAIRS.contains(Set.of(verb, sibVerb))) {
         throw RuleViolationException.of(
-            AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB,
+            AppraisalRuleType.DIRECTIVE_VERB_COMPATIBILITY,
             "Directive contradiction: "
                 + verb
                 + " and "
@@ -144,7 +144,7 @@ public class AppraisalService {
 
       if (verb.equals(sibVerb) && areModalContradictions(modal, sibModal)) {
         throw RuleViolationException.of(
-            AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL,
+            AppraisalRuleType.DIRECTIVE_MODAL_COMPATIBILITY,
             "Directive modal contradiction: "
                 + modal
                 + " "
@@ -231,7 +231,7 @@ public class AppraisalService {
 
     if (directives.isEmpty()) {
       throw RuleViolationException.of(
-          AppraisalRuleType.NORM_DIRECTED,
+          AppraisalRuleType.NORM_DIRECTIVE_BACKING,
           "No in-effect Directive targets purpose '"
               + structurePurpose
               + "' — Norm has no governance authority",
@@ -257,7 +257,7 @@ public class AppraisalService {
 
     if (!hasLegitimatingDirective) {
       throw RuleViolationException.of(
-          AppraisalRuleType.NORM_DIRECTED,
+          AppraisalRuleType.NORM_DIRECTIVE_BACKING,
           "No in-effect Directive with purpose '"
               + structurePurpose
               + "' has a qualifier that is ancestor-or-equal of Norm qualifier — "
@@ -331,7 +331,7 @@ public class AppraisalService {
             "[{}] Potential Norm conflict: Norm (definition {}) and sibling {} "
                 + "(definition {}) target overlapping qualifier lineage and "
                 + "assert on common properties {}",
-            AppraisalRuleType.NORM_COMPATIBILITY.getType(),
+            AppraisalRuleType.NORM_ASSERTION_COMPATIBILITY.getType(),
             thisDefId,
             sibling.getId(),
             sibling.getDefinition().getId(),

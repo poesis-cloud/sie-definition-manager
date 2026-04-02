@@ -34,10 +34,10 @@ import org.mockito.quality.Strictness;
  * Tests AppraisalService governance appraisal rules:
  *
  * <ul>
- *   <li>DIRECTIVE_COMPATIBILITY_ON_VERB — contradictory verb detection
- *   <li>DIRECTIVE_COMPATIBILITY_ON_MODAL — contradictory modal detection
- *   <li>NORM_DIRECTED — directive backing validation (governance chain)
- *   <li>NORM_COMPATIBILITY — overlapping norm detection
+ *   <li>DIRECTIVE_VERB_COMPATIBILITY — contradictory verb detection
+ *   <li>DIRECTIVE_MODAL_COMPATIBILITY — contradictory modal detection
+ *   <li>NORM_DIRECTIVE_BACKING — directive backing validation (governance chain)
+ *   <li>NORM_ASSERTION_COMPATIBILITY — overlapping norm detection
  * </ul>
  *
  * <p>These rules enforce inter-ascription governance coherence at activation time, which is
@@ -169,7 +169,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
+      assertEquals(AppraisalRuleType.DIRECTIVE_VERB_COMPATIBILITY, ex.getRuleType());
       assertTrue(ex.getMessage().contains("ENSURE"));
       assertTrue(ex.getMessage().contains("PREVENT"));
     }
@@ -186,7 +186,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_VERB, ex.getRuleType());
+      assertEquals(AppraisalRuleType.DIRECTIVE_VERB_COMPATIBILITY, ex.getRuleType());
     }
 
     @Test
@@ -232,7 +232,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
+      assertEquals(AppraisalRuleType.DIRECTIVE_MODAL_COMPATIBILITY, ex.getRuleType());
       assertTrue(ex.getMessage().contains("MUST"));
       assertTrue(ex.getMessage().contains("MUST_NOT"));
     }
@@ -249,7 +249,7 @@ class AppraisalServiceTest {
           assertThrows(
               RuleViolationException.class,
               () -> service.validateDirectiveCompatibility(directive));
-      assertEquals(AppraisalRuleType.DIRECTIVE_COMPATIBILITY_ON_MODAL, ex.getRuleType());
+      assertEquals(AppraisalRuleType.DIRECTIVE_MODAL_COMPATIBILITY, ex.getRuleType());
     }
 
     @Test
@@ -304,7 +304,7 @@ class AppraisalServiceTest {
   }
 
   // ========================================================================
-  // validateGovernanceChain — NORM_DIRECTED
+  // validateGovernanceChain — NORM_DIRECTIVE_BACKING
   // ========================================================================
 
   @Nested
@@ -317,7 +317,7 @@ class AppraisalServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateGovernanceChain(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
+      assertEquals(AppraisalRuleType.NORM_DIRECTIVE_BACKING, ex.getRuleType());
       assertTrue(ex.getMessage().contains("No in-effect Directive"));
     }
 
@@ -355,7 +355,7 @@ class AppraisalServiceTest {
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> service.validateGovernanceChain(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
+      assertEquals(AppraisalRuleType.NORM_DIRECTIVE_BACKING, ex.getRuleType());
       assertTrue(ex.getMessage().contains("no overlap"));
     }
 
@@ -382,7 +382,7 @@ class AppraisalServiceTest {
   }
 
   // ========================================================================
-  // validateNormCompatibility — NORM_COMPATIBILITY
+  // validateNormCompatibility — NORM_ASSERTION_COMPATIBILITY
   // ========================================================================
 
   @Nested

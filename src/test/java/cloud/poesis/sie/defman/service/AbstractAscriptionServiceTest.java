@@ -33,6 +33,7 @@ import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -389,7 +390,8 @@ class AbstractAscriptionServiceTest {
       when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
       when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
 
-      when(archetypeRepo.findAllByStatusIn(anyCollection())).thenReturn(List.of(tenantArchetype));
+      when(archetypeRepo.findInEffectByTitle("CustomTenantArchetype"))
+          .thenReturn(Optional.of(tenantArchetype));
 
       // Archetype schema that references tenant archetype
       ObjectNode schema = MAPPER.createObjectNode();

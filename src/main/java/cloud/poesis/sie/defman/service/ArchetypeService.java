@@ -35,9 +35,9 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Archetype ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link ArchetypeEntity} ascriptions including allOf chain
- * validation, {@code $gsm:*} annotation well-formedness, subject type resolution, and
- * vocabulary-driven index provisioning.
+ * <p>Manages lifecycle and persistence of {@link ArchetypeEntity} ascriptions including schema
+ * composition validation ({@code $ref} chain + {@code allOf} facets), {@code $gsm:*} annotation
+ * well-formedness, subject type resolution, and vocabulary-driven index provisioning.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -58,7 +58,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
           "NormArchetype", DefinitionSubjectType.NORM);
 
   // ======================================================================
-  // AllOf chain validation constants (from AllOfChainValidator)
+  // Schema composition validation constants ($ref chain + allOf facets)
   // ======================================================================
 
   private static final Set<String> GSM_BASE_TITLES =
@@ -147,8 +147,8 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
           "statement");
     }
 
-    // GSM §5: allOf chain convergence + §8: $gsm:sealed enforcement
-    validateAllOfChain(statement);
+    // GSM §5: $ref chain convergence + §8: $gsm:sealed enforcement
+    validateSchemaComposition(statement);
 
     // GSM §8: deep $ref URI policy — reject external URIs everywhere
     validateRefUriPolicy(statement);
@@ -243,14 +243,15 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       return type;
     }
 
-    // Tenant archetype: walk the allOf chain to find the structural base.
-    JsonNode allOf = stmt.get("allOf");
-    if (allOf == null || !allOf.isArray() || allOf.isEmpty()) {
+    // Tenant archetype: walk the top-level $ref chain to find the structural base.
+    JsonNode refNode = stmt.get("$ref");
+    if (refNode == null || !refNode.isTextual()) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           "Rootless archetype '"
               + title
-              + "' cannot be used as archetype_id — no structural base (allOf chain required)",
+              + "' cannot be used as archetype_id — no structural base "
+              + "(top-level $ref to a GSM base required)",
           "title",
           title);
     }
@@ -258,24 +259,24 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     Set<String> resolvedBases = new HashSet<>();
     Set<String> visited = new HashSet<>();
     visited.add(title);
-    walkAllOfChain(allOf, resolvedBases, visited, true);
+    walkRefChain(refNode.asText(), resolvedBases, visited, true);
 
     if (resolvedBases.isEmpty()) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           "Rootless archetype '"
               + title
-              + "' cannot be used as archetype_id — allOf chain does not converge to any GSM base",
+              + "' cannot be used as archetype_id — $ref chain does not "
+              + "converge to any GSM base",
           "title",
           title);
     }
-    // resolvedBases.size() > 1 is already rejected by validateAllOfChain at
-    // authoring time;
-    // defensive check here for safety.
+    // resolvedBases.size() > 1 is already rejected by validateSchemaComposition
+    // at authoring time; defensive check here for safety.
     if (resolvedBases.size() > 1) {
       throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-          "Archetype '" + title + "' allOf chain converges to multiple GSM bases: " + resolvedBases,
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          "Archetype '" + title + "' $ref chain converges to multiple GSM bases: " + resolvedBases,
           "title",
           title,
           "resolvedBases",
@@ -321,8 +322,8 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   @Override
   public void onActivation(AscriptionEntity entity) {
     if (entity instanceof ArchetypeEntity archetypeEntity) {
-      // GSM §5: strict allOf chain resolution — all intermediaries must be in-effect.
-      validateAllOfChain(archetypeEntity.getStatement(), true);
+      // GSM §5: strict schema composition — all intermediaries must be in-effect.
+      validateSchemaComposition(archetypeEntity.getStatement(), true);
       // $ref URI policy is NOT re-checked: statement is immutable (validated at
       // creation).
       provisionIndexes(archetypeEntity);
@@ -503,12 +504,13 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   // ---- Public descendant resolution API ----
 
   /**
-   * Returns the set of all ancestor Archetype titles reachable through the allOf chain of the given
-   * archetype. Includes the archetype's own title if present. Does not include titles that cannot
-   * be resolved at the time of the call (lenient mode). GSM base titles are included when reached.
+   * Returns the set of all ancestor Archetype titles reachable through the schema composition chain
+   * (top-level {@code $ref} and {@code allOf} entries) of the given archetype. Includes the
+   * archetype's own title if present. Does not include titles that cannot be resolved at the time
+   * of the call (lenient mode). GSM base titles are included when reached.
    *
    * <p><b>Ordering guarantee:</b> the returned {@link LinkedHashSet} preserves insertion order,
-   * which is nearest-ancestor-first (depth-first, left-to-right traversal of the allOf chain). The
+   * which is nearest-ancestor-first (depth-first traversal of the composition chain). The
    * archetype's own title, when present, is always the first element. Callers (e.g., {@code
    * NormService} governance chain validation) may rely on this ordering.
    *
@@ -526,22 +528,19 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       ancestors.add(title);
     }
 
-    JsonNode allOf = schema.get("allOf");
-    if (allOf == null || !allOf.isArray() || allOf.isEmpty()) {
-      return ancestors;
-    }
-
     Set<String> visited = new HashSet<>();
     if (title != null) {
       visited.add(title);
     }
-    collectAncestorTitles(allOf, ancestors, visited);
+
+    collectAncestorTitles(schema, ancestors, visited);
     return ancestors;
   }
 
   /**
-   * Checks whether the given archetype is a descendant (via allOf chain) of an ancestor identified
-   * by title. Returns true if the archetype's own title matches, or if any allOf ancestor matches.
+   * Checks whether the given archetype is a descendant (via schema composition chain) of an
+   * ancestor identified by title. Returns true if the archetype's own title matches, or if any
+   * ancestor matches.
    *
    * @param archetypeId the ascription ID of the archetype to check
    * @param ancestorTitle the title of the potential ancestor
@@ -551,38 +550,54 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     return getAncestorTitles(archetypeId).contains(ancestorTitle);
   }
 
-  private void collectAncestorTitles(JsonNode allOf, Set<String> ancestors, Set<String> visited) {
-    for (JsonNode entry : allOf) {
-      if (!entry.has("$ref")) {
-        continue;
-      }
-      String ref = entry.get("$ref").asText();
+  private void collectAncestorTitles(JsonNode schema, Set<String> ancestors, Set<String> visited) {
+    // Walk top-level $ref (base extension chain)
+    if (schema.has("$ref") && schema.get("$ref").isTextual()) {
+      String ref = schema.get("$ref").asText();
       String refTitle = extractTitleFromRef(ref);
-      if (refTitle == null || !visited.add(refTitle)) {
-        continue;
+      if (refTitle != null && visited.add(refTitle)) {
+        ancestors.add(refTitle);
+        if (!GSM_BASE_TITLES.contains(refTitle)) {
+          JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
+          if (intermediateSchema != null) {
+            collectAncestorTitles(intermediateSchema, ancestors, visited);
+          }
+        }
       }
-      ancestors.add(refTitle);
-      if (GSM_BASE_TITLES.contains(refTitle)) {
-        continue;
-      }
-      JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
-      if (intermediateSchema == null) {
-        continue; // lenient: unresolvable intermediary skipped
-      }
-      JsonNode intermediateAllOf = intermediateSchema.get("allOf");
-      if (intermediateAllOf != null && intermediateAllOf.isArray()) {
-        collectAncestorTitles(intermediateAllOf, ancestors, visited);
+    }
+
+    // Walk allOf entries (facets)
+    JsonNode allOf = schema.get("allOf");
+    if (allOf != null && allOf.isArray()) {
+      for (JsonNode entry : allOf) {
+        if (!entry.has("$ref")) {
+          continue;
+        }
+        String ref = entry.get("$ref").asText();
+        String refTitle = extractTitleFromRef(ref);
+        if (refTitle == null || !visited.add(refTitle)) {
+          continue;
+        }
+        ancestors.add(refTitle);
+        if (GSM_BASE_TITLES.contains(refTitle)) {
+          continue;
+        }
+        JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
+        if (intermediateSchema == null) {
+          continue; // lenient: unresolvable intermediary skipped
+        }
+        collectAncestorTitles(intermediateSchema, ancestors, visited);
       }
     }
   }
 
-  // ---- AllOf chain validation ----
+  // ---- Schema composition validation ----
 
-  void validateAllOfChain(JsonNode schema) {
-    validateAllOfChain(schema, false);
+  void validateSchemaComposition(JsonNode schema) {
+    validateSchemaComposition(schema, false);
   }
 
-  void validateAllOfChain(JsonNode schema, boolean strict) {
+  void validateSchemaComposition(JsonNode schema, boolean strict) {
     String title = schema.has("title") ? schema.get("title").asText() : null;
 
     // GSM base archetypes are exempt — they define the bases themselves.
@@ -590,50 +605,133 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       return;
     }
 
-    JsonNode allOf = schema.get("allOf");
-
-    // No allOf → rootless archetype (valid: usable as qualifier/facet/data
-    // archetype).
-    if (allOf == null || !allOf.isArray() || allOf.isEmpty()) {
-      return;
-    }
-
-    Set<String> resolvedBases = new HashSet<>();
     Set<String> visited = new HashSet<>();
     if (title != null) {
       visited.add(title);
     }
 
-    walkAllOfChain(allOf, resolvedBases, visited, strict);
+    // 1) Validate the top-level $ref chain (base extension).
+    Set<String> resolvedBases = new HashSet<>();
+    JsonNode refNode = schema.get("$ref");
+    if (refNode != null && refNode.isTextual()) {
+      walkRefChain(refNode.asText(), resolvedBases, visited, strict);
+    }
 
-    // 0 bases → rootless archetype with allOf (e.g., facet extending another
-    // facet).
-    // 1 base → structural archetype (valid typing archetype for archetype_id).
-    // 2+ bases → divergent structural bases (ambiguous subject type → rejected).
+    // 2) Validate allOf entries (facets — no base convergence required).
+    JsonNode allOf = schema.get("allOf");
+    if (allOf != null && allOf.isArray()) {
+      validateAllOfEntries(allOf, visited, strict);
+    }
+
+    // 0 bases → rootless archetype (valid: usable as qualifier/facet/data
+    // archetype).
+    // 1 base → based archetype (valid typing archetype for archetype_id).
+    // 2+ bases → impossible via $ref chain (linear), but defensive check.
     if (resolvedBases.size() > 1) {
       throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-          "Archetype schema allOf chain converges to multiple GSM base archetypes: "
-              + resolvedBases,
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          "Archetype schema $ref chain converges to multiple GSM base archetypes: " + resolvedBases,
           "resolvedBases",
           resolvedBases);
     }
   }
 
-  private void walkAllOfChain(
-      JsonNode allOf, Set<String> resolvedBases, Set<String> visited, boolean strict) {
+  /**
+   * Walks the top-level $ref chain linearly: current → intermediate → ... → GSM base. Collects GSM
+   * bases, enforces acyclicity, sealed checks, and URI format.
+   */
+  private void walkRefChain(
+      String ref, Set<String> resolvedBases, Set<String> visited, boolean strict) {
+    String refTitle = extractTitleFromRef(ref);
+
+    if (refTitle == null) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          "Cannot resolve $ref '"
+              + ref
+              + "': must use gsm://archetypes/{title}/v{version} convention",
+          "ref",
+          ref);
+    }
+
+    if (!visited.add(refTitle)) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_ACYCLICITY,
+          "Cycle detected in $ref chain: '" + refTitle + "' already visited",
+          "refTitle",
+          refTitle);
+    }
+
+    if (GSM_BASE_TITLES.contains(refTitle)) {
+      if (isSealedBaseArchetype(refTitle)) {
+        throw RuleViolationException.of(
+            AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_NON_SEALED,
+            "Archetype $ref references sealed schema '"
+                + refTitle
+                + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
+            "sealedArchetype",
+            refTitle);
+      }
+      resolvedBases.add(refTitle);
+    } else {
+      JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
+      if (intermediateSchema == null) {
+        if (strict) {
+          throw RuleViolationException.of(
+              AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+              "Cannot resolve intermediary archetype '"
+                  + refTitle
+                  + "' referenced via $ref — no in-effect Archetype with this title",
+              "refTitle",
+              refTitle);
+        }
+        LOG.warn(
+            "$ref '{}' not resolvable at authoring time — will be validated at activation",
+            refTitle);
+        return;
+      }
+
+      if (intermediateSchema.has("$gsm:sealed")
+          && intermediateSchema.get("$gsm:sealed").asBoolean()) {
+        throw RuleViolationException.of(
+            AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_NON_SEALED,
+            "Archetype $ref references sealed schema '"
+                + refTitle
+                + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
+            "sealedArchetype",
+            refTitle);
+      }
+
+      // Continue walking the intermediate's own $ref chain.
+      JsonNode intermediateRef = intermediateSchema.get("$ref");
+      if (intermediateRef != null && intermediateRef.isTextual()) {
+        walkRefChain(intermediateRef.asText(), resolvedBases, visited, strict);
+      }
+    }
+  }
+
+  /**
+   * Validates allOf entries (facets). Enforces URI format, acyclicity, and sealed checks. Does NOT
+   * collect or check for GSM base convergence — allOf is for facets only.
+   */
+  private void validateAllOfEntries(JsonNode allOf, Set<String> visited, boolean strict) {
     for (JsonNode entry : allOf) {
       if (!entry.has("$ref")) {
         continue;
       }
 
       String ref = entry.get("$ref").asText();
+
+      // Skip local JSON Pointers (e.g., #/$defs/...)
+      if (ref.startsWith("#")) {
+        continue;
+      }
+
       String refTitle = extractTitleFromRef(ref);
 
       if (refTitle == null) {
-        // Format error — always rejected (authoring + activation).
         throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+            AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
             "Cannot resolve allOf $ref '"
                 + ref
                 + "': must use gsm://archetypes/{title}/v{version} convention",
@@ -643,7 +741,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
       if (!visited.add(refTitle)) {
         throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY,
+            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
             "Cycle detected in allOf chain: '" + refTitle + "' already visited",
             "refTitle",
             refTitle);
@@ -652,28 +750,27 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       if (GSM_BASE_TITLES.contains(refTitle)) {
         if (isSealedBaseArchetype(refTitle)) {
           throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
-              "Archetype schema allOf references sealed schema '"
+              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_NON_SEALED,
+              "Archetype allOf references sealed schema '"
                   + refTitle
                   + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
               "sealedArchetype",
               refTitle);
         }
-        resolvedBases.add(refTitle);
+        // Facet referencing an unsealed GSM base in allOf is allowed — it
+        // adds base properties as a facet, but does NOT determine subject type.
       } else {
         JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
         if (intermediateSchema == null) {
           if (strict) {
-            // Activation-time: intermediary MUST be resolvable.
             throw RuleViolationException.of(
-                AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+                AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
                 "Cannot resolve intermediary archetype '"
                     + refTitle
                     + "' referenced via allOf — no in-effect Archetype with this title",
                 "refTitle",
                 refTitle);
           }
-          // Authoring-time: intermediary may not be in-effect yet — warn and skip.
           LOG.warn(
               "allOf $ref '{}' not resolvable at authoring time — will be validated at activation",
               refTitle);
@@ -683,17 +780,12 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         if (intermediateSchema.has("$gsm:sealed")
             && intermediateSchema.get("$gsm:sealed").asBoolean()) {
           throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
-              "Archetype schema allOf references sealed schema '"
+              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_NON_SEALED,
+              "Archetype allOf references sealed schema '"
                   + refTitle
                   + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
               "sealedArchetype",
               refTitle);
-        }
-
-        JsonNode intermediateAllOf = intermediateSchema.get("allOf");
-        if (intermediateAllOf != null && intermediateAllOf.isArray()) {
-          walkAllOfChain(intermediateAllOf, resolvedBases, visited, strict);
         }
       }
     }
@@ -729,9 +821,9 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
    * are allowed. Rejects external URIs (http, https, file, etc.) to prevent SSRF and ensure all
    * schema resolution is local.
    *
-   * <p>Called at authoring time (buildEntity) to catch prohibited URIs early. The allOf-specific
-   * validation in {@link #walkAllOfChain} remains the authoritative check for allOf chain
-   * semantics; this method is a complementary breadth scan.
+   * <p>Called at authoring time (buildEntity) to catch prohibited URIs early. The composition
+   * validation in {@link #validateSchemaComposition} remains the authoritative check for schema
+   * chain semantics; this method is a complementary breadth scan.
    *
    * @param schema the archetype JSON Schema to scan
    * @throws RuleViolationException if any {@code $ref} violates the URI policy

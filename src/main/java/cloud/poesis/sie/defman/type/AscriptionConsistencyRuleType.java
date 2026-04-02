@@ -304,29 +304,45 @@ public enum AscriptionConsistencyRuleType implements RuleType {
           + "sustainedThreshold in [0,1]."),
 
   // ====================================================================
-  // ARCHETYPE — allOf chain constraints
+  // ARCHETYPE — schema composition constraints ($ref chain + allOf facets)
   // ====================================================================
 
-  ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE(
-      "gsm:rules/archetype/allof/exclusive-base-convergence",
-      "Archetype allOf exclusive base convergence",
-      "A structural Archetype's allOf chain must converge to exactly one "
-          + "GSM base Archetype (no divergence). Every $ref must use the "
-          + "gsm://archetypes/{title}/v{version} URI convention and "
+  ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE(
+      "gsm:rules/archetype/ref-chain/exclusive-base-convergence",
+      "Archetype $ref chain exclusive base convergence",
+      "A based Archetype's top-level $ref chain must converge to exactly "
+          + "one GSM base Archetype (no divergence). Every $ref must use "
+          + "the gsm://archetypes/{title}/v{version} URI convention and "
           + "resolve to a declared Archetype; at activation time, all "
           + "intermediary Archetypes must be in-effect."),
 
-  ARCHETYPE_ALLOF_ACYCLICITY(
-      "gsm:rules/archetype/allof/acyclicity",
-      "Archetype allOf acyclicity",
-      "The Archetype's allOf chain must be acyclic — no Archetype may "
-          + "transitively reference itself through $ref entries."),
+  ARCHETYPE_REF_CHAIN_ACYCLICITY(
+      "gsm:rules/archetype/ref-chain/acyclicity",
+      "Archetype $ref chain acyclicity",
+      "The Archetype's top-level $ref chain must be acyclic — no "
+          + "Archetype may transitively reference itself through "
+          + "$ref entries."),
 
-  ARCHETYPE_ALLOF_NON_SEALED(
-      "gsm:rules/archetype/allof/non-sealed",
-      "Archetype allOf non-sealed",
+  ARCHETYPE_REF_CHAIN_NON_SEALED(
+      "gsm:rules/archetype/ref-chain/non-sealed",
+      "Archetype $ref chain non-sealed",
       "A tenant-defined Archetype must not extend a sealed ($gsm:sealed) "
-          + "Archetype via allOf — sealed Archetypes are non-extensible."),
+          + "Archetype via top-level $ref — sealed Archetypes are "
+          + "non-extensible."),
+
+  ARCHETYPE_ALLOF_CHAIN_ACYCLICITY(
+      "gsm:rules/archetype/allof-chain/acyclicity",
+      "Archetype allOf chain acyclicity",
+      "The Archetype's allOf entries (facets) must not introduce cycles "
+          + "— no Archetype may transitively reference itself through "
+          + "allOf $ref entries."),
+
+  ARCHETYPE_ALLOF_CHAIN_NON_SEALED(
+      "gsm:rules/archetype/allof-chain/non-sealed",
+      "Archetype allOf chain non-sealed",
+      "A tenant-defined Archetype must not include a sealed ($gsm:sealed) "
+          + "Archetype as an allOf facet — sealed Archetypes are "
+          + "non-extensible."),
 
   ARCHETYPE_REF_NORM(
       "gsm:rules/archetype/ref/norm",
@@ -378,10 +394,10 @@ public enum AscriptionConsistencyRuleType implements RuleType {
       "gsm:rules/ascription/archetype/based-on-gsm-archetype",
       "Ascription archetype based on GSM archetype",
       "An Ascription's typing archetype (archetype_id) must reference "
-          + "an Archetype whose allOf chain converges to a GSM base "
-          + "Archetype — rootless Archetypes cannot serve as typing "
-          + "references because the GSM base determines the "
-          + "DefinitionSubjectType."),
+          + "an Archetype whose top-level $ref chain converges to a GSM "
+          + "base Archetype — rootless Archetypes (no $ref to a GSM "
+          + "base) cannot serve as typing references because the GSM "
+          + "base determines the DefinitionSubjectType."),
 
   ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY(
       "gsm:rules/ascription/archetype/reference-integrity",

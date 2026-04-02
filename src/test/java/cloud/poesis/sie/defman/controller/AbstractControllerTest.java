@@ -404,7 +404,7 @@ class AbstractControllerTest {
         AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
         AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
         AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
-        AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+        AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
       };
       for (AscriptionConsistencyRuleType rt : badRequestTypes) {
         RuleViolationException ex = new RuleViolationException(rt, "test");

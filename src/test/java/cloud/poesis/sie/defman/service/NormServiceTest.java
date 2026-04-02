@@ -994,27 +994,27 @@ class NormServiceTest {
     @Test
     void propagatesGovernanceChainException() {
       NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
-      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_DIRECTED, "x"))
+      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_DIRECTIVE_BACKING, "x"))
           .when(appraisalService)
           .validateGovernanceChain(norm);
 
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTED, ex.getRuleType());
+      assertEquals(AppraisalRuleType.NORM_DIRECTIVE_BACKING, ex.getRuleType());
     }
 
     @Test
     void propagatesNormCompatibilityException() {
       NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
-      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_COMPATIBILITY, "x"))
+      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_ASSERTION_COMPATIBILITY, "x"))
           .when(appraisalService)
           .validateNormCompatibility(norm);
 
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
-      assertEquals(AppraisalRuleType.NORM_COMPATIBILITY, ex.getRuleType());
+      assertEquals(AppraisalRuleType.NORM_ASSERTION_COMPATIBILITY, ex.getRuleType());
     }
   }
 

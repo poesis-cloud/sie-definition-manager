@@ -156,9 +156,9 @@ The seed layer. 9 GSM base Archetypes and their compilation logic are hardcoded 
 
 ### Layer 1 — Schema-driven Adaptation
 
-Tenants create Archetypes extending GSM bases via `allOf`. The DM adapts by reading the tenant Archetype's schema, auto-deriving input requirements from the schema diff (base portion compiled by Layer 0 logic, extension fields passed through).
+Tenants create Archetypes extending GSM bases via top-level `$ref`. The DM adapts by reading the tenant Archetype's schema, auto-deriving input requirements from the schema diff (base portion compiled by Layer 0 logic, extension fields passed through).
 
-- **What changes**: DM inspects `allOf` chains at authoring time. For any tenant Archetype that extends a GSM base, DM applies Layer 0 compilation for the base portion and passes through tenant-defined extension fields.
+- **What changes**: DM inspects `$ref` chains at authoring time. For any tenant Archetype that extends a GSM base, DM applies Layer 0 compilation for the base portion and passes through tenant-defined extension fields.
 - **Extension model**: schema-only. Tenants define _what_ properties exist; the DM controls _how_ they are compiled.
 - **Compiler surface**: Java (Layer 0 core) + schema introspection (auto-adaptation).
 
