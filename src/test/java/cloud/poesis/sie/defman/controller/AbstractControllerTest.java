@@ -18,7 +18,6 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -432,15 +431,6 @@ class AbstractControllerTest {
         RuleViolationException ex = new RuleViolationException(trt, "test");
         ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
         assertEquals(409, pd.getStatus(), "Expected 409 for " + trt);
-      }
-    }
-
-    @Test
-    void allAppraisalRuleTypes_mapToConflict() {
-      for (AppraisalRuleType art : AppraisalRuleType.values()) {
-        RuleViolationException ex = new RuleViolationException(art, "test");
-        ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
-        assertEquals(409, pd.getStatus(), "Expected 409 for " + art);
       }
     }
   }

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,7 +16,6 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -54,8 +52,6 @@ class NormServiceTest {
 
   @Mock private ArchetypeService archetypeService;
 
-  @Mock private AppraisalService appraisalService;
-
   private NormService service;
 
   @BeforeEach
@@ -71,7 +67,6 @@ class NormServiceTest {
             mock(AscriptionService.class),
             mock(EntityManager.class),
             mock(DataProtectionService.class),
-            appraisalService,
             dev.cel.compiler.CelCompilerFactory.standardCelCompilerBuilder().build());
   }
 
@@ -971,50 +966,6 @@ class NormServiceTest {
     void listAtTopLevel_accepted() {
       // LIST at top level → validateAssertionBooleanResult default case → accepted
       assertDoesNotThrow(() -> service.validateAssertion("[1, 2, 3]"));
-    }
-  }
-
-  // ========================================================================
-  // GovernanceChain
-  // ========================================================================
-
-  @Nested
-  class GovernanceChain {
-
-    @Test
-    void delegatesToAppraisalService() {
-      NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
-
-      service.validateActivationUniqueness(norm);
-
-      verify(appraisalService).validateGovernanceChain(norm);
-      verify(appraisalService).validateNormCompatibility(norm);
-    }
-
-    @Test
-    void propagatesGovernanceChainException() {
-      NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
-      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_DIRECTIVE_BACKING, "x"))
-          .when(appraisalService)
-          .validateGovernanceChain(norm);
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
-      assertEquals(AppraisalRuleType.NORM_DIRECTIVE_BACKING, ex.getRuleType());
-    }
-
-    @Test
-    void propagatesNormCompatibilityException() {
-      NormEntity norm = stubNorm(UUID.randomUUID(), UUID.randomUUID(), MAPPER.createObjectNode());
-      doThrow(RuleViolationException.of(AppraisalRuleType.NORM_ASSERTION_COMPATIBILITY, "x"))
-          .when(appraisalService)
-          .validateNormCompatibility(norm);
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateActivationUniqueness(norm));
-      assertEquals(AppraisalRuleType.NORM_ASSERTION_COMPATIBILITY, ex.getRuleType());
     }
   }
 

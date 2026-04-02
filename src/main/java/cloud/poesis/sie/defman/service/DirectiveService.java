@@ -15,7 +15,6 @@ import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,7 +33,6 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   private final DirectiveRepository directiveRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
-  private final AppraisalService appraisalService;
 
   /**
    * Constructs the Directive service with its required dependencies.
@@ -47,8 +45,6 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
-   * @param appraisalService the appraisal service for governance compatibility checks (lazy to
-   *     break circular dependency)
    */
   public DirectiveService(
       DirectiveRepository directiveRepo,
@@ -59,8 +55,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
       AscriptionStatusTransitionService transitionService,
       AscriptionService ascriptionService,
       EntityManager entityManager,
-      DataProtectionService dataProtectionService,
-      @Lazy AppraisalService appraisalService) {
+      DataProtectionService dataProtectionService) {
     super(
         definitionService,
         transitionService,
@@ -71,7 +66,6 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
     this.directiveRepo = directiveRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
-    this.appraisalService = appraisalService;
   }
 
   @Override
@@ -149,14 +143,5 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
         : Map.of(
             "structure", d.getStructure().getDefinition().getId(),
             "qualifier", d.getQualifier().getDefinition().getId());
-  }
-
-  @Override
-  public void validateActivationUniqueness(AscriptionEntity entity) {
-    if (!(entity instanceof DirectiveEntity d)) {
-      throw new IllegalArgumentException(
-          "Expected DirectiveEntity, got " + entity.getClass().getSimpleName());
-    }
-    appraisalService.validateDirectiveCompatibility(d);
   }
 }

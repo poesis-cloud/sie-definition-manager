@@ -10,7 +10,6 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.service.DataProtectionService;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.RuleType;
@@ -186,9 +185,6 @@ public abstract class AbstractController {
       return mapRuleTypeToHttpStatus(rt);
     }
     if (rule instanceof AscriptionStatusTransitionRuleType) {
-      return HttpStatus.CONFLICT;
-    }
-    if (rule instanceof AppraisalRuleType) {
       return HttpStatus.CONFLICT;
     }
     throw new IllegalStateException("Unhandled RuleType: " + rule);

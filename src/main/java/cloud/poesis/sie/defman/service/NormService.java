@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -63,7 +62,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   private final NormRepository normRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
-  private final AppraisalService appraisalService;
   private final CelCompiler celParser;
 
   /**
@@ -77,8 +75,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
-   * @param appraisalService the appraisal service for governance compatibility checks (lazy to
-   *     break circular dependency)
    */
   public NormService(
       NormRepository normRepo,
@@ -90,7 +86,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       AscriptionService ascriptionService,
       EntityManager entityManager,
       DataProtectionService dataProtectionService,
-      @Lazy AppraisalService appraisalService,
       CelCompiler celParser) {
     super(
         definitionService,
@@ -102,7 +97,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
     this.normRepo = normRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
-    this.appraisalService = appraisalService;
     this.celParser = celParser;
   }
 
@@ -190,16 +184,6 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       values.put("assertion", stmt.get("assertion").asText());
     }
     return values;
-  }
-
-  @Override
-  public void validateActivationUniqueness(AscriptionEntity entity) {
-    if (!(entity instanceof NormEntity norm)) {
-      throw new IllegalArgumentException(
-          "Expected NormEntity, got " + entity.getClass().getSimpleName());
-    }
-    appraisalService.validateGovernanceChain(norm);
-    appraisalService.validateNormCompatibility(norm);
   }
 
   /**

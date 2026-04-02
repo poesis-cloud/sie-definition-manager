@@ -3,9 +3,7 @@ package cloud.poesis.sie.defman.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
@@ -13,10 +11,8 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
-import cloud.poesis.sie.defman.type.AppraisalRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
@@ -46,8 +42,6 @@ class DirectiveServiceTest {
 
   @Mock private ArchetypeService archetypeService;
 
-  @Mock private AppraisalService appraisalService;
-
   private DirectiveService service;
 
   @BeforeEach
@@ -62,36 +56,7 @@ class DirectiveServiceTest {
             mock(AscriptionStatusTransitionService.class),
             mock(AscriptionService.class),
             mock(EntityManager.class),
-            mock(DataProtectionService.class),
-            appraisalService);
-  }
-
-  // ========================================================================
-  // Consistency (verb/modal contradiction)
-  // ========================================================================
-
-  @Nested
-  class Consistency {
-
-    @Test
-    void delegatesToAppraisalService() {
-      DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-
-      service.validateActivationUniqueness(directive);
-
-      verify(appraisalService).validateDirectiveCompatibility(directive);
-    }
-
-    @Test
-    void propagatesAppraisalException() {
-      DirectiveEntity directive = stubDirective("ENSURE", "MUST");
-      doThrow(RuleViolationException.of(AppraisalRuleType.DIRECTIVE_VERB_COMPATIBILITY, "x"))
-          .when(appraisalService)
-          .validateDirectiveCompatibility(directive);
-
-      assertThrows(
-          RuleViolationException.class, () -> service.validateActivationUniqueness(directive));
-    }
+            mock(DataProtectionService.class));
   }
 
   // ========================================================================

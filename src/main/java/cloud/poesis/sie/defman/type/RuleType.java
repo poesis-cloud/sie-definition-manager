@@ -10,14 +10,13 @@ package cloud.poesis.sie.defman.type;
  *   <li>{@link AscriptionConsistencyRuleType} — creation-time consistency rules (always-true
  *       preconditions)
  *   <li>{@link AscriptionStatusTransitionRuleType} — lifecycle status transition rules
- *   <li>{@link AppraisalRuleType} — governance evaluation rules (Appraisal domain)
  * </ul>
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
 public sealed interface RuleType
-    permits AscriptionConsistencyRuleType, AscriptionStatusTransitionRuleType, AppraisalRuleType {
+    permits AscriptionConsistencyRuleType, AscriptionStatusTransitionRuleType {
 
   /**
    * Returns the stable machine-readable URI ({@code gsm:rules/…}).
