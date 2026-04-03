@@ -11,7 +11,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -26,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional("transactionManager")
-public class AscriptionStatusTransitionService {
+public class AscriptionStatusTransitionService implements SmartInitializingSingleton {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
@@ -213,9 +213,9 @@ public class AscriptionStatusTransitionService {
     this.subtypeServices = subtypeServices;
   }
 
-  /** Builds the subtype lookup map and cascade graph after all beans are constructed. */
-  @PostConstruct
-  void initCascadeGraph() {
+  /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
+  @Override
+  public void afterSingletonsInstantiated() {
     Map<DefinitionSubjectType, AbstractAscriptionService<?>> byType =
         new EnumMap<>(DefinitionSubjectType.class);
     for (AbstractAscriptionService<?> svc : subtypeServices) {
