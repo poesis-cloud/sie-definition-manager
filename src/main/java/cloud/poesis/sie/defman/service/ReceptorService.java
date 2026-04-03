@@ -7,11 +7,11 @@ import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -42,7 +42,7 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
    * @param mechanismService the mechanism service for reference resolution
    * @param archetypeService the archetype service for data archetype resolution
    * @param definitionService the definition service
-   * @param transitionService the status transition service
+   * @param stateMachine the ascription state machine
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
@@ -51,19 +51,11 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
       ReceptorRepository receptorRepo,
       MechanismService mechanismService,
       ArchetypeService archetypeService,
-      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
-      AscriptionStatusTransitionService transitionService,
-      AscriptionService ascriptionService,
-      EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
-    super(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepository,
-        entityManager,
-        dataProtectionService);
+      AscriptionStateMachineService stateMachine,
+      AscriptionStatementValidationService ascriptionStatementValidationService,
+      EntityManager entityManager) {
+    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.receptorRepo = receptorRepo;
     this.mechanismService = mechanismService;
     this.archetypeService = archetypeService;

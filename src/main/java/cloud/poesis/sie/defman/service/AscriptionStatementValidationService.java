@@ -1,0 +1,464 @@
+package cloud.poesis.sie.defman.service;
+
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.entity.AscriptionEntity;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+/**
+ * Validates ascription statements against archetype JSON Schemas and enforces {@code $gsm:*}
+ * vocabulary annotations at authoring time.
+ *
+ * <p>Extracted from {@link AbstractAscriptionService} to separate statement/schema validation
+ * concerns from entity lifecycle management.
+ *
+ * @author Clément Cazaud
+ * @since 1.0.0
+ */
+@Service
+public class AscriptionStatementValidationService {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AscriptionStatementValidationService.class);
+
+  /**
+   * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsm://} URIs. Used
+   * when no tenant archetypes need DB resolution. GSM §8 security invariant: DM MUST NOT resolve
+   * {@code $schema} URIs from incoming tenant schemas via network — all resolution is local.
+   */
+  private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY =
+      JsonSchemaFactory.getInstance(
+          SpecVersion.VersionFlag.V202012,
+          builder ->
+              builder.schemaMappers(
+                  mappers ->
+                      mappers.mappings(
+                          uri -> uri.startsWith("gsm://archetypes/"),
+                          uri -> {
+                            String rest = uri.substring("gsm://archetypes/".length());
+                            String name = rest.split("/")[0];
+                            return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                          })));
+
+  /** GSM base archetype titles that live on classpath. */
+  private static final Set<String> CLASSPATH_ARCHETYPE_TITLES =
+      Set.of(
+          "Archetype",
+          "StructureArchetype",
+          "MechanismArchetype",
+          "EffectorArchetype",
+          "ReceptorArchetype",
+          "InteractionArchetype",
+          "DirectiveArchetype",
+          "NormArchetype");
+
+  private static final Pattern GSM_URI_PATTERN =
+      Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
+
+  // GSM base schema property sets for extensible subject types (sealed — derived
+  // from DefinitionSubjectType.statementProperties and never change at runtime).
+  // Used to classify validation errors as GSM-base vs tenant-extension.
+  private static final Map<DefinitionSubjectType, Set<String>> GSM_BASE_PROPERTIES;
+
+  static {
+    var map = new EnumMap<DefinitionSubjectType, Set<String>>(DefinitionSubjectType.class);
+    for (DefinitionSubjectType type : DefinitionSubjectType.values()) {
+      Set<String> props = type.getStatementProperties();
+      if (!props.isEmpty()) {
+        map.put(type, props);
+      }
+    }
+    GSM_BASE_PROPERTIES = Collections.unmodifiableMap(map);
+  }
+
+  private final ArchetypeRepository archetypeRepository;
+  private final AscriptionService ascriptionService;
+  private final DataProtectionService dataProtectionService;
+
+  public AscriptionStatementValidationService(
+      ArchetypeRepository archetypeRepository,
+      AscriptionService ascriptionService,
+      DataProtectionService dataProtectionService) {
+    this.archetypeRepository = archetypeRepository;
+    this.ascriptionService = ascriptionService;
+    this.dataProtectionService = dataProtectionService;
+  }
+
+  // ======================================================================
+  // Statement validation (JSON Schema)
+  // ======================================================================
+
+  /**
+   * Validates a statement against the archetype's JSON Schema.
+   *
+   * @param statement the JSON statement payload to validate
+   * @param archetype the archetype whose schema defines the validation surface
+   * @param subjectType the GSM subject type (used for error classification)
+   * @throws RuleViolationException if validation fails
+   */
+  void validateStatement(
+      JsonNode statement, ArchetypeEntity archetype, DefinitionSubjectType subjectType) {
+    JsonNode archetypeStatement = archetype.getStatement();
+
+    SchemaValidatorsConfig config =
+        SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
+    JsonSchemaFactory factory = buildSchemaFactory(archetypeStatement);
+    JsonSchema schema = factory.getSchema(archetypeStatement, config);
+    Set<ValidationMessage> errors = schema.validate(statement);
+
+    if (errors.isEmpty()) {
+      return;
+    }
+
+    AscriptionConsistencyRuleType baseRule = statementValidationRule();
+    AscriptionConsistencyRuleType extensionRule = extensionStatementValidationRule(subjectType);
+    Set<String> baseProps = GSM_BASE_PROPERTIES.get(subjectType);
+
+    if (baseProps != null && extensionRule != null) {
+      List<String> baseMessages = new ArrayList<>();
+      List<String> extensionMessages = new ArrayList<>();
+
+      for (ValidationMessage err : errors) {
+        if (isBaseSchemaError(err, baseProps)) {
+          baseMessages.add(err.getMessage());
+        } else {
+          extensionMessages.add(err.getMessage());
+        }
+      }
+
+      if (!baseMessages.isEmpty()) {
+        throw RuleViolationException.of(
+            baseRule,
+            "Statement validation failed against archetype "
+                + archetype.getDefinition().getId()
+                + ": "
+                + baseMessages,
+            "archetypeDefinitionId",
+            archetype.getDefinition().getId(),
+            "violations",
+            baseMessages);
+      }
+      if (!extensionMessages.isEmpty()) {
+        throw RuleViolationException.of(
+            extensionRule,
+            "Statement validation failed against tenant-extended archetype "
+                + archetype.getDefinition().getId()
+                + ": "
+                + extensionMessages,
+            "archetypeDefinitionId",
+            archetype.getDefinition().getId(),
+            "violations",
+            extensionMessages);
+      }
+    }
+
+    List<String> messages = errors.stream().map(ValidationMessage::getMessage).toList();
+    throw RuleViolationException.of(
+        baseRule,
+        "Statement validation failed against archetype "
+            + archetype.getDefinition().getId()
+            + ": "
+            + messages,
+        "archetypeDefinitionId",
+        archetype.getDefinition().getId(),
+        "violations",
+        messages);
+  }
+
+  // ======================================================================
+  // $gsm:* annotation enforcement
+  // ======================================================================
+
+  /**
+   * Enforces {@code $gsm:*} vocabulary keywords on a statement at authoring time.
+   *
+   * @param statement the JSON statement payload
+   * @param archetype the archetype carrying vocabulary annotations
+   * @param definitionId the definition UUID (for uniqueness scoping)
+   * @param existingFinder function to find existing ascriptions for a definition (provided by the
+   *     calling subtype service)
+   * @throws RuleViolationException if an annotation constraint is violated
+   */
+  void enforceAnnotations(
+      JsonNode statement,
+      ArchetypeEntity archetype,
+      UUID definitionId,
+      Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
+    JsonNode archetypeStmt = archetype.getStatement();
+    if (archetypeStmt == null) {
+      return;
+    }
+
+    JsonNode properties = archetypeStmt.get("properties");
+    if (properties == null || !properties.isObject()) {
+      return;
+    }
+
+    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
+      String propName = entry.getKey();
+      JsonNode propSchema = entry.getValue();
+
+      if (!statement.has(propName)) {
+        continue;
+      }
+
+      JsonNode value = statement.get(propName);
+
+      if (hasAnnotation(propSchema, "$gsm:identityBound")) {
+        enforceStatementIdentityBound(propName, value, definitionId, existingFinder);
+      }
+
+      if (hasAnnotation(propSchema, "$gsm:unique")) {
+        enforceUnique(propName, value, archetype, definitionId);
+      }
+
+      if (propSchema.has("$gsm:dataProtection")) {
+        dataProtectionService.applyAtRestProtection(
+            propSchema.get("$gsm:dataProtection"), propName, (ObjectNode) statement);
+      }
+    }
+  }
+
+  // ======================================================================
+  // Rule type derivation
+  // ======================================================================
+
+  private static AscriptionConsistencyRuleType statementValidationRule() {
+    return AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE;
+  }
+
+  private static AscriptionConsistencyRuleType extensionStatementValidationRule(
+      DefinitionSubjectType subjectType) {
+    return switch (subjectType) {
+      case STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, DIRECTIVE, NORM ->
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+      case ARCHETYPE -> null;
+    };
+  }
+
+  // ======================================================================
+  // Schema factory with tenant-aware resolution
+  // ======================================================================
+
+  JsonSchemaFactory buildSchemaFactory(JsonNode archetypeSchema) {
+    Map<String, String> tenantSchemaJsonByUri = collectTenantSchemaMap(archetypeSchema);
+
+    if (tenantSchemaJsonByUri.isEmpty()) {
+      return CLASSPATH_SCHEMA_FACTORY;
+    }
+
+    return JsonSchemaFactory.getInstance(
+        SpecVersion.VersionFlag.V202012,
+        builder ->
+            builder
+                .schemaLoaders(
+                    loaders ->
+                        loaders.add(
+                            iri -> {
+                              String uri = iri.toString();
+                              String json = tenantSchemaJsonByUri.get(uri);
+                              if (json != null) {
+                                return () ->
+                                    new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+                              }
+                              return null;
+                            }))
+                .schemaMappers(
+                    mappers ->
+                        mappers.mappings(
+                            uri -> uri.startsWith("gsm://archetypes/"),
+                            uri -> {
+                              if (tenantSchemaJsonByUri.containsKey(uri)) {
+                                return uri;
+                              }
+                              String rest = uri.substring("gsm://archetypes/".length());
+                              String name = rest.split("/")[0];
+                              return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                            })));
+  }
+
+  // ======================================================================
+  // Tenant schema resolution helpers
+  // ======================================================================
+
+  private Map<String, String> collectTenantSchemaMap(JsonNode schema) {
+    Map<String, String> result = new HashMap<>();
+    collectTenantRefs(schema, result);
+    return result;
+  }
+
+  private void collectTenantRefs(JsonNode node, Map<String, String> result) {
+    if (node == null) {
+      return;
+    }
+    if (node.isObject()) {
+      if (node.has("$ref")) {
+        String ref = node.get("$ref").asText();
+        if (!result.containsKey(ref)) {
+          Matcher m = GSM_URI_PATTERN.matcher(ref);
+          if (m.matches()) {
+            String title = m.group(1);
+            if (!CLASSPATH_ARCHETYPE_TITLES.contains(title)) {
+              resolveTenantArchetypeFromDb(ref, title, result);
+            }
+          }
+        }
+      }
+      for (Map.Entry<String, JsonNode> field : node.properties()) {
+        collectTenantRefs(field.getValue(), result);
+      }
+    } else if (node.isArray()) {
+      for (JsonNode child : node) {
+        collectTenantRefs(child, result);
+      }
+    }
+  }
+
+  private void resolveTenantArchetypeFromDb(String uri, String title, Map<String, String> result) {
+    Optional<ArchetypeEntity> found = archetypeRepository.findInEffectByTitle(title);
+    if (found.isPresent()) {
+      JsonNode stmt = found.get().getStatement();
+      result.put(uri, stmt.toString());
+      collectTenantRefs(stmt, result);
+      return;
+    }
+    LOG.warn(
+        "Tenant archetype '{}' referenced by gsm:// URI '{}' not found in-effect — "
+            + "statement validation may fail if it uses properties from this schema",
+        title,
+        uri);
+  }
+
+  // ======================================================================
+  // Error classification helpers
+  // ======================================================================
+
+  private static boolean isBaseSchemaError(ValidationMessage error, Set<String> baseProps) {
+    var instanceLoc = error.getInstanceLocation();
+    if (instanceLoc != null && instanceLoc.getNameCount() > 0) {
+      String rootProp = instanceLoc.getName(0);
+      return baseProps.contains(rootProp);
+    }
+    String property = error.getProperty();
+    if (property != null && !property.isEmpty()) {
+      return baseProps.contains(property);
+    }
+    return true;
+  }
+
+  // ======================================================================
+  // Annotation enforcement helpers
+  // ======================================================================
+
+  private void enforceUnique(
+      String propName, JsonNode value, ArchetypeEntity archetype, UUID definitionId) {
+    List<AscriptionEntity> inEffect =
+        ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
+            archetype.getId(),
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED),
+            definitionId);
+
+    String valueStr = value.isTextual() ? value.asText() : value.toString();
+    for (AscriptionEntity existing : inEffect) {
+      JsonNode existingStmt = existing.getStatement();
+      if (existingStmt.has(propName)) {
+        JsonNode existingVal = existingStmt.get(propName);
+        String existingStr =
+            existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
+        if (valueStr.equals(existingStr)) {
+          throw RuleViolationException.of(
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+              propName
+                  + " '"
+                  + valueStr
+                  + "' duplicates ascription "
+                  + existing.getId()
+                  + " (definition "
+                  + existing.getDefinition().getId()
+                  + ")",
+              "field",
+              propName,
+              "value",
+              valueStr,
+              "conflictingAscriptionId",
+              existing.getId(),
+              "conflictingDefinitionId",
+              existing.getDefinition().getId());
+        }
+      }
+    }
+  }
+
+  private void enforceStatementIdentityBound(
+      String propName,
+      JsonNode value,
+      UUID definitionId,
+      Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
+    List<? extends AscriptionEntity> existing = existingFinder.apply(definitionId);
+    if (existing.isEmpty()) {
+      return;
+    }
+
+    AscriptionEntity first = existing.getLast();
+    JsonNode firstStmt = first.getStatement();
+    if (!firstStmt.has(propName)) {
+      return;
+    }
+
+    String newStr = value.isTextual() ? value.asText() : value.toString();
+    JsonNode firstVal = firstStmt.get(propName);
+    String firstStr = firstVal.isTextual() ? firstVal.asText() : firstVal.toString();
+
+    if (!newStr.equals(firstStr)) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          "Identity-bound field '"
+              + propName
+              + "' changed: expected '"
+              + firstStr
+              + "' but got '"
+              + newStr
+              + "'",
+          "field",
+          propName,
+          "definitionId",
+          definitionId,
+          "expectedValue",
+          firstStr,
+          "actualValue",
+          newStr);
+    }
+  }
+
+  private static boolean hasAnnotation(JsonNode node, String annotation) {
+    return node.has(annotation) && node.get(annotation).asBoolean(false);
+  }
+}

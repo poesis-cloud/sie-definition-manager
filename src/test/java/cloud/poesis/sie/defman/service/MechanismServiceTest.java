@@ -18,7 +18,6 @@ import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
 import cloud.poesis.sie.defman.service.MechanismService.PortSignature;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
@@ -64,7 +63,7 @@ class MechanismServiceTest {
 
   @Mock private DefinitionService definitionService;
 
-  @Mock private AscriptionStatusTransitionService transitionService;
+  @Mock private AscriptionStateMachineService stateMachine;
 
   @Mock private EntityManager entityManager;
 
@@ -77,14 +76,12 @@ class MechanismServiceTest {
             mechanismRepo,
             structureService,
             archetypeService,
-            mock(ArchetypeRepository.class),
             effectorService,
             receptorService,
             definitionService,
-            transitionService,
-            mock(AscriptionService.class),
+            stateMachine,
+            mock(AscriptionStatementValidationService.class),
             entityManager,
-            mock(DataProtectionService.class),
             new com.fasterxml.jackson.databind.ObjectMapper());
   }
 
@@ -1047,43 +1044,6 @@ class MechanismServiceTest {
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_BUDGET, ex.getRuleType());
         assertTrue(ex.getMessage().contains("execution budget"));
       }
-    }
-  }
-
-  // ========================================================================
-  // Statement Compliance (non-GSM extension schema)
-  // ========================================================================
-
-  @Nested
-  class StatementCompliance {
-
-    @Test
-    void extensionSchemaViolation_rejected() {
-      // Schema with a required tenant-extension property (not GSM-base:
-      // structure/function/rule)
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "ExtMech");
-      schema.put("type", "object");
-      ObjectNode props = schema.putObject("properties");
-      props.set("customField", MAPPER.createObjectNode().put("type", "integer"));
-      schema.putArray("required").add("customField");
-
-      DefinitionEntity archDef = mock(DefinitionEntity.class);
-      when(archDef.getId()).thenReturn(UUID.randomUUID());
-      cloud.poesis.sie.defman.entity.ArchetypeEntity archetype =
-          mock(cloud.poesis.sie.defman.entity.ArchetypeEntity.class);
-      when(archetype.getStatement()).thenReturn(schema);
-      when(archetype.getDefinition()).thenReturn(archDef);
-
-      ObjectNode statement = MAPPER.createObjectNode(); // missing customField
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
-          ex.getRuleType());
-      assertTrue(ex.getMessage().contains("tenant-extended"));
     }
   }
 

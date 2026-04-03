@@ -31,6 +31,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 
 /**
  * Tests for {@link AbstractController#mapEntityToAscriptionDto} — specifically the
@@ -379,6 +380,17 @@ class AbstractControllerTest {
     }
 
     @Test
+    void missingRequestParam_returns400() {
+      MissingServletRequestParameterException ex =
+          new MissingServletRequestParameterException("type", "String");
+      ProblemDetail pd = controller.mapMissingServletRequestParameterExceptionToProblemDetail(ex);
+
+      assertEquals(400, pd.getStatus());
+      assertEquals("Missing required parameter", pd.getTitle());
+      assertTrue(pd.getDetail().contains("type"));
+    }
+
+    @Test
     void genericException_returns500() {
       Exception ex = new RuntimeException("unexpected");
       ProblemDetail pd = controller.mapExceptionToProblemDetail(ex);
@@ -403,7 +415,7 @@ class AbstractControllerTest {
         AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
         AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
         AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
-        AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+        AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
       };
       for (AscriptionConsistencyRuleType rt : badRequestTypes) {
         RuleViolationException ex = new RuleViolationException(rt, "test");

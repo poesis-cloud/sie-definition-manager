@@ -291,7 +291,8 @@ class AscriptionResourceIT {
   void createMechanism_withStructureFkInStatement() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "PaymentValidation");
-    statement.put("rule", "on(\"PaymentRequest\")\nsys.effect(\"PaymentResult\", {\"ok\": True})");
+    statement.put(
+        "rule", "sys.receive(\"PaymentRequest\")\nsys.effect(\"PaymentResult\", {\"ok\": True})");
     statement.put("structure", createdStructureId.toString());
 
     ObjectNode request = mapper.createObjectNode();
@@ -328,7 +329,7 @@ class AscriptionResourceIT {
   void createMechanism_missingStructureInStatement_returns400() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
-    statement.put("rule", "on(\"X\")\nsys.effect(\"Y\", {})");
+    statement.put("rule", "sys.receive(\"X\")\nsys.effect(\"Y\", {})");
     // structure intentionally omitted from statement
 
     ObjectNode request = mapper.createObjectNode();
@@ -347,7 +348,7 @@ class AscriptionResourceIT {
   void createMechanism_bogusStructureInStatement_returns400() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
-    statement.put("rule", "on(\"X\")\nsys.effect(\"Y\", {})");
+    statement.put("rule", "sys.receive(\"X\")\nsys.effect(\"Y\", {})");
     statement.put("structure", UUID.randomUUID().toString());
 
     ObjectNode request = mapper.createObjectNode();
@@ -423,9 +424,9 @@ class AscriptionResourceIT {
   void queryFilter_nonQueryableProperty_returns400() throws Exception {
     mvc.perform(
             get("/api/v1/ascriptions")
-                .param("type", "structure")
-                .param("archetype", "StructureArchetype")
-                .param("statement.purpose", "foo"))
+                .param("type", "mechanism")
+                .param("archetype", "MechanismArchetype")
+                .param("statement.rule", "foo"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.detail", containsString("$gsm:queryable")));
   }

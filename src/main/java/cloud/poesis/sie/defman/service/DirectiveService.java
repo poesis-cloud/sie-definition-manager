@@ -6,10 +6,10 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -41,28 +41,19 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
    * @param structureService the structure service for reference resolution
    * @param archetypeService the archetype service for qualifier resolution
    * @param definitionService the definition service
-   * @param transitionService the status transition service
-   * @param ascriptionService the ascription service for cross-subtype queries
+   * @param stateMachine the ascription state machine
+   * @param ascriptionStatementValidationService the statement validation service
    * @param entityManager the JPA entity manager
-   * @param dataProtectionService the data protection service
    */
   public DirectiveService(
       DirectiveRepository directiveRepo,
       StructureService structureService,
       ArchetypeService archetypeService,
-      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
-      AscriptionStatusTransitionService transitionService,
-      AscriptionService ascriptionService,
-      EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
-    super(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepository,
-        entityManager,
-        dataProtectionService);
+      AscriptionStateMachineService stateMachine,
+      AscriptionStatementValidationService ascriptionStatementValidationService,
+      EntityManager entityManager) {
+    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.directiveRepo = directiveRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
@@ -81,10 +72,10 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   @Override
   public DirectiveEntity buildEntity(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID structureId = UUID.fromString(statement.get("structure").asText());
+    UUID structureId = extractRequiredUuid(statement, "structure");
     StructureEntity structure = structureService.findEntityById(structureId);
 
-    UUID qualifierId = UUID.fromString(statement.get("qualifier").asText());
+    UUID qualifierId = extractRequiredUuid(statement, "qualifier");
     ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
 
     return new DirectiveEntity(definition, archetypeRef, statement, structure, qualifier);
@@ -94,10 +85,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
 
   @Override
   public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
-    if (!(entity instanceof DirectiveEntity d)) {
-      throw new IllegalArgumentException(
-          "Expected DirectiveEntity, got " + entity.getClass().getSimpleName());
-    }
+    var d = (DirectiveEntity) entity;
     return List.of(
         new RefereeReference(d.getStructure(), "structure"),
         new RefereeReference(d.getQualifier(), "qualifier"));
@@ -129,10 +117,7 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
 
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
-    if (!(entity instanceof DirectiveEntity d)) {
-      throw new IllegalArgumentException(
-          "Expected DirectiveEntity, got " + entity.getClass().getSimpleName());
-    }
+    var d = (DirectiveEntity) entity;
     var stmt = d.getStatement();
     var purpose = stmt.has("purpose") ? stmt.get("purpose").asText() : null;
     return purpose != null
@@ -143,5 +128,10 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
         : Map.of(
             "structure", d.getStructure().getDefinition().getId(),
             "qualifier", d.getQualifier().getDefinition().getId());
+  }
+
+  @Override
+  public void validateActivationUniqueness(AscriptionEntity entity) {
+    // TODO: re-wire when AppraisalService is introduced
   }
 }

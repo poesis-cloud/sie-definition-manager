@@ -8,11 +8,11 @@ import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -44,7 +44,7 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
    * @param effectorService the effector service for reference resolution
    * @param receptorService the receptor service for reference resolution
    * @param definitionService the definition service
-   * @param transitionService the status transition service
+   * @param stateMachine the ascription state machine
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
@@ -53,19 +53,11 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
       InteractionRepository interactionRepo,
       EffectorService effectorService,
       ReceptorService receptorService,
-      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
-      AscriptionStatusTransitionService transitionService,
-      AscriptionService ascriptionService,
-      EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
-    super(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepository,
-        entityManager,
-        dataProtectionService);
+      AscriptionStateMachineService stateMachine,
+      AscriptionStatementValidationService ascriptionStatementValidationService,
+      EntityManager entityManager) {
+    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.interactionRepo = interactionRepo;
     this.effectorService = effectorService;
     this.receptorService = receptorService;

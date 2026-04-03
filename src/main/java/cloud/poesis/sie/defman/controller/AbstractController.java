@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -145,6 +146,15 @@ public abstract class AbstractController {
     return problemDetail;
   }
 
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  ProblemDetail mapMissingServletRequestParameterExceptionToProblemDetail(
+      MissingServletRequestParameterException exception) {
+    ProblemDetail problemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    problemDetail.setTitle("Missing required parameter");
+    return problemDetail;
+  }
+
   @ExceptionHandler(ResponseStatusException.class)
   ProblemDetail mapResponseStatusExceptionToProblemDetail(ResponseStatusException exception) {
     ProblemDetail problemDetail =
@@ -228,11 +238,9 @@ public abstract class AbstractController {
           NORM_ASSERTION_AS_BOOLEAN_RESULT,
           NORM_ASSERTION_PROPERTY_PATH_RESOLUTION,
           NORM_ASSERTION_TOLERANCE_MODE_CONSISTENCY,
-          ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
-          ARCHETYPE_REF_CHAIN_ACYCLICITY,
-          ARCHETYPE_REF_CHAIN_NON_SEALED,
-          ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
-          ARCHETYPE_ALLOF_CHAIN_NON_SEALED,
+          ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+          ARCHETYPE_ALLOF_ACYCLICITY,
+          ARCHETYPE_ALLOF_NON_SEALED,
           ARCHETYPE_REF_NORM,
           ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY ->
           HttpStatus.BAD_REQUEST;

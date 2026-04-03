@@ -6,14 +6,16 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -37,26 +39,18 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
    *
    * @param structureRepo the structure repository
    * @param definitionService the definition service
-   * @param transitionService the status transition service
+   * @param stateMachine the ascription state machine
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
    */
   public StructureService(
       StructureRepository structureRepo,
-      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
-      AscriptionStatusTransitionService transitionService,
-      AscriptionService ascriptionService,
-      EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
-    super(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepository,
-        entityManager,
-        dataProtectionService);
+      AscriptionStateMachineService stateMachine,
+      AscriptionStatementValidationService ascriptionStatementValidationService,
+      EntityManager entityManager) {
+    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.structureRepo = structureRepo;
   }
 
@@ -94,6 +88,22 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
     var stmt = entity.getStatement();
     var purpose = stmt.has("purpose") ? stmt.get("purpose").asText() : null;
     return purpose != null ? Map.of("purpose", purpose) : Map.of();
+  }
+
+  @Override
+  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+    return List.of();
+  }
+
+  @Override
+  public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+    return Map.of();
+  }
+
+  @Override
+  public List<? extends AscriptionEntity> findCascadeTargetsFrom(
+      DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
+    return List.of();
   }
 
   @Override

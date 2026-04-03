@@ -13,7 +13,6 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -58,12 +57,10 @@ class EffectorServiceTest {
             effectorRepo,
             mechanismService,
             archetypeService,
-            mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
+            mock(AscriptionStateMachineService.class),
+            mock(AscriptionStatementValidationService.class),
+            mock(EntityManager.class));
   }
 
   // ========================================================================

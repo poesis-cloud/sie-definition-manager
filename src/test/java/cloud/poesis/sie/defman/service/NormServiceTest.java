@@ -14,7 +14,6 @@ import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -61,12 +60,10 @@ class NormServiceTest {
             normRepo,
             structureService,
             archetypeService,
-            mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
+            mock(AscriptionStateMachineService.class),
+            mock(AscriptionStatementValidationService.class),
             mock(EntityManager.class),
-            mock(DataProtectionService.class),
             dev.cel.compiler.CelCompilerFactory.standardCelCompilerBuilder().build());
   }
 

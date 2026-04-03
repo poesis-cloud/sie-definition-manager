@@ -7,12 +7,12 @@ import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.cel.common.CelValidationException;
 import dev.cel.common.CelValidationResult;
@@ -71,7 +71,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
    * @param structureService the structure service for reference resolution
    * @param archetypeService the archetype service for qualifier resolution
    * @param definitionService the definition service
-   * @param transitionService the status transition service
+   * @param stateMachine the ascription state machine
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
@@ -80,20 +80,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
       NormRepository normRepo,
       StructureService structureService,
       ArchetypeService archetypeService,
-      ArchetypeRepository archetypeRepository,
       DefinitionService definitionService,
-      AscriptionStatusTransitionService transitionService,
-      AscriptionService ascriptionService,
+      AscriptionStateMachineService stateMachine,
+      AscriptionStatementValidationService ascriptionStatementValidationService,
       EntityManager entityManager,
-      DataProtectionService dataProtectionService,
       CelCompiler celParser) {
-    super(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepository,
-        entityManager,
-        dataProtectionService);
+    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.normRepo = normRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;

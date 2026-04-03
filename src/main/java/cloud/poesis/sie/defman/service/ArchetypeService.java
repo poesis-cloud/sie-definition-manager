@@ -8,9 +8,11 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
@@ -102,7 +104,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
    * @param archetypeRepo the archetype repository
    * @param jdbcTemplate the JDBC template for index provisioning
    * @param definitionService the definition service
-   * @param transitionService the status transition service
+   * @param stateMachine the ascription state machine
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
    * @param dataProtectionService the data protection service
@@ -111,17 +113,10 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       ArchetypeRepository archetypeRepo,
       JdbcTemplate jdbcTemplate,
       DefinitionService definitionService,
-      AscriptionStatusTransitionService transitionService,
-      AscriptionService ascriptionService,
-      EntityManager entityManager,
-      DataProtectionService dataProtectionService) {
-    super(
-        definitionService,
-        transitionService,
-        ascriptionService,
-        archetypeRepo,
-        entityManager,
-        dataProtectionService);
+      AscriptionStateMachineService stateMachine,
+      AscriptionStatementValidationService ascriptionStatementValidationService,
+      EntityManager entityManager) {
+    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.archetypeRepo = archetypeRepo;
     this.jdbcTemplate = jdbcTemplate;
   }
@@ -275,7 +270,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     // at authoring time; defensive check here for safety.
     if (resolvedBases.size() > 1) {
       throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           "Archetype '" + title + "' $ref chain converges to multiple GSM bases: " + resolvedBases,
           "title",
           title,
@@ -302,6 +297,22 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     JsonNode stmt = entity.getStatement();
     if (stmt == null || !stmt.has("title")) return Map.of();
     return Map.of("title", stmt.get("title").asText());
+  }
+
+  @Override
+  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+    return List.of();
+  }
+
+  @Override
+  public Map<DefinitionSubjectType, AscriptionStatusTransitionCascadeType> getCascadeTargetRoles() {
+    return Map.of();
+  }
+
+  @Override
+  public List<? extends AscriptionEntity> findCascadeTargetsFrom(
+      DefinitionSubjectType sourceType, UUID sourceAscriptionId) {
+    return List.of();
   }
 
   @Override
@@ -629,7 +640,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     // 2+ bases → impossible via $ref chain (linear), but defensive check.
     if (resolvedBases.size() > 1) {
       throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           "Archetype schema $ref chain converges to multiple GSM base archetypes: " + resolvedBases,
           "resolvedBases",
           resolvedBases);
@@ -646,7 +657,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
     if (refTitle == null) {
       throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           "Cannot resolve $ref '"
               + ref
               + "': must use gsm://archetypes/{title}/v{version} convention",
@@ -656,7 +667,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
     if (!visited.add(refTitle)) {
       throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_ACYCLICITY,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY,
           "Cycle detected in $ref chain: '" + refTitle + "' already visited",
           "refTitle",
           refTitle);
@@ -665,7 +676,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     if (GSM_BASE_TITLES.contains(refTitle)) {
       if (isSealedBaseArchetype(refTitle)) {
         throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_NON_SEALED,
+            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
             "Archetype $ref references sealed schema '"
                 + refTitle
                 + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
@@ -678,7 +689,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       if (intermediateSchema == null) {
         if (strict) {
           throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
               "Cannot resolve intermediary archetype '"
                   + refTitle
                   + "' referenced via $ref — no in-effect Archetype with this title",
@@ -694,7 +705,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       if (intermediateSchema.has("$gsm:sealed")
           && intermediateSchema.get("$gsm:sealed").asBoolean()) {
         throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_NON_SEALED,
+            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
             "Archetype $ref references sealed schema '"
                 + refTitle
                 + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
@@ -731,7 +742,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
       if (refTitle == null) {
         throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
             "Cannot resolve allOf $ref '"
                 + ref
                 + "': must use gsm://archetypes/{title}/v{version} convention",
@@ -741,7 +752,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
       if (!visited.add(refTitle)) {
         throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_ACYCLICITY,
+            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY,
             "Cycle detected in allOf chain: '" + refTitle + "' already visited",
             "refTitle",
             refTitle);
@@ -750,7 +761,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       if (GSM_BASE_TITLES.contains(refTitle)) {
         if (isSealedBaseArchetype(refTitle)) {
           throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_NON_SEALED,
+              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
               "Archetype allOf references sealed schema '"
                   + refTitle
                   + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
@@ -764,7 +775,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         if (intermediateSchema == null) {
           if (strict) {
             throw RuleViolationException.of(
-                AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+                AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
                 "Cannot resolve intermediary archetype '"
                     + refTitle
                     + "' referenced via allOf — no in-effect Archetype with this title",
@@ -780,7 +791,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
         if (intermediateSchema.has("$gsm:sealed")
             && intermediateSchema.get("$gsm:sealed").asBoolean()) {
           throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_NON_SEALED,
+              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
               "Archetype allOf references sealed schema '"
                   + refTitle
                   + "' — tenant-defined archetypes MUST NOT extend sealed schemas",

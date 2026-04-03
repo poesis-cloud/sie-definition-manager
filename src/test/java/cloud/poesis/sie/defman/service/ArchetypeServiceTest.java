@@ -63,10 +63,9 @@ class ArchetypeServiceTest {
             archetypeRepo,
             jdbcTemplate,
             mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
+            mock(AscriptionStateMachineService.class),
+            mock(AscriptionStatementValidationService.class),
+            mock(EntityManager.class));
     // Default: findInEffectByTitle returns empty for any title not explicitly mocked.
     when(archetypeRepo.findInEffectByTitle(anyString())).thenReturn(Optional.empty());
   }
@@ -265,7 +264,7 @@ class ArchetypeServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateSchemaComposition(schema));
       assertTrue(ex.getMessage().contains("sealed"));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_NON_SEALED, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
     }
 
     @Test
@@ -310,7 +309,7 @@ class ArchetypeServiceTest {
               RuleViolationException.class, () -> service.validateSchemaComposition(schema));
       assertTrue(ex.getMessage().contains("gsm://"));
       assertEquals(
-          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           ex.getRuleType());
     }
 
@@ -342,7 +341,7 @@ class ArchetypeServiceTest {
           assertThrows(
               RuleViolationException.class, () -> service.validateSchemaComposition(schema));
       assertTrue(ex.getMessage().contains("Cycle") || ex.getMessage().contains("already visited"));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_ACYCLICITY, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, ex.getRuleType());
     }
 
     @Test
@@ -365,7 +364,7 @@ class ArchetypeServiceTest {
               RuleViolationException.class, () -> service.validateSchemaComposition(schema, true));
       assertTrue(ex.getMessage().contains("Cannot resolve"));
       assertEquals(
-          AscriptionConsistencyRuleType.ARCHETYPE_REF_CHAIN_EXCLUSIVE_BASE_CONVERGENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           ex.getRuleType());
     }
 
@@ -1135,8 +1134,7 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class, () -> service.validateSchemaComposition(schema));
-      assertEquals(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_CHAIN_NON_SEALED, ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
       assertTrue(ex.getMessage().contains("SealedFacet"));
     }
 

@@ -12,7 +12,6 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.StructureRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -49,12 +48,10 @@ class StructureServiceTest {
     service =
         new StructureService(
             structureRepo,
-            mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
+            mock(AscriptionStateMachineService.class),
+            mock(AscriptionStatementValidationService.class),
+            mock(EntityManager.class));
   }
 
   // ========================================================================

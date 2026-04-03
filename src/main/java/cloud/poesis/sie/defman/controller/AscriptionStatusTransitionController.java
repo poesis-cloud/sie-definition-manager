@@ -5,7 +5,8 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionStatusTransitionService;
+import cloud.poesis.sie.defman.service.AscriptionLifecycleOrchestratorService;
+import cloud.poesis.sie.defman.service.AscriptionStateMachineService;
 import cloud.poesis.sie.defman.service.DataProtectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -63,19 +64,23 @@ import org.springframework.web.server.ResponseStatusException;
 @Tag(name = "Transitions", description = "Lifecycle transitions for GSM ascriptions")
 public class AscriptionStatusTransitionController extends AbstractController {
 
-  private final AscriptionStatusTransitionService transitionService;
+  private final AscriptionStateMachineService stateMachine;
+  private final AscriptionLifecycleOrchestratorService orchestrator;
 
   /**
    * Constructs the transition controller with its required services.
    *
-   * @param transitionService the status transition service
+   * @param stateMachine the ascription state machine for transition queries
+   * @param orchestrator the lifecycle orchestrator for executing transitions
    * @param dataProtectionService the data protection service
    */
   public AscriptionStatusTransitionController(
-      AscriptionStatusTransitionService transitionService,
+      AscriptionStateMachineService stateMachine,
+      AscriptionLifecycleOrchestratorService orchestrator,
       DataProtectionService dataProtectionService) {
     super(dataProtectionService);
-    this.transitionService = transitionService;
+    this.stateMachine = stateMachine;
+    this.orchestrator = orchestrator;
   }
 
   @GetMapping
@@ -87,8 +92,7 @@ public class AscriptionStatusTransitionController extends AbstractController {
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public CollectionModel<EntityModel<AscriptionStatusTransitionDto>> getTransitions(
       @Parameter(description = "Ascription ID") @PathVariable UUID ascriptionId) {
-    List<AscriptionStatusTransitionEntity> transitions =
-        transitionService.getTransitions(ascriptionId);
+    List<AscriptionStatusTransitionEntity> transitions = stateMachine.getTransitions(ascriptionId);
     List<EntityModel<AscriptionStatusTransitionDto>> items = new ArrayList<>();
     for (int i = 0; i < transitions.size(); i++) {
       AscriptionStatusTransitionEntity t = transitions.get(i);
@@ -112,7 +116,7 @@ public class AscriptionStatusTransitionController extends AbstractController {
       @Parameter(description = "Ascription ID") @PathVariable UUID ascriptionId,
       @Parameter(description = "Transition ID") @PathVariable UUID transitionId) {
     AscriptionStatusTransitionEntity transition =
-        transitionService
+        stateMachine
             .getTransition(transitionId, ascriptionId)
             .orElseThrow(
                 () ->
@@ -123,7 +127,7 @@ public class AscriptionStatusTransitionController extends AbstractController {
                             + " not found for ascription "
                             + ascriptionId));
     List<AscriptionStatusTransitionEntity> allTransitions =
-        transitionService.getTransitions(ascriptionId);
+        stateMachine.getTransitions(ascriptionId);
     int index = -1;
     for (int i = 0; i < allTransitions.size(); i++) {
       if (allTransitions.get(i).getId().equals(transitionId)) {
@@ -156,11 +160,11 @@ public class AscriptionStatusTransitionController extends AbstractController {
       @Parameter(description = "Ascription ID") @PathVariable UUID ascriptionId,
       @Valid @RequestBody AscriptionStatusTransitionCreationDto request) {
     AscriptionStatusTransitionEntity saved =
-        transitionService.transition(ascriptionId, request.getTargetStatus().name());
+        orchestrator.transition(ascriptionId, request.getTargetStatus().name());
     EntityModel<AscriptionStatusTransitionDto> model =
         EntityModel.of(mapEntityToAscriptionStatusTransitionDto(saved));
     List<AscriptionStatusTransitionEntity> allTransitions =
-        transitionService.getTransitions(ascriptionId);
+        stateMachine.getTransitions(ascriptionId);
     int index = -1;
     for (int i = 0; i < allTransitions.size(); i++) {
       if (allTransitions.get(i).getId().equals(saved.getId())) {

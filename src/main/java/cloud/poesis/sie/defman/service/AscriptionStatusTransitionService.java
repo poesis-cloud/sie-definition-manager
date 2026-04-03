@@ -5,12 +5,12 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository;
-import cloud.poesis.sie.defman.service.AbstractAscriptionService.RefereeReference;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import cloud.poesis.sie.defman.type.RefereeReference;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -314,7 +314,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
       return saved;
     } catch (DataIntegrityViolationException ex) {
-      throw AbstractAscriptionService.translatePersistenceException(ex);
+      throw PersistenceExceptionTranslatorService.translate(ex);
     }
   }
 

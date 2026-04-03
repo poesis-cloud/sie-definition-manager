@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclusion filter for sie-definition-manager.
+
+  Every entry below is a verified false positive caused by a framework constraint
+  where a root-cause fix is impossible:
+
+  EI_EXPOSE_REP2 on Spring DI constructor-injected singletons:
+    EntityManager (JPA proxy — cannot be copied; lifecycle managed by container),
+    JdbcTemplate  (Spring bean — immutable after configuration; copying loses DataSource wiring),
+    ObjectMapper  (Spring-configured bean — copying loses custom modules/serializers).
+    @Lazy List    (Spring lazy-proxy — List.copyOf() would force eager resolution, defeating @Lazy).
+
+  EI_EXPOSE_REP on JPA-managed collections:
+    DefinitionEntity.getAscriptions() — Hibernate-managed @OneToMany; wrapping in unmodifiable
+    breaks Hibernate change tracking.
+
+  EI_EXPOSE_REP on Set.of() return:
+    DefinitionSubjectType.getStatementProperties() — Set.of() already returns an immutable set
+    (Java 9+); SpotBugs cannot track this.
+-->
+<FindBugsFilter>
+
+  <!-- EntityManager fields — JPA container-managed proxy -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Field type="jakarta.persistence.EntityManager"/>
+  </Match>
+
+  <!-- JdbcTemplate fields — Spring-managed singleton -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Field type="org.springframework.jdbc.core.JdbcTemplate"/>
+  </Match>
+
+  <!-- ObjectMapper fields — Spring-configured singleton -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Field type="com.fasterxml.jackson.databind.ObjectMapper"/>
+  </Match>
+
+  <!-- @Lazy List in AscriptionStatusTransitionService — List.copyOf() would break lazy resolution -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Class name="cloud.poesis.sie.defman.service.AscriptionStatusTransitionService"/>
+    <Field name="subtypeServices"/>
+  </Match>
+
+  <!-- serviceRegistry is already Map.copyOf() from AscriptionServiceConfig — SpotBugs can't track upstream immutability -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Class name="cloud.poesis.sie.defman.controller.AscriptionController"/>
+    <Field name="serviceRegistry"/>
+  </Match>
+
+  <!-- Spring HATEOAS methodOn() proxy: null is the standard placeholder for affordance declarations, never dereferenced -->
+  <Match>
+    <Bug pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS"/>
+    <Class name="cloud.poesis.sie.defman.controller.AscriptionController"/>
+    <Method name="listSelfLink"/>
+  </Match>
+
+  <!-- JPA-managed @OneToMany collection getter -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+    <Class name="cloud.poesis.sie.defman.entity.DefinitionEntity"/>
+    <Method name="getAscriptions"/>
+  </Match>
+
+  <!-- Set.of() is already immutable — SpotBugs false positive -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+    <Class name="cloud.poesis.sie.defman.type.DefinitionSubjectType"/>
+    <Method name="getStatementProperties"/>
+  </Match>
+
+</FindBugsFilter>

@@ -13,7 +13,6 @@ import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.InteractionEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
@@ -57,12 +56,10 @@ class InteractionServiceTest {
             interactionRepo,
             effectorService,
             receptorService,
-            mock(ArchetypeRepository.class),
             mock(DefinitionService.class),
-            mock(AscriptionStatusTransitionService.class),
-            mock(AscriptionService.class),
-            mock(EntityManager.class),
-            mock(DataProtectionService.class));
+            mock(AscriptionStateMachineService.class),
+            mock(AscriptionStatementValidationService.class),
+            mock(EntityManager.class));
   }
 
   // ========================================================================
@@ -182,42 +179,6 @@ class InteractionServiceTest {
       assertTrue(refs.size() == 2);
       assertTrue(refs.stream().anyMatch(r -> r.label().equals("effector")));
       assertTrue(refs.stream().anyMatch(r -> r.label().equals("receptor")));
-    }
-  }
-
-  // ========================================================================
-  // Statement Compliance
-  // ========================================================================
-
-  @Nested
-  class StatementCompliance {
-
-    @Test
-    void extensionSchemaViolation_rejected() {
-      // Schema with a required tenant-extension property (not GSM-base:
-      // effector/receptor)
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "ExtInt");
-      schema.put("type", "object");
-      ObjectNode props = schema.putObject("properties");
-      props.set("customField", MAPPER.createObjectNode().put("type", "string"));
-      schema.putArray("required").add("customField");
-
-      DefinitionEntity archDef = mock(DefinitionEntity.class);
-      when(archDef.getId()).thenReturn(UUID.randomUUID());
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      when(archetype.getStatement()).thenReturn(schema);
-      when(archetype.getDefinition()).thenReturn(archDef);
-
-      ObjectNode statement = MAPPER.createObjectNode(); // missing customField
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateStatement(statement, archetype));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
-          ex.getRuleType());
-      assertTrue(ex.getMessage().contains("tenant-extended"));
     }
   }
 
