@@ -14,12 +14,14 @@
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the owning Mechanism. An Effector cannot exist without a Mechanism."
     },
     "archetype": {
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the data Archetype that types the Effector's output payload. To change the data type, author a new Definition."
     }
   },

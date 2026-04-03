@@ -14,12 +14,14 @@
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the Effector that is the emitting endpoint of this causal coupling."
     },
     "receptor": {
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the Receptor that is the receiving endpoint of this causal coupling."
     }
   },

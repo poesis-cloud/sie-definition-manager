@@ -65,12 +65,14 @@
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the governed Structure — the Structure whose internal Elements are constrained and which is accountable for compliance. Governance chain: Norm.structure references the same Structure as the legitimating Directive.purpose. Scope rule: the Norm constrains only the governed Structure's internal Elements (Mechanisms, Effectors, Receptors, Interactions)."
     },
     "qualifier": {
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the Archetype that the assertion constrains — mirrors Directive.qualifier. Enables governance chain validation and direct queryability ('all Norms targeting SecurityProperties') without CEL parsing."
     },
     "applicability": {
