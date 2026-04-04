@@ -98,8 +98,8 @@ class DirectiveServiceTest {
         var refs = service.getRefereeReferences(entity);
 
         assertEquals(2, refs.size());
-        assertTrue(refs.stream().anyMatch(r -> r.label().equals("structure")));
-        assertTrue(refs.stream().anyMatch(r -> r.label().equals("qualifier")));
+        assertTrue(refs.stream().anyMatch(r -> r.getValue().equals("structure")));
+        assertTrue(refs.stream().anyMatch(r -> r.getValue().equals("qualifier")));
       }
     }
 
@@ -258,6 +258,18 @@ class DirectiveServiceTest {
       assertThrows(
           ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));
     }
+
+    @Test
+    void invalidUuidForStructure_rejected() {
+      DefinitionEntity def = mock(DefinitionEntity.class);
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      ObjectNode stmt = MAPPER.createObjectNode();
+      stmt.put("structure", "not-a-valid-uuid");
+      stmt.put("qualifier", UUID.randomUUID().toString());
+      stmt.put("purpose", "some-purpose");
+
+      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
+    }
   }
 
   // ========================================================================
@@ -282,6 +294,92 @@ class DirectiveServiceTest {
       var result =
           service.findCascadeTargetsFrom(DefinitionSubjectType.DIRECTIVE, UUID.randomUUID());
       assertTrue(result.isEmpty());
+    }
+  }
+
+  // ========================================================================
+  // ValidateActivationUniqueness
+  // ========================================================================
+
+  @Nested
+  class ValidateActivationUniquenessTests {
+
+    @Test
+    void noOp_doesNotThrow() {
+      DirectiveEntity entity = mock(DirectiveEntity.class);
+      service.validateActivationUniqueness(entity);
+      // TODO: re-wire when AppraisalService is introduced
+    }
+  }
+
+  // ========================================================================
+  // FindAllByDefinitionId (exercises getRepository bridge)
+  // ========================================================================
+
+  @Nested
+  class FindAllByDefinitionIdTests {
+
+    @Test
+    void delegatesToRepo() {
+      UUID defId = UUID.randomUUID();
+      DirectiveEntity d1 = mock(DirectiveEntity.class);
+      when(directiveRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of(d1));
+
+      var result = service.findAllByDefinitionId(defId);
+      assertEquals(1, result.size());
+    }
+  }
+
+  // ========================================================================
+  // FindAllInEffectByPurpose
+  // ========================================================================
+
+  @Nested
+  class FindAllInEffectByPurposeTests {
+
+    @Test
+    void delegatesToRepo() {
+      DirectiveEntity d1 = mock(DirectiveEntity.class);
+      when(directiveRepo.findAllInEffectByPurpose("payment")).thenReturn(List.of(d1));
+
+      var result = service.findAllInEffectByPurpose("payment");
+      assertEquals(1, result.size());
+    }
+  }
+
+  // ========================================================================
+  // IdentityBound — null purpose branch
+  // ========================================================================
+
+  @Nested
+  class IdentityBoundNullPurpose {
+
+    @Test
+    void noPurposeField_returnsStructureAndQualifierOnly() {
+      StructureEntity structure = mock(StructureEntity.class);
+      DefinitionEntity structDef = mock(DefinitionEntity.class);
+      UUID structDefId = UUID.randomUUID();
+      when(structDef.getId()).thenReturn(structDefId);
+      when(structure.getDefinition()).thenReturn(structDef);
+
+      ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
+      DefinitionEntity qualDef = mock(DefinitionEntity.class);
+      UUID qualDefId = UUID.randomUUID();
+      when(qualDef.getId()).thenReturn(qualDefId);
+      when(qualifier.getDefinition()).thenReturn(qualDef);
+
+      ObjectNode stmt = MAPPER.createObjectNode();
+
+      DirectiveEntity entity = mock(DirectiveEntity.class);
+      when(entity.getStructure()).thenReturn(structure);
+      when(entity.getQualifier()).thenReturn(qualifier);
+      when(entity.getStatement()).thenReturn(stmt);
+
+      var values = service.getIdentityBoundValues(entity);
+
+      assertEquals(2, values.size());
+      assertEquals(structDefId, values.get("structure"));
+      assertEquals(qualDefId, values.get("qualifier"));
     }
   }
 

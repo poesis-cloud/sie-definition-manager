@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class DataProtectionService {
+public class AscriptionStatementProtectionService {
 
   // ======================================================================
   // atRest — write-time protection (Ascription authoring)

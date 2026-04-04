@@ -9,7 +9,7 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.RuleType;
@@ -36,15 +36,16 @@ public abstract class AbstractController {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractController.class);
 
-  private final DataProtectionService dataProtectionService;
+  private final AscriptionStatementProtectionService statementProtection;
 
   /**
    * Constructs the abstract controller with shared services.
    *
-   * @param dataProtectionService the data protection service for in-transit protection
+   * @param statementProtection the ascription statement protection service for in-transit
+   *     protection
    */
-  protected AbstractController(DataProtectionService dataProtectionService) {
-    this.dataProtectionService = dataProtectionService;
+  protected AbstractController(AscriptionStatementProtectionService statementProtection) {
+    this.statementProtection = statementProtection;
   }
 
   // ========================================================================
@@ -65,7 +66,7 @@ public abstract class AbstractController {
   protected AscriptionDto mapEntityToAscriptionDto(
       AscriptionEntity ascription, ArchetypeEntity archetype) {
     JsonNode statement =
-        dataProtectionService.applyInTransitProtection(
+        statementProtection.applyInTransitProtection(
             ascription.getStatement(), archetype.getStatement());
     return new AscriptionDto(
         ascription.getId(),

@@ -9,7 +9,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -35,10 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional("transactionManager")
-public class AscriptionLifecycleOrchestratorService implements SmartInitializingSingleton {
+public class AscriptionLifecycleOrchestrationService implements SmartInitializingSingleton {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(AscriptionLifecycleOrchestratorService.class);
+      LoggerFactory.getLogger(AscriptionLifecycleOrchestrationService.class);
 
   // ======================================================================
   // Cascade graph (built at startup from subtype declarations)
@@ -55,7 +54,7 @@ public class AscriptionLifecycleOrchestratorService implements SmartInitializing
   private Map<DefinitionSubjectType, AbstractAscriptionService<?>> subtypeByType;
   private Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeTargetsBySourceType;
 
-  public AscriptionLifecycleOrchestratorService(
+  public AscriptionLifecycleOrchestrationService(
       AscriptionStateMachineService stateMachine,
       EntityManager entityManager,
       List<AbstractAscriptionService<?>> subtypeServices) {
@@ -165,7 +164,7 @@ public class AscriptionLifecycleOrchestratorService implements SmartInitializing
 
       return saved;
     } catch (DataIntegrityViolationException ex) {
-      throw PersistenceExceptionTranslatorService.translate(ex);
+      throw PersistenceExceptionTranslationService.translate(ex);
     }
   }
 
@@ -195,7 +194,7 @@ public class AscriptionLifecycleOrchestratorService implements SmartInitializing
       return;
     }
 
-    List<RefereeReference> refs = subtypeService.getRefereeReferences(entity);
+    List<Map.Entry<AscriptionEntity, String>> refs = subtypeService.getRefereeReferences(entity);
     stateMachine.validateRefereePreconditions(refs, from, to);
   }
 
@@ -273,7 +272,8 @@ public class AscriptionLifecycleOrchestratorService implements SmartInitializing
 
         DefinitionSubjectType targetType = entry.targetService().getSubjectType();
         try {
-          List<RefereeReference> refs = entry.targetService().getRefereeReferences(target);
+          List<Map.Entry<AscriptionEntity, String>> refs =
+              entry.targetService().getRefereeReferences(target);
           stateMachine.validateRefereePreconditions(refs, fromStatus, toStatus);
         } catch (RuleViolationException e) {
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {

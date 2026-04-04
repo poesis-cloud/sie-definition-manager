@@ -9,7 +9,6 @@ import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -84,11 +83,10 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   // ---- Lifecycle descriptors ----
 
   @Override
-  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+  public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(AscriptionEntity entity) {
     var d = (DirectiveEntity) entity;
     return List.of(
-        new RefereeReference(d.getStructure(), "structure"),
-        new RefereeReference(d.getQualifier(), "qualifier"));
+        Map.entry(d.getStructure(), "structure"), Map.entry(d.getQualifier(), "qualifier"));
   }
 
   @Override

@@ -5,9 +5,9 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionStatusTransitionDto;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionLifecycleOrchestratorService;
+import cloud.poesis.sie.defman.service.AscriptionLifecycleOrchestrationService;
 import cloud.poesis.sie.defman.service.AscriptionStateMachineService;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -65,20 +65,20 @@ import org.springframework.web.server.ResponseStatusException;
 public class AscriptionStatusTransitionController extends AbstractController {
 
   private final AscriptionStateMachineService stateMachine;
-  private final AscriptionLifecycleOrchestratorService orchestrator;
+  private final AscriptionLifecycleOrchestrationService orchestrator;
 
   /**
    * Constructs the transition controller with its required services.
    *
    * @param stateMachine the ascription state machine for transition queries
    * @param orchestrator the lifecycle orchestrator for executing transitions
-   * @param dataProtectionService the data protection service
+   * @param statementProtection the ascription statement protection service
    */
   public AscriptionStatusTransitionController(
       AscriptionStateMachineService stateMachine,
-      AscriptionLifecycleOrchestratorService orchestrator,
-      DataProtectionService dataProtectionService) {
-    super(dataProtectionService);
+      AscriptionLifecycleOrchestrationService orchestrator,
+      AscriptionStatementProtectionService statementProtection) {
+    super(statementProtection);
     this.stateMachine = stateMachine;
     this.orchestrator = orchestrator;
   }

@@ -17,6 +17,7 @@
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the governing Structure that issues the Directive — the Structure accountable for this governance commitment. Scope rule: the governance scope opened by this Directive covers the internal Elements of the governed Structure (purpose) — its Mechanisms, Effectors, Receptors, and Interactions. Scope is NOT accumulated across Directives."
     },
     "modal": {
@@ -33,6 +34,7 @@
       "type": "string",
       "format": "uuid",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "ID reference to the Archetype that defines the viability dimension being governed. Norms operationalizing this Directive MUST reference this same Archetype (or a descendant) in their applicability/assertion CEL expressions."
     },
     "purpose": {
@@ -40,6 +42,7 @@
       "minLength": 1,
       "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
       "$gsm:identityBound": true,
+      "$gsm:queryable": true,
       "description": "The governed Structure's purpose string — names the Structure whose purpose is governed by this Directive. MAY reference a Structure that does not yet exist, enabling anticipatory governance (governance intent preceding structure creation). When matched, must equal an in-effect Structure's purpose field. Kebab-case format enforced for canonicalization."
     }
   },

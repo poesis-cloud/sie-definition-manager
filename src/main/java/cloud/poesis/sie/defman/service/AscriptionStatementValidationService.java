@@ -5,10 +5,8 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
@@ -19,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,16 +97,13 @@ public class AscriptionStatementValidationService {
   }
 
   private final ArchetypeRepository archetypeRepository;
-  private final AscriptionService ascriptionService;
-  private final DataProtectionService dataProtectionService;
+  private final AscriptionAnnotationEnforcementService annotationEnforcement;
 
   public AscriptionStatementValidationService(
       ArchetypeRepository archetypeRepository,
-      AscriptionService ascriptionService,
-      DataProtectionService dataProtectionService) {
+      AscriptionAnnotationEnforcementService annotationEnforcement) {
     this.archetypeRepository = archetypeRepository;
-    this.ascriptionService = ascriptionService;
-    this.dataProtectionService = dataProtectionService;
+    this.annotationEnforcement = annotationEnforcement;
   }
 
   // ======================================================================
@@ -212,39 +206,7 @@ public class AscriptionStatementValidationService {
       ArchetypeEntity archetype,
       UUID definitionId,
       Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
-    JsonNode archetypeStmt = archetype.getStatement();
-    if (archetypeStmt == null) {
-      return;
-    }
-
-    JsonNode properties = archetypeStmt.get("properties");
-    if (properties == null || !properties.isObject()) {
-      return;
-    }
-
-    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      String propName = entry.getKey();
-      JsonNode propSchema = entry.getValue();
-
-      if (!statement.has(propName)) {
-        continue;
-      }
-
-      JsonNode value = statement.get(propName);
-
-      if (hasAnnotation(propSchema, "$gsm:identityBound")) {
-        enforceStatementIdentityBound(propName, value, definitionId, existingFinder);
-      }
-
-      if (hasAnnotation(propSchema, "$gsm:unique")) {
-        enforceUnique(propName, value, archetype, definitionId);
-      }
-
-      if (propSchema.has("$gsm:dataProtection")) {
-        dataProtectionService.applyAtRestProtection(
-            propSchema.get("$gsm:dataProtection"), propName, (ObjectNode) statement);
-      }
-    }
+    annotationEnforcement.enforceAnnotations(statement, archetype, definitionId, existingFinder);
   }
 
   // ======================================================================
@@ -372,93 +334,5 @@ public class AscriptionStatementValidationService {
       return baseProps.contains(property);
     }
     return true;
-  }
-
-  // ======================================================================
-  // Annotation enforcement helpers
-  // ======================================================================
-
-  private void enforceUnique(
-      String propName, JsonNode value, ArchetypeEntity archetype, UUID definitionId) {
-    List<AscriptionEntity> inEffect =
-        ascriptionService.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-            archetype.getId(),
-            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED),
-            definitionId);
-
-    String valueStr = value.isTextual() ? value.asText() : value.toString();
-    for (AscriptionEntity existing : inEffect) {
-      JsonNode existingStmt = existing.getStatement();
-      if (existingStmt.has(propName)) {
-        JsonNode existingVal = existingStmt.get(propName);
-        String existingStr =
-            existingVal.isTextual() ? existingVal.asText() : existingVal.toString();
-        if (valueStr.equals(existingStr)) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-              propName
-                  + " '"
-                  + valueStr
-                  + "' duplicates ascription "
-                  + existing.getId()
-                  + " (definition "
-                  + existing.getDefinition().getId()
-                  + ")",
-              "field",
-              propName,
-              "value",
-              valueStr,
-              "conflictingAscriptionId",
-              existing.getId(),
-              "conflictingDefinitionId",
-              existing.getDefinition().getId());
-        }
-      }
-    }
-  }
-
-  private void enforceStatementIdentityBound(
-      String propName,
-      JsonNode value,
-      UUID definitionId,
-      Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
-    List<? extends AscriptionEntity> existing = existingFinder.apply(definitionId);
-    if (existing.isEmpty()) {
-      return;
-    }
-
-    AscriptionEntity first = existing.getLast();
-    JsonNode firstStmt = first.getStatement();
-    if (!firstStmt.has(propName)) {
-      return;
-    }
-
-    String newStr = value.isTextual() ? value.asText() : value.toString();
-    JsonNode firstVal = firstStmt.get(propName);
-    String firstStr = firstVal.isTextual() ? firstVal.asText() : firstVal.toString();
-
-    if (!newStr.equals(firstStr)) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
-          "Identity-bound field '"
-              + propName
-              + "' changed: expected '"
-              + firstStr
-              + "' but got '"
-              + newStr
-              + "'",
-          "field",
-          propName,
-          "definitionId",
-          definitionId,
-          "expectedValue",
-          firstStr,
-          "actualValue",
-          newStr);
-    }
-  }
-
-  private static boolean hasAnnotation(JsonNode node, String annotation) {
-    return node.has(annotation) && node.get(annotation).asBoolean(false);
   }
 }

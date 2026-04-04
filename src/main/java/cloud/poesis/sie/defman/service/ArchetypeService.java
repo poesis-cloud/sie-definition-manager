@@ -12,14 +12,11 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,9 +26,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -77,48 +71,39 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   private static final Pattern GSM_URI_PATTERN =
       Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
 
-  // ======================================================================
-  // $gsm:* annotation constants
-  // ======================================================================
-
-  private static final Set<String> KNOWN_ANNOTATIONS =
-      Set.of(
-          "$gsm:sealed",
-          "$gsm:identityBound",
-          "$gsm:queryable",
-          "$gsm:unique",
-          "$gsm:dataProtection");
-
-  private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed");
-
   public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {}
 
-  private static final Logger LOG = LoggerFactory.getLogger(ArchetypeService.class);
-
   private final ArchetypeRepository archetypeRepo;
-  private final JdbcTemplate jdbcTemplate;
+  private final ArchetypeIndexProvisioningService indexProvisioning;
+  private final ArchetypeAnnotationValidationService annotationValidation;
+  private final ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
 
   /**
    * Constructs the Archetype service with its required dependencies.
    *
    * @param archetypeRepo the archetype repository
-   * @param jdbcTemplate the JDBC template for index provisioning
+   * @param indexProvisioning the index provisioning service
+   * @param annotationValidation the annotation and $ref URI policy validation service
+   * @param schemaCompositionValidation the schema composition validation service
    * @param definitionService the definition service
    * @param stateMachine the ascription state machine
    * @param ascriptionService the ascription service for cross-subtype queries
    * @param entityManager the JPA entity manager
-   * @param dataProtectionService the data protection service
    */
   public ArchetypeService(
       ArchetypeRepository archetypeRepo,
-      JdbcTemplate jdbcTemplate,
+      ArchetypeIndexProvisioningService indexProvisioning,
+      ArchetypeAnnotationValidationService annotationValidation,
+      ArchetypeSchemaCompositionValidationService schemaCompositionValidation,
       DefinitionService definitionService,
       AscriptionStateMachineService stateMachine,
       AscriptionStatementValidationService ascriptionStatementValidationService,
       EntityManager entityManager) {
     super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.archetypeRepo = archetypeRepo;
-    this.jdbcTemplate = jdbcTemplate;
+    this.indexProvisioning = indexProvisioning;
+    this.annotationValidation = annotationValidation;
+    this.schemaCompositionValidation = schemaCompositionValidation;
   }
 
   @Override
@@ -143,13 +128,14 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     }
 
     // GSM §5: $ref chain convergence + §8: $gsm:sealed enforcement
-    validateSchemaComposition(statement);
+    schemaCompositionValidation.validateSchemaComposition(statement, this::resolveArchetypeSchema);
 
     // GSM §8: deep $ref URI policy — reject external URIs everywhere
-    validateRefUriPolicy(statement);
+    annotationValidation.validateRefUriPolicy(statement);
 
     // GSM §8: $gsm:* annotation well-formedness
-    validateArchetypeAnnotations(statement, definition.getId());
+    annotationValidation.validateArchetypeAnnotations(
+        statement, archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definition.getId()));
 
     return new ArchetypeEntity(definition, archetypeRef, statement);
   }
@@ -251,10 +237,9 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
           title);
     }
 
-    Set<String> resolvedBases = new HashSet<>();
-    Set<String> visited = new HashSet<>();
-    visited.add(title);
-    walkRefChain(refNode.asText(), resolvedBases, visited, true);
+    Set<String> resolvedBases =
+        schemaCompositionValidation.resolveGsmBases(
+            refNode.asText(), title, this::resolveArchetypeSchema);
 
     if (resolvedBases.isEmpty()) {
       throw RuleViolationException.of(
@@ -300,7 +285,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   }
 
   @Override
-  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+  public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(AscriptionEntity entity) {
     return List.of();
   }
 
@@ -334,178 +319,21 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   public void onActivation(AscriptionEntity entity) {
     if (entity instanceof ArchetypeEntity archetypeEntity) {
       // GSM §5: strict schema composition — all intermediaries must be in-effect.
-      validateSchemaComposition(archetypeEntity.getStatement(), true);
+      schemaCompositionValidation.validateSchemaComposition(
+          archetypeEntity.getStatement(), true, this::resolveArchetypeSchema);
       // $ref URI policy is NOT re-checked: statement is immutable (validated at
       // creation).
-      provisionIndexes(archetypeEntity);
+      indexProvisioning.provisionIndexes(
+          archetypeEntity, () -> resolveSubjectType(archetypeEntity).name().toLowerCase());
     }
   }
 
   @Override
   public void onDeactivation(AscriptionEntity entity) {
     if (entity instanceof ArchetypeEntity archetypeEntity) {
-      deprovisionIndexes(archetypeEntity);
+      indexProvisioning.deprovisionIndexes(
+          archetypeEntity, () -> resolveSubjectType(archetypeEntity).name().toLowerCase());
     }
-  }
-
-  // ========================================================================
-  // Annotation-driven index management (from AnnotationIndexManager)
-  // ========================================================================
-
-  private record IndexSpec(String indexName, String ddl, String type, String propertyName) {}
-
-  private void provisionIndexes(ArchetypeEntity archetype) {
-    JsonNode stmt = archetype.getStatement();
-    if (stmt == null) {
-      return;
-    }
-
-    UUID archetypeDefId = archetype.getDefinition().getId();
-    String schemaTitle = stmt.has("title") ? stmt.get("title").asText() : archetypeDefId.toString();
-
-    JsonNode properties = stmt.get("properties");
-    if (properties == null || !properties.isObject()) {
-      return;
-    }
-
-    String tableName = resolveTableName(archetype);
-    List<IndexSpec> specs = collectIndexSpecs(properties, archetypeDefId, schemaTitle, tableName);
-
-    for (IndexSpec spec : specs) {
-      try {
-        jdbcTemplate.execute(spec.ddl());
-        LOG.info(
-            "Provisioned {} index '{}' for Archetype '{}' property '{}'",
-            spec.type(),
-            spec.indexName(),
-            schemaTitle,
-            spec.propertyName());
-      } catch (Exception e) {
-        LOG.warn("Failed to provision index '{}': {}", spec.indexName(), e.getMessage());
-      }
-    }
-  }
-
-  private void deprovisionIndexes(ArchetypeEntity archetype) {
-    JsonNode stmt = archetype.getStatement();
-    if (stmt == null) {
-      return;
-    }
-
-    UUID archetypeDefId = archetype.getDefinition().getId();
-    String schemaTitle = stmt.has("title") ? stmt.get("title").asText() : archetypeDefId.toString();
-
-    JsonNode properties = stmt.get("properties");
-    if (properties == null || !properties.isObject()) {
-      return;
-    }
-
-    String tableName = resolveTableName(archetype);
-    List<IndexSpec> specs = collectIndexSpecs(properties, archetypeDefId, schemaTitle, tableName);
-
-    for (IndexSpec spec : specs) {
-      String dropDdl = "DROP INDEX IF EXISTS " + spec.indexName();
-      try {
-        jdbcTemplate.execute(dropDdl);
-        LOG.info("Deprovisioned index '{}' for Archetype '{}'", spec.indexName(), schemaTitle);
-      } catch (Exception e) {
-        LOG.warn("Failed to deprovision index '{}': {}", spec.indexName(), e.getMessage());
-      }
-    }
-  }
-
-  private List<IndexSpec> collectIndexSpecs(
-      JsonNode properties, UUID archetypeDefId, String schemaTitle, String tableName) {
-
-    List<IndexSpec> specs = new ArrayList<>();
-    String sanitizedTitle = sanitizeIdentifier(schemaTitle);
-    String archetypeIdLiteral = "'" + archetypeDefId + "'";
-
-    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      String propName = entry.getKey();
-      JsonNode propSchema = entry.getValue();
-      String sanitizedProp = sanitizeIdentifier(propName);
-
-      // $gsm:queryable
-      if (hasAnnotation(propSchema, "$gsm:queryable")) {
-        String indexName = "idx_gsm_q_" + sanitizedTitle + "_" + sanitizedProp;
-        String type = propSchema.has("type") ? propSchema.get("type").asText() : "string";
-        String indexType = "array".equals(type) ? "GIN" : "BTREE";
-        String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
-
-        String ddl;
-        if ("GIN".equals(indexType)) {
-          jsonbPath = "(statement->'" + escapeJsonbKey(propName) + "')";
-          ddl =
-              "CREATE INDEX IF NOT EXISTS "
-                  + indexName
-                  + " ON "
-                  + tableName
-                  + " USING GIN ("
-                  + jsonbPath
-                  + ")"
-                  + " WHERE archetype_id = "
-                  + archetypeIdLiteral;
-        } else {
-          ddl =
-              "CREATE INDEX IF NOT EXISTS "
-                  + indexName
-                  + " ON "
-                  + tableName
-                  + " ("
-                  + jsonbPath
-                  + ")"
-                  + " WHERE archetype_id = "
-                  + archetypeIdLiteral;
-        }
-
-        specs.add(new IndexSpec(indexName, ddl, "queryable/" + indexType, propName));
-      }
-
-      // $gsm:unique
-      if (hasAnnotation(propSchema, "$gsm:unique")) {
-        String indexName = "idx_gsm_u_" + sanitizedTitle + "_" + sanitizedProp;
-        String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
-
-        String ddl =
-            "CREATE UNIQUE INDEX IF NOT EXISTS "
-                + indexName
-                + " ON "
-                + tableName
-                + " ("
-                + jsonbPath
-                + ")"
-                + " WHERE archetype_id = "
-                + archetypeIdLiteral
-                + " AND status IN ('ACTIVE','DEPRECATED')";
-
-        specs.add(new IndexSpec(indexName, ddl, "unique", propName));
-      }
-    }
-
-    return specs;
-  }
-
-  private static String sanitizeIdentifier(String input) {
-    // Strict allowlist: only [a-zA-Z0-9_] survive, then lowercase + truncate.
-    // Result is safe as an unquoted SQL identifier (no injection possible).
-    String sanitized = input.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase();
-    return sanitized.substring(0, Math.min(sanitized.length(), 30));
-  }
-
-  private static String escapeJsonbKey(String key) {
-    // Escape single quotes and backslashes for safe use in PostgreSQL JSONB key
-    // literals
-    return key.replace("\\", "\\\\").replace("'", "''");
-  }
-
-  private static boolean hasAnnotation(JsonNode node, String annotation) {
-    return node.has(annotation) && node.get(annotation).asBoolean(false);
-  }
-
-  private String resolveTableName(ArchetypeEntity archetype) {
-    DefinitionSubjectType subjectType = resolveSubjectType(archetype);
-    return subjectType.name().toLowerCase();
   }
 
   // ========================================================================
@@ -602,215 +430,10 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     }
   }
 
-  // ---- Schema composition validation ----
+  // Schema composition validation is delegated to
+  // ArchetypeSchemaCompositionValidationService.
 
-  void validateSchemaComposition(JsonNode schema) {
-    validateSchemaComposition(schema, false);
-  }
-
-  void validateSchemaComposition(JsonNode schema, boolean strict) {
-    String title = schema.has("title") ? schema.get("title").asText() : null;
-
-    // GSM base archetypes are exempt — they define the bases themselves.
-    if (title != null && GSM_BASE_TITLES.contains(title)) {
-      return;
-    }
-
-    Set<String> visited = new HashSet<>();
-    if (title != null) {
-      visited.add(title);
-    }
-
-    // 1) Validate the top-level $ref chain (base extension).
-    Set<String> resolvedBases = new HashSet<>();
-    JsonNode refNode = schema.get("$ref");
-    if (refNode != null && refNode.isTextual()) {
-      walkRefChain(refNode.asText(), resolvedBases, visited, strict);
-    }
-
-    // 2) Validate allOf entries (facets — no base convergence required).
-    JsonNode allOf = schema.get("allOf");
-    if (allOf != null && allOf.isArray()) {
-      validateAllOfEntries(allOf, visited, strict);
-    }
-
-    // 0 bases → rootless archetype (valid: usable as qualifier/facet/data
-    // archetype).
-    // 1 base → based archetype (valid typing archetype for archetype_id).
-    // 2+ bases → impossible via $ref chain (linear), but defensive check.
-    if (resolvedBases.size() > 1) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-          "Archetype schema $ref chain converges to multiple GSM base archetypes: " + resolvedBases,
-          "resolvedBases",
-          resolvedBases);
-    }
-  }
-
-  /**
-   * Walks the top-level $ref chain linearly: current → intermediate → ... → GSM base. Collects GSM
-   * bases, enforces acyclicity, sealed checks, and URI format.
-   */
-  private void walkRefChain(
-      String ref, Set<String> resolvedBases, Set<String> visited, boolean strict) {
-    String refTitle = extractTitleFromRef(ref);
-
-    if (refTitle == null) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-          "Cannot resolve $ref '"
-              + ref
-              + "': must use gsm://archetypes/{title}/v{version} convention",
-          "ref",
-          ref);
-    }
-
-    if (!visited.add(refTitle)) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY,
-          "Cycle detected in $ref chain: '" + refTitle + "' already visited",
-          "refTitle",
-          refTitle);
-    }
-
-    if (GSM_BASE_TITLES.contains(refTitle)) {
-      if (isSealedBaseArchetype(refTitle)) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
-            "Archetype $ref references sealed schema '"
-                + refTitle
-                + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
-            "sealedArchetype",
-            refTitle);
-      }
-      resolvedBases.add(refTitle);
-    } else {
-      JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
-      if (intermediateSchema == null) {
-        if (strict) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-              "Cannot resolve intermediary archetype '"
-                  + refTitle
-                  + "' referenced via $ref — no in-effect Archetype with this title",
-              "refTitle",
-              refTitle);
-        }
-        LOG.warn(
-            "$ref '{}' not resolvable at authoring time — will be validated at activation",
-            refTitle);
-        return;
-      }
-
-      if (intermediateSchema.has("$gsm:sealed")
-          && intermediateSchema.get("$gsm:sealed").asBoolean()) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
-            "Archetype $ref references sealed schema '"
-                + refTitle
-                + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
-            "sealedArchetype",
-            refTitle);
-      }
-
-      // Continue walking the intermediate's own $ref chain.
-      JsonNode intermediateRef = intermediateSchema.get("$ref");
-      if (intermediateRef != null && intermediateRef.isTextual()) {
-        walkRefChain(intermediateRef.asText(), resolvedBases, visited, strict);
-      }
-    }
-  }
-
-  /**
-   * Validates allOf entries (facets). Enforces URI format, acyclicity, and sealed checks. Does NOT
-   * collect or check for GSM base convergence — allOf is for facets only.
-   */
-  private void validateAllOfEntries(JsonNode allOf, Set<String> visited, boolean strict) {
-    for (JsonNode entry : allOf) {
-      if (!entry.has("$ref")) {
-        continue;
-      }
-
-      String ref = entry.get("$ref").asText();
-
-      // Skip local JSON Pointers (e.g., #/$defs/...)
-      if (ref.startsWith("#")) {
-        continue;
-      }
-
-      String refTitle = extractTitleFromRef(ref);
-
-      if (refTitle == null) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-            "Cannot resolve allOf $ref '"
-                + ref
-                + "': must use gsm://archetypes/{title}/v{version} convention",
-            "ref",
-            ref);
-      }
-
-      if (!visited.add(refTitle)) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY,
-            "Cycle detected in allOf chain: '" + refTitle + "' already visited",
-            "refTitle",
-            refTitle);
-      }
-
-      if (GSM_BASE_TITLES.contains(refTitle)) {
-        if (isSealedBaseArchetype(refTitle)) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
-              "Archetype allOf references sealed schema '"
-                  + refTitle
-                  + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
-              "sealedArchetype",
-              refTitle);
-        }
-        // Facet referencing an unsealed GSM base in allOf is allowed — it
-        // adds base properties as a facet, but does NOT determine subject type.
-      } else {
-        JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
-        if (intermediateSchema == null) {
-          if (strict) {
-            throw RuleViolationException.of(
-                AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-                "Cannot resolve intermediary archetype '"
-                    + refTitle
-                    + "' referenced via allOf — no in-effect Archetype with this title",
-                "refTitle",
-                refTitle);
-          }
-          LOG.warn(
-              "allOf $ref '{}' not resolvable at authoring time — will be validated at activation",
-              refTitle);
-          continue;
-        }
-
-        if (intermediateSchema.has("$gsm:sealed")
-            && intermediateSchema.get("$gsm:sealed").asBoolean()) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
-              "Archetype allOf references sealed schema '"
-                  + refTitle
-                  + "' — tenant-defined archetypes MUST NOT extend sealed schemas",
-              "sealedArchetype",
-              refTitle);
-        }
-      }
-    }
-  }
-
-  private boolean isSealedBaseArchetype(String title) {
-    JsonNode schema = resolveArchetypeSchema(title);
-    if (schema != null && schema.has("$gsm:sealed")) {
-      return schema.get("$gsm:sealed").asBoolean();
-    }
-    return false;
-  }
-
-  private JsonNode resolveArchetypeSchema(String title) {
+  JsonNode resolveArchetypeSchema(String title) {
     return archetypeRepo.findInEffectByTitle(title).map(ArchetypeEntity::getStatement).orElse(null);
   }
 
@@ -820,194 +443,5 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
       return m.group(1);
     }
     return null;
-  }
-
-  // ========================================================================
-  // Deep $ref URI policy scan (R2/R3 from E1 gap register)
-  // ========================================================================
-
-  /**
-   * Recursively scans the entire schema tree for {@code $ref} values and enforces the URI policy:
-   * only local JSON Pointers ({@code #/...}) and {@code gsm://archetypes/{title}/v{version}} URIs
-   * are allowed. Rejects external URIs (http, https, file, etc.) to prevent SSRF and ensure all
-   * schema resolution is local.
-   *
-   * <p>Called at authoring time (buildEntity) to catch prohibited URIs early. The composition
-   * validation in {@link #validateSchemaComposition} remains the authoritative check for schema
-   * chain semantics; this method is a complementary breadth scan.
-   *
-   * @param schema the archetype JSON Schema to scan
-   * @throws RuleViolationException if any {@code $ref} violates the URI policy
-   */
-  void validateRefUriPolicy(JsonNode schema) {
-    scanRefsRecursively(schema, "$");
-  }
-
-  private void scanRefsRecursively(JsonNode node, String path) {
-    if (node == null) {
-      return;
-    }
-
-    if (node.isObject()) {
-      if (node.has("$ref")) {
-        String ref = node.get("$ref").asText();
-        if (!isAllowedRef(ref)) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
-              "Prohibited $ref URI at "
-                  + path
-                  + ": '"
-                  + ref
-                  + "'. "
-                  + "Only local JSON Pointers (#/...) and gsm://archetypes/{title}/v{version} "
-                  + "URIs are allowed",
-              "path",
-              path,
-              "ref",
-              ref);
-        }
-      }
-      for (Map.Entry<String, JsonNode> field : node.properties()) {
-        scanRefsRecursively(field.getValue(), path + "." + field.getKey());
-      }
-    } else if (node.isArray()) {
-      for (int i = 0; i < node.size(); i++) {
-        scanRefsRecursively(node.get(i), path + "[" + i + "]");
-      }
-    }
-  }
-
-  private static boolean isAllowedRef(String ref) {
-    return ref.startsWith("#") || GSM_URI_PATTERN.matcher(ref).matches();
-  }
-
-  // ========================================================================
-  // Archetype $gsm:* annotation validation
-  // ========================================================================
-
-  void validateArchetypeAnnotations(JsonNode schema, UUID definitionId) {
-    validateTopLevelAnnotations(schema);
-
-    JsonNode properties = schema.get("properties");
-    if (properties == null || !properties.isObject()) {
-      return;
-    }
-
-    Set<String> identityBoundFields = new HashSet<>();
-
-    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      String propName = entry.getKey();
-      JsonNode propSchema = entry.getValue();
-
-      checkUnknownAnnotations(propSchema, propName);
-
-      if (hasAnnotation(propSchema, "$gsm:identityBound")) {
-        identityBoundFields.add(propName);
-      }
-    }
-
-    validateIdentityBoundSetImmutability(definitionId, identityBoundFields);
-  }
-
-  private void validateTopLevelAnnotations(JsonNode schema) {
-    Iterator<String> fieldNames = schema.fieldNames();
-    while (fieldNames.hasNext()) {
-      String name = fieldNames.next();
-      if (name.startsWith("$gsm:") && !KNOWN_ANNOTATIONS.contains(name)) {
-        throw RuleViolationException.of(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            "Unknown $gsm:* annotation '" + name + "' — sealed annotation vocabulary",
-            "annotation",
-            name);
-      }
-    }
-  }
-
-  private void checkUnknownAnnotations(JsonNode propSchema, String propName) {
-    Iterator<String> fieldNames = propSchema.fieldNames();
-    while (fieldNames.hasNext()) {
-      String name = fieldNames.next();
-      if (name.startsWith("$gsm:")) {
-        if (!KNOWN_ANNOTATIONS.contains(name)) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              "Unknown $gsm:* annotation '"
-                  + name
-                  + "' on property '"
-                  + propName
-                  + "' — sealed annotation vocabulary",
-              "annotation",
-              name,
-              "property",
-              propName);
-        }
-        if (TOP_LEVEL_ANNOTATIONS.contains(name)) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              "Annotation '"
-                  + name
-                  + "' is top-level only, not valid on property '"
-                  + propName
-                  + "'",
-              "annotation",
-              name,
-              "property",
-              propName);
-        }
-      }
-    }
-  }
-
-  // ========================================================================
-  // $gsm:identityBound set immutability (Archetype authoring time)
-  // ========================================================================
-
-  private void validateIdentityBoundSetImmutability(UUID definitionId, Set<String> currentSet) {
-    if (definitionId == null || currentSet.isEmpty()) {
-      return;
-    }
-
-    List<ArchetypeEntity> existing =
-        archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId);
-    if (existing.isEmpty()) {
-      return;
-    }
-
-    ArchetypeEntity first = existing.getLast();
-    JsonNode firstStmt = first.getStatement();
-    if (firstStmt == null) {
-      return;
-    }
-
-    Set<String> firstIdentityBound = collectIdentityBoundFields(firstStmt);
-    if (!firstIdentityBound.equals(currentSet)) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY,
-          "$gsm:identityBound set immutability violation: first Ascription had identity-bound fields "
-              + firstIdentityBound
-              + " but new Ascription declares "
-              + currentSet
-              + ". Changing the identity-bound set requires a new Archetype Definition.",
-          "annotation",
-          "$gsm:identityBound",
-          "expectedFields",
-          firstIdentityBound,
-          "actualFields",
-          currentSet);
-    }
-  }
-
-  static Set<String> collectIdentityBoundFields(JsonNode schema) {
-    Set<String> result = new HashSet<>();
-    JsonNode properties = schema.get("properties");
-    if (properties == null || !properties.isObject()) {
-      return result;
-    }
-    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      if (hasAnnotation(entry.getValue(), "$gsm:identityBound")) {
-        result.add(entry.getKey());
-      }
-    }
-    return result;
   }
 }

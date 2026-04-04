@@ -11,7 +11,6 @@ import cloud.poesis.sie.defman.repository.ReceptorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -109,9 +108,9 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
   // ---- Lifecycle descriptors ----
 
   @Override
-  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+  public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(AscriptionEntity entity) {
     var r = (ReceptorEntity) entity;
-    return List.of(new RefereeReference(r.getInputArchetype(), "archetype"));
+    return List.of(Map.entry(r.getInputArchetype(), "archetype"));
   }
 
   @Override

@@ -18,17 +18,18 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for {@link DataProtectionService} — GSM §8 {@code $gsm:dataProtection}.
+ * Unit tests for {@link AscriptionStatementProtectionService} — GSM §8 {@code $gsm:dataProtection}.
  *
  * <p>Tests cover the four data protection measures (hash, mask, suppression, encryption-noop)
  * across both lifecycle phases (atRest, inTransit), plus the two shared primitives ({@code
  * computeHash}, {@code applyMask}).
  */
-class DataProtectionServiceTest {
+class AscriptionStatementProtectionServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private final DataProtectionService service = new DataProtectionService();
+  private final AscriptionStatementProtectionService service =
+      new AscriptionStatementProtectionService();
 
   // ==================================================================
   // applyAtRestProtection

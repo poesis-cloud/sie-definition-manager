@@ -9,7 +9,7 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
@@ -62,11 +62,12 @@ public class DefinitionController extends AbstractController {
    * Constructs the definition controller with its required services.
    *
    * @param definitionService the definition service
-   * @param dataProtectionService the data protection service
+   * @param statementProtection the ascription statement protection service
    */
   public DefinitionController(
-      DefinitionService definitionService, DataProtectionService dataProtectionService) {
-    super(dataProtectionService);
+      DefinitionService definitionService,
+      AscriptionStatementProtectionService statementProtection) {
+    super(statementProtection);
     this.definitionService = definitionService;
   }
 

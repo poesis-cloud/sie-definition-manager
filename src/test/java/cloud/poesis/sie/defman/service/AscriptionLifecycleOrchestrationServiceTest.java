@@ -24,7 +24,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,7 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class AscriptionLifecycleOrchestratorTest {
+class AscriptionLifecycleOrchestrationTest {
 
   @Mock private AscriptionStatusTransitionRepository transitionRepo;
 
@@ -54,8 +53,9 @@ class AscriptionLifecycleOrchestratorTest {
 
   @Mock private AbstractAscriptionService<? extends AscriptionEntity> mechanismSubtype;
 
+  private AscriptionStatusTransitionService transitionService;
   private AscriptionStateMachineService stateMachine;
-  private AscriptionLifecycleOrchestratorService orchestrator;
+  private AscriptionLifecycleOrchestrationService orchestrator;
 
   @BeforeEach
   void setUp() {
@@ -68,9 +68,10 @@ class AscriptionLifecycleOrchestratorTest {
             Map.of(
                 DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING));
 
-    stateMachine = new AscriptionStateMachineService(transitionRepo, entityManager);
+    transitionService = new AscriptionStatusTransitionService(transitionRepo, entityManager);
+    stateMachine = new AscriptionStateMachineService(transitionService);
     orchestrator =
-        new AscriptionLifecycleOrchestratorService(
+        new AscriptionLifecycleOrchestrationService(
             stateMachine, entityManager, List.of(structureSubtype, mechanismSubtype));
     orchestrator.afterSingletonsInstantiated();
   }
@@ -184,7 +185,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -202,7 +203,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "ACTIVE"));
@@ -225,7 +226,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.PROPOSED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -243,7 +244,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "PROPOSED"));
@@ -265,7 +266,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.APPROVED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -283,7 +284,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.PROPOSED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "APPROVED"));
@@ -305,7 +306,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.SUSPENDED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -323,7 +324,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(
@@ -346,7 +347,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -364,7 +365,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.SUSPENDED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "ACTIVE"));
@@ -386,7 +387,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -404,7 +405,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ABANDONED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "RETIRED"));
@@ -426,7 +427,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
           assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "REJECTED"));
@@ -448,7 +449,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -466,7 +467,7 @@ class AscriptionLifecycleOrchestratorTest {
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.RETIRED);
       when(mechanismSubtype.getRefereeReferences(entity))
-          .thenReturn(List.of(new RefereeReference(structureRef, "structure")));
+          .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       stubRepoSave();
 
@@ -630,7 +631,7 @@ class AscriptionLifecycleOrchestratorTest {
   class DependentCascadeScope {
 
     private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
-    private AscriptionLifecycleOrchestratorService orchestratorWithDependent;
+    private AscriptionLifecycleOrchestrationService orchestratorWithDependent;
 
     @BeforeEach
     @SuppressWarnings("unchecked") // Mockito mock() erases AbstractAscriptionService generic;
@@ -659,7 +660,7 @@ class AscriptionLifecycleOrchestratorTest {
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
       orchestratorWithDependent =
-          new AscriptionLifecycleOrchestratorService(
+          new AscriptionLifecycleOrchestrationService(
               stateMachine, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
       orchestratorWithDependent.afterSingletonsInstantiated();
     }
@@ -774,7 +775,7 @@ class AscriptionLifecycleOrchestratorTest {
   class ConstitutiveCascade {
 
     private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
-    private AscriptionLifecycleOrchestratorService orchestratorWithConstitutive;
+    private AscriptionLifecycleOrchestrationService orchestratorWithConstitutive;
 
     @BeforeEach
     @SuppressWarnings("unchecked") // Mockito mock() erases AbstractAscriptionService generic;
@@ -799,7 +800,7 @@ class AscriptionLifecycleOrchestratorTest {
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
       orchestratorWithConstitutive =
-          new AscriptionLifecycleOrchestratorService(
+          new AscriptionLifecycleOrchestrationService(
               stateMachine, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
       orchestratorWithConstitutive.afterSingletonsInstantiated();
     }
@@ -870,7 +871,7 @@ class AscriptionLifecycleOrchestratorTest {
       AscriptionEntity badReferee =
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
-      doReturn(List.of(new RefereeReference(badReferee, "structure")))
+      doReturn(List.of(Map.entry(badReferee, "structure")))
           .when(effectorSubtype)
           .getRefereeReferences(effector);
 
@@ -950,7 +951,7 @@ class AscriptionLifecycleOrchestratorTest {
       AscriptionEntity badReferee =
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
-      doReturn(List.of(new RefereeReference(badReferee, "other-structure")))
+      doReturn(List.of(Map.entry(badReferee, "other-structure")))
           .when(mechanismSubtype)
           .getRefereeReferences(mechanism);
 
@@ -970,7 +971,7 @@ class AscriptionLifecycleOrchestratorTest {
   class DependentCascadeRefereePrecondition {
 
     private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
-    private AscriptionLifecycleOrchestratorService orchestratorWithDependent;
+    private AscriptionLifecycleOrchestrationService orchestratorWithDependent;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -998,7 +999,7 @@ class AscriptionLifecycleOrchestratorTest {
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
       orchestratorWithDependent =
-          new AscriptionLifecycleOrchestratorService(
+          new AscriptionLifecycleOrchestrationService(
               stateMachine, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
       orchestratorWithDependent.afterSingletonsInstantiated();
     }
@@ -1023,7 +1024,7 @@ class AscriptionLifecycleOrchestratorTest {
       AscriptionEntity badReferee =
           stubEntity(
               UUID.randomUUID(), DefinitionSubjectType.MECHANISM, AscriptionStatusType.DRAFT);
-      doReturn(List.of(new RefereeReference(badReferee, "mechanism")))
+      doReturn(List.of(Map.entry(badReferee, "mechanism")))
           .when(effectorSubtype)
           .getRefereeReferences(effector);
 

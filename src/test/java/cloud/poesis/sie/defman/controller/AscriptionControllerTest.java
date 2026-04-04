@@ -19,7 +19,7 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -63,7 +63,7 @@ class AscriptionControllerTest {
 
   @MockitoBean private DefinitionService definitionService;
 
-  @MockitoBean private DataProtectionService dataProtectionService;
+  @MockitoBean private AscriptionStatementProtectionService statementProtection;
 
   // Shared stubs
   private UUID ascriptionId;
@@ -110,9 +110,9 @@ class AscriptionControllerTest {
     when(definitionEntity.getId()).thenReturn(definitionId);
     when(definitionEntity.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
 
-    // DataProtectionService passthrough
+    // AscriptionStatementProtectionService passthrough
     lenient()
-        .when(dataProtectionService.applyInTransitProtection(any(), any()))
+        .when(statementProtection.applyInTransitProtection(any(), any()))
         .thenAnswer(inv -> inv.getArgument(0));
   }
 

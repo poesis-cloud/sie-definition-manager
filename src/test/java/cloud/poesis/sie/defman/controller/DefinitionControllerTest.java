@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -41,7 +41,7 @@ class DefinitionControllerTest {
 
   @MockitoBean private DefinitionService definitionService;
 
-  @MockitoBean private DataProtectionService dataProtectionService;
+  @MockitoBean private AscriptionStatementProtectionService statementProtection;
 
   private UUID defId;
   private DefinitionEntity definitionEntity;
@@ -52,7 +52,7 @@ class DefinitionControllerTest {
     defId = UUID.randomUUID();
 
     lenient()
-        .when(dataProtectionService.applyInTransitProtection(any(), any()))
+        .when(statementProtection.applyInTransitProtection(any(), any()))
         .thenAnswer(inv -> inv.getArgument(0));
 
     // Archetype mock

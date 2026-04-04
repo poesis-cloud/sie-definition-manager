@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
-class PersistenceExceptionTranslatorTest {
+class PersistenceExceptionTranslationTest {
 
   @Nested
   class ExtractConstraintName {
@@ -25,7 +25,7 @@ class PersistenceExceptionTranslatorTest {
 
       assertEquals(
           "uq_structure_purpose",
-          PersistenceExceptionTranslatorService.extractConstraintName(dive));
+          PersistenceExceptionTranslationService.extractConstraintName(dive));
     }
 
     @Test
@@ -34,14 +34,14 @@ class PersistenceExceptionTranslatorTest {
           new DataIntegrityViolationException(
               "no hibernate cause", new RuntimeException("something else"));
 
-      assertNull(PersistenceExceptionTranslatorService.extractConstraintName(dive));
+      assertNull(PersistenceExceptionTranslationService.extractConstraintName(dive));
     }
 
     @Test
     void returnsNullWhenNoCause() {
       var dive = new DataIntegrityViolationException("no cause");
 
-      assertNull(PersistenceExceptionTranslatorService.extractConstraintName(dive));
+      assertNull(PersistenceExceptionTranslationService.extractConstraintName(dive));
     }
   }
 
@@ -53,7 +53,7 @@ class PersistenceExceptionTranslatorTest {
       var cve = new ConstraintViolationException("violation", null, "uq_structure_purpose");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
@@ -66,7 +66,7 @@ class PersistenceExceptionTranslatorTest {
       var cve = new ConstraintViolationException("violation", null, "ascription_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
@@ -80,7 +80,7 @@ class PersistenceExceptionTranslatorTest {
           new ConstraintViolationException("violation", null, "effector_output_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
@@ -94,7 +94,7 @@ class PersistenceExceptionTranslatorTest {
           new ConstraintViolationException("violation", null, "receptor_input_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
@@ -107,7 +107,7 @@ class PersistenceExceptionTranslatorTest {
       var cve = new ConstraintViolationException("violation", null, "mechanism_structure_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(RuleViolationException.class, result);
       assertEquals(
@@ -120,7 +120,7 @@ class PersistenceExceptionTranslatorTest {
       var cve = new ConstraintViolationException("violation", null, "some_unknown_constraint");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(InternalException.class, result);
       assertTrue(result.getMessage().contains("some_unknown_constraint"));
@@ -130,7 +130,7 @@ class PersistenceExceptionTranslatorTest {
     void noConstraintName_returnsInternal() {
       var dive = new DataIntegrityViolationException("no cause");
 
-      RuntimeException result = PersistenceExceptionTranslatorService.translate(dive);
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
 
       assertInstanceOf(InternalException.class, result);
     }

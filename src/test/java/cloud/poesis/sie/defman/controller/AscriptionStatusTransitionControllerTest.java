@@ -13,9 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionLifecycleOrchestratorService;
+import cloud.poesis.sie.defman.service.AscriptionLifecycleOrchestrationService;
 import cloud.poesis.sie.defman.service.AscriptionStateMachineService;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -44,9 +44,9 @@ class AscriptionStatusTransitionControllerTest {
 
   @MockitoBean private AscriptionStateMachineService stateMachine;
 
-  @MockitoBean private AscriptionLifecycleOrchestratorService orchestrator;
+  @MockitoBean private AscriptionLifecycleOrchestrationService orchestrator;
 
-  @MockitoBean private DataProtectionService dataProtectionService;
+  @MockitoBean private AscriptionStatementProtectionService statementProtection;
 
   private UUID ascriptionId;
   private UUID transitionId;
@@ -58,7 +58,7 @@ class AscriptionStatusTransitionControllerTest {
     transitionId = UUID.randomUUID();
 
     lenient()
-        .when(dataProtectionService.applyInTransitProtection(any(), any()))
+        .when(statementProtection.applyInTransitProtection(any(), any()))
         .thenAnswer(inv -> inv.getArgument(0));
 
     AscriptionEntity parentAscription = mock(AscriptionEntity.class);

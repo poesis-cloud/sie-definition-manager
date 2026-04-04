@@ -9,7 +9,6 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
@@ -283,7 +282,7 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       // 9. Refresh to pick up DB-trigger-assigned fields (status, timestamp)
       entityManager.refresh(saved);
     } catch (DataIntegrityViolationException ex) {
-      throw PersistenceExceptionTranslatorService.translate(ex);
+      throw PersistenceExceptionTranslationService.translate(ex);
     }
 
     // 10. Post-creation hook (e.g., auto-derivation of ports)
@@ -302,7 +301,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
    * @param entity the ascription entity
    * @return list of referee references (empty if this subtype has no referees)
    */
-  public abstract List<RefereeReference> getRefereeReferences(AscriptionEntity entity);
+  public abstract List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(
+      AscriptionEntity entity);
 
   /**
    * Returns cascade target roles declared by this service.

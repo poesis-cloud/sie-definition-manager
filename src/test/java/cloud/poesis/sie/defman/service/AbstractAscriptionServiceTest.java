@@ -20,7 +20,6 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -61,7 +60,7 @@ class AbstractAscriptionServiceTest {
   // Configurable responses for abstract methods
   private List<AscriptionEntity> existingAscriptions = List.of();
   private Map<String, Object> identityBoundValues = Map.of();
-  private List<RefereeReference> refereeReferences = List.of();
+  private List<Map.Entry<AscriptionEntity, String>> refereeReferences = List.of();
 
   @BeforeEach
   void setUp() {
@@ -116,7 +115,8 @@ class AbstractAscriptionServiceTest {
           }
 
           @Override
-          public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+          public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(
+              AscriptionEntity entity) {
             return refereeReferences;
           }
 
@@ -251,7 +251,8 @@ class AbstractAscriptionServiceTest {
             }
 
             @Override
-            public List<RefereeReference> getRefereeReferences(AscriptionEntity e) {
+            public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(
+                AscriptionEntity e) {
               return List.of();
             }
 
@@ -301,10 +302,12 @@ class AbstractAscriptionServiceTest {
 
     @BeforeEach
     void setUpRealStateMachine() {
-      AscriptionStateMachineService realStateMachine =
-          new AscriptionStateMachineService(
+      AscriptionStatusTransitionService transitionService =
+          new AscriptionStatusTransitionService(
               mock(cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository.class),
               entityManager);
+      AscriptionStateMachineService realStateMachine =
+          new AscriptionStateMachineService(transitionService);
       org.springframework.test.util.ReflectionTestUtils.setField(
           service, "stateMachine", realStateMachine);
     }
@@ -322,7 +325,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -334,7 +337,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.DRAFT);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -346,7 +349,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.PROPOSED);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -358,7 +361,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.APPROVED);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -370,7 +373,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.RETIRED);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -390,7 +393,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.SUSPENDED);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -409,7 +412,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.DEPRECATED);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -428,7 +431,7 @@ class AbstractAscriptionServiceTest {
       AscriptionEntity ref = mock(AscriptionEntity.class);
       when(ref.getStatus()).thenReturn(AscriptionStatusType.ABANDONED);
       when(ref.getId()).thenReturn(UUID.randomUUID());
-      refereeReferences = List.of(new RefereeReference(ref, "structure"));
+      refereeReferences = List.of(Map.entry(ref, "structure"));
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
 
@@ -583,7 +586,8 @@ class AbstractAscriptionServiceTest {
             }
 
             @Override
-            public List<RefereeReference> getRefereeReferences(AscriptionEntity e) {
+            public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(
+                AscriptionEntity e) {
               return List.of();
             }
 
@@ -698,7 +702,8 @@ class AbstractAscriptionServiceTest {
             }
 
             @Override
-            public List<RefereeReference> getRefereeReferences(AscriptionEntity e) {
+            public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(
+                AscriptionEntity e) {
               return List.of();
             }
 
@@ -860,7 +865,8 @@ class AbstractAscriptionServiceTest {
             }
 
             @Override
-            public List<RefereeReference> getRefereeReferences(AscriptionEntity e) {
+            public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(
+                AscriptionEntity e) {
               return List.of();
             }
 

@@ -17,7 +17,7 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -45,7 +45,7 @@ class AbstractControllerTest {
   private final AbstractController controller;
 
   AbstractControllerTest() {
-    controller = new AbstractController(new DataProtectionService()) {};
+    controller = new AbstractController(new AscriptionStatementProtectionService()) {};
   }
 
   // ========================================================================

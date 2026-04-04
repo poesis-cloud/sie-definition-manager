@@ -11,7 +11,6 @@ import cloud.poesis.sie.defman.repository.EffectorRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -109,9 +108,9 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
   // ---- Lifecycle descriptors ----
 
   @Override
-  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+  public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(AscriptionEntity entity) {
     var e = (EffectorEntity) entity;
-    return List.of(new RefereeReference(e.getOutputArchetype(), "archetype"));
+    return List.of(Map.entry(e.getOutputArchetype(), "archetype"));
   }
 
   @Override

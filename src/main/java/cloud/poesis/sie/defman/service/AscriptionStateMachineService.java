@@ -3,28 +3,25 @@ package cloud.poesis.sie.defman.service;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionPathType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
-import cloud.poesis.sie.defman.type.RefereeReference;
-import jakarta.persistence.EntityManager;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Pure state machine for GSM ascription lifecycle transitions. Owns transition validation,
- * recording, referee preconditions, and audit trail queries. Has NO knowledge of subtype services
- * and therefore NO circular dependencies.
+ * Pure state machine for GSM ascription lifecycle transitions. Owns transition validation, referee
+ * preconditions, and cascade applicability rules. Has NO knowledge of subtype services and
+ * therefore NO circular dependencies.
  *
  * <p>All transition rules (valid edges, referee preconditions, cascade scope) are defined
  * declaratively in {@link AscriptionStatusTransitionPathType} — this service applies them.
+ *
+ * <p>Persistence of transition records is delegated to {@link AscriptionStatusTransitionService}.
  *
  * <p>Implements ONLY {@link AscriptionStatusTransitionRuleType} rules.
  *
@@ -32,20 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
  * @since 1.0.0
  */
 @Service
-@Transactional("transactionManager")
 public class AscriptionStateMachineService {
 
-  // ======================================================================
-  // Dependencies
-  // ======================================================================
+  private final AscriptionStatusTransitionService transitionService;
 
-  private final AscriptionStatusTransitionRepository transitionRepo;
-  private final EntityManager entityManager;
-
-  public AscriptionStateMachineService(
-      AscriptionStatusTransitionRepository transitionRepo, EntityManager entityManager) {
-    this.transitionRepo = transitionRepo;
-    this.entityManager = entityManager;
+  public AscriptionStateMachineService(AscriptionStatusTransitionService transitionService) {
+    this.transitionService = transitionService;
   }
 
   // ======================================================================
@@ -105,7 +94,9 @@ public class AscriptionStateMachineService {
    * @throws RuleViolationException if any referee is in a disallowed status
    */
   public void validateRefereePreconditions(
-      List<RefereeReference> refs, AscriptionStatusType from, AscriptionStatusType to) {
+      List<Map.Entry<AscriptionEntity, String>> refs,
+      AscriptionStatusType from,
+      AscriptionStatusType to) {
     if (refs.isEmpty()) {
       return;
     }
@@ -116,8 +107,8 @@ public class AscriptionStateMachineService {
       return;
     }
 
-    for (RefereeReference ref : refs) {
-      AscriptionStatusType refStatus = ref.reference().getStatus();
+    for (Map.Entry<AscriptionEntity, String> ref : refs) {
+      AscriptionStatusType refStatus = ref.getKey().getStatus();
       if (!allowed.contains(refStatus)) {
         Set<String> allowedNames = new LinkedHashSet<>();
         for (AscriptionStatusType s : allowed) {
@@ -127,9 +118,9 @@ public class AscriptionStateMachineService {
             AscriptionStatusTransitionRuleType
                 .ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
             "Referee '"
-                + ref.label()
+                + ref.getValue()
                 + "' ("
-                + ref.reference().getId()
+                + ref.getKey().getId()
                 + ") is "
                 + refStatus.name()
                 + "; "
@@ -141,9 +132,9 @@ public class AscriptionStateMachineService {
             "toStatus",
             to.name(),
             "refereeLabel",
-            ref.label(),
+            ref.getValue(),
             "refereeId",
-            ref.reference().getId(),
+            ref.getKey().getId(),
             "refereeStatus",
             refStatus.name(),
             "allowedStatuses",
@@ -168,11 +159,11 @@ public class AscriptionStateMachineService {
   }
 
   // ======================================================================
-  // Persistence operations
+  // Persistence delegation
   // ======================================================================
 
   /**
-   * Persists a transition record, flushes, and returns the refreshed entity.
+   * Records a transition by delegating to {@link AscriptionStatusTransitionService}.
    *
    * @param entity the ascription being transitioned
    * @param from the pre-transition status
@@ -181,17 +172,8 @@ public class AscriptionStateMachineService {
    */
   public AscriptionStatusTransitionEntity recordTransition(
       AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
-    AscriptionStatusTransitionEntity transition =
-        transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
-    entityManager.flush();
-    entityManager.detach(transition);
-    UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
-    return transitionRepo.findById(transitionId).orElseThrow();
+    return transitionService.recordTransition(entity, from, to);
   }
-
-  // ======================================================================
-  // Transition queries (audit trail)
-  // ======================================================================
 
   /**
    * Returns all recorded transitions for an ascription.
@@ -199,9 +181,8 @@ public class AscriptionStateMachineService {
    * @param ascriptionId the ascription UUID
    * @return ordered list of status transition entities
    */
-  @Transactional(value = "transactionManager", readOnly = true)
   public List<AscriptionStatusTransitionEntity> getTransitions(UUID ascriptionId) {
-    return transitionRepo.findAllByAscriptionIdOrderByTimestampAsc(ascriptionId);
+    return transitionService.getTransitions(ascriptionId);
   }
 
   /**
@@ -211,9 +192,8 @@ public class AscriptionStateMachineService {
    * @param ascriptionId the owning ascription UUID
    * @return the matching transition entity, if present
    */
-  @Transactional(value = "transactionManager", readOnly = true)
-  public Optional<AscriptionStatusTransitionEntity> getTransition(
+  public java.util.Optional<AscriptionStatusTransitionEntity> getTransition(
       UUID transitionId, UUID ascriptionId) {
-    return transitionRepo.findByIdAndAscriptionId(transitionId, ascriptionId);
+    return transitionService.getTransition(transitionId, ascriptionId);
   }
 }

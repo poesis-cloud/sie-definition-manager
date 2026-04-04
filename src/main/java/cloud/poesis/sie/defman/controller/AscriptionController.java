@@ -12,7 +12,7 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.service.AbstractAscriptionService;
 import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.DataProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -104,7 +104,7 @@ public class AscriptionController extends AbstractController {
    * @param archetypeService the archetype service
    * @param ascriptionService the base ascription service
    * @param definitionService the definition service
-   * @param dataProtectionService the data protection service
+   * @param statementProtection the ascription statement protection service
    * @param objectMapper Jackson object mapper
    */
   public AscriptionController(
@@ -113,9 +113,9 @@ public class AscriptionController extends AbstractController {
       ArchetypeService archetypeService,
       AscriptionService ascriptionService,
       DefinitionService definitionService,
-      DataProtectionService dataProtectionService,
+      AscriptionStatementProtectionService statementProtection,
       ObjectMapper objectMapper) {
-    super(dataProtectionService);
+    super(statementProtection);
     this.serviceRegistry = serviceRegistry;
     this.archetypeService = archetypeService;
     this.ascriptionService = ascriptionService;

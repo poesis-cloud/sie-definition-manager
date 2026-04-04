@@ -12,7 +12,6 @@ import cloud.poesis.sie.defman.repository.InteractionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
-import cloud.poesis.sie.defman.type.RefereeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -106,11 +105,9 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
   // ---- Lifecycle descriptors ----
 
   @Override
-  public List<RefereeReference> getRefereeReferences(AscriptionEntity entity) {
+  public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(AscriptionEntity entity) {
     var i = (InteractionEntity) entity;
-    return List.of(
-        new RefereeReference(i.getEffector(), "effector"),
-        new RefereeReference(i.getReceptor(), "receptor"));
+    return List.of(Map.entry(i.getEffector(), "effector"), Map.entry(i.getReceptor(), "receptor"));
   }
 
   @Override

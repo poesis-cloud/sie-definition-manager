@@ -101,7 +101,7 @@ class EffectorServiceTest {
       var refs = service.getRefereeReferences(entity);
 
       assertEquals(1, refs.size());
-      assertEquals("archetype", refs.get(0).label());
+      assertEquals("archetype", refs.get(0).getValue());
     }
   }
 

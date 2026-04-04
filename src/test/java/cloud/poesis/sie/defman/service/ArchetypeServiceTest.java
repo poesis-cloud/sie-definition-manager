@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,12 +37,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -52,7 +50,11 @@ class ArchetypeServiceTest {
 
   @Mock private ArchetypeRepository archetypeRepo;
 
-  @Mock private JdbcTemplate jdbcTemplate;
+  @Mock private ArchetypeIndexProvisioningService indexProvisioning;
+
+  @Mock private ArchetypeAnnotationValidationService annotationValidation;
+
+  @Mock private ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
 
   private ArchetypeService service;
 
@@ -61,7 +63,9 @@ class ArchetypeServiceTest {
     service =
         new ArchetypeService(
             archetypeRepo,
-            jdbcTemplate,
+            indexProvisioning,
+            annotationValidation,
+            schemaCompositionValidation,
             mock(DefinitionService.class),
             mock(AscriptionStateMachineService.class),
             mock(AscriptionStatementValidationService.class),
@@ -166,210 +170,17 @@ class ArchetypeServiceTest {
     }
   }
 
+  // Schema composition validation is covered in ArchetypeSchemaCompositionValidationServiceTest.
+
   // ========================================================================
-  // Schema composition validation ($ref chain + allOf facets)
+  // ExtractTitleFromRef (static utility)
   // ========================================================================
 
   @Nested
-  class SchemaComposition {
+  class ExtractTitleFromRef {
 
     @Test
-    void baseArchetype_exempt() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "StructureArchetype");
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void baseArchetype_allExempt() {
-      for (String title :
-          List.of(
-              "StructureArchetype",
-              "MechanismArchetype",
-              "InteractionArchetype",
-              "Archetype",
-              "EffectorArchetype",
-              "ReceptorArchetype",
-              "DirectiveArchetype",
-              "NormArchetype")) {
-        ObjectNode schema = MAPPER.createObjectNode().put("title", title);
-        assertDoesNotThrow(
-            () -> service.validateSchemaComposition(schema), "Expected exempt: " + title);
-      }
-    }
-
-    @Test
-    void noRefNoAllOf_rootlessAccepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "SecurityProperties");
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void emptyAllOf_rootlessAccepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "SecurityProperties");
-      schema.putArray("allOf");
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void allOfWithOnlyRootlessIntermediary_accepted() {
-      ObjectNode facetSchema = schemaNode("SecurityProperties", false);
-      ArchetypeEntity facet = mockArchetype(facetSchema);
-      when(archetypeRepo.findInEffectByTitle("SecurityProperties")).thenReturn(Optional.of(facet));
-
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "DetailedSecurity");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/SecurityProperties/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void allOfWithInlineEntriesOnly_rootlessAccepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "InlineFacet");
-      var allOf = schema.putArray("allOf");
-      allOf.addObject().put("type", "object");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void refBaseWithAllOfFacet_accepted() {
-      ObjectNode facetSchema = schemaNode("SecurityProperties", false);
-      ArchetypeEntity facet = mockArchetype(facetSchema);
-      when(archetypeRepo.findInEffectByTitle("SecurityProperties")).thenReturn(Optional.of(facet));
-
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "SecuredStructure");
-      schema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/SecurityProperties/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void directRefToBase_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "MyStructure");
-      schema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void refToSealedBase_rejected() {
-      ArchetypeEntity sealedArchetype = mockArchetype(schemaNode("Archetype", true));
-      when(archetypeRepo.findInEffectByTitle("Archetype")).thenReturn(Optional.of(sealedArchetype));
-
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantMeta");
-      schema.put("$ref", "gsm://archetypes/Archetype/v1");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateSchemaComposition(schema));
-      assertTrue(ex.getMessage().contains("sealed"));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
-    }
-
-    @Test
-    void refToUnsealedEffectorBase_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "mTLSEffector");
-      schema.put("$ref", "gsm://archetypes/EffectorArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void refToUnsealedReceptorBase_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "WebhookReceptor");
-      schema.put("$ref", "gsm://archetypes/ReceptorArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void refToUnsealedDirectiveBase_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "Principle");
-      schema.put("$ref", "gsm://archetypes/DirectiveArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void refToUnsealedNormBase_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "Measure");
-      schema.put("$ref", "gsm://archetypes/NormArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void invalidRefInAllOf_rejected() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantThing");
-      schema.putArray("allOf").addObject().put("$ref", "https://example.com/not-gsm");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateSchemaComposition(schema));
-      assertTrue(ex.getMessage().contains("gsm://"));
-      assertEquals(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-          ex.getRuleType());
-    }
-
-    @Test
-    void allOfWithMultipleGsmBases_accepted() {
-      // Under Option B, allOf entries are facets — they don't determine subject type.
-      // Including multiple GSM bases in allOf is allowed (adds their properties).
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "RichFacet");
-      var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
-      allOf.addObject().put("$ref", "gsm://archetypes/MechanismArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void cycleInRefChain_rejected() {
-      // A's $ref → B, B's $ref → A
-      ObjectNode schemaB = schemaNode("B", false);
-      schemaB.put("$ref", "gsm://archetypes/A/v1");
-
-      ArchetypeEntity archetypeB = mockArchetype(schemaB);
-      when(archetypeRepo.findInEffectByTitle("B")).thenReturn(Optional.of(archetypeB));
-
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "A");
-      schema.put("$ref", "gsm://archetypes/B/v1");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateSchemaComposition(schema));
-      assertTrue(ex.getMessage().contains("Cycle") || ex.getMessage().contains("already visited"));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, ex.getRuleType());
-    }
-
-    @Test
-    void unresolvableAllOfIntermediary_lenientAtAuthoring() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/NonExistent/v1");
-
-      // Authoring-time (strict=false): warns and skips unresolvable allOf intermediary.
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void unresolvableAllOfIntermediary_strictAtActivation() {
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/NonExistent/v1");
-
-      // Activation-time (strict=true): rejects unresolvable allOf intermediary.
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateSchemaComposition(schema, true));
-      assertTrue(ex.getMessage().contains("Cannot resolve"));
-      assertEquals(
-          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-          ex.getRuleType());
-    }
-
-    @Test
-    void extractTitleFromRef_validUri() {
+    void validUri() {
       assertEquals(
           "SecurityProperties",
           ArchetypeService.extractTitleFromRef("gsm://archetypes/SecurityProperties/v1"));
@@ -377,14 +188,22 @@ class ArchetypeServiceTest {
     }
 
     @Test
-    void extractTitleFromRef_invalidUri() {
+    void invalidUri() {
       assertNull(ArchetypeService.extractTitleFromRef("https://example.com/schema"));
       assertNull(ArchetypeService.extractTitleFromRef("not-a-uri"));
       assertNull(ArchetypeService.extractTitleFromRef("gsm://archetypes/NoVersion"));
     }
+  }
+
+  // ========================================================================
+  // ResolveForCreation (subject type resolution via $ref chain)
+  // ========================================================================
+
+  @Nested
+  class ResolveForCreation {
 
     @Test
-    void resolveForCreation_baseArchetype_resolvesDirectly() {
+    void baseArchetype_resolvesDirectly() {
       UUID id = UUID.randomUUID();
       ArchetypeEntity base = mockArchetype(schemaNode("StructureArchetype", false));
       when(base.getId()).thenReturn(id);
@@ -402,6 +221,9 @@ class ArchetypeServiceTest {
       ArchetypeEntity tenant = mockArchetype(tenantSchema);
       when(tenant.getId()).thenReturn(tenantId);
       when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
+      when(schemaCompositionValidation.resolveGsmBases(
+              eq("gsm://archetypes/StructureArchetype/v1"), eq("MyServiceArchetype"), any()))
+          .thenReturn(Set.of("StructureArchetype"));
 
       var resolution = service.resolveForCreation(tenantId);
       assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
@@ -409,18 +231,15 @@ class ArchetypeServiceTest {
 
     @Test
     void resolveForCreation_tenantViaIntermediary_walksRefChain() {
-      ObjectNode intermediarySchema = schemaNode("BaseMechanismTemplate", false);
-      intermediarySchema.put("$ref", "gsm://archetypes/MechanismArchetype/v1");
-      ArchetypeEntity intermediary = mockArchetype(intermediarySchema);
-      when(archetypeRepo.findInEffectByTitle("BaseMechanismTemplate"))
-          .thenReturn(Optional.of(intermediary));
-
       UUID tenantId = UUID.randomUUID();
       ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "SpecificMechanism");
       tenantSchema.put("$ref", "gsm://archetypes/BaseMechanismTemplate/v1");
       ArchetypeEntity tenant = mockArchetype(tenantSchema);
       when(tenant.getId()).thenReturn(tenantId);
       when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
+      when(schemaCompositionValidation.resolveGsmBases(
+              eq("gsm://archetypes/BaseMechanismTemplate/v1"), eq("SpecificMechanism"), any()))
+          .thenReturn(Set.of("MechanismArchetype"));
 
       var resolution = service.resolveForCreation(tenantId);
       assertEquals(DefinitionSubjectType.MECHANISM, resolution.subjectType());
@@ -466,169 +285,8 @@ class ArchetypeServiceTest {
     }
   }
 
-  // ========================================================================
-  // Annotation vocabulary validation
-  // ========================================================================
-
-  @Nested
-  class Annotation {
-
-    @Nested
-    class UnknownAnnotations {
-
-      @Test
-      void unknownTopLevelAnnotation_rejected() {
-        ObjectNode schema = schemaWithProperty("x", prop("string"));
-        schema.put("$gsm:bogus", true);
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            ex.getRuleType());
-      }
-
-      @Test
-      void unknownPropertyAnnotation_rejected() {
-        ObjectNode propNode = prop("string");
-        propNode.put("$gsm:foobar", true);
-        ObjectNode schema = schemaWithProperty("x", propNode);
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("$gsm:foobar"));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            ex.getRuleType());
-      }
-
-      @Test
-      void topLevelAnnotationOnProperty_rejected() {
-        ObjectNode propNode = prop("string");
-        propNode.put("$gsm:sealed", true);
-        ObjectNode schema = schemaWithProperty("x", propNode);
-
-        UUID defId = UUID.randomUUID();
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(schema, defId));
-        assertTrue(ex.getMessage().contains("top-level only"));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-            ex.getRuleType());
-      }
-    }
-
-    @Nested
-    class IdentityBoundSetImmutability {
-
-      @Test
-      void firstAscription_noCheck() {
-        ObjectNode propNode = prop("string");
-        propNode.put("$gsm:identityBound", true);
-        ObjectNode schema = schemaWithProperty("purpose", propNode);
-
-        UUID defId = UUID.randomUUID();
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-      }
-
-      @Test
-      void sameIdentityBoundSet_valid() {
-        UUID defId = UUID.randomUUID();
-
-        ObjectNode existingProp = prop("string");
-        existingProp.put("$gsm:identityBound", true);
-        ObjectNode existingSchema = schemaWithProperty("purpose", existingProp);
-        ArchetypeEntity existing = stubArchetypeWithSchema(existingSchema);
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId))
-            .thenReturn(List.of(existing));
-
-        ObjectNode newProp = prop("string");
-        newProp.put("$gsm:identityBound", true);
-        ObjectNode newSchema = schemaWithProperty("purpose", newProp);
-
-        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(newSchema, defId));
-      }
-
-      @Test
-      void changedIdentityBoundSet_rejected() {
-        UUID defId = UUID.randomUUID();
-
-        ObjectNode existingProp = prop("string");
-        existingProp.put("$gsm:identityBound", true);
-        ObjectNode existingSchema = schemaWithProperty("purpose", existingProp);
-        ArchetypeEntity existing = stubArchetypeWithSchema(existingSchema);
-        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId))
-            .thenReturn(List.of(existing));
-
-        ObjectNode newProp = prop("string");
-        newProp.put("$gsm:identityBound", true);
-        ObjectNode newSchema = schemaWithProperty("name", newProp);
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class,
-                () -> service.validateArchetypeAnnotations(newSchema, defId));
-        assertTrue(ex.getMessage().contains("identityBound set immutability"));
-        assertEquals(
-            AscriptionConsistencyRuleType.ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY,
-            ex.getRuleType());
-      }
-    }
-
-    @Nested
-    class CollectIdentityBoundFields {
-
-      @Test
-      void collectsAnnotatedFields() {
-        ObjectNode p1 = prop("string");
-        p1.put("$gsm:identityBound", true);
-        ObjectNode p2 = prop("string");
-        ObjectNode p3 = prop("number");
-        p3.put("$gsm:identityBound", true);
-
-        ObjectNode schema = MAPPER.createObjectNode();
-        ObjectNode props = schema.putObject("properties");
-        props.set("alpha", p1);
-        props.set("beta", p2);
-        props.set("gamma", p3);
-
-        Set<String> result = ArchetypeService.collectIdentityBoundFields(schema);
-        assertEquals(Set.of("alpha", "gamma"), result);
-      }
-
-      @Test
-      void noProperties_returnsEmpty() {
-        ObjectNode schema = MAPPER.createObjectNode();
-        Set<String> result = ArchetypeService.collectIdentityBoundFields(schema);
-        assertTrue(result.isEmpty());
-      }
-    }
-
-    @Test
-    void cleanSchema_noAnnotations_valid() {
-      ObjectNode schema = schemaWithProperty("env", prop("string"));
-
-      UUID defId = UUID.randomUUID();
-      when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, defId));
-    }
-  }
+  // Annotation validation is covered in ArchetypeAnnotationValidationServiceTest.
+  // BuildEntity delegation tests below verify that ArchetypeService calls annotationValidation.
 
   // ========================================================================
   // BuildEntity
@@ -676,6 +334,35 @@ class ArchetypeServiceTest {
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
+    }
+
+    @Test
+    void delegatesToAnnotationValidation_validateRefUriPolicy() {
+      ObjectNode stmt = MAPPER.createObjectNode().put("title", "Archetype");
+      DefinitionEntity def = mock(DefinitionEntity.class);
+      UUID defId = UUID.randomUUID();
+      when(def.getId()).thenReturn(defId);
+      ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+      when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+      service.buildEntity(def, archetypeRef, stmt);
+
+      verify(annotationValidation).validateRefUriPolicy(stmt);
+    }
+
+    @Test
+    void delegatesToAnnotationValidation_validateArchetypeAnnotations() {
+      ObjectNode stmt = MAPPER.createObjectNode().put("title", "Archetype");
+      DefinitionEntity def = mock(DefinitionEntity.class);
+      UUID defId = UUID.randomUUID();
+      when(def.getId()).thenReturn(defId);
+      ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+      List<ArchetypeEntity> existing = List.of(mock(ArchetypeEntity.class));
+      when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(existing);
+
+      service.buildEntity(def, archetypeRef, stmt);
+
+      verify(annotationValidation).validateArchetypeAnnotations(stmt, existing);
     }
   }
 
@@ -863,242 +550,56 @@ class ArchetypeServiceTest {
   }
 
   // ========================================================================
-  // Index provisioning (onActivation / onDeactivation)
+  // Index provisioning delegation (onActivation / onDeactivation)
   // ========================================================================
 
   @Nested
   class IndexProvisioning {
 
     @Test
-    void onActivation_provisionsQueryableIndex() {
-      ArchetypeEntity entity = archetypeWithQueryableProps("StructureArchetype", "env", "string");
+    @SuppressWarnings("unchecked")
+    void onActivation_delegatesToIndexProvisioning() {
+      ArchetypeEntity entity = archetypeWithBaseTitle("StructureArchetype");
 
       service.onActivation(entity);
 
-      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(jdbcTemplate).execute(captor.capture());
-      String ddl = captor.getValue();
-      assertTrue(ddl.contains("CREATE INDEX IF NOT EXISTS"), ddl);
-      assertTrue(ddl.contains("idx_gsm_q_"), ddl);
-      assertTrue(ddl.contains("statement->>'env'"), ddl);
-    }
-
-    @Test
-    void onActivation_provisionsUniqueIndex() {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
-
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "StructureArchetype");
-      ObjectNode props = stmt.putObject("properties");
-      ObjectNode nameProp = props.putObject("name");
-      nameProp.put("type", "string");
-      nameProp.put("$gsm:unique", true);
-
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(stmt);
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.onActivation(entity);
-
-      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(jdbcTemplate).execute(captor.capture());
-      String ddl = captor.getValue();
-      assertTrue(ddl.contains("CREATE UNIQUE INDEX IF NOT EXISTS"), ddl);
-      assertTrue(ddl.contains("idx_gsm_u_"), ddl);
-      assertTrue(ddl.contains("ACTIVE"), ddl);
-    }
-
-    @Test
-    void onActivation_queryableAndUnique_provisionsBoth() {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
-
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "StructureArchetype");
-      ObjectNode props = stmt.putObject("properties");
-      ObjectNode envProp = props.putObject("env");
-      envProp.put("type", "string");
-      envProp.put("$gsm:queryable", true);
-      envProp.put("$gsm:unique", true);
-
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(stmt);
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.onActivation(entity);
-
-      verify(jdbcTemplate, times(2)).execute(anyString());
-    }
-
-    @Test
-    void onActivation_ginForArrayType() {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
-
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "StructureArchetype");
-      ObjectNode props = stmt.putObject("properties");
-      ObjectNode tagsProp = props.putObject("tags");
-      tagsProp.put("type", "array");
-      tagsProp.putObject("items").put("type", "string");
-      tagsProp.put("$gsm:queryable", true);
-
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(stmt);
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.onActivation(entity);
-
-      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(jdbcTemplate).execute(captor.capture());
-      assertTrue(captor.getValue().contains("USING GIN"));
-    }
-
-    @Test
-    void onActivation_noProperties_noIndexes() {
-      DefinitionEntity def = defWithId();
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement())
-          .thenReturn(MAPPER.createObjectNode().put("title", "StructureArchetype"));
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.onActivation(entity);
-
-      verify(jdbcTemplate, never()).execute(anyString());
+      var captor = org.mockito.ArgumentCaptor.forClass(java.util.function.Supplier.class);
+      verify(indexProvisioning).provisionIndexes(eq(entity), captor.capture());
+      assertEquals("structure", captor.getValue().get());
     }
 
     @Test
     void onActivation_nonArchetypeEntity_noOp() {
       AscriptionEntity notArchetype = mock(AscriptionEntity.class);
       service.onActivation(notArchetype);
-      verify(jdbcTemplate, never()).execute(anyString());
+      verify(indexProvisioning, never()).provisionIndexes(any(), any());
     }
 
     @Test
-    void onActivation_indexCreationFailure_doesNotThrow() {
-      ArchetypeEntity entity = archetypeWithQueryableProps("StructureArchetype", "env", "string");
-      doThrow(new RuntimeException("DB error")).when(jdbcTemplate).execute(anyString());
-
-      assertDoesNotThrow(() -> service.onActivation(entity));
-    }
-
-    @Test
-    void onDeactivation_dropsIndexes() {
-      ArchetypeEntity entity = archetypeWithQueryableProps("StructureArchetype", "env", "string");
+    @SuppressWarnings("unchecked")
+    void onDeactivation_delegatesToIndexProvisioning() {
+      ArchetypeEntity entity = archetypeWithBaseTitle("StructureArchetype");
 
       service.onDeactivation(entity);
 
-      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(jdbcTemplate).execute(captor.capture());
-      assertTrue(captor.getValue().contains("DROP INDEX IF EXISTS"));
-    }
-
-    @Test
-    void onDeactivation_nullStatement_noOp() {
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(null);
-
-      service.onDeactivation(entity);
-
-      verify(jdbcTemplate, never()).execute(anyString());
-    }
-
-    @Test
-    void onDeactivation_noProperties_noOp() {
-      DefinitionEntity def = defWithId();
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement())
-          .thenReturn(MAPPER.createObjectNode().put("title", "StructureArchetype"));
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.onDeactivation(entity);
-
-      verify(jdbcTemplate, never()).execute(anyString());
+      var captor = org.mockito.ArgumentCaptor.forClass(java.util.function.Supplier.class);
+      verify(indexProvisioning).deprovisionIndexes(eq(entity), captor.capture());
+      assertEquals("structure", captor.getValue().get());
     }
 
     @Test
     void onDeactivation_nonArchetypeEntity_noOp() {
       AscriptionEntity notArchetype = mock(AscriptionEntity.class);
       service.onDeactivation(notArchetype);
-      verify(jdbcTemplate, never()).execute(anyString());
+      verify(indexProvisioning, never()).deprovisionIndexes(any(), any());
     }
 
-    @Test
-    void onDeactivation_dropFailure_doesNotThrow() {
-      ArchetypeEntity entity = archetypeWithQueryableProps("StructureArchetype", "env", "string");
-      doThrow(new RuntimeException("DB error")).when(jdbcTemplate).execute(anyString());
-
-      assertDoesNotThrow(() -> service.onDeactivation(entity));
-    }
-
-    @Test
-    void provisionUsesSchemaTitle_notId() {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
-
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "MyCustomArchetype");
-      ObjectNode props = stmt.putObject("properties");
-      props.putObject("x").put("type", "string").put("$gsm:queryable", true);
-
-      // Needs $ref chain to resolve subject type → provide a structural base
-      stmt.put("$ref", "gsm://archetypes/StructureArchetype/v1");
-
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(stmt);
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.onActivation(entity);
-
-      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(jdbcTemplate).execute(captor.capture());
-      assertTrue(captor.getValue().contains("mycustomarchetype"), captor.getValue());
-    }
-
-    @Test
-    void titleFallbackToIdWhenMissing() {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
-
-      // no title but still "StructureArchetype" for resolveSubjectType
-      // Actually resolveTableName calls resolveSubjectType which needs title.
-      // So if no title, deprovisionIndexes returns early. Test via deprovisioning:
-      ObjectNode stmt = MAPPER.createObjectNode();
-      ObjectNode props = stmt.putObject("properties");
-      props.putObject("x").put("type", "string").put("$gsm:queryable", true);
-
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(stmt);
-      when(entity.getDefinition()).thenReturn(def);
-
-      // deprovisionIndexes -> resolveTableName -> resolveSubjectType -> throws
-      // because no title. This is caught by the outer try-catch? No, it's not.
-      // Actually deprovisionIndexes doesn't catch resolveTableName exceptions.
-      // Let me verify...
-      // Actually the code flow in deprovisionIndexes:
-      // String tableName = resolveTableName(archetype);
-      // And resolveTableName calls resolveSubjectType which throws.
-      // deprovisionIndexes doesn't catch this, so the exception propagates.
-      // onDeactivation doesn't catch it either.
-      // So this would throw RuleViolationException.
-
-      // This is an edge case that probably shouldn't happen in practice.
-      // Skip this test.
-    }
-
-    private ArchetypeEntity archetypeWithQueryableProps(
-        String title, String propName, String propType) {
+    private ArchetypeEntity archetypeWithBaseTitle(String title) {
       UUID defId = UUID.randomUUID();
       DefinitionEntity def = mock(DefinitionEntity.class);
       when(def.getId()).thenReturn(defId);
 
       ObjectNode stmt = MAPPER.createObjectNode().put("title", title);
-      ObjectNode props = stmt.putObject("properties");
-      ObjectNode propNode = props.putObject(propName);
-      propNode.put("type", propType);
-      propNode.put("$gsm:queryable", true);
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(stmt);
@@ -1106,58 +607,9 @@ class ArchetypeServiceTest {
 
       return entity;
     }
-
-    private DefinitionEntity defWithId() {
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(UUID.randomUUID());
-      return def;
-    }
   }
 
-  // ========================================================================
-  // Schema composition extras ($ref chain + allOf facets)
-  // ========================================================================
-
-  @Nested
-  class SchemaCompositionExtras {
-
-    @Test
-    void sealedAllOfIntermediary_rejected() {
-      ObjectNode sealedSchema = schemaNode("SealedFacet", false);
-      sealedSchema.put("$gsm:sealed", true);
-      ArchetypeEntity intermediary = mockArchetype(sealedSchema);
-      when(archetypeRepo.findInEffectByTitle("SealedFacet")).thenReturn(Optional.of(intermediary));
-
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
-      schema.putArray("allOf").addObject().put("$ref", "gsm://archetypes/SealedFacet/v1");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validateSchemaComposition(schema));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("SealedFacet"));
-    }
-
-    @Test
-    void intermediaryRefChain_walksRecursively() {
-      // TopLevel → ($ref) → MiddleLayer → ($ref) → StructureArchetype
-      ObjectNode midSchema = schemaNode("MiddleLayer", false);
-      midSchema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
-      ArchetypeEntity mid = mockArchetype(midSchema);
-      when(archetypeRepo.findInEffectByTitle("MiddleLayer")).thenReturn(Optional.of(mid));
-
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "TopLevel");
-      schema.put("$ref", "gsm://archetypes/MiddleLayer/v1");
-
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-
-    @Test
-    void noTitleInSchema_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      assertDoesNotThrow(() -> service.validateSchemaComposition(schema));
-    }
-  }
+  // Schema composition validation is covered in ArchetypeSchemaCompositionValidationServiceTest.
 
   // ========================================================================
   // IdentityBound getIdentityBoundValues extra branches
@@ -1230,29 +682,6 @@ class ArchetypeServiceTest {
     return entity;
   }
 
-  private ObjectNode prop(String type) {
-    return MAPPER.createObjectNode().put("type", type);
-  }
-
-  private ObjectNode schemaWithProperty(String propName, ObjectNode propNode) {
-    ObjectNode schema = MAPPER.createObjectNode();
-    schema.put("title", "TestSchema");
-    ObjectNode props = schema.putObject("properties");
-    props.set(propName, propNode);
-    return schema;
-  }
-
-  private ArchetypeEntity stubArchetypeWithSchema(ObjectNode schema) {
-    ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-    when(archetype.getStatement()).thenReturn(schema);
-
-    DefinitionEntity def = mock(DefinitionEntity.class);
-    when(def.getId()).thenReturn(UUID.randomUUID());
-    when(archetype.getDefinition()).thenReturn(def);
-
-    return archetype;
-  }
-
   // ========================================================================
   // Descendant resolution API (getAncestorTitles / isDescendantOf)
   // ========================================================================
@@ -1263,18 +692,10 @@ class ArchetypeServiceTest {
     @Test
     void getAncestorTitles_rootlessArchetype_returnsOwnTitleOnly() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema =
-          MAPPER
-              .createObjectNode()
-              .put("title", "SecurityProperties")
-              .putObject("properties")
-              .putObject("encryptionLevel")
-              .put("type", "string");
-      // Fix: schema must not have nested properties inside properties
-      ObjectNode correctSchema = MAPPER.createObjectNode();
-      correctSchema.put("title", "SecurityProperties");
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "SecurityProperties");
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(correctSchema);
+      when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
       Set<String> ancestors = service.getAncestorTitles(id);
@@ -1393,82 +814,5 @@ class ArchetypeServiceTest {
     }
   }
 
-  // ========================================================================
-  // $ref URI policy validation (E1 R2/R3)
-  // ========================================================================
-
-  @Nested
-  class RefUriPolicy {
-
-    @Test
-    void localJsonPointer_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "MyArchetype");
-      var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "#/$defs/SomeLocal");
-
-      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
-    }
-
-    @Test
-    void gsmUri_accepted() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "MyArchetype");
-      var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
-
-      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
-    }
-
-    @Test
-    void httpUri_rejected() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "MyArchetype");
-      var props = schema.putObject("properties");
-      props.putObject("ext").put("$ref", "http://example.com/schema.json");
-
-      var ex =
-          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("http://example.com/schema.json"));
-    }
-
-    @Test
-    void httpsUri_rejected() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "MyArchetype");
-      schema.putObject("$defs").putObject("Ext").put("$ref", "https://evil.com/inject.json");
-
-      var ex =
-          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
-    }
-
-    @Test
-    void deeplyNestedRef_detected() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      var arr = schema.putArray("allOf");
-      var inner = arr.addObject().putObject("properties").putObject("nested");
-      inner.put("$ref", "ftp://bad-host/schema");
-
-      var ex =
-          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
-      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
-      assertTrue(ex.getMessage().contains("ftp://bad-host/schema"));
-    }
-
-    @Test
-    void noRefs_noViolation() {
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "Plain");
-      schema.putObject("properties").putObject("name").put("type", "string");
-
-      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
-    }
-
-    @Test
-    void nullSchema_noViolation() {
-      assertDoesNotThrow(() -> service.validateRefUriPolicy(null));
-    }
-  }
+  // $ref URI policy validation is covered in ArchetypeAnnotationValidationServiceTest.
 }

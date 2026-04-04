@@ -177,8 +177,8 @@ class InteractionServiceTest {
       var refs = service.getRefereeReferences(entity);
 
       assertTrue(refs.size() == 2);
-      assertTrue(refs.stream().anyMatch(r -> r.label().equals("effector")));
-      assertTrue(refs.stream().anyMatch(r -> r.label().equals("receptor")));
+      assertTrue(refs.stream().anyMatch(r -> r.getValue().equals("effector")));
+      assertTrue(refs.stream().anyMatch(r -> r.getValue().equals("receptor")));
     }
   }
 

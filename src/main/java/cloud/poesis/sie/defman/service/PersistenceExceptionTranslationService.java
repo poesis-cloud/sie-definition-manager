@@ -19,12 +19,12 @@ import org.springframework.dao.DataIntegrityViolationException;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-final class PersistenceExceptionTranslatorService {
+final class PersistenceExceptionTranslationService {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(PersistenceExceptionTranslatorService.class);
+      LoggerFactory.getLogger(PersistenceExceptionTranslationService.class);
 
-  private PersistenceExceptionTranslatorService() {}
+  private PersistenceExceptionTranslationService() {}
 
   // Known PostgreSQL constraint → AscriptionConsistencyRuleType mapping
   // (auto-generated FK names and partial unique indexes)
