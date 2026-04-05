@@ -11,7 +11,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +31,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class NormService extends AbstractAscriptionService<NormEntity> {
+public class NormService implements SubtypeHandler<NormEntity> {
 
   private static final Logger LOG = LoggerFactory.getLogger(NormService.class);
 
@@ -42,30 +41,12 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   private final NormApplicabilityValidationService applicabilityValidation;
   private final NormAssertionValidationService assertionValidation;
 
-  /**
-   * Constructs the Norm service with its required dependencies.
-   *
-   * @param normRepo the norm repository
-   * @param structureService the structure service for reference resolution
-   * @param archetypeService the archetype service for qualifier resolution
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionStatementValidationService the ascription statement validation service
-   * @param entityManager the JPA entity manager
-   * @param applicabilityValidation the Norm applicability CEL validation service
-   * @param assertionValidation the Norm assertion CEL validation service
-   */
   public NormService(
       NormRepository normRepo,
       StructureService structureService,
       ArchetypeService archetypeService,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager,
       NormApplicabilityValidationService applicabilityValidation,
       NormAssertionValidationService assertionValidation) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
     this.normRepo = normRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
@@ -79,7 +60,7 @@ public class NormService extends AbstractAscriptionService<NormEntity> {
   }
 
   @Override
-  protected AbstractAscriptionRepository<NormEntity> getRepository() {
+  public AbstractAscriptionRepository<NormEntity> getRepository() {
     return normRepo;
   }
 

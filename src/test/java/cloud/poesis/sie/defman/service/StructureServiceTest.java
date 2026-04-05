@@ -18,7 +18,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -45,13 +44,7 @@ class StructureServiceTest {
 
   @BeforeEach
   void setUp() {
-    service =
-        new StructureService(
-            structureRepo,
-            mock(DefinitionService.class),
-            mock(AscriptionStateMachineService.class),
-            mock(AscriptionStatementValidationService.class),
-            mock(EntityManager.class));
+    service = new StructureService(structureRepo);
   }
 
   // ========================================================================

@@ -19,7 +19,6 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,15 +46,7 @@ class DirectiveServiceTest {
 
   @BeforeEach
   void setUp() {
-    service =
-        new DirectiveService(
-            directiveRepo,
-            structureService,
-            archetypeService,
-            mock(DefinitionService.class),
-            mock(AscriptionStateMachineService.class),
-            mock(AscriptionStatementValidationService.class),
-            mock(EntityManager.class));
+    service = new DirectiveService(directiveRepo, structureService, archetypeService);
   }
 
   // ========================================================================

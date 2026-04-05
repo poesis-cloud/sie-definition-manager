@@ -1,7 +1,6 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
@@ -12,9 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import net.starlark.java.syntax.AssignmentStatement;
 import net.starlark.java.syntax.CallExpression;
@@ -224,9 +221,10 @@ public class MechanismPortDerivationService {
   // ======================================================================
 
   /**
-   * GSM §Mechanism U12: derive port entities with Definition reuse. Match existing Definitions by
-   * (Mechanism Definition, data Archetype, direction). Resolves tenant port archetypes from
-   * PortSignature.portArchetypeName (falls back to base EffectorArchetype/ReceptorArchetype).
+   * GSM §Mechanism U12: derive port entities with fresh Definitions.
+   *
+   * <p>Each port signature gets its own fresh Definition — no matching, no dedup. Definition exists
+   * solely as an identity anchor for ascriptions.
    */
   private void derivePortEntities(MechanismEntity mechanism, List<PortSignature> signatures) {
     ArchetypeEntity baseEffectorArchetype =
@@ -240,9 +238,7 @@ public class MechanismPortDerivationService {
 
     UUID mechanismDefId = mechanism.getDefinition().getId();
 
-    Set<PortSignature> unique = new HashSet<>(signatures);
-
-    for (PortSignature sig : unique) {
+    for (PortSignature sig : signatures) {
       ArchetypeEntity dataArchetype =
           archetypeService.findInEffectBySchemaTitle(sig.dataArchetypeName());
       if (dataArchetype == null) {
@@ -286,22 +282,11 @@ public class MechanismPortDerivationService {
       UUID mechanismDefId,
       ArchetypeEntity effectorArchetype,
       ArchetypeEntity dataArchetype) {
-    DefinitionEntity definition =
-        findOrCreatePortDefinition(
-            mechanismDefId,
-            dataArchetype.getDefinition().getId(),
-            effectorService.findAllByMechanismDefinitionId(mechanismDefId),
-            e ->
-                ((EffectorEntity) e)
-                    .getOutputArchetype()
-                    .getDefinition()
-                    .getId()
-                    .equals(dataArchetype.getDefinition().getId()),
-            DefinitionSubjectType.EFFECTOR);
+    DefinitionEntity definition = definitionService.create(DefinitionSubjectType.EFFECTOR);
 
     ObjectNode statement = objectMapper.createObjectNode();
-    statement.put("mechanism", mechanismDefId.toString());
-    statement.put("archetype", dataArchetype.getDefinition().getId().toString());
+    statement.put("mechanism", mechanism.getId().toString());
+    statement.put("archetype", dataArchetype.getId().toString());
 
     EffectorEntity effector =
         new EffectorEntity(definition, effectorArchetype, statement, mechanism, dataArchetype);
@@ -319,22 +304,11 @@ public class MechanismPortDerivationService {
       UUID mechanismDefId,
       ArchetypeEntity receptorArchetype,
       ArchetypeEntity dataArchetype) {
-    DefinitionEntity definition =
-        findOrCreatePortDefinition(
-            mechanismDefId,
-            dataArchetype.getDefinition().getId(),
-            receptorService.findAllByMechanismDefinitionId(mechanismDefId),
-            e ->
-                ((ReceptorEntity) e)
-                    .getInputArchetype()
-                    .getDefinition()
-                    .getId()
-                    .equals(dataArchetype.getDefinition().getId()),
-            DefinitionSubjectType.RECEPTOR);
+    DefinitionEntity definition = definitionService.create(DefinitionSubjectType.RECEPTOR);
 
     ObjectNode statement = objectMapper.createObjectNode();
-    statement.put("mechanism", mechanismDefId.toString());
-    statement.put("archetype", dataArchetype.getDefinition().getId().toString());
+    statement.put("mechanism", mechanism.getId().toString());
+    statement.put("archetype", dataArchetype.getId().toString());
 
     ReceptorEntity receptor =
         new ReceptorEntity(definition, receptorArchetype, statement, mechanism, dataArchetype);
@@ -345,19 +319,5 @@ public class MechanismPortDerivationService {
         "Auto-derived Receptor {} for data archetype {}",
         saved.getId(),
         dataArchetype.getStatement().get("title").asText());
-  }
-
-  private DefinitionEntity findOrCreatePortDefinition(
-      UUID mechanismDefId,
-      UUID dataArchetypeDefId,
-      List<? extends AscriptionEntity> existingPorts,
-      java.util.function.Predicate<AscriptionEntity> matcher,
-      DefinitionSubjectType portType) {
-    for (AscriptionEntity existing : existingPorts) {
-      if (matcher.test(existing)) {
-        return existing.getDefinition();
-      }
-    }
-    return definitionService.create(portType);
   }
 }

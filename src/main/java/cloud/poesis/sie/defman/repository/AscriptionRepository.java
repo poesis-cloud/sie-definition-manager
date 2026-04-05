@@ -4,7 +4,9 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -14,6 +16,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @since 1.0.0
  */
 public interface AscriptionRepository extends JpaRepository<AscriptionEntity, UUID> {
+
+  @Override
+  @EntityGraph("ascription-with-refs")
+  Optional<AscriptionEntity> findById(UUID id);
 
   /**
    * Returns all ascriptions for a given archetype and excludes one definition.

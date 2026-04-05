@@ -7,10 +7,10 @@ import cloud.poesis.sie.defman.entity.DirectiveEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.DirectiveRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,32 +27,16 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class DirectiveService extends AbstractAscriptionService<DirectiveEntity> {
+public class DirectiveService implements SubtypeHandler<DirectiveEntity> {
 
   private final DirectiveRepository directiveRepo;
   private final StructureService structureService;
   private final ArchetypeService archetypeService;
 
-  /**
-   * Constructs the Directive service with its required dependencies.
-   *
-   * @param directiveRepo the directive repository
-   * @param structureService the structure service for reference resolution
-   * @param archetypeService the archetype service for qualifier resolution
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionStatementValidationService the statement validation service
-   * @param entityManager the JPA entity manager
-   */
   public DirectiveService(
       DirectiveRepository directiveRepo,
       StructureService structureService,
-      ArchetypeService archetypeService,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+      ArchetypeService archetypeService) {
     this.directiveRepo = directiveRepo;
     this.structureService = structureService;
     this.archetypeService = archetypeService;
@@ -64,17 +48,25 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
   }
 
   @Override
-  protected AbstractAscriptionRepository<DirectiveEntity> getRepository() {
+  public AbstractAscriptionRepository<DirectiveEntity> getRepository() {
     return directiveRepo;
   }
 
   @Override
   public DirectiveEntity buildEntity(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID structureId = extractRequiredUuid(statement, "structure");
+    UUID structureId =
+        AscriptionService.extractRequiredUuid(
+            statement,
+            "structure",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
-    UUID qualifierId = extractRequiredUuid(statement, "qualifier");
+    UUID qualifierId =
+        AscriptionService.extractRequiredUuid(
+            statement,
+            "qualifier",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
 
     return new DirectiveEntity(definition, archetypeRef, statement, structure, qualifier);

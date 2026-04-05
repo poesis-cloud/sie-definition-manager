@@ -30,8 +30,8 @@ import org.springframework.stereotype.Service;
  * Validates ascription statements against archetype JSON Schemas and enforces {@code $gsm:*}
  * vocabulary annotations at authoring time.
  *
- * <p>Extracted from {@link AbstractAscriptionService} to separate statement/schema validation
- * concerns from entity lifecycle management.
+ * <p>Extracted from {@link AscriptionService} to separate statement/schema validation concerns from
+ * entity lifecycle management.
  *
  * @author Clément Cazaud
  * @since 1.0.0

@@ -8,12 +8,8 @@ import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
-import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.service.AbstractAscriptionService;
-import cloud.poesis.sie.defman.service.ArchetypeService;
 import cloud.poesis.sie.defman.service.AscriptionService;
 import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
-import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,13 +25,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +37,6 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -55,7 +47,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Unified REST controller for all GSM ascription types.
@@ -90,36 +81,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Tag(name = "Ascriptions", description = "CRUD for GSM ascriptions")
 public class AscriptionController extends AbstractController {
 
-  private final Map<DefinitionSubjectType, AbstractAscriptionService<? extends AscriptionEntity>>
-      serviceRegistry;
-  private final ArchetypeService archetypeService;
   private final AscriptionService ascriptionService;
-  private final DefinitionService definitionService;
   private final ObjectMapper objectMapper;
 
-  /**
-   * Constructs the ascription controller with all required services.
-   *
-   * @param serviceRegistry GSM subject type to service map
-   * @param archetypeService the archetype service
-   * @param ascriptionService the base ascription service
-   * @param definitionService the definition service
-   * @param statementProtection the ascription statement protection service
-   * @param objectMapper Jackson object mapper
-   */
   public AscriptionController(
-      Map<DefinitionSubjectType, AbstractAscriptionService<? extends AscriptionEntity>>
-          serviceRegistry,
-      ArchetypeService archetypeService,
       AscriptionService ascriptionService,
-      DefinitionService definitionService,
       AscriptionStatementProtectionService statementProtection,
       ObjectMapper objectMapper) {
     super(statementProtection);
-    this.serviceRegistry = serviceRegistry;
-    this.archetypeService = archetypeService;
     this.ascriptionService = ascriptionService;
-    this.definitionService = definitionService;
     this.objectMapper = objectMapper;
   }
 
@@ -144,16 +114,10 @@ public class AscriptionController extends AbstractController {
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public ResponseEntity<EntityModel<AscriptionDto>> create(
       @Valid @RequestBody AscriptionCreationDto request) {
-    var resolution = archetypeService.resolveForCreation(request.getArchetypeId());
-    AbstractAscriptionService<? extends AscriptionEntity> subtypeService =
-        requireService(resolution.subjectType());
     AscriptionEntity entity =
-        subtypeService.create(
-            resolution.archetype(), request.getStatement(), request.getDefinitionId());
-    DefinitionEntity definition = definitionService.getById(entity.getDefinition().getId());
-    ArchetypeEntity archetype = archetypeService.findEntityById(entity.getArchetype().getId());
-    EntityModel<AscriptionDto> model =
-        wrapWithLinks(entity, definition.getSubjectType().name(), archetype);
+        ascriptionService.create(
+            request.getArchetypeId(), request.getStatement(), request.getDefinitionId());
+    EntityModel<AscriptionDto> model = wrapWithLinks(entity);
     URI location = linkTo(AscriptionController.class).slash(entity.getId()).toUri();
     return ResponseEntity.created(location).body(model);
   }
@@ -173,11 +137,7 @@ public class AscriptionController extends AbstractController {
   public EntityModel<AscriptionDto> getById(
       @Parameter(description = "Ascription ID") @PathVariable UUID id) {
     AscriptionEntity entity = ascriptionService.getById(id);
-    DefinitionEntity definition = definitionService.getById(entity.getDefinition().getId());
-    ArchetypeEntity archetype = archetypeService.findEntityById(entity.getArchetype().getId());
-    EntityModel<AscriptionDto> model =
-        wrapWithLinks(entity, definition.getSubjectType().name(), archetype);
-    return model;
+    return wrapWithLinks(entity);
   }
 
   /** Explicit-fetch design — see README.md § "Batch fetch pattern". */
@@ -206,38 +166,17 @@ public class AscriptionController extends AbstractController {
       @ParameterObject @PageableDefault(size = 20) Pageable pageable,
       HttpServletRequest request) {
     DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);
-    AbstractAscriptionService<? extends AscriptionEntity> subtypeService =
-        requireService(subjectType);
 
     // Extract statement.* filter params
     Map<String, String> statementFilters = extractStatementFilters(request);
 
-    Page<? extends AscriptionEntity> page;
-    if (!statementFilters.isEmpty() || archetype != null) {
-      ArchetypeEntity archetypeEntity = resolveArchetypeParam(archetype, statementFilters);
-      if (!statementFilters.isEmpty()) {
-        validateQueryableProperties(archetypeEntity, statementFilters);
-      }
-      UUID archetypeDefId = archetypeEntity.getDefinition().getId();
-      page = subtypeService.findAllFiltered(archetypeDefId, statementFilters, status, pageable);
-    } else {
-      page =
-          (status != null)
-              ? subtypeService.findAllByStatus(status, pageable)
-              : subtypeService.findAll(pageable);
-    }
+    Page<? extends AscriptionEntity> page =
+        ascriptionService.findAllFiltered(
+            subjectType, archetype, statementFilters, status, pageable);
 
-    // Explicit-fetch design — see README.md § "Batch fetch pattern"
     String typeName = subjectType.name();
     String statusName = (status != null) ? status.name() : null;
-    if (page.isEmpty()) {
-      return toPagedModel(
-          page, typeName, statusName, archetype, statementFilters, Collections.emptyMap());
-    }
-    Set<UUID> archetypeIds =
-        page.getContent().stream().map(e -> e.getArchetype().getId()).collect(Collectors.toSet());
-    Map<UUID, ArchetypeEntity> archetypeMap = archetypeService.getByIds(archetypeIds);
-    return toPagedModel(page, typeName, statusName, archetype, statementFilters, archetypeMap);
+    return toPagedModel(page, typeName, statusName, archetype, statementFilters);
   }
 
   /**
@@ -265,23 +204,10 @@ public class AscriptionController extends AbstractController {
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public JsonNode getSchema(@Parameter(description = "Ascription ID") @PathVariable UUID id) {
     AscriptionEntity entity = ascriptionService.getById(id);
-    ArchetypeEntity archetype = archetypeService.findEntityById(entity.getArchetype().getId());
     ObjectNode envelope = buildAscriptionEnvelope();
-    ((ObjectNode) envelope.get("properties")).set("statement", archetype.getStatement());
+    ((ObjectNode) envelope.get("properties"))
+        .set("statement", entity.getArchetype().getStatement());
     return envelope;
-  }
-
-  // ========================================================================
-  // DISPATCH HELPER
-  // ========================================================================
-
-  private AbstractAscriptionService<? extends AscriptionEntity> requireService(
-      DefinitionSubjectType type) {
-    AbstractAscriptionService<? extends AscriptionEntity> svc = serviceRegistry.get(type);
-    if (svc == null) {
-      throw new IllegalStateException("No service registered for type: " + type);
-    }
-    return svc;
   }
 
   // ========================================================================
@@ -304,53 +230,12 @@ public class AscriptionController extends AbstractController {
     return filters;
   }
 
-  private ArchetypeEntity resolveArchetypeParam(
-      String archetype, Map<String, String> statementFilters) {
-    if (archetype == null) {
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST,
-          "Statement attribute filtering requires the 'archetype' query parameter.");
-    }
-    // Try UUID first, then title
-    try {
-      UUID archetypeId = UUID.fromString(archetype);
-      return archetypeService.findEntityById(archetypeId);
-    } catch (IllegalArgumentException ignored) {
-      // Not a UUID — try title
-    }
-    return archetypeService
-        .findInEffectByTitle(archetype)
-        .orElseThrow(
-            () ->
-                new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "No in-effect Archetype found for: " + archetype));
-  }
-
-  private static void validateQueryableProperties(
-      ArchetypeEntity archetypeEntity, Map<String, String> statementFilters) {
-    JsonNode schema = archetypeEntity.getStatement();
-    JsonNode properties = schema.path("properties");
-    for (String propName : statementFilters.keySet()) {
-      JsonNode propSchema = properties.path(propName);
-      if (propSchema.isMissingNode() || !propSchema.path("$gsm:queryable").asBoolean(false)) {
-        throw new ResponseStatusException(
-            HttpStatus.BAD_REQUEST,
-            "Property '"
-                + propName
-                + "' is not annotated with $gsm:queryable "
-                + "in Archetype '"
-                + schema.path("title").asText()
-                + "'.");
-      }
-    }
-  }
-
   // ========================================================================
   // HATEOAS — single-item and list-item link wrapping
   // ========================================================================
 
-  private EntityModel<AscriptionDto> wrapWithLinks(
-      AscriptionEntity entity, String subjectType, ArchetypeEntity archetype) {
+  private EntityModel<AscriptionDto> wrapWithLinks(AscriptionEntity entity) {
+    ArchetypeEntity archetype = entity.getArchetype();
     AscriptionDto dto = mapEntityToAscriptionDto(entity, archetype);
     UUID ascriptionId = entity.getId();
     UUID definitionId = entity.getDefinition().getId();
@@ -369,12 +254,9 @@ public class AscriptionController extends AbstractController {
       String type,
       String status,
       String archetype,
-      Map<String, String> statementFilters,
-      Map<UUID, ArchetypeEntity> archetypeMap) {
+      Map<String, String> statementFilters) {
     List<EntityModel<AscriptionDto>> content =
-        page.getContent().stream()
-            .map(e -> wrapWithLinks(e, type, archetypeMap.get(e.getArchetype().getId())))
-            .toList();
+        page.getContent().stream().map(this::wrapWithLinks).toList();
     PagedModel.PageMetadata metadata =
         new PagedModel.PageMetadata(
             page.getSize(), page.getNumber(),

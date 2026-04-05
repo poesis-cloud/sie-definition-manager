@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,7 +36,7 @@ public class AscriptionArchetypeSchemaAnnotationEnforcementService {
   private final AscriptionStatementProtectionService statementProtection;
 
   public AscriptionArchetypeSchemaAnnotationEnforcementService(
-      AscriptionService ascriptionService,
+      @Lazy AscriptionService ascriptionService,
       AscriptionStatementProtectionService statementProtection) {
     this.ascriptionService = ascriptionService;
     this.statementProtection = statementProtection;

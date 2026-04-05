@@ -68,6 +68,7 @@ class MechanismPortDerivationServiceTest {
     DefinitionEntity def = mock(DefinitionEntity.class);
     when(def.getId()).thenReturn(defId);
     ArchetypeEntity arch = mock(ArchetypeEntity.class);
+    when(arch.getId()).thenReturn(UUID.randomUUID());
     when(arch.getDefinition()).thenReturn(def);
     ObjectNode schema = MAPPER.createObjectNode().put("title", title);
     when(arch.getStatement()).thenReturn(schema);
@@ -83,6 +84,7 @@ class MechanismPortDerivationServiceTest {
     stmt.put("rule", rule);
 
     MechanismEntity mechanism = mock(MechanismEntity.class);
+    when(mechanism.getId()).thenReturn(UUID.randomUUID());
     when(mechanism.getStatement()).thenReturn(stmt);
     when(mechanism.getDefinition()).thenReturn(mechDef);
     return mechanism;
@@ -233,9 +235,6 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
 
-      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-
       DefinitionEntity effDef = mock(DefinitionEntity.class);
       DefinitionEntity recDef = mock(DefinitionEntity.class);
       when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
@@ -289,10 +288,9 @@ class MechanismPortDerivationServiceTest {
     }
 
     @Test
-    void existingPortDefinition_reused() {
+    void alwaysCreatesFreshDefinitions() {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
-      UUID mechDefId = mechanism.getDefinition().getId();
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
@@ -306,21 +304,9 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
 
-      // Existing effector with matching data archetype → reuse definition
-      UUID outputDefId = outputType.getDefinition().getId();
-      DefinitionEntity existingEffDef = mock(DefinitionEntity.class);
-      EffectorEntity existingEff = mock(EffectorEntity.class);
-      ArchetypeEntity existingOutputArch = mock(ArchetypeEntity.class);
-      DefinitionEntity existingOutputDef = mock(DefinitionEntity.class);
-      when(existingOutputDef.getId()).thenReturn(outputDefId);
-      when(existingOutputArch.getDefinition()).thenReturn(existingOutputDef);
-      when(existingEff.getDefinition()).thenReturn(existingEffDef);
-      when(existingEff.getOutputArchetype()).thenReturn(existingOutputArch);
-      List<EffectorEntity> existingEffectors = List.of(existingEff);
-      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(existingEffectors);
-
-      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
+      DefinitionEntity effDef = mock(DefinitionEntity.class);
       DefinitionEntity recDef = mock(DefinitionEntity.class);
+      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
       when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
 
       EffectorEntity savedEff = mock(EffectorEntity.class);
@@ -335,9 +321,11 @@ class MechanismPortDerivationServiceTest {
 
       service.derivePortsFromRule(mechanism);
 
-      // Effector should use existing definition, not create new
-      verify(definitionService, never()).create(DefinitionSubjectType.EFFECTOR);
+      // Fresh definitions always created — no matching/reuse
+      verify(definitionService).create(DefinitionSubjectType.EFFECTOR);
+      verify(definitionService).create(DefinitionSubjectType.RECEPTOR);
       verify(effectorService).save(any(EffectorEntity.class));
+      verify(receptorService).save(any(ReceptorEntity.class));
     }
   }
 
@@ -353,7 +341,6 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism(
               "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"CustomEff\")");
-      UUID mechDefId = mechanism.getDefinition().getId();
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
@@ -366,9 +353,6 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
       when(archetypeService.findInEffectBySchemaTitle("CustomEff")).thenReturn(customEff);
-
-      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
 
       DefinitionEntity effDef = mock(DefinitionEntity.class);
       DefinitionEntity recDef = mock(DefinitionEntity.class);
@@ -396,7 +380,6 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism(
               "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"UnknownPort\")");
-      UUID mechDefId = mechanism.getDefinition().getId();
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
@@ -408,9 +391,6 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
       when(archetypeService.findInEffectBySchemaTitle("UnknownPort")).thenReturn(null);
-
-      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
 
       DefinitionEntity effDef = mock(DefinitionEntity.class);
       DefinitionEntity recDef = mock(DefinitionEntity.class);
@@ -436,7 +416,6 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism(
               "sys.receive(\"Trigger\")\nsys.effect(\"OutType\", {}).receive(\"AckType\").on(\"AckPort\")");
-      UUID mechDefId = mechanism.getDefinition().getId();
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
@@ -451,9 +430,6 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("OutType")).thenReturn(outType);
       when(archetypeService.findInEffectBySchemaTitle("AckType")).thenReturn(ackType);
       when(archetypeService.findInEffectBySchemaTitle("AckPort")).thenReturn(ackPort);
-
-      when(effectorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-      when(receptorService.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
 
       DefinitionEntity effDef = mock(DefinitionEntity.class);
       DefinitionEntity recDef1 = mock(DefinitionEntity.class);

@@ -12,7 +12,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,33 +27,16 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
+public class EffectorService implements SubtypeHandler<EffectorEntity> {
 
   private final EffectorRepository effectorRepo;
   private final MechanismService mechanismService;
   private final ArchetypeService archetypeService;
 
-  /**
-   * Constructs the Effector service with its required dependencies.
-   *
-   * @param effectorRepo the effector repository
-   * @param mechanismService the mechanism service for reference resolution
-   * @param archetypeService the archetype service for data archetype resolution
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
-   * @param dataProtectionService the data protection service
-   */
   public EffectorService(
       EffectorRepository effectorRepo,
       MechanismService mechanismService,
-      ArchetypeService archetypeService,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+      ArchetypeService archetypeService) {
     this.effectorRepo = effectorRepo;
     this.mechanismService = mechanismService;
     this.archetypeService = archetypeService;
@@ -66,7 +48,7 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
   }
 
   @Override
-  protected AbstractAscriptionRepository<EffectorEntity> getRepository() {
+  public AbstractAscriptionRepository<EffectorEntity> getRepository() {
     return effectorRepo;
   }
 
@@ -95,16 +77,6 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
         .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.EFFECTOR, id));
   }
 
-  /**
-   * Returns all effectors belonging to a mechanism definition.
-   *
-   * @param mechanismDefinitionId the mechanism definition UUID
-   * @return the matching effector entities
-   */
-  public List<EffectorEntity> findAllByMechanismDefinitionId(UUID mechanismDefinitionId) {
-    return effectorRepo.findAllByMechanismDefinitionId(mechanismDefinitionId);
-  }
-
   // ---- Lifecycle descriptors ----
 
   @Override
@@ -131,8 +103,6 @@ public class EffectorService extends AbstractAscriptionService<EffectorEntity> {
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     var e = (EffectorEntity) entity;
-    return Map.of(
-        "mechanism", e.getMechanism().getDefinition().getId(),
-        "archetype", e.getOutputArchetype().getDefinition().getId());
+    return Map.of("mechanism", e.getMechanism().getDefinition().getId());
   }
 }

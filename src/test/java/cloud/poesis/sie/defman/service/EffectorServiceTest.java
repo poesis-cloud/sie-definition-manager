@@ -18,7 +18,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,15 +51,7 @@ class EffectorServiceTest {
 
   @BeforeEach
   void setUp() {
-    service =
-        new EffectorService(
-            effectorRepo,
-            mechanismService,
-            archetypeService,
-            mock(DefinitionService.class),
-            mock(AscriptionStateMachineService.class),
-            mock(AscriptionStatementValidationService.class),
-            mock(EntityManager.class));
+    service = new EffectorService(effectorRepo, mechanismService, archetypeService);
   }
 
   // ========================================================================
@@ -71,7 +62,7 @@ class EffectorServiceTest {
   class IdentityBound {
 
     @Test
-    void mechanismAndArchetypeExtracted() {
+    void mechanismExtracted() {
       UUID mechDefId = UUID.randomUUID();
       UUID archDefId = UUID.randomUUID();
 
@@ -79,8 +70,8 @@ class EffectorServiceTest {
 
       Map<String, Object> values = service.getIdentityBoundValues(entity);
 
+      assertEquals(1, values.size());
       assertEquals(mechDefId, values.get("mechanism"));
-      assertEquals(archDefId, values.get("archetype"));
     }
   }
 
@@ -217,34 +208,6 @@ class EffectorServiceTest {
     @Test
     void subjectType_isEffector() {
       assertEquals(DefinitionSubjectType.EFFECTOR, service.getSubjectType());
-    }
-  }
-
-  // ========================================================================
-  // findAllByMechanismDefinitionId
-  // ========================================================================
-
-  @Nested
-  class FindAllByMechanismDefinitionId {
-
-    @Test
-    void delegatesToRepo() {
-      UUID mechDefId = UUID.randomUUID();
-      EffectorEntity e1 = mock(EffectorEntity.class);
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of(e1));
-
-      var result = service.findAllByMechanismDefinitionId(mechDefId);
-      assertEquals(1, result.size());
-      assertSame(e1, result.get(0));
-    }
-
-    @Test
-    void noResults_returnsEmpty() {
-      UUID mechDefId = UUID.randomUUID();
-      when(effectorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-
-      var result = service.findAllByMechanismDefinitionId(mechDefId);
-      assertTrue(result.isEmpty());
     }
   }
 

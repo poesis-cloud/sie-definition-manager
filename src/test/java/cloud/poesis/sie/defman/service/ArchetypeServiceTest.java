@@ -26,7 +26,6 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -62,14 +61,7 @@ class ArchetypeServiceTest {
   void setUp() {
     service =
         new ArchetypeService(
-            archetypeRepo,
-            indexProvisioning,
-            annotationValidation,
-            schemaCompositionValidation,
-            mock(DefinitionService.class),
-            mock(AscriptionStateMachineService.class),
-            mock(AscriptionStatementValidationService.class),
-            mock(EntityManager.class));
+            archetypeRepo, indexProvisioning, annotationValidation, schemaCompositionValidation);
     // Default: findInEffectByTitle returns empty for any title not explicitly
     // mocked.
     when(archetypeRepo.findInEffectByTitle(anyString())).thenReturn(Optional.empty());

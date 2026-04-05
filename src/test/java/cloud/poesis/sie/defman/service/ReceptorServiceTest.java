@@ -18,7 +18,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,15 +49,7 @@ class ReceptorServiceTest {
 
   @BeforeEach
   void setUp() {
-    service =
-        new ReceptorService(
-            receptorRepo,
-            mechanismService,
-            archetypeService,
-            mock(DefinitionService.class),
-            mock(AscriptionStateMachineService.class),
-            mock(AscriptionStatementValidationService.class),
-            mock(EntityManager.class));
+    service = new ReceptorService(receptorRepo, mechanismService, archetypeService);
   }
 
   // ========================================================================
@@ -69,7 +60,7 @@ class ReceptorServiceTest {
   class IdentityBound {
 
     @Test
-    void mechanismAndArchetypeExtracted() {
+    void mechanismExtracted() {
       UUID mechDefId = UUID.randomUUID();
       UUID archDefId = UUID.randomUUID();
 
@@ -77,8 +68,8 @@ class ReceptorServiceTest {
 
       Map<String, Object> values = service.getIdentityBoundValues(entity);
 
+      assertEquals(1, values.size());
       assertEquals(mechDefId, values.get("mechanism"));
-      assertEquals(archDefId, values.get("archetype"));
     }
   }
 
@@ -215,34 +206,6 @@ class ReceptorServiceTest {
     @Test
     void subjectType_isReceptor() {
       assertEquals(DefinitionSubjectType.RECEPTOR, service.getSubjectType());
-    }
-  }
-
-  // ========================================================================
-  // findAllByMechanismDefinitionId
-  // ========================================================================
-
-  @Nested
-  class FindAllByMechanismDefinitionId {
-
-    @Test
-    void delegatesToRepo() {
-      UUID mechDefId = UUID.randomUUID();
-      ReceptorEntity r1 = mock(ReceptorEntity.class);
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of(r1));
-
-      var result = service.findAllByMechanismDefinitionId(mechDefId);
-      assertEquals(1, result.size());
-      assertSame(r1, result.get(0));
-    }
-
-    @Test
-    void noResults_returnsEmpty() {
-      UUID mechDefId = UUID.randomUUID();
-      when(receptorRepo.findAllByMechanismDefinitionId(mechDefId)).thenReturn(List.of());
-
-      var result = service.findAllByMechanismDefinitionId(mechDefId);
-      assertTrue(result.isEmpty());
     }
   }
 

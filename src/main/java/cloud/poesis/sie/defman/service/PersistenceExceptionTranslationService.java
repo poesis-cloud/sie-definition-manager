@@ -13,8 +13,8 @@ import org.springframework.dao.DataIntegrityViolationException;
  * Translates {@link DataIntegrityViolationException} into domain-specific exceptions by mapping
  * known PostgreSQL constraint names to {@link AscriptionConsistencyRuleType}.
  *
- * <p>Extracted from {@link AbstractAscriptionService} to eliminate duplication between the create
- * template and the lifecycle orchestrator.
+ * <p>Extracted from {@link AscriptionService} to eliminate duplication between the create template
+ * and the lifecycle orchestrator.
  *
  * @author Clément Cazaud
  * @since 1.0.0

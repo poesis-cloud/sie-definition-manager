@@ -12,7 +12,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -29,27 +28,11 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class StructureService extends AbstractAscriptionService<StructureEntity> {
+public class StructureService implements SubtypeHandler<StructureEntity> {
 
   private final StructureRepository structureRepo;
 
-  /**
-   * Constructs the Structure service with its required dependencies.
-   *
-   * @param structureRepo the structure repository
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
-   * @param dataProtectionService the data protection service
-   */
-  public StructureService(
-      StructureRepository structureRepo,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+  public StructureService(StructureRepository structureRepo) {
     this.structureRepo = structureRepo;
   }
 
@@ -59,7 +42,7 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
   }
 
   @Override
-  protected AbstractAscriptionRepository<StructureEntity> getRepository() {
+  public AbstractAscriptionRepository<StructureEntity> getRepository() {
     return structureRepo;
   }
 
@@ -110,7 +93,8 @@ public class StructureService extends AbstractAscriptionService<StructureEntity>
     // Statement is immutable and was validated at creation — purpose is guaranteed
     // non-null/non-blank.
     String purpose = entity.getStatement().get("purpose").asText();
-    validatePropertyUniquenessAcrossDefinitions(
+    AscriptionService.validatePropertyUniquenessAcrossDefinitions(
+        getSubjectType(),
         "purpose",
         purpose,
         entity.getDefinition().getId(),

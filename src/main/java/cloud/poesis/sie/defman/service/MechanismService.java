@@ -13,7 +13,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +32,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class MechanismService extends AbstractAscriptionService<MechanismEntity> {
+public class MechanismService implements SubtypeHandler<MechanismEntity> {
 
   private static final Logger LOG = LoggerFactory.getLogger(MechanismService.class);
 
@@ -42,28 +41,11 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   private final MechanismRuleValidationService ruleValidation;
   private final MechanismPortDerivationService portDerivation;
 
-  /**
-   * Constructs the Mechanism service with its required dependencies.
-   *
-   * @param mechanismRepo the mechanism repository
-   * @param structureService the structure service for reference resolution
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionStatementValidationService the statement validation service
-   * @param ruleValidation the Starlark rule validation service
-   * @param portDerivation the port auto-derivation service
-   * @param entityManager the JPA entity manager
-   */
   public MechanismService(
       MechanismRepository mechanismRepo,
       StructureService structureService,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
       MechanismRuleValidationService ruleValidation,
-      MechanismPortDerivationService portDerivation,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+      MechanismPortDerivationService portDerivation) {
     this.mechanismRepo = mechanismRepo;
     this.structureService = structureService;
     this.ruleValidation = ruleValidation;
@@ -76,7 +58,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   }
 
   @Override
-  protected AbstractAscriptionRepository<MechanismEntity> getRepository() {
+  public AbstractAscriptionRepository<MechanismEntity> getRepository() {
     return mechanismRepo;
   }
 
@@ -153,7 +135,8 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
     // non-null/non-blank.
     String function = m.getStatement().get("function").asText();
     UUID structureDefId = m.getStructure().getDefinition().getId();
-    validatePropertyUniquenessAcrossDefinitions(
+    AscriptionService.validatePropertyUniquenessAcrossDefinitions(
+        getSubjectType(),
         "function",
         function,
         m.getDefinition().getId(),
@@ -167,7 +150,7 @@ public class MechanismService extends AbstractAscriptionService<MechanismEntity>
   // ======================================================================
 
   @Override
-  protected void afterCreate(AscriptionEntity saved) {
+  public void afterCreate(AscriptionEntity saved) {
     if (!(saved instanceof MechanismEntity mechanism)) {
       throw new IllegalArgumentException(
           "Expected MechanismEntity, got " + saved.getClass().getSimpleName());

@@ -953,8 +953,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     | `ascription` | `qualifier_id` | `statement.qualifier` | `definition(id)` [ARCHETYPE] | FK + reverse lookup — Directive, Norm |
     | `directive` | `purpose` | `statement.purpose` | — (text, no FK) | **Dematerialized** — JSONB expression index only |
     | `ascription` | `mechanism_id` | `statement.mechanism` | `definition(id)` [MECHANISM] | FK + reverse lookup — Effector, Receptor |
-    | `ascription` | `effector_id` | `statement.effector` | `definition(id)` [EFFECTOR] | FK — Interaction |
-    | `ascription` | `receptor_id` | `statement.receptor` | `definition(id)` [RECEPTOR] | FK — Interaction |
+    | `ascription` | `effector_id` | `statement.effector` | `effector(id)` | FK — Interaction (ascription-to-ascription) |
+    | `ascription` | `receptor_id` | `statement.receptor` | `receptor(id)` | FK — Interaction (ascription-to-ascription) |
     | `ascription` | `output_archetype_id` | `statement.archetype` | `definition(id)` [ARCHETYPE] | FK — Effector (data archetype) |
     | `ascription` | `input_archetype_id` | `statement.archetype` | `definition(id)` [ARCHETYPE] | FK — Receptor (data archetype) |
     | `ascription_status_transition` | `id` | (PK) | — | PK |

@@ -3,6 +3,7 @@ package cloud.poesis.sie.defman.service;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -61,16 +62,7 @@ class MechanismServiceTest {
 
   @BeforeEach
   void setUp() {
-    service =
-        new MechanismService(
-            mechanismRepo,
-            structureService,
-            definitionService,
-            stateMachine,
-            mock(AscriptionStatementValidationService.class),
-            ruleValidation,
-            portDerivation,
-            entityManager);
+    service = new MechanismService(mechanismRepo, structureService, ruleValidation, portDerivation);
   }
 
   // ========================================================================
@@ -397,12 +389,6 @@ class MechanismServiceTest {
 
   @Test
   void getRepository_returnsMechanismRepo() {
-    // Exercise getRepository() indirectly via findAll (Page)
-    org.springframework.data.domain.Pageable pageable =
-        org.springframework.data.domain.PageRequest.of(0, 10);
-    when(mechanismRepo.findAll(pageable)).thenReturn(org.springframework.data.domain.Page.empty());
-    var result = service.findAll(pageable);
-    assertTrue(result.isEmpty());
-    verify(mechanismRepo).findAll(pageable);
+    assertSame(mechanismRepo, service.getRepository());
   }
 }

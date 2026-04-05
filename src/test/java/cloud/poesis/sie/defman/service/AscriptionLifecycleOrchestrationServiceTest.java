@@ -49,9 +49,9 @@ class AscriptionLifecycleOrchestrationTest {
 
   @Mock private EntityManager entityManager;
 
-  @Mock private AbstractAscriptionService<? extends AscriptionEntity> structureSubtype;
+  @Mock private SubtypeHandler<? extends AscriptionEntity> structureSubtype;
 
-  @Mock private AbstractAscriptionService<? extends AscriptionEntity> mechanismSubtype;
+  @Mock private SubtypeHandler<? extends AscriptionEntity> mechanismSubtype;
 
   private AscriptionStatusTransitionService transitionService;
   private AscriptionStateMachineService stateMachine;
@@ -630,15 +630,14 @@ class AscriptionLifecycleOrchestrationTest {
   @Nested
   class DependentCascadeScope {
 
-    private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
+    private SubtypeHandler<? extends AscriptionEntity> effectorSubtype;
     private AscriptionLifecycleOrchestrationService orchestratorWithDependent;
 
     @BeforeEach
-    @SuppressWarnings("unchecked") // Mockito mock() erases AbstractAscriptionService generic;
+    @SuppressWarnings("unchecked") // Mockito mock() erases SubtypeHandler generic;
     // unavoidable — Java generics are not reified at runtime
     void setUpDependentCascade() {
-      AbstractAscriptionService<? extends AscriptionEntity> mechSvc =
-          mock(AbstractAscriptionService.class);
+      SubtypeHandler<? extends AscriptionEntity> mechSvc = mock(SubtypeHandler.class);
       when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
       when(mechSvc.getCascadeTargetRoles())
           .thenReturn(
@@ -646,7 +645,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.STRUCTURE,
                   AscriptionStatusTransitionCascadeType.GOVERNING));
 
-      effectorSubtype = mock(AbstractAscriptionService.class);
+      effectorSubtype = mock(SubtypeHandler.class);
       when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
       when(effectorSubtype.getCascadeTargetRoles())
           .thenReturn(
@@ -654,8 +653,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.MECHANISM,
                   AscriptionStatusTransitionCascadeType.DEPENDENT));
 
-      AbstractAscriptionService<? extends AscriptionEntity> structSvc =
-          mock(AbstractAscriptionService.class);
+      SubtypeHandler<? extends AscriptionEntity> structSvc = mock(SubtypeHandler.class);
       when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
@@ -774,19 +772,18 @@ class AscriptionLifecycleOrchestrationTest {
   @Nested
   class ConstitutiveCascade {
 
-    private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
+    private SubtypeHandler<? extends AscriptionEntity> effectorSubtype;
     private AscriptionLifecycleOrchestrationService orchestratorWithConstitutive;
 
     @BeforeEach
-    @SuppressWarnings("unchecked") // Mockito mock() erases AbstractAscriptionService generic;
+    @SuppressWarnings("unchecked") // Mockito mock() erases SubtypeHandler generic;
     // unavoidable — Java generics are not reified at runtime
     void setUpConstitutiveCascade() {
-      AbstractAscriptionService<? extends AscriptionEntity> mechSvc =
-          mock(AbstractAscriptionService.class);
+      SubtypeHandler<? extends AscriptionEntity> mechSvc = mock(SubtypeHandler.class);
       when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
       when(mechSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
-      effectorSubtype = mock(AbstractAscriptionService.class);
+      effectorSubtype = mock(SubtypeHandler.class);
       when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
       when(effectorSubtype.getCascadeTargetRoles())
           .thenReturn(
@@ -794,8 +791,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.MECHANISM,
                   AscriptionStatusTransitionCascadeType.CONSTITUTIVE));
 
-      AbstractAscriptionService<? extends AscriptionEntity> structSvc =
-          mock(AbstractAscriptionService.class);
+      SubtypeHandler<? extends AscriptionEntity> structSvc = mock(SubtypeHandler.class);
       when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
@@ -970,14 +966,13 @@ class AscriptionLifecycleOrchestrationTest {
   @Nested
   class DependentCascadeRefereePrecondition {
 
-    private AbstractAscriptionService<? extends AscriptionEntity> effectorSubtype;
+    private SubtypeHandler<? extends AscriptionEntity> effectorSubtype;
     private AscriptionLifecycleOrchestrationService orchestratorWithDependent;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
-      AbstractAscriptionService<? extends AscriptionEntity> mechSvc =
-          mock(AbstractAscriptionService.class);
+      SubtypeHandler<? extends AscriptionEntity> mechSvc = mock(SubtypeHandler.class);
       when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
       when(mechSvc.getCascadeTargetRoles())
           .thenReturn(
@@ -985,7 +980,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.STRUCTURE,
                   AscriptionStatusTransitionCascadeType.GOVERNING));
 
-      effectorSubtype = mock(AbstractAscriptionService.class);
+      effectorSubtype = mock(SubtypeHandler.class);
       when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
       when(effectorSubtype.getCascadeTargetRoles())
           .thenReturn(
@@ -993,8 +988,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.MECHANISM,
                   AscriptionStatusTransitionCascadeType.DEPENDENT));
 
-      AbstractAscriptionService<? extends AscriptionEntity> structSvc =
-          mock(AbstractAscriptionService.class);
+      SubtypeHandler<? extends AscriptionEntity> structSvc = mock(SubtypeHandler.class);
       when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 

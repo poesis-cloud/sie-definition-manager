@@ -2,6 +2,7 @@ package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -19,7 +20,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,15 +51,7 @@ class InteractionServiceTest {
 
   @BeforeEach
   void setUp() {
-    service =
-        new InteractionService(
-            interactionRepo,
-            effectorService,
-            receptorService,
-            mock(DefinitionService.class),
-            mock(AscriptionStateMachineService.class),
-            mock(AscriptionStatementValidationService.class),
-            mock(EntityManager.class));
+    service = new InteractionService(interactionRepo, effectorService, receptorService);
   }
 
   // ========================================================================
@@ -250,13 +242,7 @@ class InteractionServiceTest {
 
     @Test
     void returnsInteractionRepo() {
-      // Exercise getRepository indirectly via findAll (delegation to repo)
-      when(interactionRepo.findAll(org.springframework.data.domain.Pageable.unpaged()))
-          .thenReturn(org.springframework.data.domain.Page.empty());
-
-      var result = service.findAll(org.springframework.data.domain.Pageable.unpaged());
-
-      assertNotNull(result);
+      assertSame(interactionRepo, service.getRepository());
     }
   }
 

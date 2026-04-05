@@ -44,20 +44,19 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
   // ======================================================================
 
   private record CascadeTargetEntry(
-      AbstractAscriptionService<?> targetService,
-      AscriptionStatusTransitionCascadeType cascadeType) {}
+      SubtypeHandler<?> targetService, AscriptionStatusTransitionCascadeType cascadeType) {}
 
   private final AscriptionStateMachineService stateMachine;
   private final EntityManager entityManager;
-  private final List<AbstractAscriptionService<?>> subtypeServices;
+  private final List<SubtypeHandler<?>> subtypeServices;
 
-  private Map<DefinitionSubjectType, AbstractAscriptionService<?>> subtypeByType;
+  private Map<DefinitionSubjectType, SubtypeHandler<?>> subtypeByType;
   private Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeTargetsBySourceType;
 
   public AscriptionLifecycleOrchestrationService(
       AscriptionStateMachineService stateMachine,
       EntityManager entityManager,
-      List<AbstractAscriptionService<?>> subtypeServices) {
+      List<SubtypeHandler<?>> subtypeServices) {
     this.stateMachine = stateMachine;
     this.entityManager = entityManager;
     this.subtypeServices = List.copyOf(subtypeServices);
@@ -66,16 +65,16 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
   /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
   @Override
   public void afterSingletonsInstantiated() {
-    Map<DefinitionSubjectType, AbstractAscriptionService<?>> byType =
+    Map<DefinitionSubjectType, SubtypeHandler<?>> byType =
         new EnumMap<>(DefinitionSubjectType.class);
-    for (AbstractAscriptionService<?> svc : subtypeServices) {
+    for (SubtypeHandler<?> svc : subtypeServices) {
       byType.put(svc.getSubjectType(), svc);
     }
     this.subtypeByType = Map.copyOf(byType);
 
     Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeMap =
         new EnumMap<>(DefinitionSubjectType.class);
-    for (AbstractAscriptionService<?> svc : subtypeServices) {
+    for (SubtypeHandler<?> svc : subtypeServices) {
       for (var entry : svc.getCascadeTargetRoles().entrySet()) {
         cascadeMap
             .computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
@@ -125,7 +124,7 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
 
     // 3b. Subtype-specific activation hook
     if (targetStatusType == AscriptionStatusType.ACTIVE) {
-      AbstractAscriptionService<?> svc = subtypeByType.get(type);
+      SubtypeHandler<?> svc = subtypeByType.get(type);
       if (svc != null) {
         svc.onActivation(entity);
       }
@@ -136,7 +135,7 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
             .contains(currentStatus)
         && !EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
             .contains(targetStatusType)) {
-      AbstractAscriptionService<?> svc = subtypeByType.get(type);
+      SubtypeHandler<?> svc = subtypeByType.get(type);
       if (svc != null) {
         svc.onDeactivation(entity);
       }
@@ -173,7 +172,7 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
   // ======================================================================
 
   private void validateActivationUniqueness(AscriptionEntity entity, DefinitionSubjectType type) {
-    AbstractAscriptionService<?> subtypeService = subtypeByType.get(type);
+    SubtypeHandler<?> subtypeService = subtypeByType.get(type);
     if (subtypeService != null) {
       subtypeService.validateActivationUniqueness(entity);
     }
@@ -189,7 +188,7 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
       AscriptionStatusType from,
       AscriptionStatusType to) {
 
-    AbstractAscriptionService<?> subtypeService = subtypeByType.get(type);
+    SubtypeHandler<?> subtypeService = subtypeByType.get(type);
     if (subtypeService == null) {
       return;
     }
@@ -316,7 +315,7 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
 
   private void handleApproval(DefinitionSubjectType type, AscriptionEntity approved) {
     UUID definitionId = approved.getDefinition().getId();
-    AbstractAscriptionService<?> svc = subtypeByType.get(type);
+    SubtypeHandler<?> svc = subtypeByType.get(type);
     if (svc == null) return;
 
     List<? extends AscriptionEntity> allAscriptions = svc.findAllByDefinitionId(definitionId);
@@ -344,7 +343,7 @@ public class AscriptionLifecycleOrchestrationService implements SmartInitializin
 
   private void handleActivation(DefinitionSubjectType type, AscriptionEntity activating) {
     UUID definitionId = activating.getDefinition().getId();
-    AbstractAscriptionService<?> svc = subtypeByType.get(type);
+    SubtypeHandler<?> svc = subtypeByType.get(type);
     if (svc == null) return;
 
     List<? extends AscriptionEntity> activeAscriptions =

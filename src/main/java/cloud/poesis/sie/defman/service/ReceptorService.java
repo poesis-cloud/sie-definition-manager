@@ -12,7 +12,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,33 +27,16 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
+public class ReceptorService implements SubtypeHandler<ReceptorEntity> {
 
   private final ReceptorRepository receptorRepo;
   private final MechanismService mechanismService;
   private final ArchetypeService archetypeService;
 
-  /**
-   * Constructs the Receptor service with its required dependencies.
-   *
-   * @param receptorRepo the receptor repository
-   * @param mechanismService the mechanism service for reference resolution
-   * @param archetypeService the archetype service for data archetype resolution
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
-   * @param dataProtectionService the data protection service
-   */
   public ReceptorService(
       ReceptorRepository receptorRepo,
       MechanismService mechanismService,
-      ArchetypeService archetypeService,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+      ArchetypeService archetypeService) {
     this.receptorRepo = receptorRepo;
     this.mechanismService = mechanismService;
     this.archetypeService = archetypeService;
@@ -66,7 +48,7 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
   }
 
   @Override
-  protected AbstractAscriptionRepository<ReceptorEntity> getRepository() {
+  public AbstractAscriptionRepository<ReceptorEntity> getRepository() {
     return receptorRepo;
   }
 
@@ -95,16 +77,6 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
         .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.RECEPTOR, id));
   }
 
-  /**
-   * Returns all receptors belonging to a mechanism definition.
-   *
-   * @param mechanismDefinitionId the mechanism definition UUID
-   * @return the matching receptor entities
-   */
-  public List<ReceptorEntity> findAllByMechanismDefinitionId(UUID mechanismDefinitionId) {
-    return receptorRepo.findAllByMechanismDefinitionId(mechanismDefinitionId);
-  }
-
   // ---- Lifecycle descriptors ----
 
   @Override
@@ -131,8 +103,6 @@ public class ReceptorService extends AbstractAscriptionService<ReceptorEntity> {
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     var r = (ReceptorEntity) entity;
-    return Map.of(
-        "mechanism", r.getMechanism().getDefinition().getId(),
-        "archetype", r.getInputArchetype().getDefinition().getId());
+    return Map.of("mechanism", r.getMechanism().getDefinition().getId());
   }
 }

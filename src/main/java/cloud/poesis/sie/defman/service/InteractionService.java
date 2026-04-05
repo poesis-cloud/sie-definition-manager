@@ -13,7 +13,6 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,33 +29,16 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class InteractionService extends AbstractAscriptionService<InteractionEntity> {
+public class InteractionService implements SubtypeHandler<InteractionEntity> {
 
   private final InteractionRepository interactionRepo;
   private final EffectorService effectorService;
   private final ReceptorService receptorService;
 
-  /**
-   * Constructs the Interaction service with its required dependencies.
-   *
-   * @param interactionRepo the interaction repository
-   * @param effectorService the effector service for reference resolution
-   * @param receptorService the receptor service for reference resolution
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
-   * @param dataProtectionService the data protection service
-   */
   public InteractionService(
       InteractionRepository interactionRepo,
       EffectorService effectorService,
-      ReceptorService receptorService,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+      ReceptorService receptorService) {
     this.interactionRepo = interactionRepo;
     this.effectorService = effectorService;
     this.receptorService = receptorService;
@@ -68,7 +50,7 @@ public class InteractionService extends AbstractAscriptionService<InteractionEnt
   }
 
   @Override
-  protected AbstractAscriptionRepository<InteractionEntity> getRepository() {
+  public AbstractAscriptionRepository<InteractionEntity> getRepository() {
     return interactionRepo;
   }
 

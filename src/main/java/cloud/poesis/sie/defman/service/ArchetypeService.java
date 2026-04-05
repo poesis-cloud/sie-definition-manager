@@ -13,7 +13,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -37,7 +36,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity> {
+public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
 
   public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {}
 
@@ -46,28 +45,11 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   private final ArchetypeSchemaAnnotationValidationService annotationValidation;
   private final ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
 
-  /**
-   * Constructs the Archetype service with its required dependencies.
-   *
-   * @param archetypeRepo the archetype repository
-   * @param indexProvisioning the index provisioning service
-   * @param annotationValidation the annotation and $ref URI policy validation service
-   * @param schemaCompositionValidation the schema composition validation service
-   * @param definitionService the definition service
-   * @param stateMachine the ascription state machine
-   * @param ascriptionService the ascription service for cross-subtype queries
-   * @param entityManager the JPA entity manager
-   */
   public ArchetypeService(
       ArchetypeRepository archetypeRepo,
       ArchetypeSchemaPropertyIndexationService indexProvisioning,
       ArchetypeSchemaAnnotationValidationService annotationValidation,
-      ArchetypeSchemaCompositionValidationService schemaCompositionValidation,
-      DefinitionService definitionService,
-      AscriptionStateMachineService stateMachine,
-      AscriptionStatementValidationService ascriptionStatementValidationService,
-      EntityManager entityManager) {
-    super(definitionService, stateMachine, ascriptionStatementValidationService, entityManager);
+      ArchetypeSchemaCompositionValidationService schemaCompositionValidation) {
     this.archetypeRepo = archetypeRepo;
     this.indexProvisioning = indexProvisioning;
     this.annotationValidation = annotationValidation;
@@ -80,7 +62,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
   }
 
   @Override
-  protected AbstractAscriptionRepository<ArchetypeEntity> getRepository() {
+  public AbstractAscriptionRepository<ArchetypeEntity> getRepository() {
     return archetypeRepo;
   }
 
@@ -273,7 +255,8 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     // Statement is immutable and was validated at creation — title is guaranteed
     // non-null/non-blank.
     String title = entity.getStatement().get("title").asText();
-    validatePropertyUniquenessAcrossDefinitions(
+    AscriptionService.validatePropertyUniquenessAcrossDefinitions(
+        getSubjectType(),
         "title",
         title,
         entity.getDefinition().getId(),

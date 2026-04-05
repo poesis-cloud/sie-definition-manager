@@ -1,7 +1,8 @@
 # Service Package — Reader's Guide
 
-> **Package**: `cloud.poesis.sie.defman.service` > **27 classes** managing the GSM ascription lifecycle, statement validation,
-> schema governance, and cross-entity orchestration for the 8 GSM subject types.
+> **Package**: `cloud.poesis.sie.defman.service` > **27 files** (1 interface + 25 `@Service` beans + 1 static utility)
+> managing the GSM ascription lifecycle, statement validation, schema
+> governance, and cross-entity orchestration for the 8 GSM subject types.
 
 ---
 
@@ -11,54 +12,53 @@ The service package is organized in three dependency layers. Every
 dependency arrow points **downward**; no lower layer depends on a higher one.
 
 ```
-Layer 3 — Subject type services        8 GSM subject services + subsidiaries
-    │  extend / delegate to
-Layer 2 — Shared ascription services    lifecycle, validation, enforcement
+Layer 3 — Subject type handlers                8 handler services + subsidiaries
+    │  implement SubtypeHandler<T> / delegate to
+Layer 2 — Facade & shared ascription services  create template, lifecycle, validation
     │  persist / query via
-Layer 1 — Supporting entity services    leaf entity services (no upward deps)
+Layer 1 — Supporting entity services           leaf entity services (no upward deps)
 ```
 
 `PersistenceExceptionTranslationService` is a static utility class (not a
 Spring bean) outside all layers — maps PostgreSQL constraint names to domain
 exception types.
 
-### Layer 3: Subject type services
+### Layer 3: Subject type handler services
 
-The 8 GSM subject type services, each extending `AbstractAscriptionService`
-(Layer 2):
+The 8 GSM subject type services, each implementing `SubtypeHandler<T>`:
 
 ```
 archetype/
-├── ArchetypeService                              primary lifecycle
+├── ArchetypeService                              primary handler
 ├── ArchetypeSchemaAnnotationValidationService     subsidiary
 ├── ArchetypeSchemaCompositionValidationService    subsidiary
 └── ArchetypeSchemaPropertyIndexationService       subsidiary
 
 mechanism/
-├── MechanismService                               primary lifecycle
+├── MechanismService                               primary handler
 ├── MechanismRuleParsingService                    subsidiary (shared)
 ├── MechanismRuleValidationService                 subsidiary
 └── MechanismPortDerivationService                 subsidiary
 
 norm/
-├── NormService                                    primary lifecycle
+├── NormService                                    primary handler
 ├── NormApplicabilityValidationService             subsidiary
 └── NormAssertionValidationService                 subsidiary
 
 structure/
-└── StructureService                               primary lifecycle
+└── StructureService                               primary handler
 
 directive/
-└── DirectiveService                               primary lifecycle
+└── DirectiveService                               primary handler
 
 effector/
-└── EffectorService                                primary lifecycle
+└── EffectorService                                primary handler
 
 receptor/
-└── ReceptorService                                primary lifecycle
+└── ReceptorService                                primary handler
 
 interaction/
-└── InteractionService                             primary lifecycle
+└── InteractionService                             primary handler
 ```
 
 **Subsidiary pattern** — every `{Entity}{*}Service` is injected into and
@@ -75,38 +75,55 @@ are precisely those that integrate third-party technology stacks:
 | **Mechanism** | Starlark                         | Starlark AST parsing (shared), rule structural validation, port auto-derivation from AST  |
 
 The remaining 5 subject type services (Structure, Directive, Effector,
-Receptor, Interaction) have no
-third-party technology integration and therefore no subsidiaries — their
-domain logic fits entirely within the primary lifecycle service.
+Receptor, Interaction) have no third-party technology integration and
+therefore no subsidiaries — their domain logic fits entirely within the
+primary handler service.
 
-### Layer 2: Shared ascription services
+### Layer 2: Facade & shared ascription services
 
-Shared domain services that implement the ascription lifecycle — governance
-grammar enforcement, state machine transitions, statement validation. They
+`AscriptionService` is the **facade** that owns the 10-step create template,
+generic CRUD dispatch, and cross-subtype lookups. It injects all 8 handlers
+via `List<SubtypeHandler<?>>` and builds a type-keyed map at startup
+(`SmartInitializingSingleton`).
+
+`AscriptionLifecycleOrchestrationService` coordinates lifecycle transitions
+(cascades, referee preconditions, activation handoff) across all 8 subtypes,
+also via `List<SubtypeHandler<?>>`.
+
+The remaining shared services implement the ascription lifecycle — state
+machine transitions, statement validation, annotation enforcement. They
 depend downward on Layer 1 entity services and on each other within Layer 2.
-No Layer 2 service depends on any Layer 3 subject type service.
 
 ```
-AbstractAscriptionService                          base class for all 8 subject services
+SubtypeHandler<T>                                  interface for all 8 handler services
+│ methods: getSubjectType, getRepository, buildEntity,
+│          getIdentityBoundValues, getRefereeReferences,
+│          getCascadeTargetRoles, findCascadeTargetsFrom
+│ defaults: save, findAllByDefinitionId, afterCreate,
+│           onActivation, onDeactivation,
+│           validateActivationUniqueness, statementValidationRule
+
+AscriptionService (facade)                         10-step create, CRUD, handler dispatch
 │   consumes: DefinitionService (L1)
 │             AscriptionStateMachineService (L2)
 │             AscriptionStatementValidationService (L2)
-│
-AscriptionLifecycleOrchestrationService            coordinates all 8 subtypes
+│             List<SubtypeHandler<?>> (all 8 handlers)
+
+AscriptionLifecycleOrchestrationService            coordinates lifecycle across all 8
 │   consumes: AscriptionStateMachineService (L2)
-│             List<AbstractAscriptionService<?>> (L2 abstract type)
-│
+│             List<SubtypeHandler<?>> (all 8 handlers)
+
 AscriptionStateMachineService                      pure state machine
 │   consumes: AscriptionStatusTransitionService (L1)
-│
+
 AscriptionStatementValidationService               JSON Schema + annotation validation
 │   consumes: ArchetypeSchemaService (L2)
 │             AscriptionArchetypeSchemaAnnotationEnforcementService (L2)
-│
-AscriptionArchetypeSchemaAnnotationEnforcementService   $gsm:* enforcement on write
-│   consumes: AscriptionService (L1)
+
+AscriptionArchetypeSchemaAnnotationEnforcementSvc   $gsm:* enforcement on write
+│   consumes: AscriptionService (@Lazy, facade)
 │             AscriptionStatementProtectionService (L2)
-│
+
 AscriptionStatementProtectionService               $gsm:dataProtection (hash/mask/suppress)
 ArchetypeSchemaService                             schema inspection + tenant resolution*
 ```
@@ -122,14 +139,11 @@ any Layer 2 or Layer 3 service.
 
 ```
 DefinitionService                  stable identity (DefinitionEntity)
-AscriptionService                  union cross-subtype lookups (AscriptionEntity)
 AscriptionStatusTransitionService  transition record persistence
 ```
 
 - **`DefinitionService`** — every GSM subject has a `DefinitionEntity`
-  (stable identity). Consumed by `AbstractAscriptionService` (L2).
-- **`AscriptionService`** — owns the union ascription table for cross-subtype
-  lookups. Consumed by `AscriptionArchetypeSchemaAnnotationEnforcementService` (L2).
+  (stable identity). Consumed by `AscriptionService` (L2 facade).
 - **`AscriptionStatusTransitionService`** — owns transition record
   persistence. Consumed by `AscriptionStateMachineService` (L2).
 
@@ -137,9 +151,9 @@ AscriptionStatusTransitionService  transition record persistence
 
 ## 2. Cross-entity dependency edges
 
-Entity services reference other entity services when GSM semantics require it
-(e.g. a Directive references a Structure, an Effector references a Mechanism).
-These edges reflect the GSM subject type graph:
+Handler services reference other handler services when GSM semantics require
+it (e.g. a Directive references a Structure, an Effector references a
+Mechanism). These edges reflect the GSM subject type graph:
 
 ```
 DirectiveService ──→ StructureService, ArchetypeService
@@ -161,19 +175,24 @@ MechanismRuleValidationService ──→ ArchetypeService
 NormApplicabilityValidationService ──→ ArchetypeService
 ```
 
-`@Lazy` annotations break circular injection chains where a Mechanism
-subsidiary must write-back Effector/Receptor ports that themselves reference
-MechanismService.
+### `@Lazy` annotations (3 total)
+
+| Service                                                 | `@Lazy` parameter   | Reason                                                      |
+| ------------------------------------------------------- | ------------------- | ----------------------------------------------------------- |
+| `MechanismPortDerivationService`                        | `EffectorService`   | Breaks Mechanism → PortDer → Effector → Mechanism cycle     |
+| `MechanismPortDerivationService`                        | `ReceptorService`   | Breaks Mechanism → PortDer → Receptor → Mechanism cycle     |
+| `AscriptionArchetypeSchemaAnnotationEnforcementService` | `AscriptionService` | Breaks Facade → StatementVal → AnnotationEnf → Facade cycle |
 
 ---
 
 ## 3. Service roles
 
-### 3.1 The 8 entity lifecycle services
+### 3.1 The 8 handler services
 
-Each extends `AbstractAscriptionService<T>` and implements the template
-methods for its GSM subject type: `buildEntity`, `getIdentityBoundValues`,
-`getRefereeReferences`, `getCascadeTargetRoles`, `findCascadeTargetsFrom`.
+Each implements `SubtypeHandler<T>` and provides the subtype-specific
+methods: `buildEntity`, `getIdentityBoundValues`, `getRefereeReferences`,
+`getCascadeTargetRoles`, `findCascadeTargetsFrom`, plus optional overrides
+for lifecycle hooks.
 
 | Service              | Subject type | Key responsibility                                       |
 | -------------------- | ------------ | -------------------------------------------------------- |
@@ -200,7 +219,7 @@ methods for its GSM subject type: `buildEntity`, `getIdentityBoundValues`,
 | -------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MechanismRuleParsingService`    | `MechanismRuleValidationService`, `MechanismPortDerivationService` | Shared Starlark AST parsing and chain-walking utilities: `parseStarlark`, `ChainLink`, `isSysEffectChain`/`isSysReceiveChain`, `unwrapEffectChain`/`unwrapReceiveChain` |
 | `MechanismRuleValidationService` | `MechanismService`                                                 | Structural validation of Starlark rule code: syntax, execution budget, trigger uniqueness, `sys.*` API conformance, dict-literal conformance                            |
-| `MechanismPortDerivationService` | `MechanismService`                                                 | Auto-derives Effector/Receptor entities from Starlark rule AST port signatures; resolves data/port archetypes; creates/reuses Definitions                               |
+| `MechanismPortDerivationService` | `MechanismService`                                                 | Auto-derives Effector/Receptor entities from Starlark rule AST port signatures; resolves data/port archetypes; creates fresh Definitions per port                       |
 
 ### 3.4 Norm subsidiary services
 
@@ -211,27 +230,23 @@ methods for its GSM subject type: `buildEntity`, `getIdentityBoundValues`,
 
 ### 3.5 Layer 1 — Supporting entity services
 
-Three leaf entity services (no upward dependencies) that follow the
-`{Entity}Service` pattern for their own entity type
-(see [Layer 1](#layer-1-supporting-entity-services)):
+| Service                             | Entity                             | Role                                                                       |
+| ----------------------------------- | ---------------------------------- | -------------------------------------------------------------------------- |
+| `DefinitionService`                 | `DefinitionEntity`                 | Stable identity. Consumed by `AscriptionService` (facade)                  |
+| `AscriptionStatusTransitionService` | `AscriptionStatusTransitionEntity` | Transition record persistence. Consumed by `AscriptionStateMachineService` |
 
-| Service                             | Entity                             | Role                                                                                                                                                                   |
-| ----------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DefinitionService`                 | `DefinitionEntity`                 | Stable identity. Every GSM subject has a Definition; this service manages creation and resolution. Consumed by all 8 subject services via `AbstractAscriptionService`  |
-| `AscriptionService`                 | `AscriptionEntity` (union)         | Cross-subtype lookups when the caller doesn't know the concrete entity type. Consumed by `AscriptionArchetypeSchemaAnnotationEnforcementService` for uniqueness checks |
-| `AscriptionStatusTransitionService` | `AscriptionStatusTransitionEntity` | Transition record persistence. Consumed by `AscriptionStateMachineService`                                                                                             |
+### 3.6 Layer 2 — Facade & shared ascription services
 
-### 3.6 Layer 2 — Shared ascription services
-
-| Service                                                 | Role                                                                                                                                                                                                             |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AbstractAscriptionService`                             | Base class for all 8 subject type services. Provides CRUD, create template method, lifecycle hooks (`onActivation`/`onDeactivation`), statement extraction, filtered queries, and property uniqueness validation |
-| `AscriptionLifecycleOrchestrationService`               | Coordinates lifecycle transitions across all 8 subtypes: referee validation, cascade dispatch, activation handoff, governance convergence                                                                        |
-| `AscriptionStateMachineService`                         | Pure state machine: transition validation, referee preconditions, cascade applicability rules. No subtype knowledge                                                                                              |
-| `AscriptionStatementValidationService`                  | Validates ascription statements against archetype JSON Schemas; delegates annotation enforcement                                                                                                                 |
-| `AscriptionArchetypeSchemaAnnotationEnforcementService` | Enforces `$gsm:*` vocabulary annotations at statement authoring time: identity-bound immutability, uniqueness constraints, data protection                                                                       |
-| `AscriptionStatementProtectionService`                  | Applies `$gsm:dataProtection` measures (hash, mask, suppression) at write-time and read-time                                                                                                                     |
-| `ArchetypeSchemaService`                                | Centralizes schema inspection: `hasAnnotation`, `extractTitleFromRef`, `isAllowedRef`, `isGsmBaseTitle`, and tenant archetype resolution. Read-only access to `ArchetypeRepository` (documented exception)       |
+| Service                                                 | Role                                                                                                                                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SubtypeHandler<T>`                                     | Interface contract for all 8 handler services: entity building, identity-bound values, referee references, cascade targets, lifecycle hooks, repository convenience defaults                            |
+| `AscriptionService`                                     | Facade: 10-step create template, handler dispatch via `SmartInitializingSingleton`, generic CRUD, cross-subtype lookups, property uniqueness, filter spec building                                      |
+| `AscriptionLifecycleOrchestrationService`               | Coordinates lifecycle transitions across all 8 subtypes: referee validation, cascade dispatch, activation handoff, governance convergence                                                               |
+| `AscriptionStateMachineService`                         | Pure state machine: transition validation, referee preconditions, cascade applicability rules. No subtype knowledge                                                                                     |
+| `AscriptionStatementValidationService`                  | Validates ascription statements against archetype JSON Schemas; delegates annotation enforcement                                                                                                        |
+| `AscriptionArchetypeSchemaAnnotationEnforcementService` | Enforces `$gsm:*` vocabulary annotations at statement authoring time: identity-bound immutability, uniqueness constraints, data protection                                                              |
+| `AscriptionStatementProtectionService`                  | Applies `$gsm:dataProtection` measures (hash, mask, suppression) at write-time and read-time                                                                                                            |
+| `ArchetypeSchemaService`                                | Centralizes schema inspection: `hasAnnotation`, `extractTitleFromRef`, `isAllowedRef`, `isGsmBaseTitle`, and tenant archetype resolution. Read-only `ArchetypeRepository` access (documented exception) |
 
 ---
 
@@ -242,10 +257,10 @@ repositories, `EntityManager`, `JdbcTemplate`, `CelCompiler`, `ObjectMapper`
 omitted for clarity).
 
 ```
-LEGEND:  ──▷ extends   ──→ injection   ···→ abstract/list   @L = @Lazy
+LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║ LAYER 3 — Subject Type Services (extend AbstractAscriptionService)         ║
+║ LAYER 3 — Subject Type Handlers (implement SubtypeHandler<T>)              ║
 ║                                                                            ║
 ║  ┌─ Archetype ──────────────────────────┐                                  ║
 ║  │ ArchetypeService ──→ ArchetypeSchemaAnnotationValidationService         ║
@@ -278,24 +293,26 @@ LEGEND:  ──▷ extends   ──→ injection   ···→ abstract/list   @L 
 ║  ReceptorService     ──→ MechanismService, ArchetypeService                ║
 ║  InteractionService  ──→ EffectorService, ReceptorService                  ║
 ║                                                                            ║
-║  all 8 ──▷ AbstractAscriptionService                                       ║
 ╚═══════════════╤════════════════════════════════════════════════════════════╝
-                │
+                │ all 8 implement SubtypeHandler<T>
 ╔═══════════════╧════════════════════════════════════════════════════════════╗
-║ LAYER 2 — Shared Ascription Services                                      ║
+║ LAYER 2 — Facade & Shared Ascription Services                             ║
 ║                                                                            ║
-║  AbstractAscriptionService (abstract base for all 8)                       ║
+║  AscriptionService (facade, SmartInitializingSingleton)                     ║
 ║       │──→ DefinitionService (L1)                                          ║
 ║       │──→ AscriptionStateMachineService                                   ║
-║       └──→ AscriptionStatementValidationService                            ║
-║                   │──→ ArchetypeSchemaService                              ║
-║                   └──→ AscriptionArchetypeSchemaAnnotationEnforcementSvc   ║
-║                              │──→ AscriptionService (L1)                   ║
-║                              └──→ AscriptionStatementProtectionService     ║
+║       │──→ AscriptionStatementValidationService                            ║
+║       └···→ List<SubtypeHandler<?>>  (all 8 handlers)                      ║
 ║                                                                            ║
-║  AscriptionLifecycleOrchestrationService                                   ║
+║  AscriptionLifecycleOrchestrationService (SmartInitializingSingleton)       ║
 ║       │──→ AscriptionStateMachineService                                   ║
-║       └···→ List<AbstractAscriptionService<?>>  (all 8)                    ║
+║       └···→ List<SubtypeHandler<?>>  (all 8 handlers)                      ║
+║                                                                            ║
+║  AscriptionStatementValidationService                                      ║
+║       │──→ ArchetypeSchemaService                                          ║
+║       └──→ AscriptionArchetypeSchemaAnnotationEnforcementSvc               ║
+║                   │──→ AscriptionService  @L (facade)                      ║
+║                   └──→ AscriptionStatementProtectionService                ║
 ║                                                                            ║
 ║  AscriptionStateMachineService                                             ║
 ║       └──→ AscriptionStatusTransitionService (L1)                          ║
@@ -308,9 +325,10 @@ LEGEND:  ──▷ extends   ──→ injection   ···→ abstract/list   @L 
 ║ LAYER 1 — Supporting Entity Services (leaf, no upward deps)               ║
 ║                                                                            ║
 ║  DefinitionService                  stable identity                        ║
-║  AscriptionService                  cross-subtype union lookups            ║
 ║  AscriptionStatusTransitionService  transition record persistence          ║
 ╚════════════════════════════════════════════════════════════════════════════╝
+
+PersistenceExceptionTranslationService  (static utility, not a Spring bean)
 
 * ArchetypeSchemaService holds ArchetypeRepository directly — documented
   exception to the repository–service exclusivity rule (avoids upward
@@ -321,20 +339,22 @@ LEGEND:  ──▷ extends   ──→ injection   ···→ abstract/list   @L 
 
 ## 5. Reading order for newcomers
 
-1. **`AbstractAscriptionService`** — understand the template method pattern
-   and lifecycle hooks that all 8 entity services share.
-2. **`StructureService`** — simplest entity service (no subsidiaries, no
+1. **`SubtypeHandler<T>`** — understand the interface contract (required
+   methods + default hooks) that all 8 handler services implement.
+2. **`StructureService`** — simplest handler (no subsidiaries, no
    cross-entity references). Good baseline for the pattern.
-3. **`ArchetypeService`** + its 3 subsidiaries — richest entity group;
+3. **`AscriptionService`** — the facade: 10-step create template, handler
+   dispatch via `SmartInitializingSingleton`, generic CRUD, static utilities.
+4. **`ArchetypeService`** + its 3 subsidiaries — richest handler group;
    demonstrates schema validation pipeline and index provisioning.
-4. **`AscriptionLifecycleOrchestrationService`** — how transitions are
+5. **`AscriptionLifecycleOrchestrationService`** — how transitions are
    coordinated across subtypes (cascades, referee checks, activation).
-5. **`AscriptionStateMachineService`** — pure state machine rules, isolated
+6. **`AscriptionStateMachineService`** — pure state machine rules, isolated
    from entity knowledge.
-6. **`MechanismService`** + subsidiaries — rule validation and port
+7. **`MechanismService`** + subsidiaries — rule validation and port
    auto-derivation illustrate the most complex subsidiary interactions.
-7. **`NormService`** + subsidiaries — CEL expression profile validation.
-8. **Cross-entity statement validation chain** — follow from
+8. **`NormService`** + subsidiaries — CEL expression profile validation.
+9. **Cross-entity statement validation chain** — follow from
    `AscriptionStatementValidationService` → `ArchetypeSchemaService` →
    `AscriptionArchetypeSchemaAnnotationEnforcementService` to understand
    how statements are validated and annotations enforced at authoring time.

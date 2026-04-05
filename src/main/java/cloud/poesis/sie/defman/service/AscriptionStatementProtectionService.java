@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
  *
  * <ul>
  *   <li><b>atRest</b>: write-time transformation before persistence (called from {@link
- *       AbstractAscriptionService#enforceAnnotations})
+ *       AscriptionService#create})
  *   <li><b>inTransit</b>: read-time transformation before API responses (called from controllers)
  * </ul>
  *
