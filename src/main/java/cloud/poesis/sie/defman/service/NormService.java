@@ -1,5 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
+import static cloud.poesis.sie.defman.service.AscriptionParsingService.extractRequiredUuid;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -7,6 +9,7 @@ import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -31,7 +34,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class NormService implements SubtypeHandler<NormEntity> {
+public class NormService implements AscriptionSubtypeService<NormEntity> {
 
   private static final Logger LOG = LoggerFactory.getLogger(NormService.class);
 
@@ -65,7 +68,7 @@ public class NormService implements SubtypeHandler<NormEntity> {
   }
 
   @Override
-  public NormEntity buildEntity(
+  public NormEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
     // GSM: validate CEL profiles before building entity
     if (statement.has("applicability")) {
@@ -75,10 +78,18 @@ public class NormService implements SubtypeHandler<NormEntity> {
       assertionValidation.validateAssertion(statement.get("assertion").asText());
     }
 
-    UUID structureId = UUID.fromString(statement.get("structure").asText());
+    UUID structureId =
+        extractRequiredUuid(
+            statement,
+            "structure",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
-    UUID qualifierId = UUID.fromString(statement.get("qualifier").asText());
+    UUID qualifierId =
+        extractRequiredUuid(
+            statement,
+            "qualifier",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
 
     // Semantic validations (after references are resolved)

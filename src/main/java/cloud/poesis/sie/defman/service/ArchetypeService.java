@@ -36,24 +36,24 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
+public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntity> {
 
   public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {}
 
   private final ArchetypeRepository archetypeRepo;
-  private final ArchetypeSchemaPropertyIndexationService indexProvisioning;
-  private final ArchetypeSchemaAnnotationValidationService annotationValidation;
-  private final ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
+  private final ArchetypePropertyIndexationService indexProvisioning;
+  private final ArchetypeAnnotationValidationService annotationValidation;
+  private final ArchetypeCompositionValidationService compositionValidation;
 
   public ArchetypeService(
       ArchetypeRepository archetypeRepo,
-      ArchetypeSchemaPropertyIndexationService indexProvisioning,
-      ArchetypeSchemaAnnotationValidationService annotationValidation,
-      ArchetypeSchemaCompositionValidationService schemaCompositionValidation) {
+      ArchetypePropertyIndexationService indexProvisioning,
+      ArchetypeAnnotationValidationService annotationValidation,
+      ArchetypeCompositionValidationService compositionValidation) {
     this.archetypeRepo = archetypeRepo;
     this.indexProvisioning = indexProvisioning;
     this.annotationValidation = annotationValidation;
-    this.schemaCompositionValidation = schemaCompositionValidation;
+    this.compositionValidation = compositionValidation;
   }
 
   @Override
@@ -67,7 +67,7 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
   }
 
   @Override
-  public ArchetypeEntity buildEntity(
+  public ArchetypeEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
     if (statement == null || !statement.isObject()) {
       throw RuleViolationException.of(
@@ -78,7 +78,7 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
     }
 
     // GSM §5: $ref chain convergence + §8: $gsm:sealed enforcement
-    schemaCompositionValidation.validateSchemaComposition(statement, this::resolveArchetypeSchema);
+    compositionValidation.validateSchemaComposition(statement, this::resolveArchetypeSchema);
 
     // GSM §8: deep $ref URI policy — reject external URIs everywhere
     annotationValidation.validateRefUriPolicy(statement);
@@ -188,7 +188,7 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
     }
 
     Set<String> resolvedBases =
-        schemaCompositionValidation.resolveGsmBases(
+        compositionValidation.resolveGsmBases(
             refNode.asText(), title, this::resolveArchetypeSchema);
 
     if (resolvedBases.isEmpty()) {
@@ -255,7 +255,7 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
     // Statement is immutable and was validated at creation — title is guaranteed
     // non-null/non-blank.
     String title = entity.getStatement().get("title").asText();
-    AscriptionService.validatePropertyUniquenessAcrossDefinitions(
+    AscriptionUniquenessValidationService.validatePropertyAcrossDefinitions(
         getSubjectType(),
         "title",
         title,
@@ -270,7 +270,7 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
   public void onActivation(AscriptionEntity entity) {
     if (entity instanceof ArchetypeEntity archetypeEntity) {
       // GSM §5: strict schema composition — all intermediaries must be in-effect.
-      schemaCompositionValidation.validateSchemaComposition(
+      compositionValidation.validateSchemaComposition(
           archetypeEntity.getStatement(), true, this::resolveArchetypeSchema);
       // $ref URI policy is NOT re-checked: statement is immutable (validated at
       // creation).
@@ -344,10 +344,10 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
     // Walk top-level $ref (base extension chain)
     if (schema.has("$ref") && schema.get("$ref").isTextual()) {
       String ref = schema.get("$ref").asText();
-      String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
+      String refTitle = ArchetypeParsingService.extractTitleFromRef(ref);
       if (refTitle != null && visited.add(refTitle)) {
         ancestors.add(refTitle);
-        if (!ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
+        if (!ArchetypeParsingService.isGsmBaseTitle(refTitle)) {
           JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
           if (intermediateSchema != null) {
             collectAncestorTitles(intermediateSchema, ancestors, visited);
@@ -364,12 +364,12 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
           continue;
         }
         String ref = entry.get("$ref").asText();
-        String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
+        String refTitle = ArchetypeParsingService.extractTitleFromRef(ref);
         if (refTitle == null || !visited.add(refTitle)) {
           continue;
         }
         ancestors.add(refTitle);
-        if (ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
+        if (ArchetypeParsingService.isGsmBaseTitle(refTitle)) {
           continue;
         }
         JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
@@ -382,7 +382,7 @@ public class ArchetypeService implements SubtypeHandler<ArchetypeEntity> {
   }
 
   // Schema composition validation is delegated to
-  // ArchetypeSchemaCompositionValidationService.
+  // ArchetypeCompositionValidationService.
 
   JsonNode resolveArchetypeSchema(String title) {
     return archetypeRepo.findInEffectByTitle(title).map(ArchetypeEntity::getStatement).orElse(null);

@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionProtectionService;
 import cloud.poesis.sie.defman.service.DefinitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -41,7 +41,7 @@ class DefinitionControllerTest {
 
   @MockitoBean private DefinitionService definitionService;
 
-  @MockitoBean private AscriptionStatementProtectionService statementProtection;
+  @MockitoBean private AscriptionProtectionService statementProtection;
 
   private UUID defId;
   private DefinitionEntity definitionEntity;

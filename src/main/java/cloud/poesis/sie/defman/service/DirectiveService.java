@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class DirectiveService implements SubtypeHandler<DirectiveEntity> {
+public class DirectiveService implements AscriptionSubtypeService<DirectiveEntity> {
 
   private final DirectiveRepository directiveRepo;
   private final StructureService structureService;
@@ -53,17 +53,17 @@ public class DirectiveService implements SubtypeHandler<DirectiveEntity> {
   }
 
   @Override
-  public DirectiveEntity buildEntity(
+  public DirectiveEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
     UUID structureId =
-        AscriptionService.extractRequiredUuid(
+        AscriptionParsingService.extractRequiredUuid(
             statement,
             "structure",
             AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
     UUID qualifierId =
-        AscriptionService.extractRequiredUuid(
+        AscriptionParsingService.extractRequiredUuid(
             statement,
             "qualifier",
             AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);

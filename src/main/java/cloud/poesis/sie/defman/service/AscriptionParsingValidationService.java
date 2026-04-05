@@ -1,7 +1,6 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -20,15 +19,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Validates ascription statements against archetype JSON Schemas and enforces {@code $gsm:*}
- * vocabulary annotations at authoring time.
+ * Validates ascription statements against archetype JSON Schemas.
  *
  * <p>Extracted from {@link AscriptionService} to separate statement/schema validation concerns from
  * entity lifecycle management.
@@ -37,10 +33,10 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class AscriptionStatementValidationService {
+public class AscriptionParsingValidationService {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(AscriptionStatementValidationService.class);
+      LoggerFactory.getLogger(AscriptionParsingValidationService.class);
 
   /**
    * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsm://} URIs. Used
@@ -77,14 +73,10 @@ public class AscriptionStatementValidationService {
     GSM_BASE_PROPERTIES = Collections.unmodifiableMap(map);
   }
 
-  private final ArchetypeSchemaService archetypeSchemaService;
-  private final AscriptionArchetypeSchemaAnnotationEnforcementService annotationEnforcement;
+  private final ArchetypeParsingService archetypeSchemaService;
 
-  public AscriptionStatementValidationService(
-      ArchetypeSchemaService archetypeSchemaService,
-      AscriptionArchetypeSchemaAnnotationEnforcementService annotationEnforcement) {
+  public AscriptionParsingValidationService(ArchetypeParsingService archetypeSchemaService) {
     this.archetypeSchemaService = archetypeSchemaService;
-    this.annotationEnforcement = annotationEnforcement;
   }
 
   // ======================================================================
@@ -169,28 +161,6 @@ public class AscriptionStatementValidationService {
   }
 
   // ======================================================================
-  // $gsm:* annotation enforcement
-  // ======================================================================
-
-  /**
-   * Enforces {@code $gsm:*} vocabulary keywords on a statement at authoring time.
-   *
-   * @param statement the JSON statement payload
-   * @param archetype the archetype carrying vocabulary annotations
-   * @param definitionId the definition UUID (for uniqueness scoping)
-   * @param existingFinder function to find existing ascriptions for a definition (provided by the
-   *     calling subtype service)
-   * @throws RuleViolationException if an annotation constraint is violated
-   */
-  void enforceAnnotations(
-      JsonNode statement,
-      ArchetypeEntity archetype,
-      UUID definitionId,
-      Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
-    annotationEnforcement.enforceAnnotations(statement, archetype, definitionId, existingFinder);
-  }
-
-  // ======================================================================
   // Rule type derivation
   // ======================================================================
 
@@ -266,7 +236,7 @@ public class AscriptionStatementValidationService {
       if (node.has("$ref")) {
         String ref = node.get("$ref").asText();
         if (!result.containsKey(ref)) {
-          String title = ArchetypeSchemaService.extractTitleFromRef(ref);
+          String title = ArchetypeParsingService.extractTitleFromRef(ref);
           if (title != null) {
             if (!DefinitionSubjectType.archetypeTitles().contains(title)) {
               resolveTenantArchetypeFromDb(ref, title, result);

@@ -23,10 +23,10 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeSchemaCompositionValidationService {
+public class ArchetypeCompositionValidationService {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(ArchetypeSchemaCompositionValidationService.class);
+      LoggerFactory.getLogger(ArchetypeCompositionValidationService.class);
 
   // ========================================================================
   // Schema composition validation
@@ -129,7 +129,7 @@ public class ArchetypeSchemaCompositionValidationService {
       Set<String> visited,
       boolean strict,
       Function<String, JsonNode> schemaResolver) {
-    String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
+    String refTitle = ArchetypeParsingService.extractTitleFromRef(ref);
 
     if (refTitle == null) {
       throw RuleViolationException.of(
@@ -149,7 +149,7 @@ public class ArchetypeSchemaCompositionValidationService {
           refTitle);
     }
 
-    if (ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
+    if (ArchetypeParsingService.isGsmBaseTitle(refTitle)) {
       if (isSealedBaseArchetype(refTitle, schemaResolver)) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
@@ -218,7 +218,7 @@ public class ArchetypeSchemaCompositionValidationService {
         continue;
       }
 
-      String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
+      String refTitle = ArchetypeParsingService.extractTitleFromRef(ref);
 
       if (refTitle == null) {
         throw RuleViolationException.of(
@@ -238,7 +238,7 @@ public class ArchetypeSchemaCompositionValidationService {
             refTitle);
       }
 
-      if (ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
+      if (ArchetypeParsingService.isGsmBaseTitle(refTitle)) {
         if (isSealedBaseArchetype(refTitle, schemaResolver)) {
           throw RuleViolationException.of(
               AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,

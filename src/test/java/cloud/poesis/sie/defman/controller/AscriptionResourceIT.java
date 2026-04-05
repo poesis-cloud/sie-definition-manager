@@ -442,18 +442,6 @@ class AscriptionResourceIT {
         .andExpect(jsonPath("$._embedded.ascriptions", hasSize(greaterThanOrEqualTo(8))));
   }
 
-  @Test
-  @Order(104)
-  void queryFilter_archetypeByUuid_returnsFiltered() throws Exception {
-    mvc.perform(
-            get("/api/v1/ascriptions")
-                .param("type", "archetype")
-                .param("archetype", seedArchetypeId.toString())
-                .param("size", "20"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$._embedded.ascriptions", hasSize(greaterThanOrEqualTo(8))));
-  }
-
   // ================================================================
   // SCHEMA ENDPOINT (describedby)
   // ================================================================

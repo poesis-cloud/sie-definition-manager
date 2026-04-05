@@ -33,7 +33,7 @@ import org.mockito.quality.Strictness;
 
 /**
  * Tests Receptor lifecycle descriptors: identity-bound values, referee references, cascade target
- * roles, buildEntity, findEntityById, and findCascadeTargetsFrom.
+ * roles, create, findEntityById, and findCascadeTargetsFrom.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -114,11 +114,11 @@ class ReceptorServiceTest {
   }
 
   // ========================================================================
-  // buildEntity — happy path + error cases
+  // create — happy path + error cases
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void validStatement_buildsEntity() {
@@ -138,7 +138,7 @@ class ReceptorServiceTest {
       DefinitionEntity definition = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-      ReceptorEntity result = service.buildEntity(definition, archetypeRef, statement);
+      ReceptorEntity result = service.create(definition, archetypeRef, statement);
 
       assertNotNull(result);
     }

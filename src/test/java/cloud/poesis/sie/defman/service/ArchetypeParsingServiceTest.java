@@ -18,17 +18,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ArchetypeSchemaServiceTest {
+class ArchetypeParsingServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Mock private ArchetypeRepository archetypeRepository;
 
-  private ArchetypeSchemaService service;
+  private ArchetypeParsingService service;
 
   @BeforeEach
   void setUp() {
-    service = new ArchetypeSchemaService(archetypeRepository);
+    service = new ArchetypeParsingService(archetypeRepository);
   }
 
   // ======================================================================
@@ -71,19 +71,19 @@ class ArchetypeSchemaServiceTest {
     @Test
     void returnsTrueWhenAnnotationPresentAndTrue() {
       ObjectNode node = MAPPER.createObjectNode().put("$gsm:queryable", true);
-      assertTrue(ArchetypeSchemaService.hasAnnotation(node, "$gsm:queryable"));
+      assertTrue(ArchetypeParsingService.hasAnnotation(node, "$gsm:queryable"));
     }
 
     @Test
     void returnsFalseWhenAnnotationPresentButFalse() {
       ObjectNode node = MAPPER.createObjectNode().put("$gsm:queryable", false);
-      assertFalse(ArchetypeSchemaService.hasAnnotation(node, "$gsm:queryable"));
+      assertFalse(ArchetypeParsingService.hasAnnotation(node, "$gsm:queryable"));
     }
 
     @Test
     void returnsFalseWhenAnnotationAbsent() {
       ObjectNode node = MAPPER.createObjectNode().put("type", "string");
-      assertFalse(ArchetypeSchemaService.hasAnnotation(node, "$gsm:queryable"));
+      assertFalse(ArchetypeParsingService.hasAnnotation(node, "$gsm:queryable"));
     }
   }
 
@@ -98,17 +98,17 @@ class ArchetypeSchemaServiceTest {
     void extractsTitleFromValidUri() {
       assertEquals(
           "StructureArchetype",
-          ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/StructureArchetype/v1"));
+          ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/StructureArchetype/v1"));
     }
 
     @Test
     void returnsNullForInvalidUri() {
-      assertNull(ArchetypeSchemaService.extractTitleFromRef("https://example.com"));
+      assertNull(ArchetypeParsingService.extractTitleFromRef("https://example.com"));
     }
 
     @Test
     void returnsNullForLocalPointer() {
-      assertNull(ArchetypeSchemaService.extractTitleFromRef("#/definitions/Foo"));
+      assertNull(ArchetypeParsingService.extractTitleFromRef("#/definitions/Foo"));
     }
   }
 
@@ -121,17 +121,17 @@ class ArchetypeSchemaServiceTest {
 
     @Test
     void allowsLocalJsonPointer() {
-      assertTrue(ArchetypeSchemaService.isAllowedRef("#/definitions/Foo"));
+      assertTrue(ArchetypeParsingService.isAllowedRef("#/definitions/Foo"));
     }
 
     @Test
     void allowsGsmUri() {
-      assertTrue(ArchetypeSchemaService.isAllowedRef("gsm://archetypes/MechanismArchetype/v1"));
+      assertTrue(ArchetypeParsingService.isAllowedRef("gsm://archetypes/MechanismArchetype/v1"));
     }
 
     @Test
     void rejectsExternalUri() {
-      assertFalse(ArchetypeSchemaService.isAllowedRef("https://example.com/schema"));
+      assertFalse(ArchetypeParsingService.isAllowedRef("https://example.com/schema"));
     }
   }
 
@@ -144,13 +144,13 @@ class ArchetypeSchemaServiceTest {
 
     @Test
     void returnsTrueForBaseTitle() {
-      assertTrue(ArchetypeSchemaService.isGsmBaseTitle("StructureArchetype"));
-      assertTrue(ArchetypeSchemaService.isGsmBaseTitle("Archetype"));
+      assertTrue(ArchetypeParsingService.isGsmBaseTitle("StructureArchetype"));
+      assertTrue(ArchetypeParsingService.isGsmBaseTitle("Archetype"));
     }
 
     @Test
     void returnsFalseForNonBaseTitle() {
-      assertFalse(ArchetypeSchemaService.isGsmBaseTitle("CustomArchetype"));
+      assertFalse(ArchetypeParsingService.isGsmBaseTitle("CustomArchetype"));
     }
   }
 }

@@ -80,7 +80,7 @@ class InteractionServiceTest {
       DefinitionEntity definition = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-      assertNotNull(service.buildEntity(definition, archetypeRef, statement));
+      assertNotNull(service.create(definition, archetypeRef, statement));
     }
 
     @Test
@@ -106,7 +106,7 @@ class InteractionServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class,
-              () -> service.buildEntity(definition, archetypeRef, statement));
+              () -> service.create(definition, archetypeRef, statement));
       assertEquals(
           AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
           ex.getRuleType());

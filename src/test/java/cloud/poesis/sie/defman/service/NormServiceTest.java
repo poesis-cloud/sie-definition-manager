@@ -159,11 +159,11 @@ class NormServiceTest {
   }
 
   // ========================================================================
-  // BuildEntity
+  // Create
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void validStatement_returnsEntity() {
@@ -191,7 +191,7 @@ class NormServiceTest {
       stmt.put("assertion", "status == \"OK\"");
       stmt.put("toleranceMode", "INSTANTANEOUS");
 
-      NormEntity result = service.buildEntity(def, archetype, stmt);
+      NormEntity result = service.create(def, archetype, stmt);
       assertEquals(def, result.getDefinition());
       assertEquals(structure, result.getStructure());
       assertEquals(qualifier, result.getQualifier());
@@ -234,7 +234,7 @@ class NormServiceTest {
       stmt.put("assertion", "status == \"OK\"");
       stmt.put("toleranceMode", "INSTANTANEOUS");
 
-      NormEntity result = service.buildEntity(def, archetype, stmt);
+      NormEntity result = service.create(def, archetype, stmt);
       assertEquals(def, result.getDefinition());
     }
 
@@ -264,7 +264,7 @@ class NormServiceTest {
       stmt.put("assertion", "status == \"OK\"");
       stmt.put("toleranceMode", "INSTANTANEOUS");
 
-      NormEntity result = service.buildEntity(def, archetype, stmt);
+      NormEntity result = service.create(def, archetype, stmt);
       assertEquals(def, result.getDefinition());
     }
   }

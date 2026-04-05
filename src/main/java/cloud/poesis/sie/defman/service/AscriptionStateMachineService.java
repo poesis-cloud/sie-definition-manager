@@ -1,7 +1,6 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
-import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionPathType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
@@ -15,13 +14,11 @@ import org.springframework.stereotype.Service;
 
 /**
  * Pure state machine for GSM ascription lifecycle transitions. Owns transition validation, referee
- * preconditions, and cascade applicability rules. Has NO knowledge of subtype services and
- * therefore NO circular dependencies.
+ * preconditions, and cascade applicability rules. Has NO knowledge of subtype services and NO
+ * external dependencies — a stateless validation utility.
  *
  * <p>All transition rules (valid edges, referee preconditions, cascade scope) are defined
  * declaratively in {@link AscriptionStatusTransitionPathType} — this service applies them.
- *
- * <p>Persistence of transition records is delegated to {@link AscriptionStatusTransitionService}.
  *
  * <p>Implements ONLY {@link AscriptionStatusTransitionRuleType} rules.
  *
@@ -30,12 +27,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class AscriptionStateMachineService {
-
-  private final AscriptionStatusTransitionService transitionService;
-
-  public AscriptionStateMachineService(AscriptionStatusTransitionService transitionService) {
-    this.transitionService = transitionService;
-  }
 
   // ======================================================================
   // Transition validation
@@ -156,44 +147,5 @@ public class AscriptionStateMachineService {
    */
   public boolean isDependentCascadeApplicable(AscriptionStatusType from, AscriptionStatusType to) {
     return AscriptionStatusTransitionPathType.isDependentCascadeApplicable(from, to);
-  }
-
-  // ======================================================================
-  // Persistence delegation
-  // ======================================================================
-
-  /**
-   * Records a transition by delegating to {@link AscriptionStatusTransitionService}.
-   *
-   * @param entity the ascription being transitioned
-   * @param from the pre-transition status
-   * @param to the post-transition status
-   * @return the persisted and refreshed transition entity
-   */
-  public AscriptionStatusTransitionEntity recordTransition(
-      AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
-    return transitionService.recordTransition(entity, from, to);
-  }
-
-  /**
-   * Returns all recorded transitions for an ascription.
-   *
-   * @param ascriptionId the ascription UUID
-   * @return ordered list of status transition entities
-   */
-  public List<AscriptionStatusTransitionEntity> getTransitions(UUID ascriptionId) {
-    return transitionService.getTransitions(ascriptionId);
-  }
-
-  /**
-   * Returns a single transition by its ID, scoped to the given ascription.
-   *
-   * @param transitionId the transition UUID
-   * @param ascriptionId the owning ascription UUID
-   * @return the matching transition entity, if present
-   */
-  public java.util.Optional<AscriptionStatusTransitionEntity> getTransition(
-      UUID transitionId, UUID ascriptionId) {
-    return transitionService.getTransition(transitionId, ascriptionId);
   }
 }

@@ -1,5 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
+import static cloud.poesis.sie.defman.service.AscriptionParsingService.extractRequiredUuid;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -8,6 +10,7 @@ import cloud.poesis.sie.defman.entity.ReceptorEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ReceptorRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
@@ -27,7 +30,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ReceptorService implements SubtypeHandler<ReceptorEntity> {
+public class ReceptorService implements AscriptionSubtypeService<ReceptorEntity> {
 
   private final ReceptorRepository receptorRepo;
   private final MechanismService mechanismService;
@@ -53,12 +56,20 @@ public class ReceptorService implements SubtypeHandler<ReceptorEntity> {
   }
 
   @Override
-  public ReceptorEntity buildEntity(
+  public ReceptorEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID mechanismId = UUID.fromString(statement.get("mechanism").asText());
+    UUID mechanismId =
+        extractRequiredUuid(
+            statement,
+            "mechanism",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     MechanismEntity mechanism = mechanismService.findEntityById(mechanismId);
 
-    UUID dataArchetypeId = UUID.fromString(statement.get("archetype").asText());
+    UUID dataArchetypeId =
+        extractRequiredUuid(
+            statement,
+            "archetype",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     ArchetypeEntity dataArchetype = archetypeService.findEntityById(dataArchetypeId);
 
     return new ReceptorEntity(definition, archetypeRef, statement, mechanism, dataArchetype);

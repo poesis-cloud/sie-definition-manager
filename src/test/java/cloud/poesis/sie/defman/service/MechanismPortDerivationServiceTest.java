@@ -1,24 +1,17 @@
 package cloud.poesis.sie.defman.service;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
-import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
-import cloud.poesis.sie.defman.entity.ReceptorEntity;
+import cloud.poesis.sie.defman.service.MechanismPortDerivationService.PortDerivation;
 import cloud.poesis.sie.defman.service.MechanismPortDerivationService.PortSignature;
-import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -39,24 +32,13 @@ class MechanismPortDerivationServiceTest {
 
   private final MechanismRuleParsingService parsingService = new MechanismRuleParsingService();
   @Mock private ArchetypeService archetypeService;
-  @Mock private EffectorService effectorService;
-  @Mock private ReceptorService receptorService;
-  @Mock private DefinitionService definitionService;
-  @Mock private EntityManager entityManager;
 
   private MechanismPortDerivationService service;
 
   @BeforeEach
   void setUp() {
     service =
-        new MechanismPortDerivationService(
-            parsingService,
-            archetypeService,
-            effectorService,
-            receptorService,
-            definitionService,
-            entityManager,
-            new ObjectMapper());
+        new MechanismPortDerivationService(parsingService, archetypeService, new ObjectMapper());
   }
 
   // ========================================================================
@@ -211,17 +193,16 @@ class MechanismPortDerivationServiceTest {
   }
 
   // ========================================================================
-  // DerivePortsFromRule
+  // DerivePortSpecs
   // ========================================================================
 
   @Nested
-  class DerivePortsFromRule {
+  class DerivePortSpecs {
 
     @Test
-    void derivesEffectorAndReceptor() {
+    void derivesEffectorAndReceptorSpecs() {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
-      UUID mechDefId = mechanism.getDefinition().getId();
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
@@ -235,43 +216,39 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
 
-      DefinitionEntity effDef = mock(DefinitionEntity.class);
-      DefinitionEntity recDef = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      service.derivePortsFromRule(mechanism);
-
-      verify(effectorService).save(any(EffectorEntity.class));
-      verify(receptorService).save(any(ReceptorEntity.class));
+      assertEquals(2, specs.size());
+      // Receptor first (trigger from sys.receive), then Effector (from sys.effect)
+      assertEquals(recArchetype.getId(), specs.get(0).archetypeId());
+      assertEquals(effArchetype.getId(), specs.get(1).archetypeId());
+      // Both statements reference the mechanism and data archetype
+      assertEquals(
+          mechanism.getId().toString(), specs.get(0).statement().get("mechanism").asText());
+      assertEquals(
+          inputType.getId().toString(), specs.get(0).statement().get("archetype").asText());
+      assertEquals(
+          mechanism.getId().toString(), specs.get(1).statement().get("mechanism").asText());
+      assertEquals(
+          outputType.getId().toString(), specs.get(1).statement().get("archetype").asText());
     }
 
     @Test
-    void baseArchetypesMissing_skips() {
+    void baseArchetypesMissing_returnsEmpty() {
       MechanismEntity mechanism = stubMechanism("sys.receive(\"X\")\nsys.effect(\"Y\", {})");
 
       when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(null);
       when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(null);
 
-      assertDoesNotThrow(() -> service.derivePortsFromRule(mechanism));
-      verify(effectorService, never()).save(any());
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
+
+      assertTrue(specs.isEmpty());
     }
 
     @Test
     void dataArchetypeNotFound_skipsPort() {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"MissingType\")\nsys.effect(\"AlsoMissing\", {})");
-      UUID mechDefId = mechanism.getDefinition().getId();
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
@@ -283,49 +260,18 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("MissingType")).thenReturn(null);
       when(archetypeService.findInEffectBySchemaTitle("AlsoMissing")).thenReturn(null);
 
-      assertDoesNotThrow(() -> service.derivePortsFromRule(mechanism));
-      verify(effectorService, never()).save(any());
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
+
+      assertTrue(specs.isEmpty());
     }
 
     @Test
-    void alwaysCreatesFreshDefinitions() {
-      MechanismEntity mechanism =
-          stubMechanism("sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
+    void noPortSignatures_returnsEmpty() {
+      MechanismEntity mechanism = stubMechanism("x = 1");
 
-      ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
-          .thenReturn(effArchetype);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
-          .thenReturn(recArchetype);
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
-      ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
-      ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
-      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
-      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
-
-      DefinitionEntity effDef = mock(DefinitionEntity.class);
-      DefinitionEntity recDef = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
-
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      service.derivePortsFromRule(mechanism);
-
-      // Fresh definitions always created — no matching/reuse
-      verify(definitionService).create(DefinitionSubjectType.EFFECTOR);
-      verify(definitionService).create(DefinitionSubjectType.RECEPTOR);
-      verify(effectorService).save(any(EffectorEntity.class));
-      verify(receptorService).save(any(ReceptorEntity.class));
+      assertTrue(specs.isEmpty());
     }
   }
 
@@ -354,25 +300,13 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
       when(archetypeService.findInEffectBySchemaTitle("CustomEff")).thenReturn(customEff);
 
-      DefinitionEntity effDef = mock(DefinitionEntity.class);
-      DefinitionEntity recDef = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      service.derivePortsFromRule(mechanism);
-
-      verify(effectorService).save(any(EffectorEntity.class));
-      verify(receptorService).save(any(ReceptorEntity.class));
+      assertEquals(2, specs.size());
+      // Receptor first (trigger), uses base
+      assertEquals(baseRec.getId(), specs.get(0).archetypeId());
+      // Effector uses custom archetype, not base
+      assertEquals(customEff.getId(), specs.get(1).archetypeId());
     }
 
     @Test
@@ -392,23 +326,12 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
       when(archetypeService.findInEffectBySchemaTitle("UnknownPort")).thenReturn(null);
 
-      DefinitionEntity effDef = mock(DefinitionEntity.class);
-      DefinitionEntity recDef = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef);
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      assertDoesNotThrow(() -> service.derivePortsFromRule(mechanism));
-      verify(effectorService).save(any(EffectorEntity.class));
+      assertEquals(2, specs.size());
+      // Receptor first (trigger), then Effector falls back to base
+      assertEquals(baseRec.getId(), specs.get(0).archetypeId());
+      assertEquals(baseEff.getId(), specs.get(1).archetypeId());
     }
 
     @Test
@@ -431,26 +354,13 @@ class MechanismPortDerivationServiceTest {
       when(archetypeService.findInEffectBySchemaTitle("AckType")).thenReturn(ackType);
       when(archetypeService.findInEffectBySchemaTitle("AckPort")).thenReturn(ackPort);
 
-      DefinitionEntity effDef = mock(DefinitionEntity.class);
-      DefinitionEntity recDef1 = mock(DefinitionEntity.class);
-      DefinitionEntity recDef2 = mock(DefinitionEntity.class);
-      when(definitionService.create(DefinitionSubjectType.EFFECTOR)).thenReturn(effDef);
-      when(definitionService.create(DefinitionSubjectType.RECEPTOR)).thenReturn(recDef1, recDef2);
+      List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
-      EffectorEntity savedEff = mock(EffectorEntity.class);
-      when(savedEff.getId()).thenReturn(UUID.randomUUID());
-      when(savedEff.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(effectorService.save(any(EffectorEntity.class))).thenReturn(savedEff);
-
-      ReceptorEntity savedRec = mock(ReceptorEntity.class);
-      when(savedRec.getId()).thenReturn(UUID.randomUUID());
-      when(savedRec.getStatement()).thenReturn(MAPPER.createObjectNode());
-      when(receptorService.save(any(ReceptorEntity.class))).thenReturn(savedRec);
-
-      service.derivePortsFromRule(mechanism);
-
-      // 2 receptors: trigger + feedback from .receive("AckType")
-      verify(receptorService, org.mockito.Mockito.atLeast(2)).save(any(ReceptorEntity.class));
+      // 3 ports: trigger receptor (base), effector (base), feedback receptor (typed AckPort)
+      assertEquals(3, specs.size());
+      assertEquals(baseRec.getId(), specs.get(0).archetypeId()); // trigger receptor → base
+      assertEquals(baseEff.getId(), specs.get(1).archetypeId()); // effector → base
+      assertEquals(ackPort.getId(), specs.get(2).archetypeId()); // feedback receptor → AckPort
     }
   }
 }

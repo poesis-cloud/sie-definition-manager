@@ -125,8 +125,7 @@ class DirectiveServiceTest {
 
       RuleViolationException ex =
           assertThrows(
-              RuleViolationException.class,
-              () -> service.buildEntity(def, archetype, emptyStatement));
+              RuleViolationException.class, () -> service.create(def, archetype, emptyStatement));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -188,11 +187,11 @@ class DirectiveServiceTest {
   }
 
   // ========================================================================
-  // BuildEntity
+  // Create
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void validStatement_returnsEntity() {
@@ -216,7 +215,7 @@ class DirectiveServiceTest {
       stmt.put("modal", "MUST");
       stmt.put("verb", "ENSURE");
 
-      DirectiveEntity result = service.buildEntity(def, archetype, stmt);
+      DirectiveEntity result = service.create(def, archetype, stmt);
       assertEquals(def, result.getDefinition());
       assertEquals(structure, result.getStructure());
       assertEquals(qualifier, result.getQualifier());
@@ -230,7 +229,7 @@ class DirectiveServiceTest {
       stmt.put("qualifier", UUID.randomUUID().toString());
       stmt.put("purpose", "some-purpose");
 
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
+      assertThrows(RuleViolationException.class, () -> service.create(def, archetype, stmt));
     }
 
     @Test
@@ -246,8 +245,7 @@ class DirectiveServiceTest {
       stmt.put("qualifier", UUID.randomUUID().toString());
       stmt.put("purpose", "some-purpose");
 
-      assertThrows(
-          ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));
+      assertThrows(ResourceNotFoundException.class, () -> service.create(def, archetype, stmt));
     }
 
     @Test
@@ -259,7 +257,7 @@ class DirectiveServiceTest {
       stmt.put("qualifier", UUID.randomUUID().toString());
       stmt.put("purpose", "some-purpose");
 
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
+      assertThrows(RuleViolationException.class, () -> service.create(def, archetype, stmt));
     }
   }
 

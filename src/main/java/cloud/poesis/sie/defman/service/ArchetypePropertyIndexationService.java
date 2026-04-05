@@ -32,16 +32,16 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeSchemaPropertyIndexationService {
+public class ArchetypePropertyIndexationService {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(ArchetypeSchemaPropertyIndexationService.class);
+      LoggerFactory.getLogger(ArchetypePropertyIndexationService.class);
 
   private final JdbcTemplate jdbcTemplate;
 
   record IndexSpec(String indexName, String ddl, String type, String propertyName) {}
 
-  public ArchetypeSchemaPropertyIndexationService(JdbcTemplate jdbcTemplate) {
+  public ArchetypePropertyIndexationService(JdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
   }
 
@@ -139,7 +139,7 @@ public class ArchetypeSchemaPropertyIndexationService {
       String sanitizedProp = sanitizeIdentifier(propName);
 
       // $gsm:queryable
-      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:queryable")) {
+      if (ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:queryable")) {
         String indexName = "idx_gsm_q_" + sanitizedTitle + "_" + sanitizedProp;
         String type = propSchema.has("type") ? propSchema.get("type").asText() : "string";
         String indexType = "array".equals(type) ? "GIN" : "BTREE";
@@ -175,7 +175,7 @@ public class ArchetypeSchemaPropertyIndexationService {
       }
 
       // $gsm:unique
-      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:unique")) {
+      if (ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:unique")) {
         String indexName = "idx_gsm_u_" + sanitizedTitle + "_" + sanitizedProp;
         String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
 

@@ -8,8 +8,8 @@ import cloud.poesis.sie.defman.dto.AscriptionCreationDto;
 import cloud.poesis.sie.defman.dto.AscriptionDto;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
+import cloud.poesis.sie.defman.service.AscriptionProtectionService;
 import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -86,7 +86,7 @@ public class AscriptionController extends AbstractController {
 
   public AscriptionController(
       AscriptionService ascriptionService,
-      AscriptionStatementProtectionService statementProtection,
+      AscriptionProtectionService statementProtection,
       ObjectMapper objectMapper) {
     super(statementProtection);
     this.ascriptionService = ascriptionService;
@@ -160,8 +160,7 @@ public class AscriptionController extends AbstractController {
           String type,
       @Parameter(description = "Optional lifecycle status filter") @RequestParam(required = false)
           AscriptionStatusType status,
-      @Parameter(description = "Optional archetype filter (UUID or title)")
-          @RequestParam(required = false)
+      @Parameter(description = "Optional archetype filter (title)") @RequestParam(required = false)
           String archetype,
       @ParameterObject @PageableDefault(size = 20) Pageable pageable,
       HttpServletRequest request) {

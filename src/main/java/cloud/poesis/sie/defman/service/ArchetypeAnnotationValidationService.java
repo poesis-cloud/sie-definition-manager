@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeSchemaAnnotationValidationService {
+public class ArchetypeAnnotationValidationService {
 
   // ========================================================================
   // $gsm:* annotation constants
@@ -68,7 +68,7 @@ public class ArchetypeSchemaAnnotationValidationService {
 
       checkUnknownAnnotations(propSchema, propName);
 
-      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:identityBound")) {
+      if (ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:identityBound")) {
         identityBoundFields.add(propName);
       }
     }
@@ -166,7 +166,7 @@ public class ArchetypeSchemaAnnotationValidationService {
       return result;
     }
     for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      if (ArchetypeSchemaService.hasAnnotation(entry.getValue(), "$gsm:identityBound")) {
+      if (ArchetypeParsingService.hasAnnotation(entry.getValue(), "$gsm:identityBound")) {
         result.add(entry.getKey());
       }
     }
@@ -198,7 +198,7 @@ public class ArchetypeSchemaAnnotationValidationService {
     if (node.isObject()) {
       if (node.has("$ref")) {
         String ref = node.get("$ref").asText();
-        if (!ArchetypeSchemaService.isAllowedRef(ref)) {
+        if (!ArchetypeParsingService.isAllowedRef(ref)) {
           throw RuleViolationException.of(
               AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
               "Prohibited $ref URI at "

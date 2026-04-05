@@ -5,11 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
-import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
@@ -17,7 +15,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -35,82 +31,11 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AscriptionStateMachineTest {
 
-  @Mock private AscriptionStatusTransitionService transitionService;
-
   private AscriptionStateMachineService stateMachine;
 
   @BeforeEach
   void setUp() {
-    stateMachine = new AscriptionStateMachineService(transitionService);
-  }
-
-  // ========================================================================
-  // RecordTransition (delegation)
-  // ========================================================================
-
-  @Nested
-  class RecordTransition {
-
-    @Test
-    void delegatesToTransitionService() {
-      AscriptionEntity ascription = mock(AscriptionEntity.class);
-      AscriptionStatusTransitionEntity expected = mock(AscriptionStatusTransitionEntity.class);
-      when(transitionService.recordTransition(
-              ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED))
-          .thenReturn(expected);
-
-      AscriptionStatusTransitionEntity result =
-          stateMachine.recordTransition(
-              ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
-
-      assertEquals(expected, result);
-      verify(transitionService)
-          .recordTransition(ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
-    }
-  }
-
-  // ========================================================================
-  // GetTransitions (delegation)
-  // ========================================================================
-
-  @Nested
-  class GetTransitions {
-
-    @Test
-    void delegatesToTransitionService() {
-      UUID ascriptionId = UUID.randomUUID();
-      List<AscriptionStatusTransitionEntity> expected =
-          List.of(mock(AscriptionStatusTransitionEntity.class));
-      when(transitionService.getTransitions(ascriptionId)).thenReturn(expected);
-
-      List<AscriptionStatusTransitionEntity> result = stateMachine.getTransitions(ascriptionId);
-
-      assertEquals(expected, result);
-      verify(transitionService).getTransitions(ascriptionId);
-    }
-  }
-
-  // ========================================================================
-  // GetTransition (delegation)
-  // ========================================================================
-
-  @Nested
-  class GetTransition {
-
-    @Test
-    void delegatesToTransitionService() {
-      UUID transitionId = UUID.randomUUID();
-      UUID ascriptionId = UUID.randomUUID();
-      AscriptionStatusTransitionEntity entity = mock(AscriptionStatusTransitionEntity.class);
-      when(transitionService.getTransition(transitionId, ascriptionId))
-          .thenReturn(Optional.of(entity));
-
-      var result = stateMachine.getTransition(transitionId, ascriptionId);
-
-      assertTrue(result.isPresent());
-      assertEquals(entity, result.get());
-      verify(transitionService).getTransition(transitionId, ascriptionId);
-    }
+    stateMachine = new AscriptionStateMachineService();
   }
 
   // ========================================================================

@@ -9,7 +9,7 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.RuleType;
@@ -36,7 +36,7 @@ public abstract class AbstractController {
 
   private static final Logger log = LoggerFactory.getLogger(AbstractController.class);
 
-  private final AscriptionStatementProtectionService statementProtection;
+  private final AscriptionProtectionService statementProtection;
 
   /**
    * Constructs the abstract controller with shared services.
@@ -44,7 +44,7 @@ public abstract class AbstractController {
    * @param statementProtection the ascription statement protection service for in-transit
    *     protection
    */
-  protected AbstractController(AscriptionStatementProtectionService statementProtection) {
+  protected AbstractController(AscriptionProtectionService statementProtection) {
     this.statementProtection = statementProtection;
   }
 

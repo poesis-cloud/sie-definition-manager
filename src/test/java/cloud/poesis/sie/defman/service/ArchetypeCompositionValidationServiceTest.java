@@ -19,11 +19,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class ArchetypeSchemaCompositionValidationServiceTest {
+class ArchetypeCompositionValidationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private ArchetypeSchemaCompositionValidationService service;
+  private ArchetypeCompositionValidationService service;
 
   /** Maps archetype titles to their JSON Schemas; simulates the archetype repository. */
   private Map<String, JsonNode> schemaStore;
@@ -32,7 +32,7 @@ class ArchetypeSchemaCompositionValidationServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new ArchetypeSchemaCompositionValidationService();
+    service = new ArchetypeCompositionValidationService();
     schemaStore = new HashMap<>();
     schemaResolver = schemaStore::get;
   }

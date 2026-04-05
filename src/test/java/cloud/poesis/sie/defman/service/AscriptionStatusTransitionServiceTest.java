@@ -25,20 +25,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit tests for {@link AscriptionStatusTransitionService} — the thin CRUD/persistence layer for
- * transition entities.
+ * Unit tests for {@link AscriptionStatusTransitionService} — persistence and query operations.
+ * Lifecycle orchestration is tested in {@link AscriptionStatusTransitionLifecycleTest}.
  */
 @ExtendWith(MockitoExtension.class)
 class AscriptionStatusTransitionServiceTest {
 
   @Mock private AscriptionStatusTransitionRepository transitionRepo;
   @Mock private EntityManager entityManager;
+  @Mock private AscriptionStateMachineService stateMachine;
 
   private AscriptionStatusTransitionService service;
 
   @BeforeEach
   void setUp() {
-    service = new AscriptionStatusTransitionService(transitionRepo, entityManager);
+    service =
+        new AscriptionStatusTransitionService(
+            transitionRepo, stateMachine, entityManager, List.of());
   }
 
   // ========================================================================

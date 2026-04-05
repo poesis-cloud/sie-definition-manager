@@ -13,9 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
-import cloud.poesis.sie.defman.service.AscriptionLifecycleOrchestrationService;
-import cloud.poesis.sie.defman.service.AscriptionStateMachineService;
-import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionProtectionService;
+import cloud.poesis.sie.defman.service.AscriptionStatusTransitionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -42,11 +41,9 @@ class AscriptionStatusTransitionControllerTest {
 
   @Autowired private ObjectMapper objectMapper;
 
-  @MockitoBean private AscriptionStateMachineService stateMachine;
+  @MockitoBean private AscriptionStatusTransitionService transitionService;
 
-  @MockitoBean private AscriptionLifecycleOrchestrationService orchestrator;
-
-  @MockitoBean private AscriptionStatementProtectionService statementProtection;
+  @MockitoBean private AscriptionProtectionService statementProtection;
 
   private UUID ascriptionId;
   private UUID transitionId;
@@ -81,7 +78,7 @@ class AscriptionStatusTransitionControllerTest {
 
     @Test
     void getTransitions_returnsCollectionWithLinks() throws Exception {
-      when(stateMachine.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+      when(transitionService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
       mockMvc
           .perform(
@@ -115,7 +112,8 @@ class AscriptionStatusTransitionControllerTest {
       when(t2.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
       when(t2.getTimestamp()).thenReturn(Instant.parse("2025-01-02T00:00:00Z"));
 
-      when(stateMachine.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity, t2));
+      when(transitionService.getTransitions(ascriptionId))
+          .thenReturn(List.of(transitionEntity, t2));
 
       mockMvc
           .perform(
@@ -138,9 +136,9 @@ class AscriptionStatusTransitionControllerTest {
 
     @Test
     void getTransition_returnsWithNavigationLinks() throws Exception {
-      when(stateMachine.getTransition(transitionId, ascriptionId))
+      when(transitionService.getTransition(transitionId, ascriptionId))
           .thenReturn(Optional.of(transitionEntity));
-      when(stateMachine.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+      when(transitionService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
       mockMvc
           .perform(
@@ -155,7 +153,7 @@ class AscriptionStatusTransitionControllerTest {
     @Test
     void getTransition_notFound_returns404() throws Exception {
       UUID badId = UUID.randomUUID();
-      when(stateMachine.getTransition(badId, ascriptionId)).thenReturn(Optional.empty());
+      when(transitionService.getTransition(badId, ascriptionId)).thenReturn(Optional.empty());
 
       mockMvc
           .perform(
@@ -174,9 +172,9 @@ class AscriptionStatusTransitionControllerTest {
 
     @Test
     void transition_returns201WithLocationAndBody() throws Exception {
-      when(orchestrator.transition(ascriptionId, "PROPOSED")).thenReturn(transitionEntity);
+      when(transitionService.transition(ascriptionId, "PROPOSED")).thenReturn(transitionEntity);
       when(transitionEntity.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
-      when(stateMachine.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
+      when(transitionService.getTransitions(ascriptionId)).thenReturn(List.of(transitionEntity));
 
       ObjectNode body = objectMapper.createObjectNode();
       body.put("targetStatus", "PROPOSED");

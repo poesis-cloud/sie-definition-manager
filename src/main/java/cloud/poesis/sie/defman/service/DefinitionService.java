@@ -90,27 +90,17 @@ public class DefinitionService {
   }
 
   /**
-   * Creates a new definition for the given subject type.
-   *
-   * @param type the GSM structural role of the new definition
-   * @return the persisted definition entity
-   */
-  public DefinitionEntity create(DefinitionSubjectType type) {
-    return definitionRepository.save(new DefinitionEntity(type));
-  }
-
-  /**
-   * Resolves an existing Definition by id, or creates a new one if definitionId is null.
+   * Resolves an existing Definition by id, or creates a new one if definitionId is {@code null}.
    *
    * @param definitionId the definition UUID, or {@code null} to create a new one
    * @param type the GSM subject type (used only when creating)
    * @return the resolved or newly created definition entity
    * @throws ResourceNotFoundException if {@code definitionId} is non-null but not found
    */
-  public DefinitionEntity resolveOrCreate(UUID definitionId, DefinitionSubjectType type) {
+  public DefinitionEntity resolve(UUID definitionId, DefinitionSubjectType type) {
     if (definitionId != null) {
       return getById(definitionId);
     }
-    return create(type);
+    return definitionRepository.save(new DefinitionEntity(type));
   }
 }

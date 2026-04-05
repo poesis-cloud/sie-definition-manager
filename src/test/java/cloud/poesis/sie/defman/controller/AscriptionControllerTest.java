@@ -1,5 +1,6 @@
 package cloud.poesis.sie.defman.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -16,8 +17,8 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.service.AscriptionProtectionService;
 import cloud.poesis.sie.defman.service.AscriptionService;
-import cloud.poesis.sie.defman.service.AscriptionStatementProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +36,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -50,7 +52,7 @@ class AscriptionControllerTest {
 
   @MockitoBean private AscriptionService ascriptionService;
 
-  @MockitoBean private AscriptionStatementProtectionService statementProtection;
+  @MockitoBean private AscriptionProtectionService statementProtection;
 
   // Shared stubs
   private UUID ascriptionId;
@@ -91,7 +93,7 @@ class AscriptionControllerTest {
     when(ascriptionEntity.getDefinition()).thenReturn(ascriptionDefEntity);
     when(ascriptionEntity.getArchetype()).thenReturn(archetypeEntity);
 
-    // AscriptionStatementProtectionService passthrough
+    // AscriptionProtectionService passthrough
     lenient()
         .when(statementProtection.applyInTransitProtection(any(), any()))
         .thenAnswer(inv -> inv.getArgument(0));
@@ -283,12 +285,12 @@ class AscriptionControllerTest {
     }
 
     @Test
-    void list_withArchetypeFilter_resolvesById() throws Exception {
+    void list_withArchetypeFilter_resolvesByTitle() throws Exception {
       doReturn(Page.empty(PageRequest.of(0, 20)))
           .when(ascriptionService)
           .findAllFiltered(
               eq(DefinitionSubjectType.STRUCTURE),
-              eq(archetypeDefId.toString()),
+              eq("StructureArchetype"),
               any(),
               any(),
               any(Pageable.class));
@@ -297,7 +299,7 @@ class AscriptionControllerTest {
           .perform(
               get("/api/v1/ascriptions")
                   .param("type", "STRUCTURE")
-                  .param("archetype", archetypeDefId.toString())
+                  .param("archetype", "StructureArchetype")
                   .accept(MediaTypes.HAL_JSON))
           .andExpect(status().isOk());
     }
@@ -320,6 +322,30 @@ class AscriptionControllerTest {
                   .param("archetype", "TestArchetype")
                   .accept(MediaTypes.HAL_JSON))
           .andExpect(status().isOk());
+    }
+
+    @Test
+    void list_withArchetypeAndStatementFilter_includesFiltersInSelfLink() throws Exception {
+      doReturn(Page.empty(PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "timestamp"))))
+          .when(ascriptionService)
+          .findAllFiltered(
+              eq(DefinitionSubjectType.STRUCTURE),
+              eq("TestArchetype"),
+              any(),
+              any(),
+              any(Pageable.class));
+
+      mockMvc
+          .perform(
+              get("/api/v1/ascriptions")
+                  .param("type", "STRUCTURE")
+                  .param("archetype", "TestArchetype")
+                  .param("statement.purpose", "compliance")
+                  .param("sort", "timestamp,desc")
+                  .accept(MediaTypes.HAL_JSON))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$._links.self.href", containsString("statement.purpose=compliance")))
+          .andExpect(jsonPath("$._links.self.href", containsString("sort=timestamp,DESC")));
     }
 
     @Test

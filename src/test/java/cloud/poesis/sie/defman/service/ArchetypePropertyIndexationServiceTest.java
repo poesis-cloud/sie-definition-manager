@@ -29,17 +29,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class ArchetypeSchemaPropertyIndexationServiceTest {
+class ArchetypePropertyIndexationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Mock private JdbcTemplate jdbcTemplate;
 
-  private ArchetypeSchemaPropertyIndexationService service;
+  private ArchetypePropertyIndexationService service;
 
   @BeforeEach
   void setUp() {
-    service = new ArchetypeSchemaPropertyIndexationService(jdbcTemplate);
+    service = new ArchetypePropertyIndexationService(jdbcTemplate);
   }
 
   // ========================================================================
@@ -235,25 +235,23 @@ class ArchetypeSchemaPropertyIndexationServiceTest {
     @Test
     void sanitizeIdentifier_stripsSpecialChars() {
       assertEquals(
-          "hello_world",
-          ArchetypeSchemaPropertyIndexationService.sanitizeIdentifier("Hello-World"));
+          "hello_world", ArchetypePropertyIndexationService.sanitizeIdentifier("Hello-World"));
     }
 
     @Test
     void sanitizeIdentifier_truncatesTo30() {
       String longName = "a".repeat(50);
-      assertEquals(
-          30, ArchetypeSchemaPropertyIndexationService.sanitizeIdentifier(longName).length());
+      assertEquals(30, ArchetypePropertyIndexationService.sanitizeIdentifier(longName).length());
     }
 
     @Test
     void escapeJsonbKey_escapesSingleQuotes() {
-      assertEquals("it''s", ArchetypeSchemaPropertyIndexationService.escapeJsonbKey("it's"));
+      assertEquals("it''s", ArchetypePropertyIndexationService.escapeJsonbKey("it's"));
     }
 
     @Test
     void escapeJsonbKey_escapesBackslashes() {
-      assertEquals("a\\\\b", ArchetypeSchemaPropertyIndexationService.escapeJsonbKey("a\\b"));
+      assertEquals("a\\\\b", ArchetypePropertyIndexationService.escapeJsonbKey("a\\b"));
     }
   }
 

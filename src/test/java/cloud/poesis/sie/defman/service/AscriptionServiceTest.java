@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -64,15 +64,15 @@ class AscriptionServiceTest {
   @Mock private ArchetypeService archetypeService;
   @Mock private DefinitionService definitionService;
   @Mock private AscriptionStateMachineService stateMachine;
-  @Mock private AscriptionStatementValidationService statementValidation;
+  @Mock private AscriptionParsingValidationService statementValidation;
+  @Mock private AscriptionIdentityBoundValidationService identityBoundValidation;
+  @Mock private AscriptionUniquenessValidationService uniquenessValidation;
+  @Mock private AscriptionProtectionService statementProtection;
   @Mock private EntityManager entityManager;
 
   @SuppressWarnings("unchecked")
-  private final AbstractAscriptionRepository<AscriptionEntity> structureRepo =
-      mock(AbstractAscriptionRepository.class);
-
-  @SuppressWarnings("unchecked")
-  private final SubtypeHandler<AscriptionEntity> structureHandler = mock(SubtypeHandler.class);
+  private final AscriptionSubtypeService<AscriptionEntity> structureHandler =
+      mock(AscriptionSubtypeService.class);
 
   private AscriptionService service;
 
@@ -80,18 +80,16 @@ class AscriptionServiceTest {
   @SuppressWarnings("unchecked")
   void setUp() {
     when(structureHandler.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
-    when(structureHandler.getRepository()).thenReturn(structureRepo);
     when(structureHandler.getIdentityBoundValues(any())).thenReturn(Map.of());
     when(structureHandler.getRefereeReferences(any())).thenReturn(List.of());
     when(structureHandler.getCascadeTargetRoles()).thenReturn(Map.of());
 
-    List<SubtypeHandler<?>> handlers = new ArrayList<>();
+    List<AscriptionSubtypeService<?>> handlers = new ArrayList<>();
     handlers.add(structureHandler);
     for (DefinitionSubjectType type : DefinitionSubjectType.values()) {
       if (type == DefinitionSubjectType.STRUCTURE) continue;
-      SubtypeHandler<?> h = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<?> h = mock(AscriptionSubtypeService.class);
       when(h.getSubjectType()).thenReturn(type);
-      when(h.getRepository()).thenReturn(mock(AbstractAscriptionRepository.class));
       when(h.getCascadeTargetRoles()).thenReturn(Map.of());
       handlers.add(h);
     }
@@ -103,6 +101,9 @@ class AscriptionServiceTest {
             definitionService,
             stateMachine,
             statementValidation,
+            identityBoundValidation,
+            uniquenessValidation,
+            statementProtection,
             entityManager,
             handlers);
     service.afterSingletonsInstantiated();
@@ -118,8 +119,8 @@ class AscriptionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void duplicateHandler_throws() {
-      SubtypeHandler<?> dup1 = mock(SubtypeHandler.class);
-      SubtypeHandler<?> dup2 = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<?> dup1 = mock(AscriptionSubtypeService.class);
+      AscriptionSubtypeService<?> dup2 = mock(AscriptionSubtypeService.class);
       when(dup1.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(dup2.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
 
@@ -130,6 +131,9 @@ class AscriptionServiceTest {
               definitionService,
               stateMachine,
               statementValidation,
+              identityBoundValidation,
+              uniquenessValidation,
+              statementProtection,
               entityManager,
               List.of(dup1, dup2));
 
@@ -139,7 +143,7 @@ class AscriptionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void missingHandler_throws() {
-      SubtypeHandler<?> only = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<?> only = mock(AscriptionSubtypeService.class);
       when(only.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
 
       AscriptionService svc =
@@ -149,6 +153,9 @@ class AscriptionServiceTest {
               definitionService,
               stateMachine,
               statementValidation,
+              identityBoundValidation,
+              uniquenessValidation,
+              statementProtection,
               entityManager,
               List.of(only));
 
@@ -214,7 +221,7 @@ class AscriptionServiceTest {
 
     @Test
     void getHandler_returnsRegisteredHandler() {
-      SubtypeHandler<?> handler = service.getHandler(DefinitionSubjectType.STRUCTURE);
+      AscriptionSubtypeService<?> handler = service.getHandler(DefinitionSubjectType.STRUCTURE);
       assertNotNull(handler);
       assertEquals(DefinitionSubjectType.STRUCTURE, handler.getSubjectType());
     }
@@ -233,7 +240,7 @@ class AscriptionServiceTest {
       UUID archetypeId = UUID.randomUUID();
       DefinitionEntity definition = mock(DefinitionEntity.class);
       when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       when(archetypeService.resolveForCreation(archetypeId))
@@ -243,9 +250,9 @@ class AscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
       when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
-      when(structureRepo.save(entity)).thenReturn(entity);
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.save(entity)).thenReturn(entity);
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
 
       AscriptionEntity result = service.create(archetypeId, statement, defId);
 
@@ -263,7 +270,7 @@ class AscriptionServiceTest {
       UUID archetypeId = UUID.randomUUID();
       DefinitionEntity definition = mock(DefinitionEntity.class);
       when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       when(archetypeService.resolveForCreation(archetypeId))
@@ -273,19 +280,14 @@ class AscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
       when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
 
-      // New entity claims purpose=new-purpose
-      when(structureHandler.getIdentityBoundValues(any()))
-          .thenReturn(Map.of("purpose", "new-purpose"));
-
-      // Existing ascription with purpose=old-purpose
-      AscriptionEntity existing = mock(AscriptionEntity.class);
-      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of(existing));
-
-      // Override getIdentityBoundValues to return different values for existing
-      when(structureHandler.getIdentityBoundValues(existing))
-          .thenReturn(Map.of("purpose", "old-purpose"));
+      // Simulate identity-bound validation failure via delegated service
+      RuleViolationException expected =
+          RuleViolationException.of(
+              AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+              "Identity-bound field 'purpose' differs");
+      doThrow(expected).when(identityBoundValidation).validate(structureHandler, entity, archetype);
 
       RuleViolationException ex =
           assertThrows(
@@ -293,7 +295,6 @@ class AscriptionServiceTest {
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());
-      assertTrue(ex.getMessage().contains("Identity-bound field"));
     }
 
     @Test
@@ -302,7 +303,7 @@ class AscriptionServiceTest {
       UUID archetypeId = UUID.randomUUID();
       DefinitionEntity definition = mock(DefinitionEntity.class);
       when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       when(archetypeService.resolveForCreation(archetypeId))
@@ -312,8 +313,8 @@ class AscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
       when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
 
       // Referee in terminal status
       AscriptionEntity badRef = mock(AscriptionEntity.class);
@@ -342,7 +343,7 @@ class AscriptionServiceTest {
       UUID archetypeId = UUID.randomUUID();
       DefinitionEntity definition = mock(DefinitionEntity.class);
       when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       when(archetypeService.resolveForCreation(archetypeId))
@@ -352,95 +353,10 @@ class AscriptionServiceTest {
 
       AscriptionEntity entity = mock(AscriptionEntity.class);
       when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
-      when(structureRepo.save(entity)).thenThrow(new DataIntegrityViolationException("dup"));
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.save(entity)).thenThrow(new DataIntegrityViolationException("dup"));
 
       assertThrows(InternalException.class, () -> service.create(archetypeId, statement, defId));
-    }
-  }
-
-  // ========================================================================
-  // Identity-bound validation branches
-  // ========================================================================
-
-  @Nested
-  class ValidateIdentityBound {
-
-    @Test
-    void noIdentityBoundFields_passes() {
-      UUID defId = UUID.randomUUID();
-      UUID archetypeId = UUID.randomUUID();
-      DefinitionEntity definition = mock(DefinitionEntity.class);
-      when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
-
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      when(archetypeService.resolveForCreation(archetypeId))
-          .thenReturn(
-              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
-      ObjectNode statement = MAPPER.createObjectNode();
-
-      AscriptionEntity entity = mock(AscriptionEntity.class);
-      when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
-      when(structureHandler.getIdentityBoundValues(any())).thenReturn(Map.of());
-      when(structureRepo.save(entity)).thenReturn(entity);
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.create(archetypeId, statement, defId));
-    }
-
-    @Test
-    void noExistingAscriptions_passes() {
-      UUID defId = UUID.randomUUID();
-      UUID archetypeId = UUID.randomUUID();
-      DefinitionEntity definition = mock(DefinitionEntity.class);
-      when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
-
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      when(archetypeService.resolveForCreation(archetypeId))
-          .thenReturn(
-              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
-      ObjectNode statement = MAPPER.createObjectNode();
-
-      AscriptionEntity entity = mock(AscriptionEntity.class);
-      when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
-      when(structureHandler.getIdentityBoundValues(any()))
-          .thenReturn(Map.of("purpose", "compliance"));
-      when(structureRepo.save(entity)).thenReturn(entity);
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
-
-      assertDoesNotThrow(() -> service.create(archetypeId, statement, defId));
-    }
-
-    @Test
-    void sameIdentityBoundValues_passes() {
-      UUID defId = UUID.randomUUID();
-      UUID archetypeId = UUID.randomUUID();
-      DefinitionEntity definition = mock(DefinitionEntity.class);
-      when(definition.getId()).thenReturn(defId);
-      when(definitionService.resolveOrCreate(eq(defId), any())).thenReturn(definition);
-
-      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
-      when(archetypeService.resolveForCreation(archetypeId))
-          .thenReturn(
-              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
-      ObjectNode statement = MAPPER.createObjectNode();
-
-      AscriptionEntity entity = mock(AscriptionEntity.class);
-      when(entity.getDefinition()).thenReturn(definition);
-      when(structureHandler.buildEntity(definition, archetype, statement)).thenReturn(entity);
-
-      AscriptionEntity existing = mock(AscriptionEntity.class);
-      when(structureHandler.getIdentityBoundValues(any()))
-          .thenReturn(Map.of("purpose", "compliance"));
-      when(structureRepo.save(entity)).thenReturn(entity);
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId))
-          .thenReturn(List.of(existing));
-
-      assertDoesNotThrow(() -> service.create(archetypeId, statement, defId));
     }
   }
 
@@ -452,20 +368,20 @@ class AscriptionServiceTest {
   class GenericCrud {
 
     @Test
-    void findAll_delegatesToHandlerRepo() {
+    void findAll_delegatesToHandler() {
       Pageable pageable = PageRequest.of(0, 10);
-      when(structureRepo.findAll(pageable)).thenReturn(Page.empty());
+      when(structureHandler.findAll(pageable)).thenReturn(Page.empty());
 
       Page<AscriptionEntity> result = service.findAll(DefinitionSubjectType.STRUCTURE, pageable);
 
       assertTrue(result.isEmpty());
-      verify(structureRepo).findAll(pageable);
+      verify(structureHandler).findAll(pageable);
     }
 
     @Test
-    void findAllByStatus_delegatesToHandlerRepo() {
+    void findAllByStatus_delegatesToHandler() {
       Pageable pageable = PageRequest.of(0, 10);
-      when(structureRepo.findAllByStatus(AscriptionStatusType.ACTIVE, pageable))
+      when(structureHandler.findAllByStatus(AscriptionStatusType.ACTIVE, pageable))
           .thenReturn(Page.empty());
 
       Page<AscriptionEntity> result =
@@ -473,25 +389,25 @@ class AscriptionServiceTest {
               DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE, pageable);
 
       assertTrue(result.isEmpty());
-      verify(structureRepo).findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
+      verify(structureHandler).findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
     }
 
     @Test
-    void findAllByDefinitionId_delegatesToHandlerRepo() {
+    void findAllByDefinitionId_delegatesToHandler() {
       UUID defId = UUID.randomUUID();
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
 
       List<AscriptionEntity> result =
           service.findAllByDefinitionId(DefinitionSubjectType.STRUCTURE, defId);
 
       assertTrue(result.isEmpty());
-      verify(structureRepo).findAllByDefinitionIdOrderByTimestampDesc(defId);
+      verify(structureHandler).findAllByDefinitionId(defId);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void findAllFiltered_delegatesToHandlerRepo() {
-      UUID archetypeId = UUID.randomUUID();
+    void findAllFiltered_delegatesToHandler() {
+      String archetypeTitle = "TestArchetype";
       UUID archDefId = UUID.randomUUID();
       Map<String, String> filters = Map.of("purpose", "compliance");
       Pageable pageable = PageRequest.of(0, 10);
@@ -507,180 +423,24 @@ class AscriptionServiceTest {
       props.putObject("purpose").put("type", "string").put("$gsm:queryable", true);
       when(archetype.getStatement()).thenReturn(schema);
 
-      when(archetypeService.findEntityById(archetypeId)).thenReturn(archetype);
-      when(structureRepo.findAll(any(Specification.class), eq(pageable))).thenReturn(Page.empty());
+      when(archetypeService.findInEffectByTitle(archetypeTitle)).thenReturn(Optional.of(archetype));
+
+      ArgumentCaptor<Specification<AscriptionEntity>> specCaptor =
+          ArgumentCaptor.forClass(Specification.class);
+      when(structureHandler.findAll(specCaptor.capture(), eq(pageable))).thenReturn(Page.empty());
 
       Page<? extends AscriptionEntity> result =
           service.findAllFiltered(
               DefinitionSubjectType.STRUCTURE,
-              archetypeId.toString(),
+              archetypeTitle,
               filters,
               AscriptionStatusType.ACTIVE,
               pageable);
 
       assertTrue(result.isEmpty());
-      verify(structureRepo).findAll(any(Specification.class), eq(pageable));
-    }
 
-    @Test
-    void getHistory_delegatesToFindAllByDefinitionId() {
-      UUID defId = UUID.randomUUID();
-      AscriptionEntity entity = mock(AscriptionEntity.class);
-      when(structureRepo.findAllByDefinitionIdOrderByTimestampDesc(defId))
-          .thenReturn(List.of(entity));
-
-      List<AscriptionEntity> result = service.getHistory(DefinitionSubjectType.STRUCTURE, defId);
-
-      assertEquals(1, result.size());
-      assertEquals(entity, result.get(0));
-    }
-  }
-
-  // ========================================================================
-  // extractRequiredUuid
-  // ========================================================================
-
-  @Nested
-  class ExtractRequiredUuidTests {
-
-    @Test
-    void valid_returnsUuid() {
-      UUID expected = UUID.randomUUID();
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("field", expected.toString());
-
-      UUID result = AscriptionService.extractRequiredUuid(statement, "field", RULE);
-
-      assertEquals(expected, result);
-    }
-
-    @Test
-    void missingField_throws() {
-      ObjectNode statement = MAPPER.createObjectNode();
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> AscriptionService.extractRequiredUuid(statement, "field", RULE));
-      assertTrue(ex.getMessage().contains("Required field"));
-    }
-
-    @Test
-    void nullField_throws() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.putNull("field");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> AscriptionService.extractRequiredUuid(statement, "field", RULE));
-      assertTrue(ex.getMessage().contains("Required field"));
-    }
-
-    @Test
-    void blankField_throws() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("field", "   ");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> AscriptionService.extractRequiredUuid(statement, "field", RULE));
-      assertTrue(ex.getMessage().contains("Required field"));
-    }
-
-    @Test
-    void invalidUuid_throws() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("field", "not-a-uuid");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> AscriptionService.extractRequiredUuid(statement, "field", RULE));
-      assertTrue(ex.getMessage().contains("Invalid UUID"));
-    }
-  }
-
-  // ========================================================================
-  // extractUuidList
-  // ========================================================================
-
-  @Nested
-  class ExtractUuidListTests {
-
-    @Test
-    void validArray_returnsUuids() {
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.putArray("ids").add(id1.toString()).add(id2.toString());
-
-      List<UUID> result = AscriptionService.extractUuidList(statement, "ids", RULE);
-
-      assertEquals(2, result.size());
-      assertEquals(id1, result.get(0));
-      assertEquals(id2, result.get(1));
-    }
-
-    @Test
-    void missingField_returnsEmpty() {
-      ObjectNode statement = MAPPER.createObjectNode();
-
-      List<UUID> result = AscriptionService.extractUuidList(statement, "ids", RULE);
-
-      assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void nullField_returnsEmpty() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.putNull("ids");
-
-      List<UUID> result = AscriptionService.extractUuidList(statement, "ids", RULE);
-
-      assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void notArray_returnsEmpty() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.put("ids", "not-an-array");
-
-      List<UUID> result = AscriptionService.extractUuidList(statement, "ids", RULE);
-
-      assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void invalidElement_throws() {
-      ObjectNode statement = MAPPER.createObjectNode();
-      statement.putArray("ids").add("not-a-uuid");
-
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> AscriptionService.extractUuidList(statement, "ids", RULE));
-      assertTrue(ex.getMessage().contains("Invalid UUID"));
-    }
-  }
-
-  // ========================================================================
-  // buildFilterSpec
-  // ========================================================================
-
-  @Nested
-  class BuildFilterSpecTests {
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void withStatusAndFilters_buildsPredicates() {
-      UUID archDefId = UUID.randomUUID();
-      Map<String, String> filters = Map.of("purpose", "compliance");
-
-      Specification<AscriptionEntity> spec =
-          AscriptionService.buildFilterSpec(archDefId, filters, AscriptionStatusType.ACTIVE);
-
+      // Exercise the captured spec to cover buildFilterSpec internals
+      Specification<AscriptionEntity> capturedSpec = specCaptor.getValue();
       Root<AscriptionEntity> root = mock(Root.class);
       CriteriaQuery<?> query = mock(CriteriaQuery.class);
       CriteriaBuilder cb = mock(CriteriaBuilder.class);
@@ -710,120 +470,220 @@ class AscriptionServiceTest {
       when(cb.equal(jsonExpr, "compliance")).thenReturn(jsonbPred);
       when(cb.and(any(Predicate[].class))).thenReturn(combined);
 
-      Predicate result = spec.toPredicate(root, query, cb);
+      Predicate predicate = capturedSpec.toPredicate(root, query, cb);
 
-      assertEquals(combined, result);
+      assertEquals(combined, predicate);
       verify(cb).equal(idPath, archDefId);
       verify(cb).equal(statusPath, AscriptionStatusType.ACTIVE);
     }
 
     @Test
+    void findAllFiltered_nullArchetypeWithFilters_throwsIllegalArgument() {
+      Map<String, String> filters = Map.of("purpose", "compliance");
+      Pageable pageable = PageRequest.of(0, 10);
+
+      assertThrows(
+          IllegalArgumentException.class,
+          () ->
+              service.findAllFiltered(
+                  DefinitionSubjectType.STRUCTURE,
+                  null,
+                  filters,
+                  AscriptionStatusType.ACTIVE,
+                  pageable));
+    }
+
+    @Test
+    void findAllFiltered_unknownArchetypeTitle_throwsIllegalArgument() {
+      when(archetypeService.findInEffectByTitle("Unknown")).thenReturn(Optional.empty());
+      Pageable pageable = PageRequest.of(0, 10);
+
+      assertThrows(
+          IllegalArgumentException.class,
+          () ->
+              service.findAllFiltered(
+                  DefinitionSubjectType.STRUCTURE,
+                  "Unknown",
+                  Map.of("purpose", "compliance"),
+                  AscriptionStatusType.ACTIVE,
+                  pageable));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
-    void withoutStatus_omitsStatusPredicate() {
+    void findAllFiltered_archetypeOnlyNoStatementFilters_delegatesToSpec() {
+      String archetypeTitle = "TestArchetype";
       UUID archDefId = UUID.randomUUID();
-      Map<String, String> filters = Map.of();
+      Pageable pageable = PageRequest.of(0, 10);
 
-      Specification<AscriptionEntity> spec =
-          AscriptionService.buildFilterSpec(archDefId, filters, null);
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(archDefId);
+      when(archetype.getDefinition()).thenReturn(archDef);
 
-      Root<AscriptionEntity> root = mock(Root.class);
-      CriteriaQuery<?> query = mock(CriteriaQuery.class);
-      CriteriaBuilder cb = mock(CriteriaBuilder.class);
+      when(archetypeService.findInEffectByTitle(archetypeTitle)).thenReturn(Optional.of(archetype));
+      when(structureHandler.findAll(any(Specification.class), eq(pageable)))
+          .thenReturn(Page.empty());
 
-      Path<Object> archPath = mock(Path.class);
-      Path<Object> defPath = mock(Path.class);
-      Path<Object> idPath = mock(Path.class);
-      when(root.get("archetype")).thenReturn(archPath);
-      when(archPath.get("definition")).thenReturn(defPath);
-      when(defPath.get("id")).thenReturn(idPath);
+      Page<? extends AscriptionEntity> result =
+          service.findAllFiltered(
+              DefinitionSubjectType.STRUCTURE, archetypeTitle, Map.of(), null, pageable);
 
-      Predicate archPred = mock(Predicate.class);
-      Predicate combined = mock(Predicate.class);
-      when(cb.equal(idPath, archDefId)).thenReturn(archPred);
-      when(cb.and(any(Predicate[].class))).thenReturn(combined);
+      assertTrue(result.isEmpty());
+      verify(structureHandler).findAll(any(Specification.class), eq(pageable));
+    }
 
-      spec.toPredicate(root, query, cb);
+    @Test
+    void getHistory_delegatesToFindAllByDefinitionId() {
+      UUID defId = UUID.randomUUID();
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of(entity));
 
-      verify(root, never()).get("status");
+      List<AscriptionEntity> result = service.getHistory(DefinitionSubjectType.STRUCTURE, defId);
+
+      assertEquals(1, result.size());
+      assertEquals(entity, result.get(0));
     }
   }
 
   // ========================================================================
-  // validatePropertyUniquenessAcrossDefinitions
+  // Apply data protection ($gsm:dataProtection)
   // ========================================================================
 
   @Nested
-  class ValidatePropertyUniqueness {
+  class ApplyDataProtection {
 
     @Test
-    void unique_passes() {
-      UUID thisDefId = UUID.randomUUID();
+    void annotatedProperty_callsProtectionService() {
+      UUID defId = UUID.randomUUID();
+      UUID archetypeId = UUID.randomUUID();
+      DefinitionEntity definition = mock(DefinitionEntity.class);
+      when(definition.getId()).thenReturn(defId);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
-      AscriptionEntity sibling = mock(AscriptionEntity.class);
-      DefinitionEntity sibDef = mock(DefinitionEntity.class);
-      when(sibDef.getId()).thenReturn(UUID.randomUUID());
-      when(sibling.getDefinition()).thenReturn(sibDef);
-      ObjectNode sibStmt = MAPPER.createObjectNode();
-      sibStmt.put("purpose", "other-purpose");
-      when(sibling.getStatement()).thenReturn(sibStmt);
+      // Archetype with $gsm:dataProtection annotation on "ssn"
+      ObjectNode archetypeSchema = MAPPER.createObjectNode();
+      ObjectNode props = archetypeSchema.putObject("properties");
+      ObjectNode ssnProp = props.putObject("ssn");
+      ssnProp.put("type", "string");
+      ObjectNode dpNode = ssnProp.putObject("$gsm:dataProtection");
+      dpNode.put("atRest", "AES256");
 
-      assertDoesNotThrow(
-          () ->
-              AscriptionService.validatePropertyUniquenessAcrossDefinitions(
-                  DefinitionSubjectType.STRUCTURE,
-                  "purpose",
-                  "compliance",
-                  thisDefId,
-                  List.of(sibling)));
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(archetypeSchema);
+      when(archetype.getId()).thenReturn(archetypeId);
+      when(archetypeService.resolveForCreation(archetypeId))
+          .thenReturn(
+              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
+
+      ObjectNode statement = MAPPER.createObjectNode().put("ssn", "123-45-6789");
+
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(entity.getDefinition()).thenReturn(definition);
+      when(entity.getStatement()).thenReturn(statement);
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.save(entity)).thenReturn(entity);
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
+
+      service.create(archetypeId, statement, defId);
+
+      verify(statementProtection).applyAtRestProtection(eq(dpNode), eq("ssn"), eq(statement));
     }
 
     @Test
-    void duplicate_throws() {
-      UUID thisDefId = UUID.randomUUID();
+    void noAnnotation_doesNotCallProtection() {
+      UUID defId = UUID.randomUUID();
+      UUID archetypeId = UUID.randomUUID();
+      DefinitionEntity definition = mock(DefinitionEntity.class);
+      when(definition.getId()).thenReturn(defId);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
-      AscriptionEntity sibling = mock(AscriptionEntity.class);
-      DefinitionEntity sibDef = mock(DefinitionEntity.class);
-      when(sibDef.getId()).thenReturn(UUID.randomUUID());
-      when(sibling.getDefinition()).thenReturn(sibDef);
-      ObjectNode sibStmt = MAPPER.createObjectNode();
-      sibStmt.put("purpose", "compliance");
-      when(sibling.getStatement()).thenReturn(sibStmt);
+      // Archetype without $gsm:dataProtection
+      ObjectNode archetypeSchema = MAPPER.createObjectNode();
+      archetypeSchema.putObject("properties").putObject("name").put("type", "string");
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () ->
-                  AscriptionService.validatePropertyUniquenessAcrossDefinitions(
-                      DefinitionSubjectType.STRUCTURE,
-                      "purpose",
-                      "compliance",
-                      thisDefId,
-                      List.of(sibling)));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-          ex.getRuleType());
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(archetypeSchema);
+      when(archetypeService.resolveForCreation(archetypeId))
+          .thenReturn(
+              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
+
+      ObjectNode statement = MAPPER.createObjectNode().put("name", "test");
+
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(entity.getDefinition()).thenReturn(definition);
+      when(entity.getStatement()).thenReturn(statement);
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.save(entity)).thenReturn(entity);
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
+
+      service.create(archetypeId, statement, defId);
+
+      verify(statementProtection, org.mockito.Mockito.never())
+          .applyAtRestProtection(any(), any(), any());
     }
 
     @Test
-    void sameDefinition_skipped() {
-      UUID thisDefId = UUID.randomUUID();
+    void nullArchetypeStatement_skips() {
+      UUID defId = UUID.randomUUID();
+      UUID archetypeId = UUID.randomUUID();
+      DefinitionEntity definition = mock(DefinitionEntity.class);
+      when(definition.getId()).thenReturn(defId);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
 
-      AscriptionEntity sibling = mock(AscriptionEntity.class);
-      DefinitionEntity sibDef = mock(DefinitionEntity.class);
-      when(sibDef.getId()).thenReturn(thisDefId);
-      when(sibling.getDefinition()).thenReturn(sibDef);
-      ObjectNode sibStmt = MAPPER.createObjectNode();
-      sibStmt.put("purpose", "compliance");
-      when(sibling.getStatement()).thenReturn(sibStmt);
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(null);
+      when(archetypeService.resolveForCreation(archetypeId))
+          .thenReturn(
+              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
 
-      assertDoesNotThrow(
-          () ->
-              AscriptionService.validatePropertyUniquenessAcrossDefinitions(
-                  DefinitionSubjectType.STRUCTURE,
-                  "purpose",
-                  "compliance",
-                  thisDefId,
-                  List.of(sibling)));
+      ObjectNode statement = MAPPER.createObjectNode();
+
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(entity.getDefinition()).thenReturn(definition);
+      when(entity.getStatement()).thenReturn(statement);
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.save(entity)).thenReturn(entity);
+
+      service.create(archetypeId, statement, defId);
+
+      verify(statementProtection, org.mockito.Mockito.never())
+          .applyAtRestProtection(any(), any(), any());
+    }
+
+    @Test
+    void propertyNotInStatement_skips() {
+      UUID defId = UUID.randomUUID();
+      UUID archetypeId = UUID.randomUUID();
+      DefinitionEntity definition = mock(DefinitionEntity.class);
+      when(definition.getId()).thenReturn(defId);
+      when(definitionService.resolve(eq(defId), any())).thenReturn(definition);
+
+      ObjectNode archetypeSchema = MAPPER.createObjectNode();
+      ObjectNode props = archetypeSchema.putObject("properties");
+      ObjectNode ssnProp = props.putObject("ssn");
+      ssnProp.put("type", "string");
+      ssnProp.putObject("$gsm:dataProtection").put("atRest", "AES256");
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(archetypeSchema);
+      when(archetypeService.resolveForCreation(archetypeId))
+          .thenReturn(
+              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
+
+      ObjectNode statement = MAPPER.createObjectNode(); // no "ssn" field
+
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(entity.getDefinition()).thenReturn(definition);
+      when(entity.getStatement()).thenReturn(statement);
+      when(structureHandler.create(definition, archetype, statement)).thenReturn(entity);
+      when(structureHandler.save(entity)).thenReturn(entity);
+      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
+
+      service.create(archetypeId, statement, defId);
+
+      verify(statementProtection, org.mockito.Mockito.never())
+          .applyAtRestProtection(any(), any(), any());
     }
   }
 
@@ -834,8 +694,12 @@ class AscriptionServiceTest {
   @Nested
   class SubtypeHandlerDefaults {
 
-    private final SubtypeHandler<AscriptionEntity> defaults =
-        new SubtypeHandler<>() {
+    @SuppressWarnings("unchecked")
+    private final AbstractAscriptionRepository<AscriptionEntity> mockRepo =
+        mock(AbstractAscriptionRepository.class);
+
+    private final AscriptionSubtypeService<AscriptionEntity> defaults =
+        new AscriptionSubtypeService<>() {
           @Override
           public DefinitionSubjectType getSubjectType() {
             return DefinitionSubjectType.STRUCTURE;
@@ -843,11 +707,11 @@ class AscriptionServiceTest {
 
           @Override
           public AbstractAscriptionRepository<AscriptionEntity> getRepository() {
-            return null;
+            return mockRepo;
           }
 
           @Override
-          public AscriptionEntity buildEntity(
+          public AscriptionEntity create(
               DefinitionEntity def,
               ArchetypeEntity arch,
               com.fasterxml.jackson.databind.JsonNode stmt) {
@@ -909,6 +773,77 @@ class AscriptionServiceTest {
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           defaults.statementValidationRule());
+    }
+
+    @Test
+    void save_delegatesToRepository() {
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(mockRepo.save(entity)).thenReturn(entity);
+
+      AscriptionEntity result = defaults.save(entity);
+
+      assertEquals(entity, result);
+      verify(mockRepo).save(entity);
+    }
+
+    @Test
+    void findAll_delegatesToRepository() {
+      Pageable pageable = PageRequest.of(0, 10);
+      when(mockRepo.findAll(pageable)).thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result = defaults.findAll(pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAll(pageable);
+    }
+
+    @Test
+    void findAllByStatus_delegatesToRepository() {
+      Pageable pageable = PageRequest.of(0, 10);
+      when(mockRepo.findAllByStatus(AscriptionStatusType.ACTIVE, pageable))
+          .thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result =
+          defaults.findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void findAllBySpec_delegatesToRepository() {
+      Pageable pageable = PageRequest.of(0, 10);
+      Specification<AscriptionEntity> spec = mock(Specification.class);
+      when(mockRepo.findAll(spec, pageable)).thenReturn(Page.empty());
+
+      Page<AscriptionEntity> result = defaults.findAll(spec, pageable);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAll(spec, pageable);
+    }
+
+    @Test
+    void findAllByDefinitionId_delegatesToRepository() {
+      UUID defId = UUID.randomUUID();
+      when(mockRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
+
+      List<AscriptionEntity> result = defaults.findAllByDefinitionId(defId);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAllByDefinitionIdOrderByTimestampDesc(defId);
+    }
+
+    @Test
+    void findAllByDefinitionIdAndStatus_delegatesToRepository() {
+      UUID defId = UUID.randomUUID();
+      var statuses = List.of(AscriptionStatusType.ACTIVE);
+      when(mockRepo.findAllByDefinitionIdAndStatusIn(defId, statuses)).thenReturn(List.of());
+
+      List<AscriptionEntity> result = defaults.findAllByDefinitionIdAndStatus(defId, statuses);
+
+      assertTrue(result.isEmpty());
+      verify(mockRepo).findAllByDefinitionIdAndStatusIn(defId, statuses);
     }
   }
 }

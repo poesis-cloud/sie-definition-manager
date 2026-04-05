@@ -43,19 +43,17 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class AscriptionLifecycleOrchestrationTest {
+class AscriptionStatusTransitionLifecycleTest {
 
   @Mock private AscriptionStatusTransitionRepository transitionRepo;
 
   @Mock private EntityManager entityManager;
 
-  @Mock private SubtypeHandler<? extends AscriptionEntity> structureSubtype;
+  @Mock private AscriptionSubtypeService<? extends AscriptionEntity> structureSubtype;
 
-  @Mock private SubtypeHandler<? extends AscriptionEntity> mechanismSubtype;
+  @Mock private AscriptionSubtypeService<? extends AscriptionEntity> mechanismSubtype;
 
-  private AscriptionStatusTransitionService transitionService;
-  private AscriptionStateMachineService stateMachine;
-  private AscriptionLifecycleOrchestrationService orchestrator;
+  private AscriptionStatusTransitionService service;
 
   @BeforeEach
   void setUp() {
@@ -68,16 +66,18 @@ class AscriptionLifecycleOrchestrationTest {
             Map.of(
                 DefinitionSubjectType.STRUCTURE, AscriptionStatusTransitionCascadeType.GOVERNING));
 
-    transitionService = new AscriptionStatusTransitionService(transitionRepo, entityManager);
-    stateMachine = new AscriptionStateMachineService(transitionService);
-    orchestrator =
-        new AscriptionLifecycleOrchestrationService(
-            stateMachine, entityManager, List.of(structureSubtype, mechanismSubtype));
-    orchestrator.afterSingletonsInstantiated();
+    AscriptionStateMachineService stateMachine = new AscriptionStateMachineService();
+    service =
+        new AscriptionStatusTransitionService(
+            transitionRepo,
+            stateMachine,
+            entityManager,
+            List.of(structureSubtype, mechanismSubtype));
+    service.afterSingletonsInstantiated();
   }
 
   // ========================================================================
-  // State machine: valid transitions (through orchestrator.transition())
+  // State machine: valid transitions (through service.transition())
   // ========================================================================
 
   @Nested
@@ -105,7 +105,7 @@ class AscriptionLifecycleOrchestrationTest {
       when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, to));
+      assertDoesNotThrow(() -> service.transition(id, to));
     }
   }
 
@@ -138,7 +138,7 @@ class AscriptionLifecycleOrchestrationTest {
       when(entityManager.find(AscriptionEntity.class, id)).thenReturn(entity);
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, to));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, to));
       assertTrue(
           ex.getMessage().contains("Invalid transition")
               || ex.getMessage().contains("terminal state"),
@@ -162,8 +162,7 @@ class AscriptionLifecycleOrchestrationTest {
     when(entityManager.find(AscriptionEntity.class, id)).thenReturn(null);
 
     ResourceNotFoundException ex =
-        assertThrows(
-            ResourceNotFoundException.class, () -> orchestrator.transition(id, "PROPOSED"));
+        assertThrows(ResourceNotFoundException.class, () -> service.transition(id, "PROPOSED"));
     assertTrue(ex.getMessage().contains("not found"));
   }
 
@@ -189,7 +188,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "ACTIVE"));
+      assertDoesNotThrow(() -> service.transition(id, "ACTIVE"));
     }
 
     @Test
@@ -206,7 +205,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "ACTIVE"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "ACTIVE"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertTrue(ex.getMessage().contains("structure"));
       assertEquals(
@@ -230,7 +229,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "PROPOSED"));
+      assertDoesNotThrow(() -> service.transition(id, "PROPOSED"));
     }
 
     @Test
@@ -247,7 +246,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "PROPOSED"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "PROPOSED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
           AscriptionStatusTransitionRuleType
@@ -270,7 +269,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "APPROVED"));
+      assertDoesNotThrow(() -> service.transition(id, "APPROVED"));
     }
 
     @Test
@@ -287,7 +286,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "APPROVED"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "APPROVED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
           AscriptionStatusTransitionRuleType
@@ -310,7 +309,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "SUSPENDED"));
+      assertDoesNotThrow(() -> service.transition(id, "SUSPENDED"));
     }
 
     @Test
@@ -327,8 +326,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> orchestrator.transition(id, "SUSPENDED"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "SUSPENDED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
           AscriptionStatusTransitionRuleType
@@ -351,7 +349,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "ACTIVE"));
+      assertDoesNotThrow(() -> service.transition(id, "ACTIVE"));
     }
 
     @Test
@@ -368,7 +366,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "ACTIVE"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "ACTIVE"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
           AscriptionStatusTransitionRuleType
@@ -391,7 +389,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "RETIRED"));
+      assertDoesNotThrow(() -> service.transition(id, "RETIRED"));
     }
 
     @Test
@@ -408,7 +406,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "RETIRED"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "RETIRED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
           AscriptionStatusTransitionRuleType
@@ -430,7 +428,7 @@ class AscriptionLifecycleOrchestrationTest {
           .thenReturn(List.of(Map.entry(structureRef, "structure")));
 
       RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> orchestrator.transition(id, "REJECTED"));
+          assertThrows(RuleViolationException.class, () -> service.transition(id, "REJECTED"));
       assertTrue(ex.getMessage().contains("Referee"));
       assertEquals(
           AscriptionStatusTransitionRuleType
@@ -453,7 +451,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "REJECTED"));
+      assertDoesNotThrow(() -> service.transition(id, "REJECTED"));
     }
 
     @Test
@@ -471,7 +469,7 @@ class AscriptionLifecycleOrchestrationTest {
 
       stubRepoSave();
 
-      assertDoesNotThrow(() -> orchestrator.transition(id, "ABANDONED"));
+      assertDoesNotThrow(() -> service.transition(id, "ABANDONED"));
     }
   }
 
@@ -496,7 +494,7 @@ class AscriptionLifecycleOrchestrationTest {
           stubEntity(sibId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT, defId);
       doReturn(List.of(entity, draftSibling)).when(structureSubtype).findAllByDefinitionId(defId);
 
-      orchestrator.transition(id, "APPROVED");
+      service.transition(id, "APPROVED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -517,7 +515,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(structureSubtype)
           .findAllByDefinitionId(defId);
 
-      orchestrator.transition(id, "APPROVED");
+      service.transition(id, "APPROVED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -536,7 +534,7 @@ class AscriptionLifecycleOrchestrationTest {
           stubEntity(sibId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE, defId);
       doReturn(List.of(entity, activeSibling)).when(structureSubtype).findAllByDefinitionId(defId);
 
-      orchestrator.transition(id, "APPROVED");
+      service.transition(id, "APPROVED");
 
       verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -565,7 +563,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(structureSubtype)
           .findAllByDefinitionIdAndStatus(eq(defId), anyList());
 
-      orchestrator.transition(id, "ACTIVE");
+      service.transition(id, "ACTIVE");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -595,7 +593,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(mechanismSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, structureId);
 
-      orchestrator.transition(structureId, "DEPRECATED");
+      service.transition(structureId, "DEPRECATED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -617,7 +615,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(mechanismSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, structureId);
 
-      orchestrator.transition(structureId, "DEPRECATED");
+      service.transition(structureId, "DEPRECATED");
 
       verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -630,14 +628,15 @@ class AscriptionLifecycleOrchestrationTest {
   @Nested
   class DependentCascadeScope {
 
-    private SubtypeHandler<? extends AscriptionEntity> effectorSubtype;
-    private AscriptionLifecycleOrchestrationService orchestratorWithDependent;
+    private AscriptionSubtypeService<? extends AscriptionEntity> effectorSubtype;
+    private AscriptionStatusTransitionService serviceWithDependent;
 
     @BeforeEach
     @SuppressWarnings("unchecked") // Mockito mock() erases SubtypeHandler generic;
     // unavoidable — Java generics are not reified at runtime
     void setUpDependentCascade() {
-      SubtypeHandler<? extends AscriptionEntity> mechSvc = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<? extends AscriptionEntity> mechSvc =
+          mock(AscriptionSubtypeService.class);
       when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
       when(mechSvc.getCascadeTargetRoles())
           .thenReturn(
@@ -645,7 +644,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.STRUCTURE,
                   AscriptionStatusTransitionCascadeType.GOVERNING));
 
-      effectorSubtype = mock(SubtypeHandler.class);
+      effectorSubtype = mock(AscriptionSubtypeService.class);
       when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
       when(effectorSubtype.getCascadeTargetRoles())
           .thenReturn(
@@ -653,14 +652,18 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.MECHANISM,
                   AscriptionStatusTransitionCascadeType.DEPENDENT));
 
-      SubtypeHandler<? extends AscriptionEntity> structSvc = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<? extends AscriptionEntity> structSvc =
+          mock(AscriptionSubtypeService.class);
       when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
-      orchestratorWithDependent =
-          new AscriptionLifecycleOrchestrationService(
-              stateMachine, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
-      orchestratorWithDependent.afterSingletonsInstantiated();
+      serviceWithDependent =
+          new AscriptionStatusTransitionService(
+              transitionRepo,
+              new AscriptionStateMachineService(),
+              entityManager,
+              List.of(structSvc, mechSvc, effectorSubtype));
+      serviceWithDependent.afterSingletonsInstantiated();
     }
 
     @Test
@@ -678,7 +681,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-      orchestratorWithDependent.transition(mechId, "DEPRECATED");
+      serviceWithDependent.transition(mechId, "DEPRECATED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -698,7 +701,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-      orchestratorWithDependent.transition(mechId, "SUSPENDED");
+      serviceWithDependent.transition(mechId, "SUSPENDED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -719,7 +722,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-      orchestratorWithDependent.transition(mechId, "APPROVED");
+      serviceWithDependent.transition(mechId, "APPROVED");
 
       verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -739,7 +742,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-      orchestratorWithDependent.transition(mechId, "ABANDONED");
+      serviceWithDependent.transition(mechId, "ABANDONED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -759,7 +762,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-      orchestratorWithDependent.transition(mechId, "DEPRECATED");
+      serviceWithDependent.transition(mechId, "DEPRECATED");
 
       verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -772,18 +775,19 @@ class AscriptionLifecycleOrchestrationTest {
   @Nested
   class ConstitutiveCascade {
 
-    private SubtypeHandler<? extends AscriptionEntity> effectorSubtype;
-    private AscriptionLifecycleOrchestrationService orchestratorWithConstitutive;
+    private AscriptionSubtypeService<? extends AscriptionEntity> effectorSubtype;
+    private AscriptionStatusTransitionService serviceWithConstitutive;
 
     @BeforeEach
     @SuppressWarnings("unchecked") // Mockito mock() erases SubtypeHandler generic;
     // unavoidable — Java generics are not reified at runtime
     void setUpConstitutiveCascade() {
-      SubtypeHandler<? extends AscriptionEntity> mechSvc = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<? extends AscriptionEntity> mechSvc =
+          mock(AscriptionSubtypeService.class);
       when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
       when(mechSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
-      effectorSubtype = mock(SubtypeHandler.class);
+      effectorSubtype = mock(AscriptionSubtypeService.class);
       when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
       when(effectorSubtype.getCascadeTargetRoles())
           .thenReturn(
@@ -791,14 +795,18 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.MECHANISM,
                   AscriptionStatusTransitionCascadeType.CONSTITUTIVE));
 
-      SubtypeHandler<? extends AscriptionEntity> structSvc = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<? extends AscriptionEntity> structSvc =
+          mock(AscriptionSubtypeService.class);
       when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
-      orchestratorWithConstitutive =
-          new AscriptionLifecycleOrchestrationService(
-              stateMachine, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
-      orchestratorWithConstitutive.afterSingletonsInstantiated();
+      serviceWithConstitutive =
+          new AscriptionStatusTransitionService(
+              transitionRepo,
+              new AscriptionStateMachineService(),
+              entityManager,
+              List.of(structSvc, mechSvc, effectorSubtype));
+      serviceWithConstitutive.afterSingletonsInstantiated();
     }
 
     @Test
@@ -819,7 +827,7 @@ class AscriptionLifecycleOrchestrationTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class,
-              () -> orchestratorWithConstitutive.transition(mechId, "DEPRECATED"));
+              () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
       assertTrue(ex.getMessage().contains("Constitutive cascade failed"));
       assertEquals(
           AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
@@ -841,7 +849,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .findCascadeTargetsFrom(DefinitionSubjectType.MECHANISM, mechId);
 
-      orchestratorWithConstitutive.transition(mechId, "DEPRECATED");
+      serviceWithConstitutive.transition(mechId, "DEPRECATED");
 
       verify(transitionRepo, atLeast(2)).save(any(AscriptionStatusTransitionEntity.class));
     }
@@ -874,7 +882,7 @@ class AscriptionLifecycleOrchestrationTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class,
-              () -> orchestratorWithConstitutive.transition(mechId, "DEPRECATED"));
+              () -> serviceWithConstitutive.transition(mechId, "DEPRECATED"));
       assertTrue(ex.getMessage().contains("Constitutive cascade blocked"));
     }
   }
@@ -896,7 +904,7 @@ class AscriptionLifecycleOrchestrationTest {
       when(entityManager.find(AscriptionEntity.class, entityId)).thenReturn(entity);
       stubRepoSave();
 
-      orchestrator.transition(entityId, "SUSPENDED");
+      service.transition(entityId, "SUSPENDED");
 
       verify(structureSubtype).onDeactivation(entity);
     }
@@ -912,7 +920,7 @@ class AscriptionLifecycleOrchestrationTest {
       when(entityManager.find(AscriptionEntity.class, entityId)).thenReturn(entity);
       stubRepoSave();
 
-      orchestrator.transition(entityId, "RETIRED");
+      service.transition(entityId, "RETIRED");
 
       verify(structureSubtype).onDeactivation(entity);
     }
@@ -952,7 +960,7 @@ class AscriptionLifecycleOrchestrationTest {
           .getRefereeReferences(mechanism);
 
       // Should not throw — governing cascade is skipped on referee failure
-      assertDoesNotThrow(() -> orchestrator.transition(structureId, "DEPRECATED"));
+      assertDoesNotThrow(() -> service.transition(structureId, "DEPRECATED"));
 
       // Only 1 transition recorded (the source), not 2
       verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));
@@ -966,13 +974,14 @@ class AscriptionLifecycleOrchestrationTest {
   @Nested
   class DependentCascadeRefereePrecondition {
 
-    private SubtypeHandler<? extends AscriptionEntity> effectorSubtype;
-    private AscriptionLifecycleOrchestrationService orchestratorWithDependent;
+    private AscriptionSubtypeService<? extends AscriptionEntity> effectorSubtype;
+    private AscriptionStatusTransitionService serviceWithDependent;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
-      SubtypeHandler<? extends AscriptionEntity> mechSvc = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<? extends AscriptionEntity> mechSvc =
+          mock(AscriptionSubtypeService.class);
       when(mechSvc.getSubjectType()).thenReturn(DefinitionSubjectType.MECHANISM);
       when(mechSvc.getCascadeTargetRoles())
           .thenReturn(
@@ -980,7 +989,7 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.STRUCTURE,
                   AscriptionStatusTransitionCascadeType.GOVERNING));
 
-      effectorSubtype = mock(SubtypeHandler.class);
+      effectorSubtype = mock(AscriptionSubtypeService.class);
       when(effectorSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.EFFECTOR);
       when(effectorSubtype.getCascadeTargetRoles())
           .thenReturn(
@@ -988,14 +997,18 @@ class AscriptionLifecycleOrchestrationTest {
                   DefinitionSubjectType.MECHANISM,
                   AscriptionStatusTransitionCascadeType.DEPENDENT));
 
-      SubtypeHandler<? extends AscriptionEntity> structSvc = mock(SubtypeHandler.class);
+      AscriptionSubtypeService<? extends AscriptionEntity> structSvc =
+          mock(AscriptionSubtypeService.class);
       when(structSvc.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
       when(structSvc.getCascadeTargetRoles()).thenReturn(Map.of());
 
-      orchestratorWithDependent =
-          new AscriptionLifecycleOrchestrationService(
-              stateMachine, entityManager, List.of(structSvc, mechSvc, effectorSubtype));
-      orchestratorWithDependent.afterSingletonsInstantiated();
+      serviceWithDependent =
+          new AscriptionStatusTransitionService(
+              transitionRepo,
+              new AscriptionStateMachineService(),
+              entityManager,
+              List.of(structSvc, mechSvc, effectorSubtype));
+      serviceWithDependent.afterSingletonsInstantiated();
     }
 
     @Test
@@ -1022,7 +1035,7 @@ class AscriptionLifecycleOrchestrationTest {
           .when(effectorSubtype)
           .getRefereeReferences(effector);
 
-      assertDoesNotThrow(() -> orchestratorWithDependent.transition(mechId, "DEPRECATED"));
+      assertDoesNotThrow(() -> serviceWithDependent.transition(mechId, "DEPRECATED"));
 
       // Only 1 transition (source), not 2
       verify(transitionRepo, times(1)).save(any(AscriptionStatusTransitionEntity.class));

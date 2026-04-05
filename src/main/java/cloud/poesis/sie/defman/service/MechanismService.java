@@ -1,5 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
+import static cloud.poesis.sie.defman.service.AscriptionParsingService.extractRequiredUuid;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -8,6 +10,8 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
+import cloud.poesis.sie.defman.service.MechanismPortDerivationService.PortDerivation;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -19,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,7 +37,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class MechanismService implements SubtypeHandler<MechanismEntity> {
+public class MechanismService implements AscriptionSubtypeService<MechanismEntity> {
 
   private static final Logger LOG = LoggerFactory.getLogger(MechanismService.class);
 
@@ -40,16 +45,19 @@ public class MechanismService implements SubtypeHandler<MechanismEntity> {
   private final StructureService structureService;
   private final MechanismRuleValidationService ruleValidation;
   private final MechanismPortDerivationService portDerivation;
+  private final AscriptionService ascriptionService;
 
   public MechanismService(
       MechanismRepository mechanismRepo,
       StructureService structureService,
       MechanismRuleValidationService ruleValidation,
-      MechanismPortDerivationService portDerivation) {
+      MechanismPortDerivationService portDerivation,
+      @Lazy AscriptionService ascriptionService) {
     this.mechanismRepo = mechanismRepo;
     this.structureService = structureService;
     this.ruleValidation = ruleValidation;
     this.portDerivation = portDerivation;
+    this.ascriptionService = ascriptionService;
   }
 
   @Override
@@ -63,9 +71,13 @@ public class MechanismService implements SubtypeHandler<MechanismEntity> {
   }
 
   @Override
-  public MechanismEntity buildEntity(
+  public MechanismEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID structureId = UUID.fromString(statement.get("structure").asText());
+    UUID structureId =
+        extractRequiredUuid(
+            statement,
+            "structure",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
     MechanismEntity entity = new MechanismEntity(definition, archetypeRef, statement, structure);
@@ -135,7 +147,7 @@ public class MechanismService implements SubtypeHandler<MechanismEntity> {
     // non-null/non-blank.
     String function = m.getStatement().get("function").asText();
     UUID structureDefId = m.getStructure().getDefinition().getId();
-    AscriptionService.validatePropertyUniquenessAcrossDefinitions(
+    AscriptionUniquenessValidationService.validatePropertyAcrossDefinitions(
         getSubjectType(),
         "function",
         function,
@@ -146,7 +158,7 @@ public class MechanismService implements SubtypeHandler<MechanismEntity> {
   }
 
   // ======================================================================
-  // Port auto-derivation (U3/U4 + U12) — delegated
+  // Port auto-derivation (U3/U4 + U12) — derive specs, then create via AscriptionService
   // ======================================================================
 
   @Override
@@ -155,6 +167,9 @@ public class MechanismService implements SubtypeHandler<MechanismEntity> {
       throw new IllegalArgumentException(
           "Expected MechanismEntity, got " + saved.getClass().getSimpleName());
     }
-    portDerivation.derivePortsFromRule(mechanism);
+    List<PortDerivation> specs = portDerivation.derivePortSpecs(mechanism);
+    for (PortDerivation spec : specs) {
+      ascriptionService.create(spec.archetypeId(), spec.statement(), null);
+    }
   }
 }

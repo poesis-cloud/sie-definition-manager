@@ -13,6 +13,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 /**
  * Contract for GSM subject type handlers. Each of the 8 GSM subject types (Structure, Mechanism,
@@ -23,7 +26,7 @@ import java.util.UUID;
  * @author Clément Cazaud
  * @since 1.0.0
  */
-public interface SubtypeHandler<T extends AscriptionEntity> {
+public interface AscriptionSubtypeService<T extends AscriptionEntity> {
 
   /**
    * Returns the GSM subject type handled by this handler.
@@ -40,14 +43,14 @@ public interface SubtypeHandler<T extends AscriptionEntity> {
   AbstractAscriptionRepository<T> getRepository();
 
   /**
-   * Builds a subtype-specific entity from the given definition, archetype, and statement.
+   * Creates a subtype-specific entity from the given definition, archetype, and statement.
    *
    * @param definition the stable identity
    * @param archetypeRef the typing archetype
    * @param statement the JSON statement payload
    * @return the constructed entity (not yet persisted)
    */
-  T buildEntity(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement);
+  T create(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement);
 
   /**
    * Returns identity-bound field values for the given entity.
@@ -134,8 +137,40 @@ public interface SubtypeHandler<T extends AscriptionEntity> {
   }
 
   // ======================================================================
-  // Repository query convenience defaults (used by orchestration service)
+  // Repository query convenience defaults
   // ======================================================================
+
+  /**
+   * Returns a page of all ascriptions for this subtype.
+   *
+   * @param pageable pagination parameters
+   * @return page of ascription entities
+   */
+  default Page<T> findAll(Pageable pageable) {
+    return getRepository().findAll(pageable);
+  }
+
+  /**
+   * Returns a page of ascriptions for this subtype filtered by status.
+   *
+   * @param status the lifecycle status filter
+   * @param pageable pagination parameters
+   * @return page of matching ascription entities
+   */
+  default Page<T> findAllByStatus(AscriptionStatusType status, Pageable pageable) {
+    return getRepository().findAllByStatus(status, pageable);
+  }
+
+  /**
+   * Returns a page of ascriptions for this subtype matching a specification.
+   *
+   * @param spec the JPA specification
+   * @param pageable pagination parameters
+   * @return page of matching ascription entities
+   */
+  default Page<T> findAll(Specification<T> spec, Pageable pageable) {
+    return getRepository().findAll(spec, pageable);
+  }
 
   /**
    * Returns all ascriptions for a given definition, ordered by timestamp descending.

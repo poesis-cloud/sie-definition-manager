@@ -154,23 +154,7 @@ class DefinitionServiceTest {
   }
 
   @Nested
-  class Create {
-
-    @Test
-    void savesAndReturnsEntity() {
-      DefinitionEntity saved = new DefinitionEntity(DefinitionSubjectType.NORM);
-      when(definitionRepository.save(any(DefinitionEntity.class))).thenReturn(saved);
-
-      DefinitionEntity result = service.create(DefinitionSubjectType.NORM);
-
-      assertNotNull(result);
-      assertEquals(DefinitionSubjectType.NORM, result.getSubjectType());
-      verify(definitionRepository).save(any(DefinitionEntity.class));
-    }
-  }
-
-  @Nested
-  class ResolveOrCreate {
+  class Resolve {
 
     @Test
     void resolvesExisting_whenIdProvided() {
@@ -178,7 +162,7 @@ class DefinitionServiceTest {
       DefinitionEntity entity = stubDefinition(id, DefinitionSubjectType.DIRECTIVE, true);
       when(definitionRepository.findById(id)).thenReturn(Optional.of(entity));
 
-      DefinitionEntity result = service.resolveOrCreate(id, DefinitionSubjectType.DIRECTIVE);
+      DefinitionEntity result = service.resolve(id, DefinitionSubjectType.DIRECTIVE);
 
       assertEquals(entity, result);
     }
@@ -190,7 +174,7 @@ class DefinitionServiceTest {
 
       assertThrows(
           ResourceNotFoundException.class,
-          () -> service.resolveOrCreate(id, DefinitionSubjectType.STRUCTURE));
+          () -> service.resolve(id, DefinitionSubjectType.STRUCTURE));
     }
 
     @Test
@@ -198,7 +182,7 @@ class DefinitionServiceTest {
       DefinitionEntity saved = new DefinitionEntity(DefinitionSubjectType.INTERACTION);
       when(definitionRepository.save(any(DefinitionEntity.class))).thenReturn(saved);
 
-      DefinitionEntity result = service.resolveOrCreate(null, DefinitionSubjectType.INTERACTION);
+      DefinitionEntity result = service.resolve(null, DefinitionSubjectType.INTERACTION);
 
       assertNotNull(result);
       verify(definitionRepository).save(any(DefinitionEntity.class));

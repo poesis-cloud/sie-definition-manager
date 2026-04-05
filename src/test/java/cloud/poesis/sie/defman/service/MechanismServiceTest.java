@@ -17,6 +17,7 @@ import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.MechanismRepository;
+import cloud.poesis.sie.defman.service.MechanismPortDerivationService.PortDerivation;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
@@ -24,7 +25,6 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.EntityManager;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -48,21 +48,19 @@ class MechanismServiceTest {
 
   @Mock private StructureService structureService;
 
-  @Mock private DefinitionService definitionService;
-
-  @Mock private AscriptionStateMachineService stateMachine;
-
   @Mock private MechanismRuleValidationService ruleValidation;
 
   @Mock private MechanismPortDerivationService portDerivation;
 
-  @Mock private EntityManager entityManager;
+  @Mock private AscriptionService ascriptionService;
 
   private MechanismService service;
 
   @BeforeEach
   void setUp() {
-    service = new MechanismService(mechanismRepo, structureService, ruleValidation, portDerivation);
+    service =
+        new MechanismService(
+            mechanismRepo, structureService, ruleValidation, portDerivation, ascriptionService);
   }
 
   // ========================================================================
@@ -230,11 +228,11 @@ class MechanismServiceTest {
   }
 
   // ========================================================================
-  // BuildEntity
+  // Create
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void validStatement_returnsEntity() {
@@ -250,7 +248,7 @@ class MechanismServiceTest {
       stmt.put("function", "UserValidation");
       stmt.put("rule", "sys.receive(\"Input\")\nsys.effect(\"Output\", {})");
 
-      MechanismEntity result = service.buildEntity(def, archetype, stmt);
+      MechanismEntity result = service.create(def, archetype, stmt);
       assertNotNull(result);
       assertEquals(def, result.getDefinition());
       assertEquals(structure, result.getStructure());
@@ -269,8 +267,7 @@ class MechanismServiceTest {
       stmt.put("function", "X");
       stmt.put("rule", "sys.receive(\"A\")\nsys.effect(\"B\", {})");
 
-      assertThrows(
-          ResourceNotFoundException.class, () -> service.buildEntity(def, archetype, stmt));
+      assertThrows(ResourceNotFoundException.class, () -> service.create(def, archetype, stmt));
     }
 
     @Test
@@ -291,7 +288,7 @@ class MechanismServiceTest {
               new RuleViolationException(
                   AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING, "syntax error"));
 
-      assertThrows(RuleViolationException.class, () -> service.buildEntity(def, archetype, stmt));
+      assertThrows(RuleViolationException.class, () -> service.create(def, archetype, stmt));
     }
   }
 
@@ -347,28 +344,44 @@ class MechanismServiceTest {
   }
 
   // ========================================================================
-  // AfterCreate — delegation to MechanismPortDerivationService
+  // AfterCreate — derive specs then create via AscriptionService
   // ========================================================================
 
   @Nested
   class AfterCreate {
 
     @Test
-    void delegatesToPortDerivation() {
-      UUID mechDefId = UUID.randomUUID();
-      DefinitionEntity mechDef = mock(DefinitionEntity.class);
-      when(mechDef.getId()).thenReturn(mechDefId);
-
-      ObjectNode stmt = MAPPER.createObjectNode();
-      stmt.put("rule", "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
-
+    void derivesSpecsThenCreatesViaAscriptionService() {
       MechanismEntity mechanism = mock(MechanismEntity.class);
-      when(mechanism.getStatement()).thenReturn(stmt);
-      when(mechanism.getDefinition()).thenReturn(mechDef);
+
+      UUID arch1 = UUID.randomUUID();
+      UUID arch2 = UUID.randomUUID();
+      ObjectNode stmt1 = MAPPER.createObjectNode().put("mechanism", "m1");
+      ObjectNode stmt2 = MAPPER.createObjectNode().put("mechanism", "m2");
+
+      when(portDerivation.derivePortSpecs(mechanism))
+          .thenReturn(List.of(new PortDerivation(arch1, stmt1), new PortDerivation(arch2, stmt2)));
 
       service.afterCreate(mechanism);
 
-      verify(portDerivation).derivePortsFromRule(mechanism);
+      verify(portDerivation).derivePortSpecs(mechanism);
+      verify(ascriptionService).create(arch1, stmt1, null);
+      verify(ascriptionService).create(arch2, stmt2, null);
+    }
+
+    @Test
+    void noSpecs_noCreation() {
+      MechanismEntity mechanism = mock(MechanismEntity.class);
+      when(portDerivation.derivePortSpecs(mechanism)).thenReturn(List.of());
+
+      service.afterCreate(mechanism);
+
+      verify(portDerivation).derivePortSpecs(mechanism);
+      verify(ascriptionService, org.mockito.Mockito.never())
+          .create(
+              org.mockito.ArgumentMatchers.any(),
+              org.mockito.ArgumentMatchers.any(),
+              org.mockito.ArgumentMatchers.any());
     }
 
     @Test

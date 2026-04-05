@@ -17,22 +17,22 @@ import org.springframework.stereotype.Service;
  *
  * <p>This service owns the {@link ArchetypeRepository} dependency for <strong>read-only schema
  * resolution</strong> needed by ascription-layer services that cannot inject {@link
- * ArchetypeService} (which implements {@link SubtypeHandler}). This is a documented exception to
- * the repository-service exclusivity rule: the exception concentrates in this single schema-focused
- * service rather than leaking into multiple consumers.
+ * ArchetypeService} (which implements {@link AscriptionSubtypeService}). This is a documented
+ * exception to the repository-service exclusivity rule: the exception concentrates in this single
+ * schema-focused service rather than leaking into multiple consumers.
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
 @Service
-public class ArchetypeSchemaService {
+public class ArchetypeParsingService {
 
   private static final Pattern GSM_URI_PATTERN =
       Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
 
   private final ArchetypeRepository archetypeRepository;
 
-  public ArchetypeSchemaService(ArchetypeRepository archetypeRepository) {
+  public ArchetypeParsingService(ArchetypeRepository archetypeRepository) {
     this.archetypeRepository = archetypeRepository;
   }
 

@@ -175,11 +175,11 @@ class StructureServiceTest {
   }
 
   // ========================================================================
-  // BuildEntity
+  // Create
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void returnsEntity() {
@@ -188,7 +188,7 @@ class StructureServiceTest {
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("purpose", "test-structure");
 
-      StructureEntity result = service.buildEntity(def, archetype, stmt);
+      StructureEntity result = service.create(def, archetype, stmt);
       assertEquals(def, result.getDefinition());
     }
   }

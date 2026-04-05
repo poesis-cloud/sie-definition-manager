@@ -17,12 +17,12 @@ import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class ArchetypeSchemaAnnotationValidationServiceTest {
+class ArchetypeAnnotationValidationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private final ArchetypeSchemaAnnotationValidationService service =
-      new ArchetypeSchemaAnnotationValidationService();
+  private final ArchetypeAnnotationValidationService service =
+      new ArchetypeAnnotationValidationService();
 
   // ========================================================================
   // Annotation validation
@@ -148,7 +148,7 @@ class ArchetypeSchemaAnnotationValidationServiceTest {
         props.set("gamma", p3);
 
         Set<String> result =
-            ArchetypeSchemaAnnotationValidationService.collectIdentityBoundFields(schema);
+            ArchetypeAnnotationValidationService.collectIdentityBoundFields(schema);
         assertEquals(Set.of("alpha", "gamma"), result);
       }
 
@@ -156,7 +156,7 @@ class ArchetypeSchemaAnnotationValidationServiceTest {
       void noProperties_returnsEmpty() {
         ObjectNode schema = MAPPER.createObjectNode();
         Set<String> result =
-            ArchetypeSchemaAnnotationValidationService.collectIdentityBoundFields(schema);
+            ArchetypeAnnotationValidationService.collectIdentityBoundFields(schema);
         assertTrue(result.isEmpty());
       }
     }

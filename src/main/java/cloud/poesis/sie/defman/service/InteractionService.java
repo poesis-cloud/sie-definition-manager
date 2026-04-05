@@ -1,5 +1,7 @@
 package cloud.poesis.sie.defman.service;
 
+import static cloud.poesis.sie.defman.service.AscriptionParsingService.extractRequiredUuid;
+
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -29,7 +31,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class InteractionService implements SubtypeHandler<InteractionEntity> {
+public class InteractionService implements AscriptionSubtypeService<InteractionEntity> {
 
   private final InteractionRepository interactionRepo;
   private final EffectorService effectorService;
@@ -55,12 +57,20 @@ public class InteractionService implements SubtypeHandler<InteractionEntity> {
   }
 
   @Override
-  public InteractionEntity buildEntity(
+  public InteractionEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID effectorId = UUID.fromString(statement.get("effector").asText());
+    UUID effectorId =
+        extractRequiredUuid(
+            statement,
+            "effector",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     EffectorEntity effector = effectorService.findEntityById(effectorId);
 
-    UUID receptorId = UUID.fromString(statement.get("receptor").asText());
+    UUID receptorId =
+        extractRequiredUuid(
+            statement,
+            "receptor",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     ReceptorEntity receptor = receptorService.findEntityById(receptorId);
 
     // GSM Interaction validation: effector.archetype must be schema-compatible with

@@ -33,7 +33,7 @@ import org.mockito.quality.Strictness;
 
 /**
  * Tests Effector lifecycle descriptors: identity-bound values, referee references, cascade target
- * roles, buildEntity, findEntityById, and findCascadeTargetsFrom.
+ * roles, create, findEntityById, and findCascadeTargetsFrom.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -116,11 +116,11 @@ class EffectorServiceTest {
   }
 
   // ========================================================================
-  // buildEntity — happy path
+  // create — happy path
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void validStatement_buildsEntity() {
@@ -140,7 +140,7 @@ class EffectorServiceTest {
       DefinitionEntity definition = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-      EffectorEntity result = service.buildEntity(definition, archetypeRef, statement);
+      EffectorEntity result = service.create(definition, archetypeRef, statement);
 
       assertNotNull(result);
     }

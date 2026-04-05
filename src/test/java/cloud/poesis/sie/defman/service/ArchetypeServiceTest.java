@@ -49,11 +49,11 @@ class ArchetypeServiceTest {
 
   @Mock private ArchetypeRepository archetypeRepo;
 
-  @Mock private ArchetypeSchemaPropertyIndexationService indexProvisioning;
+  @Mock private ArchetypePropertyIndexationService indexProvisioning;
 
-  @Mock private ArchetypeSchemaAnnotationValidationService annotationValidation;
+  @Mock private ArchetypeAnnotationValidationService annotationValidation;
 
-  @Mock private ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
+  @Mock private ArchetypeCompositionValidationService compositionValidation;
 
   private ArchetypeService service;
 
@@ -61,7 +61,7 @@ class ArchetypeServiceTest {
   void setUp() {
     service =
         new ArchetypeService(
-            archetypeRepo, indexProvisioning, annotationValidation, schemaCompositionValidation);
+            archetypeRepo, indexProvisioning, annotationValidation, compositionValidation);
     // Default: findInEffectByTitle returns empty for any title not explicitly
     // mocked.
     when(archetypeRepo.findInEffectByTitle(anyString())).thenReturn(Optional.empty());
@@ -164,10 +164,10 @@ class ArchetypeServiceTest {
   }
 
   // Schema composition validation is covered in
-  // ArchetypeSchemaCompositionValidationServiceTest.
+  // ArchetypeCompositionValidationServiceTest.
 
   // ========================================================================
-  // ExtractTitleFromRef (static utility — now on ArchetypeSchemaService)
+  // ExtractTitleFromRef (static utility — now on ArchetypeParsingService)
   // ========================================================================
 
   @Nested
@@ -177,16 +177,16 @@ class ArchetypeServiceTest {
     void validUri() {
       assertEquals(
           "SecurityProperties",
-          ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/SecurityProperties/v1"));
+          ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/SecurityProperties/v1"));
       assertEquals(
-          "MyType", ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/MyType/v42"));
+          "MyType", ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/MyType/v42"));
     }
 
     @Test
     void invalidUri() {
-      assertNull(ArchetypeSchemaService.extractTitleFromRef("https://example.com/schema"));
-      assertNull(ArchetypeSchemaService.extractTitleFromRef("not-a-uri"));
-      assertNull(ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/NoVersion"));
+      assertNull(ArchetypeParsingService.extractTitleFromRef("https://example.com/schema"));
+      assertNull(ArchetypeParsingService.extractTitleFromRef("not-a-uri"));
+      assertNull(ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/NoVersion"));
     }
   }
 
@@ -216,7 +216,7 @@ class ArchetypeServiceTest {
       ArchetypeEntity tenant = mockArchetype(tenantSchema);
       when(tenant.getId()).thenReturn(tenantId);
       when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
-      when(schemaCompositionValidation.resolveGsmBases(
+      when(compositionValidation.resolveGsmBases(
               eq("gsm://archetypes/StructureArchetype/v1"), eq("MyServiceArchetype"), any()))
           .thenReturn(Set.of("StructureArchetype"));
 
@@ -232,7 +232,7 @@ class ArchetypeServiceTest {
       ArchetypeEntity tenant = mockArchetype(tenantSchema);
       when(tenant.getId()).thenReturn(tenantId);
       when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
-      when(schemaCompositionValidation.resolveGsmBases(
+      when(compositionValidation.resolveGsmBases(
               eq("gsm://archetypes/BaseMechanismTemplate/v1"), eq("SpecificMechanism"), any()))
           .thenReturn(Set.of("MechanismArchetype"));
 
@@ -281,16 +281,16 @@ class ArchetypeServiceTest {
   }
 
   // Annotation validation is covered in
-  // ArchetypeSchemaAnnotationValidationServiceTest.
-  // BuildEntity delegation tests below verify that ArchetypeService calls
-  // annotationValidation.
+  // ArchetypeAnnotationValidationServiceTest.
+  // Create delegation tests below verify that ArchetypeService calls
+  // annotationValidation/compositionValidation.
 
   // ========================================================================
-  // BuildEntity
+  // Create
   // ========================================================================
 
   @Nested
-  class BuildEntity {
+  class Create {
 
     @Test
     void validStatement_returnsEntity() {
@@ -301,7 +301,7 @@ class ArchetypeServiceTest {
       when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(def.getId()))
           .thenReturn(List.of());
 
-      ArchetypeEntity result = service.buildEntity(def, archetypeRef, stmt);
+      ArchetypeEntity result = service.create(def, archetypeRef, stmt);
       assertNotNull(result);
       assertEquals(def, result.getDefinition());
     }
@@ -312,8 +312,7 @@ class ArchetypeServiceTest {
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
       RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.buildEntity(def, archetypeRef, null));
+          assertThrows(RuleViolationException.class, () -> service.create(def, archetypeRef, null));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -327,7 +326,7 @@ class ArchetypeServiceTest {
       RuleViolationException ex =
           assertThrows(
               RuleViolationException.class,
-              () -> service.buildEntity(def, archetypeRef, MAPPER.createArrayNode()));
+              () -> service.create(def, archetypeRef, MAPPER.createArrayNode()));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -342,7 +341,7 @@ class ArchetypeServiceTest {
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
       when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(List.of());
 
-      service.buildEntity(def, archetypeRef, stmt);
+      service.create(def, archetypeRef, stmt);
 
       verify(annotationValidation).validateRefUriPolicy(stmt);
     }
@@ -357,7 +356,7 @@ class ArchetypeServiceTest {
       List<ArchetypeEntity> existing = List.of(mock(ArchetypeEntity.class));
       when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(defId)).thenReturn(existing);
 
-      service.buildEntity(def, archetypeRef, stmt);
+      service.create(def, archetypeRef, stmt);
 
       verify(annotationValidation).validateArchetypeAnnotations(stmt, existing);
     }
@@ -607,7 +606,7 @@ class ArchetypeServiceTest {
   }
 
   // Schema composition validation is covered in
-  // ArchetypeSchemaCompositionValidationServiceTest.
+  // ArchetypeCompositionValidationServiceTest.
 
   // ========================================================================
   // IdentityBound getIdentityBoundValues extra branches
@@ -813,5 +812,5 @@ class ArchetypeServiceTest {
   }
 
   // $ref URI policy validation is covered in
-  // ArchetypeSchemaAnnotationValidationServiceTest.
+  // ArchetypeAnnotationValidationServiceTest.
 }

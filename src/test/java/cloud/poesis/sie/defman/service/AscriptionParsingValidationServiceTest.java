@@ -18,7 +18,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,39 +31,17 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class StatementValidationServiceTest {
+class AscriptionParsingValidationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ArchetypeSchemaService archetypeSchemaService;
+  @Mock private ArchetypeParsingService archetypeSchemaService;
 
-  @Mock private AscriptionArchetypeSchemaAnnotationEnforcementService annotationEnforcement;
-
-  private AscriptionStatementValidationService svc;
+  private AscriptionParsingValidationService svc;
 
   @BeforeEach
   void setUp() {
-    svc = new AscriptionStatementValidationService(archetypeSchemaService, annotationEnforcement);
-  }
-
-  // ========================================================================
-  // enforceAnnotations — delegation
-  // ========================================================================
-
-  @Nested
-  class EnforceAnnotationsDelegation {
-
-    @Test
-    void delegatesToAnnotationEnforcement() {
-      ArchetypeEntity archetype = stubArchetypeWithSchema(MAPPER.createObjectNode());
-      ObjectNode statement = MAPPER.createObjectNode().put("x", "val");
-      UUID defId = UUID.randomUUID();
-
-      assertDoesNotThrow(
-          () -> svc.enforceAnnotations(statement, archetype, defId, id -> List.of()));
-
-      verify(annotationEnforcement).enforceAnnotations(any(), any(), any(), any());
-    }
+    svc = new AscriptionParsingValidationService(archetypeSchemaService);
   }
 
   // ========================================================================

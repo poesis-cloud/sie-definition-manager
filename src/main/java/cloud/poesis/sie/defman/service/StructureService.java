@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class StructureService implements SubtypeHandler<StructureEntity> {
+public class StructureService implements AscriptionSubtypeService<StructureEntity> {
 
   private final StructureRepository structureRepo;
 
@@ -47,7 +47,7 @@ public class StructureService implements SubtypeHandler<StructureEntity> {
   }
 
   @Override
-  public StructureEntity buildEntity(
+  public StructureEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
     return new StructureEntity(definition, archetypeRef, statement);
   }
@@ -93,7 +93,7 @@ public class StructureService implements SubtypeHandler<StructureEntity> {
     // Statement is immutable and was validated at creation — purpose is guaranteed
     // non-null/non-blank.
     String purpose = entity.getStatement().get("purpose").asText();
-    AscriptionService.validatePropertyUniquenessAcrossDefinitions(
+    AscriptionUniquenessValidationService.validatePropertyAcrossDefinitions(
         getSubjectType(),
         "purpose",
         purpose,
