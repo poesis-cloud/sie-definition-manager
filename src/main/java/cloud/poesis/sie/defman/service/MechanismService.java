@@ -158,7 +158,8 @@ public class MechanismService implements AscriptionSubtypeService<MechanismEntit
   }
 
   // ======================================================================
-  // Port auto-derivation (U3/U4 + U12) — derive specs, then create via AscriptionService
+  // Port auto-derivation (U3/U4 + U12) — derive specs, then create via
+  // AscriptionService
   // ======================================================================
 
   @Override

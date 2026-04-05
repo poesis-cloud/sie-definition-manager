@@ -356,7 +356,8 @@ class MechanismPortDerivationServiceTest {
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
-      // 3 ports: trigger receptor (base), effector (base), feedback receptor (typed AckPort)
+      // 3 ports: trigger receptor (base), effector (base), feedback receptor (typed
+      // AckPort)
       assertEquals(3, specs.size());
       assertEquals(baseRec.getId(), specs.get(0).archetypeId()); // trigger receptor → base
       assertEquals(baseEff.getId(), specs.get(1).archetypeId()); // effector → base
