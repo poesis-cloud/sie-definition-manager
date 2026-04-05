@@ -70,7 +70,8 @@ class ArchetypeServiceTest {
             mock(AscriptionStateMachineService.class),
             mock(AscriptionStatementValidationService.class),
             mock(EntityManager.class));
-    // Default: findInEffectByTitle returns empty for any title not explicitly mocked.
+    // Default: findInEffectByTitle returns empty for any title not explicitly
+    // mocked.
     when(archetypeRepo.findInEffectByTitle(anyString())).thenReturn(Optional.empty());
   }
 
@@ -170,7 +171,8 @@ class ArchetypeServiceTest {
     }
   }
 
-  // Schema composition validation is covered in ArchetypeSchemaCompositionValidationServiceTest.
+  // Schema composition validation is covered in
+  // ArchetypeSchemaCompositionValidationServiceTest.
 
   // ========================================================================
   // ExtractTitleFromRef (static utility — now on ArchetypeSchemaService)
@@ -286,8 +288,10 @@ class ArchetypeServiceTest {
     }
   }
 
-  // Annotation validation is covered in ArchetypeSchemaAnnotationValidationServiceTest.
-  // BuildEntity delegation tests below verify that ArchetypeService calls annotationValidation.
+  // Annotation validation is covered in
+  // ArchetypeSchemaAnnotationValidationServiceTest.
+  // BuildEntity delegation tests below verify that ArchetypeService calls
+  // annotationValidation.
 
   // ========================================================================
   // BuildEntity
@@ -610,7 +614,8 @@ class ArchetypeServiceTest {
     }
   }
 
-  // Schema composition validation is covered in ArchetypeSchemaCompositionValidationServiceTest.
+  // Schema composition validation is covered in
+  // ArchetypeSchemaCompositionValidationServiceTest.
 
   // ========================================================================
   // IdentityBound getIdentityBoundValues extra branches
@@ -815,5 +820,6 @@ class ArchetypeServiceTest {
     }
   }
 
-  // $ref URI policy validation is covered in ArchetypeSchemaAnnotationValidationServiceTest.
+  // $ref URI policy validation is covered in
+  // ArchetypeSchemaAnnotationValidationServiceTest.
 }

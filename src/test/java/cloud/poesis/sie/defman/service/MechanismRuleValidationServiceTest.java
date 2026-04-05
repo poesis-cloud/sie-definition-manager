@@ -53,9 +53,9 @@ class MechanismRuleValidationServiceTest {
       void minimalRule_onTriggerOnly() {
         String rule =
             """
-            sys.receive("AlertEvent")
-            sys.effect("NotificationEvent", {"level": "warn"})
-            """;
+                        sys.receive("AlertEvent")
+                        sys.effect("NotificationEvent", {"level": "warn"})
+                        """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("AlertEvent", trigger);
       }
@@ -64,9 +64,9 @@ class MechanismRuleValidationServiceTest {
       void onWithAssignment() {
         String rule =
             """
-            evt = sys.receive("IncomingOrder")
-            sys.effect("OrderRecord", {"id": uuid7(), "data": evt})
-            """;
+                        evt = sys.receive("IncomingOrder")
+                        sys.effect("OrderRecord", {"id": uuid7(), "data": evt})
+                        """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("IncomingOrder", trigger);
       }
@@ -75,11 +75,11 @@ class MechanismRuleValidationServiceTest {
       void multipleSysCalls() {
         String rule =
             """
-            evt = sys.receive("PaymentRequest")
-            sys.effect("PaymentRecord", {"amount": evt}).receive("PaymentAck")
-            sys.effect("PaymentProcessed", {"status": "ok"})
-            sys.effect("AccountBalance", {"delta": 100}).by("BalanceEffector")
-            """;
+                        evt = sys.receive("PaymentRequest")
+                        sys.effect("PaymentRecord", {"amount": evt}).receive("PaymentAck")
+                        sys.effect("PaymentProcessed", {"status": "ok"})
+                        sys.effect("AccountBalance", {"delta": 100}).by("BalanceEffector")
+                        """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("PaymentRequest", trigger);
       }
@@ -88,10 +88,10 @@ class MechanismRuleValidationServiceTest {
       void withConditionalLogic() {
         String rule =
             """
-            evt = sys.receive("ValidationRequest")
-            if evt:
-                sys.effect("ValidationOk", {"valid": True})
-            """;
+                        evt = sys.receive("ValidationRequest")
+                        if evt:
+                            sys.effect("ValidationOk", {"valid": True})
+                        """;
         String trigger = service.validateStarlarkRule(rule);
         assertEquals("ValidationRequest", trigger);
       }
@@ -100,11 +100,11 @@ class MechanismRuleValidationServiceTest {
       void withForLoop() {
         String rule =
             """
-            evt = sys.receive("BatchInput")
-            items = [1, 2, 3]
-            for item in items:
-                sys.effect("ItemProcessed", {"item": item})
-            """;
+                        evt = sys.receive("BatchInput")
+                        items = [1, 2, 3]
+                        for item in items:
+                            sys.effect("ItemProcessed", {"item": item})
+                        """;
         assertEquals("BatchInput", service.validateStarlarkRule(rule));
       }
 
@@ -112,11 +112,11 @@ class MechanismRuleValidationServiceTest {
       void withLocalVariables() {
         String rule =
             """
-            evt = sys.receive("SomeEvent")
-            x = 42
-            name = "hello"
-            sys.effect("Result", {"val": x, "name": name})
-            """;
+                        evt = sys.receive("SomeEvent")
+                        x = 42
+                        name = "hello"
+                        sys.effect("Result", {"val": x, "name": name})
+                        """;
         assertEquals("SomeEvent", service.validateStarlarkRule(rule));
       }
 
@@ -124,11 +124,11 @@ class MechanismRuleValidationServiceTest {
       void withBuiltinFunctions() {
         String rule =
             """
-            evt = sys.receive("Input")
-            length = len("hello")
-            items = sorted([3, 1, 2])
-            sys.effect("Output", {"len": length, "items": items})
-            """;
+                        evt = sys.receive("Input")
+                        length = len("hello")
+                        items = sorted([3, 1, 2])
+                        sys.effect("Output", {"len": length, "items": items})
+                        """;
         assertEquals("Input", service.validateStarlarkRule(rule));
       }
 
@@ -136,13 +136,13 @@ class MechanismRuleValidationServiceTest {
       void withHostFunctions() {
         String rule =
             """
-            evt = sys.receive("Input")
-            ts = now()
-            id = uuid7()
-            matched = fullmatch("^abc.*", "abcdef")
-            found = search("[0-9]+", "abc123")
-            sys.effect("Output", {"ts": ts, "id": id})
-            """;
+                        evt = sys.receive("Input")
+                        ts = now()
+                        id = uuid7()
+                        matched = fullmatch("^abc.*", "abcdef")
+                        found = search("[0-9]+", "abc123")
+                        sys.effect("Output", {"ts": ts, "id": id})
+                        """;
         assertEquals("Input", service.validateStarlarkRule(rule));
       }
 
@@ -150,13 +150,13 @@ class MechanismRuleValidationServiceTest {
       void allChainPatterns() {
         String rule =
             """
-            sys.receive("Trigger")
-            sys.effect("A", {})
-            sys.effect("B", {}).by("BPort")
-            sys.effect("C", {}).receive("CAck")
-            sys.effect("D", {}).receive("DAck").on("DPort")
-            sys.effect("E", {}).by("EPort").receive("EAck").on("EReceptor")
-            """;
+                        sys.receive("Trigger")
+                        sys.effect("A", {})
+                        sys.effect("B", {}).by("BPort")
+                        sys.effect("C", {}).receive("CAck")
+                        sys.effect("D", {}).receive("DAck").on("DPort")
+                        sys.effect("E", {}).by("EPort").receive("EAck").on("EReceptor")
+                        """;
         assertEquals("Trigger", service.validateStarlarkRule(rule));
       }
     }
@@ -198,9 +198,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive()
-                    sys.effect("X", {})
-                    """));
+                                        sys.receive()
+                                        sys.effect("X", {})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
             ex.getRuleType());
@@ -215,10 +215,10 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    name = "Foo"
-                    sys.receive(name)
-                    sys.effect("X", {})
-                    """));
+                                        name = "Foo"
+                                        sys.receive(name)
+                                        sys.effect("X", {})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
             ex.getRuleType());
@@ -233,9 +233,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("")
-                    sys.effect("X", {})
-                    """));
+                                        sys.receive("")
+                                        sys.effect("X", {})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
             ex.getRuleType());
@@ -250,9 +250,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("First")
-                    sys.receive("Second")
-                    """));
+                                        sys.receive("First")
+                                        sys.receive("Second")
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
             ex.getRuleType());
@@ -271,10 +271,10 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    load("module.bzl", "helper")
-                    sys.receive("X")
-                    sys.effect("Y", {})
-                    """));
+                                        load("module.bzl", "helper")
+                                        sys.receive("X")
+                                        sys.effect("Y", {})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_CONSTRUCT_BLACKLIST,
             ex.getRuleType());
@@ -293,10 +293,10 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    archetype = "DynamicType"
-                    sys.effect(archetype, {})
-                    """));
+                                        sys.receive("Input")
+                                        archetype = "DynamicType"
+                                        sys.effect(archetype, {})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("string literal"));
@@ -310,9 +310,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect()
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect()
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("1-2 positional"));
@@ -326,9 +326,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("A", {}, "extra")
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("A", {}, "extra")
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("1-2 positional"));
@@ -342,10 +342,10 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    port = "MyPort"
-                    sys.effect("Output", {}).by(port)
-                    """));
+                                        sys.receive("Input")
+                                        port = "MyPort"
+                                        sys.effect("Output", {}).by(port)
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains("string literal"));
@@ -359,9 +359,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {}).receive()
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {}).receive()
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
         assertTrue(ex.getMessage().contains(".receive()"));
@@ -375,9 +375,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {}).on("MyPort")
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {}).on("MyPort")
+                                        """));
         assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
         assertTrue(ex.getMessage().contains(".on()"));
       }
@@ -390,9 +390,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {}).receive("Ack").by("Port")
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {}).receive("Ack").by("Port")
+                                        """));
         assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Invalid chain order"));
       }
@@ -405,9 +405,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {}).then("X")
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {}).then("X")
+                                        """));
         assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
         assertTrue(ex.getMessage().contains("Unknown chain method"));
       }
@@ -420,9 +420,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {}).receive("A").receive("B")
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {}).receive("A").receive("B")
+                                        """));
         assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
       }
     }
@@ -438,10 +438,10 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    result = unknown_func()
-                    sys.effect("Output", {"r": result})
-                    """));
+                                        sys.receive("Input")
+                                        result = unknown_func()
+                                        sys.effect("Output", {"r": result})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
             ex.getRuleType());
@@ -457,9 +457,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {"val": external_var})
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {"val": external_var})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
             ex.getRuleType());
@@ -474,9 +474,9 @@ class MechanismRuleValidationServiceTest {
       void sysId_valid() {
         String rule =
             """
-            sys.receive("Input")
-            sys.effect("Output", {"mechanismId": sys.id})
-            """;
+                        sys.receive("Input")
+                        sys.effect("Output", {"mechanismId": sys.id})
+                        """;
         assertEquals("Input", service.validateStarlarkRule(rule));
       }
 
@@ -488,9 +488,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {"name": sys.name})
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {"name": sys.name})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
             ex.getRuleType());
@@ -506,9 +506,9 @@ class MechanismRuleValidationServiceTest {
                 () ->
                     service.validateStarlarkRule(
                         """
-                    sys.receive("Input")
-                    sys.effect("Output", {"v": sys.version})
-                    """));
+                                        sys.receive("Input")
+                                        sys.effect("Output", {"v": sys.version})
+                                        """));
         assertEquals(
             AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
             ex.getRuleType());
@@ -576,9 +576,9 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  sys.receive("Trigger").on()
-                  sys.effect("X", {})
-                  """));
+                                    sys.receive("Trigger").on()
+                                    sys.effect("X", {})
+                                    """));
       assertEquals(
           AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
       assertTrue(ex.getMessage().contains(".on()"));
@@ -593,10 +593,10 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  name = "Port"
-                  sys.receive("Trigger").on(name)
-                  sys.effect("X", {})
-                  """));
+                                    name = "Port"
+                                    sys.receive("Trigger").on(name)
+                                    sys.effect("X", {})
+                                    """));
       assertEquals(
           AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API_ARITY, ex.getRuleType());
       assertTrue(ex.getMessage().contains("string literal"));
@@ -610,9 +610,9 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  sys.receive("Trigger").then("X")
-                  sys.effect("Y", {})
-                  """));
+                                    sys.receive("Trigger").then("X")
+                                    sys.effect("Y", {})
+                                    """));
       assertEquals(AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API, ex.getRuleType());
       assertTrue(ex.getMessage().contains("Unknown chain method on sys.receive()"));
       assertTrue(ex.getMessage().contains("then"));
@@ -623,9 +623,9 @@ class MechanismRuleValidationServiceTest {
       String trigger =
           service.validateStarlarkRule(
               """
-              sys.receive("Trigger").on("ReceptorPort")
-              sys.effect("X", {})
-              """);
+                            sys.receive("Trigger").on("ReceptorPort")
+                            sys.effect("X", {})
+                            """);
       assertEquals("Trigger", trigger);
     }
   }
@@ -656,9 +656,9 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  sys.effect("PersonArchetype", {"name": "John", "age": 30})
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("PersonArchetype", {"name": "John", "age": 30})
+                                    """));
     }
 
     @Test
@@ -679,9 +679,9 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  sys.effect("PersonArchetype", {"name": "ok", "unknownField": True})
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("PersonArchetype", {"name": "ok", "unknownField": True})
+                                    """));
     }
 
     @Test
@@ -691,9 +691,9 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  sys.effect("SomeType", {"key": "val"})
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("SomeType", {"key": "val"})
+                                    """));
     }
 
     @Test
@@ -712,9 +712,9 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  sys.effect("BareType", {"key": "val"})
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("BareType", {"key": "val"})
+                                    """));
     }
 
     @Test
@@ -723,9 +723,9 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  sys.effect("SomeArch")
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("SomeArch")
+                                    """));
     }
 
     @Test
@@ -746,11 +746,11 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  items = [1, 2]
-                  for x in items:
-                      sys.effect("ItemEvent", {"item": x, "bonus": True})
-                  """));
+                                    sys.receive("Trigger")
+                                    items = [1, 2]
+                                    for x in items:
+                                        sys.effect("ItemEvent", {"item": x, "bonus": True})
+                                    """));
     }
 
     @Test
@@ -771,9 +771,9 @@ class MechanismRuleValidationServiceTest {
           () ->
               service.validateStarlarkRule(
                   """
-                  sys.receive("Trigger")
-                  result = sys.effect("ResultType", {"data": "ok"})
-                  """));
+                                    sys.receive("Trigger")
+                                    result = sys.effect("ResultType", {"data": "ok"})
+                                    """));
     }
   }
 
@@ -792,12 +792,12 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  sys.receive("Trigger")
-                  data = [1, 2, 3]
-                  for x in data:
-                      result = forbidden_func()
-                      sys.effect("Out", {"val": result})
-                  """));
+                                    sys.receive("Trigger")
+                                    data = [1, 2, 3]
+                                    for x in data:
+                                        result = forbidden_func()
+                                        sys.effect("Out", {"val": result})
+                                    """));
       assertEquals(
           AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
       assertTrue(ex.getMessage().contains("forbidden_func"));
@@ -811,10 +811,10 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  sys.receive("Trigger")
-                  for x in external_list:
-                      sys.effect("Out", {"val": x})
-                  """));
+                                    sys.receive("Trigger")
+                                    for x in external_list:
+                                        sys.effect("Out", {"val": x})
+                                    """));
       assertEquals(
           AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
       assertTrue(ex.getMessage().contains("external_list"));
@@ -828,9 +828,9 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  sys.receive("Trigger")
-                  sys.effect("Out", {"list": [forbidden_var]})
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("Out", {"list": [forbidden_var]})
+                                    """));
       assertEquals(
           AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
       assertTrue(ex.getMessage().contains("forbidden_var"));
@@ -844,9 +844,9 @@ class MechanismRuleValidationServiceTest {
               () ->
                   service.validateStarlarkRule(
                       """
-                  sys.receive("Trigger")
-                  sys.effect("Out", {forbidden_key: "val"})
-                  """));
+                                    sys.receive("Trigger")
+                                    sys.effect("Out", {forbidden_key: "val"})
+                                    """));
       assertEquals(
           AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST, ex.getRuleType());
       assertTrue(ex.getMessage().contains("forbidden_key"));

@@ -312,7 +312,8 @@ class AscriptionStatusTransitionResourceIT {
     performTransition(ascId, "APPROVED");
     performTransition(ascId, "ACTIVE");
 
-    // Should have 3 transitions: [DRAFT→PROPOSED, PROPOSED→APPROVED, APPROVED→ACTIVE]
+    // Should have 3 transitions: [DRAFT→PROPOSED, PROPOSED→APPROVED,
+    // APPROVED→ACTIVE]
     mvc.perform(get("/api/v1/ascriptions/{id}/transitions", ascId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(3)))

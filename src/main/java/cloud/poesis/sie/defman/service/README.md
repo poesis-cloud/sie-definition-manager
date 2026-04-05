@@ -196,11 +196,11 @@ methods for its GSM subject type: `buildEntity`, `getIdentityBoundValues`,
 
 ### 3.3 Mechanism subsidiary services
 
-| Service                          | Consumed by        | Role                                                                                                                                          |
-| -------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service                          | Consumed by                                                        | Role                                                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MechanismRuleParsingService`    | `MechanismRuleValidationService`, `MechanismPortDerivationService` | Shared Starlark AST parsing and chain-walking utilities: `parseStarlark`, `ChainLink`, `isSysEffectChain`/`isSysReceiveChain`, `unwrapEffectChain`/`unwrapReceiveChain` |
-| `MechanismRuleValidationService` | `MechanismService` | Structural validation of Starlark rule code: syntax, execution budget, trigger uniqueness, `sys.*` API conformance, dict-literal conformance  |
-| `MechanismPortDerivationService` | `MechanismService` | Auto-derives Effector/Receptor entities from Starlark rule AST port signatures; resolves data/port archetypes; creates/reuses Definitions     |
+| `MechanismRuleValidationService` | `MechanismService`                                                 | Structural validation of Starlark rule code: syntax, execution budget, trigger uniqueness, `sys.*` API conformance, dict-literal conformance                            |
+| `MechanismPortDerivationService` | `MechanismService`                                                 | Auto-derives Effector/Receptor entities from Starlark rule AST port signatures; resolves data/port archetypes; creates/reuses Definitions                               |
 
 ### 3.4 Norm subsidiary services
 

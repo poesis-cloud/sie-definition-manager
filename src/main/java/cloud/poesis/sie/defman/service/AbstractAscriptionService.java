@@ -277,7 +277,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
       saved = save(entity);
 
       // 8. Flush pending INSERT so refresh() can re-read the row.
-      // Previously, the now-removed recordTransition() call between save() and refresh()
+      // Previously, the now-removed recordTransition() call between save() and
+      // refresh()
       // triggered an implicit flush; without it, refresh() would fail with
       // EntityNotFoundException because the INSERT was still pending in the session.
       entityManager.flush();
@@ -516,7 +517,8 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
   }
 
   // ======================================================================
-  // Creation referee preconditions (delegates to AscriptionStatusTransitionService)
+  // Creation referee preconditions (delegates to
+  // AscriptionStatusTransitionService)
   // ======================================================================
 
   void validateCreationPreconditions(AscriptionEntity entity) {
