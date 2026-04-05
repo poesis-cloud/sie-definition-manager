@@ -182,7 +182,7 @@ public class MechanismRuleValidationService {
 
     // GSM §Mechanism V10: validate archetype names resolve to declared Archetypes
     for (String archetypeName : referencedArchetypes) {
-      var resolved = archetypeService.findInEffectBySchemaTitle(archetypeName);
+      var resolved = archetypeService.findInEffectByTitle(archetypeName).orElse(null);
       if (resolved == null) {
         LOG.warn(
             "Mechanism rule references undeclared Archetype: '{}'. "
@@ -619,7 +619,7 @@ public class MechanismRuleValidationService {
     Expression secondArg = args.get(1).getValue();
     if (!(secondArg instanceof DictExpression dict)) return;
 
-    var archetype = archetypeService.findInEffectBySchemaTitle(archetypeName);
+    var archetype = archetypeService.findInEffectByTitle(archetypeName).orElse(null);
     if (archetype == null) return; // Archetype not yet in-effect; can't validate
 
     var schema = archetype.getStatement();

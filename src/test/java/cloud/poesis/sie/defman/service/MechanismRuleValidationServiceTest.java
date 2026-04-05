@@ -13,6 +13,7 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -650,7 +651,8 @@ class MechanismRuleValidationServiceTest {
       DefinitionEntity archDef = mock(DefinitionEntity.class);
       when(archDef.getId()).thenReturn(UUID.randomUUID());
       when(archetype.getDefinition()).thenReturn(archDef);
-      when(archetypeService.findInEffectBySchemaTitle("PersonArchetype")).thenReturn(archetype);
+      when(archetypeService.findInEffectByTitle("PersonArchetype"))
+          .thenReturn(Optional.of(archetype));
 
       assertDoesNotThrow(
           () ->
@@ -673,7 +675,8 @@ class MechanismRuleValidationServiceTest {
       DefinitionEntity archDef = mock(DefinitionEntity.class);
       when(archDef.getId()).thenReturn(UUID.randomUUID());
       when(archetype.getDefinition()).thenReturn(archDef);
-      when(archetypeService.findInEffectBySchemaTitle("PersonArchetype")).thenReturn(archetype);
+      when(archetypeService.findInEffectByTitle("PersonArchetype"))
+          .thenReturn(Optional.of(archetype));
 
       assertDoesNotThrow(
           () ->
@@ -686,7 +689,7 @@ class MechanismRuleValidationServiceTest {
 
     @Test
     void archetypeNotInEffect_skipsValidation() {
-      when(archetypeService.findInEffectBySchemaTitle("SomeType")).thenReturn(null);
+      when(archetypeService.findInEffectByTitle("SomeType")).thenReturn(Optional.empty());
       assertDoesNotThrow(
           () ->
               service.validateStarlarkRule(
@@ -706,7 +709,7 @@ class MechanismRuleValidationServiceTest {
       DefinitionEntity archDef = mock(DefinitionEntity.class);
       when(archDef.getId()).thenReturn(UUID.randomUUID());
       when(archetype.getDefinition()).thenReturn(archDef);
-      when(archetypeService.findInEffectBySchemaTitle("BareType")).thenReturn(archetype);
+      when(archetypeService.findInEffectByTitle("BareType")).thenReturn(Optional.of(archetype));
 
       assertDoesNotThrow(
           () ->
@@ -740,7 +743,7 @@ class MechanismRuleValidationServiceTest {
       DefinitionEntity archDef = mock(DefinitionEntity.class);
       when(archDef.getId()).thenReturn(UUID.randomUUID());
       when(archetype.getDefinition()).thenReturn(archDef);
-      when(archetypeService.findInEffectBySchemaTitle("ItemEvent")).thenReturn(archetype);
+      when(archetypeService.findInEffectByTitle("ItemEvent")).thenReturn(Optional.of(archetype));
 
       assertDoesNotThrow(
           () ->
@@ -765,7 +768,7 @@ class MechanismRuleValidationServiceTest {
       DefinitionEntity archDef = mock(DefinitionEntity.class);
       when(archDef.getId()).thenReturn(UUID.randomUUID());
       when(archetype.getDefinition()).thenReturn(archDef);
-      when(archetypeService.findInEffectBySchemaTitle("ResultType")).thenReturn(archetype);
+      when(archetypeService.findInEffectByTitle("ResultType")).thenReturn(Optional.of(archetype));
 
       assertDoesNotThrow(
           () ->

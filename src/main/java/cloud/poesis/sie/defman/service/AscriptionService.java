@@ -182,39 +182,17 @@ public class AscriptionService implements SmartInitializingSingleton {
   // Read — subtype-scoped queries (delegated to handler)
   // ======================================================================
 
-  /**
-   * Returns a page of all ascriptions for the given subject type.
-   *
-   * @param type the GSM subject type
-   * @param pageable pagination parameters
-   * @return page of ascription entities
-   */
-  public <T extends AscriptionEntity> Page<T> findAll(
+  private <T extends AscriptionEntity> Page<T> findAll(
       DefinitionSubjectType type, Pageable pageable) {
     return this.<T>requireHandler(type).findAll(pageable);
   }
 
-  /**
-   * Returns a page of ascriptions for the given subject type filtered by lifecycle status.
-   *
-   * @param type the GSM subject type
-   * @param status the lifecycle status filter
-   * @param pageable pagination parameters
-   * @return page of matching ascription entities
-   */
-  public <T extends AscriptionEntity> Page<T> findAllByStatus(
+  private <T extends AscriptionEntity> Page<T> findAllByStatus(
       DefinitionSubjectType type, AscriptionStatusType status, Pageable pageable) {
     return this.<T>requireHandler(type).findAllByStatus(status, pageable);
   }
 
-  /**
-   * Returns all ascriptions for a given definition, ordered by timestamp descending.
-   *
-   * @param type the GSM subject type
-   * @param definitionId the definition UUID
-   * @return ordered list of ascription entities
-   */
-  public <T extends AscriptionEntity> List<T> findAllByDefinitionId(
+  private <T extends AscriptionEntity> List<T> findAllByDefinitionId(
       DefinitionSubjectType type, UUID definitionId) {
     return this.<T>requireHandler(type).findAllByDefinitionId(definitionId);
   }
@@ -273,20 +251,6 @@ public class AscriptionService implements SmartInitializingSingleton {
             () -> new IllegalArgumentException("No in-effect Archetype found for: " + title));
   }
 
-  /**
-   * Returns the full version history of a definition (all ascriptions ordered by timestamp
-   * descending).
-   *
-   * @param type the GSM subject type
-   * @param definitionId the definition UUID
-   * @return ordered list of ascription entities
-   */
-  @Transactional(value = "transactionManager", readOnly = true)
-  public <T extends AscriptionEntity> List<T> getHistory(
-      DefinitionSubjectType type, UUID definitionId) {
-    return findAllByDefinitionId(type, definitionId);
-  }
-
   // ======================================================================
   // Read — cross-subtype lookups (union ascription table)
   // ======================================================================
@@ -320,21 +284,6 @@ public class AscriptionService implements SmartInitializingSingleton {
       UUID archetypeId, Collection<AscriptionStatusType> statuses, UUID excludeDefinitionId) {
     return ascriptionRepository.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
         archetypeId, statuses, excludeDefinitionId);
-  }
-
-  // ======================================================================
-  // Handler registry
-  // ======================================================================
-
-  /**
-   * Returns the registered {@link AscriptionSubtypeService} for the given subject type.
-   *
-   * @param type the GSM subject type
-   * @return the handler
-   * @throws IllegalStateException if no handler is registered for the type
-   */
-  public AscriptionSubtypeService<?> getHandler(DefinitionSubjectType type) {
-    return requireHandler(type);
   }
 
   @SuppressWarnings("unchecked")

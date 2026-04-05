@@ -17,7 +17,6 @@ import cloud.poesis.sie.defman.repository.DefinitionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,36 +119,6 @@ class DefinitionServiceTest {
       InternalException ex =
           assertThrows(InternalException.class, () -> service.getByIdWithArchetypes(id));
       assertTrue(ex.getMessage().contains("no ascriptions"));
-    }
-  }
-
-  @Nested
-  class GetByIds {
-
-    @Test
-    void returnsMappedEntities() {
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      DefinitionEntity e1 = mock(DefinitionEntity.class);
-      when(e1.getId()).thenReturn(id1);
-      DefinitionEntity e2 = mock(DefinitionEntity.class);
-      when(e2.getId()).thenReturn(id2);
-      when(definitionRepository.findAllById(any())).thenReturn(List.of(e1, e2));
-
-      Map<UUID, DefinitionEntity> result = service.getByIds(List.of(id1, id2));
-
-      assertEquals(2, result.size());
-      assertEquals(e1, result.get(id1));
-      assertEquals(e2, result.get(id2));
-    }
-
-    @Test
-    void returnsEmptyMap_whenNoResults() {
-      when(definitionRepository.findAllById(any())).thenReturn(Collections.emptyList());
-
-      Map<UUID, DefinitionEntity> result = service.getByIds(List.of(UUID.randomUUID()));
-
-      assertTrue(result.isEmpty());
     }
   }
 

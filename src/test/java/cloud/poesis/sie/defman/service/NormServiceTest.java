@@ -12,7 +12,6 @@ import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -300,28 +299,6 @@ class NormServiceTest {
   @Test
   void getSubjectType_returnsNorm() {
     assertEquals(DefinitionSubjectType.NORM, service.getSubjectType());
-  }
-
-  // ========================================================================
-  // FindAllByStructureDefinitionIdAndStatusIn
-  // ========================================================================
-
-  @Nested
-  class FindAllByStructureDefinitionIdAndStatusIn {
-
-    @Test
-    void delegatesToRepo() {
-      UUID structDefId = UUID.randomUUID();
-      var statuses = List.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
-      NormEntity n1 = mock(NormEntity.class);
-      when(normRepo.findAllByStructureDefinitionIdAndStatusIn(structDefId, statuses))
-          .thenReturn(List.of(n1));
-
-      var result = service.findAllByStructureDefinitionIdAndStatusIn(structDefId, statuses);
-      assertEquals(1, result.size());
-      assertEquals(n1, result.get(0));
-      verify(normRepo).findAllByStructureDefinitionIdAndStatusIn(structDefId, statuses);
-    }
   }
 
   // ========================================================================

@@ -99,15 +99,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   // Persistence operations
   // ======================================================================
 
-  /**
-   * Persists a transition record, flushes, and returns the refreshed entity.
-   *
-   * @param entity the ascription being transitioned
-   * @param from the pre-transition status
-   * @param to the post-transition status
-   * @return the persisted and refreshed transition entity
-   */
-  public AscriptionStatusTransitionEntity recordTransition(
+  private AscriptionStatusTransitionEntity recordTransition(
       AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
     AscriptionStatusTransitionEntity transition =
         transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));

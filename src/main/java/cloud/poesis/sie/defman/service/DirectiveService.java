@@ -95,16 +95,6 @@ public class DirectiveService implements AscriptionSubtypeService<DirectiveEntit
     return List.of();
   }
 
-  /**
-   * Returns in-effect directives whose statement purpose matches the given string.
-   *
-   * @param purpose the governed purpose string
-   * @return the matching directive entities
-   */
-  public List<DirectiveEntity> findAllInEffectByPurpose(String purpose) {
-    return directiveRepo.findAllInEffectByPurpose(purpose);
-  }
-
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     var d = (DirectiveEntity) entity;

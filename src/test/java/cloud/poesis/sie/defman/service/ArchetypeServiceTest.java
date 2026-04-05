@@ -388,68 +388,6 @@ class ArchetypeServiceTest {
   }
 
   // ========================================================================
-  // FindInEffectBySchemaTitle
-  // ========================================================================
-
-  @Nested
-  class FindInEffectBySchemaTitleTests {
-
-    @Test
-    void matchingTitle_returnsArchetype() {
-      ArchetypeEntity entity =
-          mockArchetype(MAPPER.createObjectNode().put("title", "SecurityProperties"));
-      when(archetypeRepo.findInEffectByTitle("SecurityProperties")).thenReturn(Optional.of(entity));
-
-      ArchetypeEntity result = service.findInEffectBySchemaTitle("SecurityProperties");
-      assertEquals(entity, result);
-    }
-
-    @Test
-    void noMatch_returnsNull() {
-      // Default mock returns Optional.empty() for any title.
-      assertNull(service.findInEffectBySchemaTitle("NonExistent"));
-    }
-
-    @Test
-    void differentTitle_returnsNull() {
-      // Default mock returns Optional.empty() for "SecurityProperties".
-      assertNull(service.findInEffectBySchemaTitle("SecurityProperties"));
-    }
-  }
-
-  // ========================================================================
-  // GetByIds
-  // ========================================================================
-
-  @Nested
-  class GetByIdsTests {
-
-    @Test
-    void returnsMapById() {
-      UUID id1 = UUID.randomUUID();
-      UUID id2 = UUID.randomUUID();
-      ArchetypeEntity e1 = mock(ArchetypeEntity.class);
-      when(e1.getId()).thenReturn(id1);
-      ArchetypeEntity e2 = mock(ArchetypeEntity.class);
-      when(e2.getId()).thenReturn(id2);
-      when(archetypeRepo.findAllById(List.of(id1, id2))).thenReturn(List.of(e1, e2));
-
-      Map<UUID, ArchetypeEntity> result = service.getByIds(List.of(id1, id2));
-      assertEquals(2, result.size());
-      assertEquals(e1, result.get(id1));
-      assertEquals(e2, result.get(id2));
-    }
-
-    @Test
-    void emptyIds_returnsEmptyMap() {
-      when(archetypeRepo.findAllById(List.of())).thenReturn(List.of());
-
-      Map<UUID, ArchetypeEntity> result = service.getByIds(List.of());
-      assertTrue(result.isEmpty());
-    }
-  }
-
-  // ========================================================================
   // FindInEffectByTitle
   // ========================================================================
 

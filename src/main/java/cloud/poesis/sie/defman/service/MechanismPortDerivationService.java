@@ -222,9 +222,9 @@ public class MechanismPortDerivationService {
   private List<PortDerivation> resolvePortDerivations(
       MechanismEntity mechanism, List<PortSignature> signatures) {
     ArchetypeEntity baseEffectorArchetype =
-        archetypeService.findInEffectBySchemaTitle("EffectorArchetype");
+        archetypeService.findInEffectByTitle("EffectorArchetype").orElse(null);
     ArchetypeEntity baseReceptorArchetype =
-        archetypeService.findInEffectBySchemaTitle("ReceptorArchetype");
+        archetypeService.findInEffectByTitle("ReceptorArchetype").orElse(null);
     if (baseEffectorArchetype == null || baseReceptorArchetype == null) {
       LOG.warn("Base EffectorArchetype/ReceptorArchetype not in-effect; skipping auto-derivation");
       return List.of();
@@ -234,7 +234,7 @@ public class MechanismPortDerivationService {
 
     for (PortSignature sig : signatures) {
       ArchetypeEntity dataArchetype =
-          archetypeService.findInEffectBySchemaTitle(sig.dataArchetypeName());
+          archetypeService.findInEffectByTitle(sig.dataArchetypeName()).orElse(null);
       if (dataArchetype == null) {
         LOG.warn(
             "Auto-derivation: data Archetype '{}' not in-effect; skipping port",
@@ -266,7 +266,7 @@ public class MechanismPortDerivationService {
     if (portArchetypeName == null) {
       return baseArchetype;
     }
-    ArchetypeEntity resolved = archetypeService.findInEffectBySchemaTitle(portArchetypeName);
+    ArchetypeEntity resolved = archetypeService.findInEffectByTitle(portArchetypeName).orElse(null);
     if (resolved == null) {
       LOG.warn(
           "Auto-derivation: {} port Archetype '{}' not in-effect; falling back to base {}",

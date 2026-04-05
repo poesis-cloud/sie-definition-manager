@@ -305,23 +305,6 @@ class DirectiveServiceTest {
   }
 
   // ========================================================================
-  // FindAllInEffectByPurpose
-  // ========================================================================
-
-  @Nested
-  class FindAllInEffectByPurposeTests {
-
-    @Test
-    void delegatesToRepo() {
-      DirectiveEntity d1 = mock(DirectiveEntity.class);
-      when(directiveRepo.findAllInEffectByPurpose("payment")).thenReturn(List.of(d1));
-
-      var result = service.findAllInEffectByPurpose("payment");
-      assertEquals(1, result.size());
-    }
-  }
-
-  // ========================================================================
   // IdentityBound — null purpose branch
   // ========================================================================
 

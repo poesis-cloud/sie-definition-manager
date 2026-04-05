@@ -11,10 +11,8 @@ import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -149,17 +147,5 @@ public class NormService implements AscriptionSubtypeService<NormEntity> {
       values.put("assertion", stmt.get("assertion").asText());
     }
     return values;
-  }
-
-  /**
-   * Returns norms sharing the same structure definition, filtered by statuses.
-   *
-   * @param structureDefinitionId the structure definition UUID
-   * @param statuses the lifecycle statuses to match
-   * @return the matching norm entities
-   */
-  public List<NormEntity> findAllByStructureDefinitionIdAndStatusIn(
-      UUID structureDefinitionId, Collection<AscriptionStatusType> statuses) {
-    return normRepo.findAllByStructureDefinitionIdAndStatusIn(structureDefinitionId, statuses);
   }
 }

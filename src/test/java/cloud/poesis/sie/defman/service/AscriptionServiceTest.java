@@ -213,21 +213,6 @@ class AscriptionServiceTest {
   }
 
   // ========================================================================
-  // Handler access
-  // ========================================================================
-
-  @Nested
-  class HandlerAccess {
-
-    @Test
-    void getHandler_returnsRegisteredHandler() {
-      AscriptionSubtypeService<?> handler = service.getHandler(DefinitionSubjectType.STRUCTURE);
-      assertNotNull(handler);
-      assertEquals(DefinitionSubjectType.STRUCTURE, handler.getSubjectType());
-    }
-  }
-
-  // ========================================================================
   // Create template
   // ========================================================================
 
@@ -368,43 +353,6 @@ class AscriptionServiceTest {
   class GenericCrud {
 
     @Test
-    void findAll_delegatesToHandler() {
-      Pageable pageable = PageRequest.of(0, 10);
-      when(structureHandler.findAll(pageable)).thenReturn(Page.empty());
-
-      Page<AscriptionEntity> result = service.findAll(DefinitionSubjectType.STRUCTURE, pageable);
-
-      assertTrue(result.isEmpty());
-      verify(structureHandler).findAll(pageable);
-    }
-
-    @Test
-    void findAllByStatus_delegatesToHandler() {
-      Pageable pageable = PageRequest.of(0, 10);
-      when(structureHandler.findAllByStatus(AscriptionStatusType.ACTIVE, pageable))
-          .thenReturn(Page.empty());
-
-      Page<AscriptionEntity> result =
-          service.findAllByStatus(
-              DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE, pageable);
-
-      assertTrue(result.isEmpty());
-      verify(structureHandler).findAllByStatus(AscriptionStatusType.ACTIVE, pageable);
-    }
-
-    @Test
-    void findAllByDefinitionId_delegatesToHandler() {
-      UUID defId = UUID.randomUUID();
-      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of());
-
-      List<AscriptionEntity> result =
-          service.findAllByDefinitionId(DefinitionSubjectType.STRUCTURE, defId);
-
-      assertTrue(result.isEmpty());
-      verify(structureHandler).findAllByDefinitionId(defId);
-    }
-
-    @Test
     @SuppressWarnings("unchecked")
     void findAllFiltered_delegatesToHandler() {
       String archetypeTitle = "TestArchetype";
@@ -531,18 +479,6 @@ class AscriptionServiceTest {
 
       assertTrue(result.isEmpty());
       verify(structureHandler).findAll(any(Specification.class), eq(pageable));
-    }
-
-    @Test
-    void getHistory_delegatesToFindAllByDefinitionId() {
-      UUID defId = UUID.randomUUID();
-      AscriptionEntity entity = mock(AscriptionEntity.class);
-      when(structureHandler.findAllByDefinitionId(defId)).thenReturn(List.of(entity));
-
-      List<AscriptionEntity> result = service.getHistory(DefinitionSubjectType.STRUCTURE, defId);
-
-      assertEquals(1, result.size());
-      assertEquals(entity, result.get(0));
     }
   }
 

@@ -33,11 +33,10 @@ public class AscriptionArchetypeSchemaAnnotationEnforcementService {
       LoggerFactory.getLogger(AscriptionArchetypeSchemaAnnotationEnforcementService.class);
 
   private final AscriptionService ascriptionService;
-  private final AscriptionStatementProtectionService statementProtection;
+  private final AscriptionProtectionService statementProtection;
 
   public AscriptionArchetypeSchemaAnnotationEnforcementService(
-      @Lazy AscriptionService ascriptionService,
-      AscriptionStatementProtectionService statementProtection) {
+      @Lazy AscriptionService ascriptionService, AscriptionProtectionService statementProtection) {
     this.ascriptionService = ascriptionService;
     this.statementProtection = statementProtection;
   }
@@ -77,11 +76,11 @@ public class AscriptionArchetypeSchemaAnnotationEnforcementService {
 
       JsonNode value = statement.get(propName);
 
-      if (ArchetypeSchemaParsingService.hasAnnotation(propSchema, "$gsm:identityBound")) {
+      if (ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:identityBound")) {
         enforceStatementIdentityBound(propName, value, definitionId, existingFinder);
       }
 
-      if (ArchetypeSchemaParsingService.hasAnnotation(propSchema, "$gsm:unique")) {
+      if (ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:unique")) {
         enforceUnique(propName, value, archetype, definitionId);
       }
 

@@ -1,20 +1,14 @@
 package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.repository.AscriptionStatusTransitionRepository;
-import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import jakarta.persistence.EntityManager;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,49 +40,6 @@ class AscriptionStatusTransitionServiceTest {
 
   // ========================================================================
   // RecordTransition
-  // ========================================================================
-
-  @Nested
-  class RecordTransition {
-
-    @Test
-    void savesFlushesDetachesAndRefetches() {
-      AscriptionEntity ascription = mock(AscriptionEntity.class);
-      AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
-      UUID transitionId = UUID.randomUUID();
-      when(saved.getId()).thenReturn(transitionId);
-
-      AscriptionStatusTransitionEntity refetched = mock(AscriptionStatusTransitionEntity.class);
-      when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class))).thenReturn(saved);
-      when(transitionRepo.findById(transitionId)).thenReturn(Optional.of(refetched));
-
-      AscriptionStatusTransitionEntity result =
-          service.recordTransition(
-              ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
-
-      assertEquals(refetched, result);
-      verify(entityManager).flush();
-      verify(entityManager).detach(saved);
-      verify(transitionRepo).findById(transitionId);
-    }
-
-    @Test
-    void throwsWhenRefetchFails() {
-      AscriptionEntity ascription = mock(AscriptionEntity.class);
-      AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
-      UUID transitionId = UUID.randomUUID();
-      when(saved.getId()).thenReturn(transitionId);
-      when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class))).thenReturn(saved);
-      when(transitionRepo.findById(transitionId)).thenReturn(Optional.empty());
-
-      assertThrows(
-          NoSuchElementException.class,
-          () ->
-              service.recordTransition(
-                  ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED));
-    }
-  }
-
   // ========================================================================
   // GetTransitions
   // ========================================================================

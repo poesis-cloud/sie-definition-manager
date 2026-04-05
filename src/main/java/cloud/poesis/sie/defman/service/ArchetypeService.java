@@ -13,7 +13,6 @@ import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -21,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
@@ -130,31 +127,6 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
    */
   public java.util.Optional<ArchetypeEntity> findInEffectByTitle(String title) {
     return archetypeRepo.findInEffectByTitle(title);
-  }
-
-  /**
-   * Batch-fetches Archetypes by their IDs.
-   *
-   * <p>Part of the explicit-fetch design (see README.md § "Batch fetch pattern").
-   *
-   * @param ids collection of Archetype IDs to retrieve
-   * @return map of ID → ArchetypeEntity; IDs not found in the database are silently absent from the
-   *     returned map
-   */
-  public Map<UUID, ArchetypeEntity> getByIds(Collection<UUID> ids) {
-    return archetypeRepo.findAllById(ids).stream()
-        .collect(Collectors.toMap(ArchetypeEntity::getId, Function.identity()));
-  }
-
-  /**
-   * Find an in-effect Archetype by its title. Returns null if no matching in-effect Archetype
-   * exists.
-   *
-   * @param title the Archetype's schema title
-   * @return the archetype entity, or {@code null} if not found
-   */
-  public ArchetypeEntity findInEffectBySchemaTitle(String title) {
-    return archetypeRepo.findInEffectByTitle(title).orElse(null);
   }
 
   private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {

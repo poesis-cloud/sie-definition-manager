@@ -13,6 +13,7 @@ import cloud.poesis.sie.defman.service.MechanismPortDerivationService.PortSignat
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -206,15 +207,15 @@ class MechanismPortDerivationServiceTest {
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
-          .thenReturn(effArchetype);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
-          .thenReturn(recArchetype);
+      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
+          .thenReturn(Optional.of(effArchetype));
+      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
+          .thenReturn(Optional.of(recArchetype));
 
       ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
       ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
-      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
-      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
+      when(archetypeService.findInEffectByTitle("InputType")).thenReturn(Optional.of(inputType));
+      when(archetypeService.findInEffectByTitle("OutputType")).thenReturn(Optional.of(outputType));
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
@@ -237,8 +238,8 @@ class MechanismPortDerivationServiceTest {
     void baseArchetypesMissing_returnsEmpty() {
       MechanismEntity mechanism = stubMechanism("sys.receive(\"X\")\nsys.effect(\"Y\", {})");
 
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(null);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(null);
+      when(archetypeService.findInEffectByTitle("EffectorArchetype")).thenReturn(Optional.empty());
+      when(archetypeService.findInEffectByTitle("ReceptorArchetype")).thenReturn(Optional.empty());
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
@@ -252,13 +253,13 @@ class MechanismPortDerivationServiceTest {
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype"))
-          .thenReturn(effArchetype);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype"))
-          .thenReturn(recArchetype);
+      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
+          .thenReturn(Optional.of(effArchetype));
+      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
+          .thenReturn(Optional.of(recArchetype));
 
-      when(archetypeService.findInEffectBySchemaTitle("MissingType")).thenReturn(null);
-      when(archetypeService.findInEffectBySchemaTitle("AlsoMissing")).thenReturn(null);
+      when(archetypeService.findInEffectByTitle("MissingType")).thenReturn(Optional.empty());
+      when(archetypeService.findInEffectByTitle("AlsoMissing")).thenReturn(Optional.empty());
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
@@ -290,15 +291,17 @@ class MechanismPortDerivationServiceTest {
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(baseRec);
+      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
+          .thenReturn(Optional.of(baseEff));
+      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
+          .thenReturn(Optional.of(baseRec));
 
       ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
       ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
       ArchetypeEntity customEff = mockArchetypeWithTitle("CustomEff");
-      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
-      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
-      when(archetypeService.findInEffectBySchemaTitle("CustomEff")).thenReturn(customEff);
+      when(archetypeService.findInEffectByTitle("InputType")).thenReturn(Optional.of(inputType));
+      when(archetypeService.findInEffectByTitle("OutputType")).thenReturn(Optional.of(outputType));
+      when(archetypeService.findInEffectByTitle("CustomEff")).thenReturn(Optional.of(customEff));
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
@@ -317,14 +320,16 @@ class MechanismPortDerivationServiceTest {
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(baseRec);
+      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
+          .thenReturn(Optional.of(baseEff));
+      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
+          .thenReturn(Optional.of(baseRec));
 
       ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
       ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
-      when(archetypeService.findInEffectBySchemaTitle("InputType")).thenReturn(inputType);
-      when(archetypeService.findInEffectBySchemaTitle("OutputType")).thenReturn(outputType);
-      when(archetypeService.findInEffectBySchemaTitle("UnknownPort")).thenReturn(null);
+      when(archetypeService.findInEffectByTitle("InputType")).thenReturn(Optional.of(inputType));
+      when(archetypeService.findInEffectByTitle("OutputType")).thenReturn(Optional.of(outputType));
+      when(archetypeService.findInEffectByTitle("UnknownPort")).thenReturn(Optional.empty());
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
@@ -342,17 +347,19 @@ class MechanismPortDerivationServiceTest {
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
-      when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(baseRec);
+      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
+          .thenReturn(Optional.of(baseEff));
+      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
+          .thenReturn(Optional.of(baseRec));
 
       ArchetypeEntity trigger = mockArchetypeWithTitle("Trigger");
       ArchetypeEntity outType = mockArchetypeWithTitle("OutType");
       ArchetypeEntity ackType = mockArchetypeWithTitle("AckType");
       ArchetypeEntity ackPort = mockArchetypeWithTitle("AckPort");
-      when(archetypeService.findInEffectBySchemaTitle("Trigger")).thenReturn(trigger);
-      when(archetypeService.findInEffectBySchemaTitle("OutType")).thenReturn(outType);
-      when(archetypeService.findInEffectBySchemaTitle("AckType")).thenReturn(ackType);
-      when(archetypeService.findInEffectBySchemaTitle("AckPort")).thenReturn(ackPort);
+      when(archetypeService.findInEffectByTitle("Trigger")).thenReturn(Optional.of(trigger));
+      when(archetypeService.findInEffectByTitle("OutType")).thenReturn(Optional.of(outType));
+      when(archetypeService.findInEffectByTitle("AckType")).thenReturn(Optional.of(ackType));
+      when(archetypeService.findInEffectByTitle("AckPort")).thenReturn(Optional.of(ackPort));
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
