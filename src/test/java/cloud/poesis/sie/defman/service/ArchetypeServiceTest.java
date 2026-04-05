@@ -50,9 +50,9 @@ class ArchetypeServiceTest {
 
   @Mock private ArchetypeRepository archetypeRepo;
 
-  @Mock private ArchetypeIndexProvisioningService indexProvisioning;
+  @Mock private ArchetypeSchemaPropertyIndexationService indexProvisioning;
 
-  @Mock private ArchetypeAnnotationValidationService annotationValidation;
+  @Mock private ArchetypeSchemaAnnotationValidationService annotationValidation;
 
   @Mock private ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
 
@@ -173,7 +173,7 @@ class ArchetypeServiceTest {
   // Schema composition validation is covered in ArchetypeSchemaCompositionValidationServiceTest.
 
   // ========================================================================
-  // ExtractTitleFromRef (static utility)
+  // ExtractTitleFromRef (static utility — now on ArchetypeSchemaService)
   // ========================================================================
 
   @Nested
@@ -183,15 +183,16 @@ class ArchetypeServiceTest {
     void validUri() {
       assertEquals(
           "SecurityProperties",
-          ArchetypeService.extractTitleFromRef("gsm://archetypes/SecurityProperties/v1"));
-      assertEquals("MyType", ArchetypeService.extractTitleFromRef("gsm://archetypes/MyType/v42"));
+          ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/SecurityProperties/v1"));
+      assertEquals(
+          "MyType", ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/MyType/v42"));
     }
 
     @Test
     void invalidUri() {
-      assertNull(ArchetypeService.extractTitleFromRef("https://example.com/schema"));
-      assertNull(ArchetypeService.extractTitleFromRef("not-a-uri"));
-      assertNull(ArchetypeService.extractTitleFromRef("gsm://archetypes/NoVersion"));
+      assertNull(ArchetypeSchemaService.extractTitleFromRef("https://example.com/schema"));
+      assertNull(ArchetypeSchemaService.extractTitleFromRef("not-a-uri"));
+      assertNull(ArchetypeSchemaService.extractTitleFromRef("gsm://archetypes/NoVersion"));
     }
   }
 
@@ -285,7 +286,7 @@ class ArchetypeServiceTest {
     }
   }
 
-  // Annotation validation is covered in ArchetypeAnnotationValidationServiceTest.
+  // Annotation validation is covered in ArchetypeSchemaAnnotationValidationServiceTest.
   // BuildEntity delegation tests below verify that ArchetypeService calls annotationValidation.
 
   // ========================================================================
@@ -814,5 +815,5 @@ class ArchetypeServiceTest {
     }
   }
 
-  // $ref URI policy validation is covered in ArchetypeAnnotationValidationServiceTest.
+  // $ref URI policy validation is covered in ArchetypeSchemaAnnotationValidationServiceTest.
 }

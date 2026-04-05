@@ -466,12 +466,11 @@ public class AscriptionController extends AbstractController {
     schema.put("description", "Governed normative snapshot of a Definition.");
     schema.put("type", "object");
     ArrayNode required = schema.putArray("required");
-    required.add("id").add("statement").add("timestamp").add("version").add("status");
+    required.add("id").add("statement").add("timestamp").add("status");
     ObjectNode props = schema.putObject("properties");
     props.putObject("id").put("type", "string").put("format", "uuid");
     props.putObject("statement").put("type", "object");
     props.putObject("timestamp").put("type", "string").put("format", "date-time");
-    props.putObject("version").put("type", "integer").put("minimum", 0);
     ObjectNode statusProp = props.putObject("status").put("type", "string");
     ArrayNode statusEnum = statusProp.putArray("enum");
     for (AscriptionStatusType s : AscriptionStatusType.values()) {

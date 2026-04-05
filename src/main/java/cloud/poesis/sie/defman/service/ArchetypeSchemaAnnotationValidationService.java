@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,7 +23,7 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class ArchetypeAnnotationValidationService {
+public class ArchetypeSchemaAnnotationValidationService {
 
   // ========================================================================
   // $gsm:* annotation constants
@@ -39,13 +38,6 @@ public class ArchetypeAnnotationValidationService {
           "$gsm:dataProtection");
 
   private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed");
-
-  // ========================================================================
-  // $ref URI policy constants
-  // ========================================================================
-
-  private static final Pattern GSM_URI_PATTERN =
-      Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
 
   // ========================================================================
   // Annotation validation
@@ -76,7 +68,7 @@ public class ArchetypeAnnotationValidationService {
 
       checkUnknownAnnotations(propSchema, propName);
 
-      if (hasAnnotation(propSchema, "$gsm:identityBound")) {
+      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:identityBound")) {
         identityBoundFields.add(propName);
       }
     }
@@ -174,7 +166,7 @@ public class ArchetypeAnnotationValidationService {
       return result;
     }
     for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      if (hasAnnotation(entry.getValue(), "$gsm:identityBound")) {
+      if (ArchetypeSchemaService.hasAnnotation(entry.getValue(), "$gsm:identityBound")) {
         result.add(entry.getKey());
       }
     }
@@ -206,7 +198,7 @@ public class ArchetypeAnnotationValidationService {
     if (node.isObject()) {
       if (node.has("$ref")) {
         String ref = node.get("$ref").asText();
-        if (!isAllowedRef(ref)) {
+        if (!ArchetypeSchemaService.isAllowedRef(ref)) {
           throw RuleViolationException.of(
               AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
               "Prohibited $ref URI at "
@@ -230,17 +222,5 @@ public class ArchetypeAnnotationValidationService {
         scanRefsRecursively(node.get(i), path + "[" + i + "]");
       }
     }
-  }
-
-  private static boolean isAllowedRef(String ref) {
-    return ref.startsWith("#") || GSM_URI_PATTERN.matcher(ref).matches();
-  }
-
-  // ========================================================================
-  // Utilities
-  // ========================================================================
-
-  private static boolean hasAnnotation(JsonNode node, String annotation) {
-    return node.has(annotation) && node.get(annotation).asBoolean(false);
   }
 }

@@ -1,7 +1,6 @@
 package cloud.poesis.sie.defman.dto;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import java.time.Instant;
@@ -24,13 +23,5 @@ class AscriptionStatusTransitionDtoTest {
     assertEquals(AscriptionStatusType.DRAFT, dto.getPreStatus());
     assertEquals(AscriptionStatusType.PROPOSED, dto.getPostStatus());
     assertEquals(ts, dto.getTimestamp());
-  }
-
-  @Test
-  void nullPreStatus() {
-    AscriptionStatusTransitionDto dto =
-        new AscriptionStatusTransitionDto(
-            UUID.randomUUID(), UUID.randomUUID(), null, AscriptionStatusType.DRAFT, Instant.now());
-    assertNull(dto.getPreStatus());
   }
 }

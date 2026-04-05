@@ -2,6 +2,7 @@ package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,17 +24,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class ArchetypeSchemaCompositionValidationService {
-
-  private static final Set<String> GSM_BASE_TITLES =
-      Set.of(
-          "StructureArchetype",
-          "MechanismArchetype",
-          "InteractionArchetype",
-          "Archetype",
-          "EffectorArchetype",
-          "ReceptorArchetype",
-          "DirectiveArchetype",
-          "NormArchetype");
 
   private static final Logger LOG =
       LoggerFactory.getLogger(ArchetypeSchemaCompositionValidationService.class);
@@ -68,7 +58,7 @@ public class ArchetypeSchemaCompositionValidationService {
     String title = schema.has("title") ? schema.get("title").asText() : null;
 
     // GSM base archetypes are exempt — they define the bases themselves.
-    if (title != null && GSM_BASE_TITLES.contains(title)) {
+    if (title != null && DefinitionSubjectType.archetypeTitles().contains(title)) {
       return;
     }
 
@@ -139,7 +129,7 @@ public class ArchetypeSchemaCompositionValidationService {
       Set<String> visited,
       boolean strict,
       Function<String, JsonNode> schemaResolver) {
-    String refTitle = ArchetypeService.extractTitleFromRef(ref);
+    String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
 
     if (refTitle == null) {
       throw RuleViolationException.of(
@@ -159,7 +149,7 @@ public class ArchetypeSchemaCompositionValidationService {
           refTitle);
     }
 
-    if (GSM_BASE_TITLES.contains(refTitle)) {
+    if (ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
       if (isSealedBaseArchetype(refTitle, schemaResolver)) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,
@@ -228,7 +218,7 @@ public class ArchetypeSchemaCompositionValidationService {
         continue;
       }
 
-      String refTitle = ArchetypeService.extractTitleFromRef(ref);
+      String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
 
       if (refTitle == null) {
         throw RuleViolationException.of(
@@ -248,7 +238,7 @@ public class ArchetypeSchemaCompositionValidationService {
             refTitle);
       }
 
-      if (GSM_BASE_TITLES.contains(refTitle)) {
+      if (ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
         if (isSealedBaseArchetype(refTitle, schemaResolver)) {
           throw RuleViolationException.of(
               AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED,

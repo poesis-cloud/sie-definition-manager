@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
@@ -37,15 +36,15 @@ class StatementValidationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ArchetypeRepository archetypeRepo;
+  @Mock private ArchetypeSchemaService archetypeSchemaService;
 
-  @Mock private AscriptionAnnotationEnforcementService annotationEnforcement;
+  @Mock private AscriptionArchetypeSchemaAnnotationEnforcementService annotationEnforcement;
 
   private AscriptionStatementValidationService svc;
 
   @BeforeEach
   void setUp() {
-    svc = new AscriptionStatementValidationService(archetypeRepo, annotationEnforcement);
+    svc = new AscriptionStatementValidationService(archetypeSchemaService, annotationEnforcement);
   }
 
   // ========================================================================
@@ -144,7 +143,7 @@ class StatementValidationServiceTest {
       when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
       when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
 
-      when(archetypeRepo.findInEffectByTitle("CustomTenantArchetype"))
+      when(archetypeSchemaService.findInEffectByTitle("CustomTenantArchetype"))
           .thenReturn(Optional.of(tenantArchetype));
 
       ObjectNode schema = MAPPER.createObjectNode();
@@ -175,7 +174,7 @@ class StatementValidationServiceTest {
 
       assertDoesNotThrow(
           () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
-      verify(archetypeRepo, never()).findAllByStatusIn(any());
+      verify(archetypeSchemaService, never()).findInEffectByTitle(any());
     }
   }
 
@@ -266,7 +265,7 @@ class StatementValidationServiceTest {
       // No tenant $ref → should return without hitting DB
       var factory = svc.buildSchemaFactory(schema);
       assertTrue(factory != null);
-      verify(archetypeRepo, never()).findInEffectByTitle(any());
+      verify(archetypeSchemaService, never()).findInEffectByTitle(any());
     }
   }
 

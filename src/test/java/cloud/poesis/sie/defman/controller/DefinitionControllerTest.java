@@ -72,7 +72,7 @@ class DefinitionControllerTest {
     when(definitionEntity.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
   }
 
-  private AscriptionEntity mockAscription(UUID id, int version, AscriptionStatusType status) {
+  private AscriptionEntity mockAscription(UUID id, AscriptionStatusType status) {
     AscriptionEntity asc = mock(AscriptionEntity.class);
     DefinitionEntity ascDef = mock(DefinitionEntity.class);
     when(ascDef.getId()).thenReturn(defId);
@@ -81,7 +81,6 @@ class DefinitionControllerTest {
     when(asc.getArchetype()).thenReturn(archetypeEntity);
     when(asc.getStatement()).thenReturn(objectMapper.createObjectNode().put("purpose", "test"));
     when(asc.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
-    when(asc.getVersion()).thenReturn(version);
     when(asc.getStatus()).thenReturn(status);
     return asc;
   }
@@ -103,17 +102,16 @@ class DefinitionControllerTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.id").value(defId.toString()))
           .andExpect(jsonPath("$.subjectType").value("STRUCTURE"))
-          .andExpect(jsonPath("$._links.self.href").exists())
-          .andExpect(jsonPath("$._links.version-history.href").exists());
+          .andExpect(jsonPath("$._links.self.href").exists());
     }
 
     @Test
-    void getById_withAscriptions_hasFirstLastLatestVersionLinks() throws Exception {
+    void getById_withAscriptions_hasFirstLastLinks() throws Exception {
       UUID oldestId = UUID.randomUUID();
       UUID newestId = UUID.randomUUID();
       // desc timestamp order: newest first
-      AscriptionEntity newest = mockAscription(newestId, 2, AscriptionStatusType.ACTIVE);
-      AscriptionEntity oldest = mockAscription(oldestId, 1, AscriptionStatusType.RETIRED);
+      AscriptionEntity newest = mockAscription(newestId, AscriptionStatusType.ACTIVE);
+      AscriptionEntity oldest = mockAscription(oldestId, AscriptionStatusType.RETIRED);
 
       when(definitionEntity.getAscriptions()).thenReturn(List.of(newest, oldest));
       when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
@@ -122,14 +120,13 @@ class DefinitionControllerTest {
           .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$._links.first.href").exists())
-          .andExpect(jsonPath("$._links.last.href").exists())
-          .andExpect(jsonPath("$._links.latest-version.href").exists());
+          .andExpect(jsonPath("$._links.last.href").exists());
     }
 
     @Test
-    void getById_withAllV0Ascriptions_omitsLatestVersionLink() throws Exception {
+    void getById_withSingleAscription_hasFirstLastLinks() throws Exception {
       UUID ascId = UUID.randomUUID();
-      AscriptionEntity draft = mockAscription(ascId, 0, AscriptionStatusType.DRAFT);
+      AscriptionEntity draft = mockAscription(ascId, AscriptionStatusType.DRAFT);
 
       when(definitionEntity.getAscriptions()).thenReturn(List.of(draft));
       when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
@@ -138,8 +135,7 @@ class DefinitionControllerTest {
           .perform(get("/api/v1/definitions/{id}", defId).accept(MediaTypes.HAL_JSON))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$._links.first.href").exists())
-          .andExpect(jsonPath("$._links.last.href").exists())
-          .andExpect(jsonPath("$._links.latest-version").doesNotExist());
+          .andExpect(jsonPath("$._links.last.href").exists());
     }
   }
 
@@ -152,7 +148,7 @@ class DefinitionControllerTest {
 
     @Test
     void listAscriptions_returnsAllWithSelfLink() throws Exception {
-      AscriptionEntity asc = mockAscription(UUID.randomUUID(), 1, AscriptionStatusType.ACTIVE);
+      AscriptionEntity asc = mockAscription(UUID.randomUUID(), AscriptionStatusType.ACTIVE);
       when(definitionEntity.getAscriptions()).thenReturn(List.of(asc));
       when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
@@ -162,22 +158,6 @@ class DefinitionControllerTest {
           .andExpect(jsonPath("$._embedded.ascriptions", hasSize(1)))
           .andExpect(jsonPath("$._embedded.ascriptions[0]._links.self.href").exists())
           .andExpect(jsonPath("$._links.self.href").exists());
-    }
-
-    @Test
-    void listAscriptions_withMinVersionFilter_filtersCorrectly() throws Exception {
-      AscriptionEntity v0 = mockAscription(UUID.randomUUID(), 0, AscriptionStatusType.DRAFT);
-      AscriptionEntity v1 = mockAscription(UUID.randomUUID(), 1, AscriptionStatusType.ACTIVE);
-      when(definitionEntity.getAscriptions()).thenReturn(List.of(v1, v0));
-      when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
-
-      mockMvc
-          .perform(
-              get("/api/v1/definitions/{id}/ascriptions", defId)
-                  .param("minVersion", "1")
-                  .accept(MediaTypes.HAL_JSON))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$._embedded.ascriptions", hasSize(1)));
     }
 
     @Test
@@ -201,7 +181,7 @@ class DefinitionControllerTest {
     @Test
     void getLatestAscription_returnsActiveAscription() throws Exception {
       UUID ascId = UUID.randomUUID();
-      AscriptionEntity active = mockAscription(ascId, 1, AscriptionStatusType.ACTIVE);
+      AscriptionEntity active = mockAscription(ascId, AscriptionStatusType.ACTIVE);
       when(definitionEntity.getAscriptions()).thenReturn(List.of(active));
       when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
@@ -221,7 +201,7 @@ class DefinitionControllerTest {
     @Test
     void getLatestAscription_prefersDeprecatedWhenNoActive() throws Exception {
       UUID ascId = UUID.randomUUID();
-      AscriptionEntity depr = mockAscription(ascId, 1, AscriptionStatusType.DEPRECATED);
+      AscriptionEntity depr = mockAscription(ascId, AscriptionStatusType.DEPRECATED);
       when(definitionEntity.getAscriptions()).thenReturn(List.of(depr));
       when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 
@@ -234,7 +214,7 @@ class DefinitionControllerTest {
 
     @Test
     void getLatestAscription_noInEffect_returns404() throws Exception {
-      AscriptionEntity draft = mockAscription(UUID.randomUUID(), 0, AscriptionStatusType.DRAFT);
+      AscriptionEntity draft = mockAscription(UUID.randomUUID(), AscriptionStatusType.DRAFT);
       when(definitionEntity.getAscriptions()).thenReturn(List.of(draft));
       when(definitionService.getByIdWithArchetypes(defId)).thenReturn(definitionEntity);
 

@@ -1,6 +1,8 @@
 package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -12,12 +14,13 @@ import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.EffectorEntity;
 import cloud.poesis.sie.defman.entity.MechanismEntity;
 import cloud.poesis.sie.defman.entity.ReceptorEntity;
-import cloud.poesis.sie.defman.service.MechanismRuleValidationService.PortSignature;
+import cloud.poesis.sie.defman.service.MechanismPortDerivationService.PortSignature;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -34,12 +37,11 @@ class MechanismPortDerivationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private MechanismRuleValidationService ruleValidation;
+  private final MechanismRuleParsingService parsingService = new MechanismRuleParsingService();
   @Mock private ArchetypeService archetypeService;
   @Mock private EffectorService effectorService;
   @Mock private ReceptorService receptorService;
   @Mock private DefinitionService definitionService;
-  @Mock private AscriptionStateMachineService stateMachine;
   @Mock private EntityManager entityManager;
 
   private MechanismPortDerivationService service;
@@ -48,12 +50,11 @@ class MechanismPortDerivationServiceTest {
   void setUp() {
     service =
         new MechanismPortDerivationService(
-            ruleValidation,
+            parsingService,
             archetypeService,
             effectorService,
             receptorService,
             definitionService,
-            stateMachine,
             entityManager,
             new ObjectMapper());
   }
@@ -88,6 +89,126 @@ class MechanismPortDerivationServiceTest {
   }
 
   // ========================================================================
+  // Port signature collection (from Starlark AST)
+  // ========================================================================
+
+  @Nested
+  class PortSignatureCollection {
+
+    private Set<PortSignature> uniqueSignatures(String rule) {
+      return Set.copyOf(service.collectPortSignatures(rule));
+    }
+
+    @Nested
+    class TriggerReceptor {
+
+      @Test
+      void sysReceive_producesReceptor() {
+        List<PortSignature> sigs = service.collectPortSignatures("sys.receive(\"Event\")");
+        assertEquals(1, sigs.size());
+        assertEquals(new PortSignature("receptor", "Event", null), sigs.get(0));
+      }
+
+      @Test
+      void sysAssigned_producesReceptor() {
+        List<PortSignature> sigs = service.collectPortSignatures("x = sys.receive(\"Config\")");
+        assertEquals(1, sigs.size());
+        assertEquals("receptor", sigs.get(0).direction());
+        assertEquals("Config", sigs.get(0).dataArchetypeName());
+      }
+
+      @Test
+      void sysReceiveWithOn_capturesPortName() {
+        List<PortSignature> sigs =
+            service.collectPortSignatures("sys.receive(\"Feedback\").on(\"FbPort\")");
+        assertEquals(1, sigs.size());
+        assertEquals(new PortSignature("receptor", "Feedback", "FbPort"), sigs.get(0));
+      }
+    }
+
+    @Nested
+    class SysEffectEffectors {
+
+      @Test
+      void basicEffect_producesEffector() {
+        List<PortSignature> sigs = service.collectPortSignatures("sys.effect(\"Order\", {})");
+        assertEquals(1, sigs.size());
+        assertEquals(new PortSignature("effector", "Order", null), sigs.get(0));
+      }
+
+      @Test
+      void namedEffect_capturesBy() {
+        List<PortSignature> sigs =
+            service.collectPortSignatures("sys.effect(\"Order\", {}).by(\"CustomPort\")");
+        assertEquals(1, sigs.size());
+        assertEquals(new PortSignature("effector", "Order", "CustomPort"), sigs.get(0));
+      }
+    }
+
+    @Nested
+    class ClosedLoopReceptor {
+
+      @Test
+      void effectReceive_producesEffectorAndReceptor() {
+        List<PortSignature> sigs =
+            service.collectPortSignatures("sys.effect(\"Out\", {}).receive(\"Ack\")");
+        assertEquals(2, sigs.size());
+        assertEquals(new PortSignature("effector", "Out", null), sigs.get(0));
+        assertEquals(new PortSignature("receptor", "Ack", null), sigs.get(1));
+      }
+
+      @Test
+      void effectReceiveOn_capturesPortName() {
+        List<PortSignature> sigs =
+            service.collectPortSignatures(
+                "sys.effect(\"Out\", {}).receive(\"Ack\").on(\"AckPort\")");
+        assertEquals(2, sigs.size());
+        assertEquals(new PortSignature("receptor", "Ack", "AckPort"), sigs.get(1));
+      }
+    }
+
+    @Nested
+    class ForLoopPorts {
+
+      @Test
+      void forLoop_collectsInnerEffects() {
+        String rule = "for item in items:\n  sys.effect(\"Batch\", {})";
+        Set<PortSignature> sigs = uniqueSignatures(rule);
+        assertEquals(1, sigs.size());
+        assertTrue(sigs.contains(new PortSignature("effector", "Batch", null)));
+      }
+    }
+
+    @Nested
+    class CombinedSignatures {
+
+      @Test
+      void multipleStatements_collectsAll() {
+        String rule = "sys.receive(\"Trigger\")\nsys.effect(\"Out\", {}).receive(\"Ack\")";
+        List<PortSignature> sigs = service.collectPortSignatures(rule);
+        assertEquals(3, sigs.size());
+      }
+
+      @Test
+      void emptyRule_noSignatures() {
+        List<PortSignature> sigs = service.collectPortSignatures("x = 1");
+        assertEquals(0, sigs.size());
+      }
+    }
+
+    @Nested
+    class Deduplication {
+
+      @Test
+      void duplicateSigs_dedupedBySet() {
+        String rule = "sys.effect(\"Order\", {})\nsys.effect(\"Order\", {})";
+        Set<PortSignature> unique = uniqueSignatures(rule);
+        assertEquals(1, unique.size());
+      }
+    }
+  }
+
+  // ========================================================================
   // DerivePortsFromRule
   // ========================================================================
 
@@ -95,27 +216,10 @@ class MechanismPortDerivationServiceTest {
   class DerivePortsFromRule {
 
     @Test
-    void noSignatures_skips() {
-      MechanismEntity mechanism = stubMechanism("sys.receive(\"X\")");
-      when(ruleValidation.collectPortSignatures(any(String.class))).thenReturn(List.of());
-
-      service.derivePortsFromRule(mechanism);
-
-      verify(effectorService, never()).save(any());
-      verify(receptorService, never()).save(any());
-    }
-
-    @Test
     void derivesEffectorAndReceptor() {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
       UUID mechDefId = mechanism.getDefinition().getId();
-
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "InputType", null),
-                  new PortSignature("effector", "OutputType", null)));
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
@@ -157,12 +261,6 @@ class MechanismPortDerivationServiceTest {
     void baseArchetypesMissing_skips() {
       MechanismEntity mechanism = stubMechanism("sys.receive(\"X\")\nsys.effect(\"Y\", {})");
 
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "X", null),
-                  new PortSignature("effector", "Y", null)));
-
       when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(null);
       when(archetypeService.findInEffectBySchemaTitle("ReceptorArchetype")).thenReturn(null);
 
@@ -175,12 +273,6 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"MissingType\")\nsys.effect(\"AlsoMissing\", {})");
       UUID mechDefId = mechanism.getDefinition().getId();
-
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "MissingType", null),
-                  new PortSignature("effector", "AlsoMissing", null)));
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
@@ -201,12 +293,6 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
       UUID mechDefId = mechanism.getDefinition().getId();
-
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "InputType", null),
-                  new PortSignature("effector", "OutputType", null)));
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
@@ -269,12 +355,6 @@ class MechanismPortDerivationServiceTest {
               "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"CustomEff\")");
       UUID mechDefId = mechanism.getDefinition().getId();
 
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "InputType", null),
-                  new PortSignature("effector", "OutputType", "CustomEff")));
-
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
       when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
@@ -318,12 +398,6 @@ class MechanismPortDerivationServiceTest {
               "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"UnknownPort\")");
       UUID mechDefId = mechanism.getDefinition().getId();
 
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "InputType", null),
-                  new PortSignature("effector", "OutputType", "UnknownPort")));
-
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
       when(archetypeService.findInEffectBySchemaTitle("EffectorArchetype")).thenReturn(baseEff);
@@ -363,13 +437,6 @@ class MechanismPortDerivationServiceTest {
           stubMechanism(
               "sys.receive(\"Trigger\")\nsys.effect(\"OutType\", {}).receive(\"AckType\").on(\"AckPort\")");
       UUID mechDefId = mechanism.getDefinition().getId();
-
-      when(ruleValidation.collectPortSignatures(any(String.class)))
-          .thenReturn(
-              List.of(
-                  new PortSignature("receptor", "Trigger", null),
-                  new PortSignature("effector", "OutType", null),
-                  new PortSignature("receptor", "AckType", "AckPort")));
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");

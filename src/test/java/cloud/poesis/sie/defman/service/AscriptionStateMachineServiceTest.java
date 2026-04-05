@@ -55,14 +55,17 @@ class AscriptionStateMachineTest {
     void delegatesToTransitionService() {
       AscriptionEntity ascription = mock(AscriptionEntity.class);
       AscriptionStatusTransitionEntity expected = mock(AscriptionStatusTransitionEntity.class);
-      when(transitionService.recordTransition(ascription, null, AscriptionStatusType.DRAFT))
+      when(transitionService.recordTransition(
+              ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED))
           .thenReturn(expected);
 
       AscriptionStatusTransitionEntity result =
-          stateMachine.recordTransition(ascription, null, AscriptionStatusType.DRAFT);
+          stateMachine.recordTransition(
+              ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
 
       assertEquals(expected, result);
-      verify(transitionService).recordTransition(ascription, null, AscriptionStatusType.DRAFT);
+      verify(transitionService)
+          .recordTransition(ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     }
   }
 

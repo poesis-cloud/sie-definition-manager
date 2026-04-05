@@ -24,7 +24,7 @@ public class AscriptionStatusTransitionDto {
   @Schema(description = "Ascription ID this transition belongs to")
   private final UUID ascriptionId;
 
-  @Schema(description = "Status before the transition (null for initial creation)", nullable = true)
+  @Schema(description = "Status before the transition")
   private final AscriptionStatusType preStatus;
 
   @Schema(description = "Status after the transition")

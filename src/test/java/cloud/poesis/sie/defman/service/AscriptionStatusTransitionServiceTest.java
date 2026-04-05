@@ -60,7 +60,8 @@ class AscriptionStatusTransitionServiceTest {
       when(transitionRepo.findById(transitionId)).thenReturn(Optional.of(refetched));
 
       AscriptionStatusTransitionEntity result =
-          service.recordTransition(ascription, null, AscriptionStatusType.DRAFT);
+          service.recordTransition(
+              ascription, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
 
       assertEquals(refetched, result);
       verify(entityManager).flush();

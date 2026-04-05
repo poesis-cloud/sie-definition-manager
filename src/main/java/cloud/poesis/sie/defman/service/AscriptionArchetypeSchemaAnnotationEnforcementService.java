@@ -26,15 +26,15 @@ import org.springframework.stereotype.Service;
  * @since 1.0.0
  */
 @Service
-public class AscriptionAnnotationEnforcementService {
+public class AscriptionArchetypeSchemaAnnotationEnforcementService {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(AscriptionAnnotationEnforcementService.class);
+      LoggerFactory.getLogger(AscriptionArchetypeSchemaAnnotationEnforcementService.class);
 
   private final AscriptionService ascriptionService;
   private final AscriptionStatementProtectionService statementProtection;
 
-  public AscriptionAnnotationEnforcementService(
+  public AscriptionArchetypeSchemaAnnotationEnforcementService(
       AscriptionService ascriptionService,
       AscriptionStatementProtectionService statementProtection) {
     this.ascriptionService = ascriptionService;
@@ -76,11 +76,11 @@ public class AscriptionAnnotationEnforcementService {
 
       JsonNode value = statement.get(propName);
 
-      if (hasAnnotation(propSchema, "$gsm:identityBound")) {
+      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:identityBound")) {
         enforceStatementIdentityBound(propName, value, definitionId, existingFinder);
       }
 
-      if (hasAnnotation(propSchema, "$gsm:unique")) {
+      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:unique")) {
         enforceUnique(propName, value, archetype, definitionId);
       }
 
@@ -173,9 +173,5 @@ public class AscriptionAnnotationEnforcementService {
           "actualValue",
           newStr);
     }
-  }
-
-  private static boolean hasAnnotation(JsonNode node, String annotation) {
-    return node.has(annotation) && node.get(annotation).asBoolean(false);
   }
 }

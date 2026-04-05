@@ -127,9 +127,4 @@ public class DirectiveService extends AbstractAscriptionService<DirectiveEntity>
             "structure", d.getStructure().getDefinition().getId(),
             "qualifier", d.getQualifier().getDefinition().getId());
   }
-
-  @Override
-  public void validateActivationUniqueness(AscriptionEntity entity) {
-    // TODO: re-wire when AppraisalService is introduced
-  }
 }

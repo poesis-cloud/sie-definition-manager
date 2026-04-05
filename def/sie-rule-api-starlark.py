@@ -20,7 +20,7 @@
 #   └─────────────────────────────────────────────────────┘
 #
 # sys.receive() declares the trigger and returns the event payload.
-# sys.effect() returns a fluent builder. Chained methods
+# sys.effect() returns a fluent chain. Chained methods
 # (.by, .receive, .on) qualify port archetypes.
 # The runtime handles transactional boundaries.
 #
@@ -72,7 +72,7 @@ class SystemContext:
 
     # --- Receive (trigger declaration — sensor) ---
 
-    def receive(self, event_archetype: str) -> "ReceptorBuilder":
+    def receive(self, event_archetype: str) -> "Reception":
         """
         Declare the triggering Archetype and return its payload.
         MUST be the first executable statement in the body.
@@ -90,7 +90,7 @@ class SystemContext:
             event_archetype: String literal — Archetype name.
 
         Returns:
-            ReceptorBuilder — fluent builder for optional trigger
+            Reception — fluent chain for optional trigger
             port qualification. At runtime, resolves to the
             triggering event payload dict.
 
@@ -120,7 +120,7 @@ class SystemContext:
 
     def effect(self,
                archetype: str,
-               data: Optional[dict[str, Any]] = None) -> "EffectorBuilder":
+               data: Optional[dict[str, Any]] = None) -> "Effect":
         """
         Produce an effect typed by the named Archetype.
 
@@ -134,7 +134,7 @@ class SystemContext:
                        archetype schema).
 
         Returns:
-            EffectorBuilder — fluent builder for optional port
+            Effect — fluent chain for optional port
             qualification and feedback declaration.
 
             When .receive() is NOT chained: returns None at runtime
@@ -180,10 +180,10 @@ class SystemContext:
         """
         ...
 
-class ReceptorBuilder:
-    """Fluent builder returned by sys.receive(). Qualifies trigger port."""
+class Reception:
+    """Fluent chain returned by sys.receive(). Qualifies trigger port."""
 
-    def on(self, receptor_archetype: str) -> "ReceptorBuilder":
+    def on(self, receptor_archetype: str) -> "Reception":
         """
         Qualify the trigger Receptor port with a specific Archetype.
 
@@ -193,7 +193,7 @@ class ReceptorBuilder:
                                 omitted.
 
         Returns:
-            self (fluent chaining). The builder still returns the
+            self (fluent chaining). The Reception still returns the
             event payload dict at runtime.
 
         GSM auto-derivation:
@@ -203,10 +203,10 @@ class ReceptorBuilder:
         ...
 
 
-class EffectorBuilder:
-    """Fluent builder returned by sys.effect(). Qualifies ports."""
+class Effect:
+    """Fluent chain returned by sys.effect(). Qualifies ports."""
 
-    def by(self, effector_archetype: str) -> "EffectorBuilder":
+    def by(self, effector_archetype: str) -> "Effect":
         """
         Qualify the Effector port with a specific Archetype.
 
@@ -224,7 +224,7 @@ class EffectorBuilder:
         """
         ...
 
-    def receive(self, feedback_archetype: str) -> "EffectorBuilder":
+    def receive(self, feedback_archetype: str) -> "Effect":
         """
         Declare a feedback Receptor for the effect (closed-loop).
 
@@ -241,7 +241,7 @@ class EffectorBuilder:
         """
         ...
 
-    def on(self, receptor_archetype: str) -> "EffectorBuilder":
+    def on(self, receptor_archetype: str) -> "Effect":
         """
         Qualify the Receptor port with a specific Archetype.
         MUST follow .receive() (qualifies the feedback Receptor).

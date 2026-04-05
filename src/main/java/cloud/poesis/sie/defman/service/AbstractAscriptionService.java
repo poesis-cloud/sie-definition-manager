@@ -276,8 +276,11 @@ public abstract class AbstractAscriptionService<T extends AscriptionEntity> {
     try {
       saved = save(entity);
 
-      // 8. Record initial DRAFT transition
-      stateMachine.recordTransition(saved, null, AscriptionStatusType.DRAFT);
+      // 8. Flush pending INSERT so refresh() can re-read the row.
+      // Previously, the now-removed recordTransition() call between save() and refresh()
+      // triggered an implicit flush; without it, refresh() would fail with
+      // EntityNotFoundException because the INSERT was still pending in the session.
+      entityManager.flush();
 
       // 9. Refresh to pick up DB-trigger-assigned fields (status, timestamp)
       entityManager.refresh(saved);

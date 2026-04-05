@@ -474,7 +474,6 @@ class AbstractControllerTest {
     when(entity.getDefinition()).thenReturn(def);
     when(entity.getArchetype()).thenReturn(archetype);
     when(entity.getStatement()).thenReturn(statement);
-    when(entity.getVersion()).thenReturn(1);
     when(entity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
     when(entity.getTimestamp()).thenReturn(Instant.now());
 

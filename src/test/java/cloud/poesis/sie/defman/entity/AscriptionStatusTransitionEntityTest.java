@@ -2,7 +2,6 @@ package cloud.poesis.sie.defman.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -26,12 +25,11 @@ class AscriptionStatusTransitionEntityTest {
   }
 
   @Test
-  void constructorAllowsNullPreStatus() {
+  void constructorRejectsNullPreStatus() {
     AscriptionEntity asc = mock(AscriptionEntity.class);
-    AscriptionStatusTransitionEntity entity =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
-    assertNull(entity.getPreStatus());
-    assertEquals(AscriptionStatusType.DRAFT, entity.getPostStatus());
+    assertThrows(
+        NullPointerException.class,
+        () -> new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT));
   }
 
   @Test
@@ -55,9 +53,11 @@ class AscriptionStatusTransitionEntityTest {
   void equalsAndHashCode_sameId() throws Exception {
     AscriptionEntity asc = mock(AscriptionEntity.class);
     AscriptionStatusTransitionEntity a =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
+        new AscriptionStatusTransitionEntity(
+            asc, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     AscriptionStatusTransitionEntity b =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
+        new AscriptionStatusTransitionEntity(
+            asc, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     UUID id = UUID.randomUUID();
     Field idField = AscriptionStatusTransitionEntity.class.getDeclaredField("id");
     idField.setAccessible(true);
@@ -72,9 +72,11 @@ class AscriptionStatusTransitionEntityTest {
   void equals_bothNullId_notEqual() {
     AscriptionEntity asc = mock(AscriptionEntity.class);
     AscriptionStatusTransitionEntity a =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
+        new AscriptionStatusTransitionEntity(
+            asc, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     AscriptionStatusTransitionEntity b =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
+        new AscriptionStatusTransitionEntity(
+            asc, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     assertFalse(a.equals(b));
   }
 
@@ -82,7 +84,8 @@ class AscriptionStatusTransitionEntityTest {
   void equals_sameInstance() {
     AscriptionEntity asc = mock(AscriptionEntity.class);
     AscriptionStatusTransitionEntity a =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
+        new AscriptionStatusTransitionEntity(
+            asc, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     assertTrue(a.equals(a));
   }
 
@@ -90,7 +93,8 @@ class AscriptionStatusTransitionEntityTest {
   void equals_null() {
     AscriptionEntity asc = mock(AscriptionEntity.class);
     AscriptionStatusTransitionEntity a =
-        new AscriptionStatusTransitionEntity(asc, null, AscriptionStatusType.DRAFT);
+        new AscriptionStatusTransitionEntity(
+            asc, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
     assertFalse(a.equals(null));
   }
 }

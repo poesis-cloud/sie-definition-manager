@@ -51,10 +51,9 @@ class AscriptionEntityTest {
     assertEquals(def, entity.getDefinition());
     assertEquals(arch, entity.getArchetype());
     assertEquals("Test", entity.getStatement().get("title").asText());
-    // Id, status, version, timestamp are DB-generated → null/default
+    // Id, status, timestamp are DB-generated → null/default
     assertNull(entity.getId());
     assertNull(entity.getStatus());
-    assertEquals(0, entity.getVersion());
     assertNull(entity.getTimestamp());
   }
 

@@ -30,13 +30,13 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class AscriptionAnnotationEnforcementServiceTest {
+class AscriptionArchetypeSchemaAnnotationEnforcementServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Mock private AscriptionService ascriptionService;
 
-  private AscriptionAnnotationEnforcementService svc;
+  private AscriptionArchetypeSchemaAnnotationEnforcementService svc;
 
   // Configurable existing ascriptions for identity-bound testing
   private List<AscriptionEntity> existingAscriptions = List.of();
@@ -46,7 +46,7 @@ class AscriptionAnnotationEnforcementServiceTest {
   @BeforeEach
   void setUp() {
     svc =
-        new AscriptionAnnotationEnforcementService(
+        new AscriptionArchetypeSchemaAnnotationEnforcementService(
             ascriptionService, new AscriptionStatementProtectionService());
   }
 

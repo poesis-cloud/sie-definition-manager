@@ -18,12 +18,11 @@ class AscriptionDtoTest {
     UUID id = UUID.randomUUID();
     ObjectNode stmt = MAPPER.createObjectNode().put("key", "val");
     Instant ts = Instant.now();
-    AscriptionDto dto = new AscriptionDto(id, stmt, ts, 3, AscriptionStatusType.ACTIVE);
+    AscriptionDto dto = new AscriptionDto(id, stmt, ts, AscriptionStatusType.ACTIVE);
 
     assertEquals(id, dto.getId());
     assertEquals("val", dto.getStatement().get("key").asText());
     assertEquals(ts, dto.getTimestamp());
-    assertEquals(3, dto.getVersion());
     assertEquals(AscriptionStatusType.ACTIVE, dto.getStatus());
   }
 }

@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
@@ -41,41 +39,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity> {
 
-  /** Maps schema title to DefinitionSubjectType for base archetypes. */
-  private static final Map<String, DefinitionSubjectType> SCHEMA_TITLE_TO_SUBJECT_TYPE =
-      Map.of(
-          "Archetype", DefinitionSubjectType.ARCHETYPE,
-          "StructureArchetype", DefinitionSubjectType.STRUCTURE,
-          "MechanismArchetype", DefinitionSubjectType.MECHANISM,
-          "EffectorArchetype", DefinitionSubjectType.EFFECTOR,
-          "ReceptorArchetype", DefinitionSubjectType.RECEPTOR,
-          "InteractionArchetype", DefinitionSubjectType.INTERACTION,
-          "DirectiveArchetype", DefinitionSubjectType.DIRECTIVE,
-          "NormArchetype", DefinitionSubjectType.NORM);
-
-  // ======================================================================
-  // Schema composition validation constants ($ref chain + allOf facets)
-  // ======================================================================
-
-  private static final Set<String> GSM_BASE_TITLES =
-      Set.of(
-          "StructureArchetype",
-          "MechanismArchetype",
-          "InteractionArchetype",
-          "Archetype",
-          "EffectorArchetype",
-          "ReceptorArchetype",
-          "DirectiveArchetype",
-          "NormArchetype");
-
-  private static final Pattern GSM_URI_PATTERN =
-      Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
-
   public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {}
 
   private final ArchetypeRepository archetypeRepo;
-  private final ArchetypeIndexProvisioningService indexProvisioning;
-  private final ArchetypeAnnotationValidationService annotationValidation;
+  private final ArchetypeSchemaPropertyIndexationService indexProvisioning;
+  private final ArchetypeSchemaAnnotationValidationService annotationValidation;
   private final ArchetypeSchemaCompositionValidationService schemaCompositionValidation;
 
   /**
@@ -92,8 +60,8 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
    */
   public ArchetypeService(
       ArchetypeRepository archetypeRepo,
-      ArchetypeIndexProvisioningService indexProvisioning,
-      ArchetypeAnnotationValidationService annotationValidation,
+      ArchetypeSchemaPropertyIndexationService indexProvisioning,
+      ArchetypeSchemaAnnotationValidationService annotationValidation,
       ArchetypeSchemaCompositionValidationService schemaCompositionValidation,
       DefinitionService definitionService,
       AscriptionStateMachineService stateMachine,
@@ -219,7 +187,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     String title = stmt.get("title").asText();
 
     // Direct match for GSM base archetypes.
-    DefinitionSubjectType type = SCHEMA_TITLE_TO_SUBJECT_TYPE.get(title);
+    DefinitionSubjectType type = DefinitionSubjectType.fromArchetypeTitle(title);
     if (type != null) {
       return type;
     }
@@ -264,7 +232,7 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     }
 
     String baseName = resolvedBases.iterator().next();
-    type = SCHEMA_TITLE_TO_SUBJECT_TYPE.get(baseName);
+    type = DefinitionSubjectType.fromArchetypeTitle(baseName);
     if (type == null) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
@@ -393,10 +361,10 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
     // Walk top-level $ref (base extension chain)
     if (schema.has("$ref") && schema.get("$ref").isTextual()) {
       String ref = schema.get("$ref").asText();
-      String refTitle = extractTitleFromRef(ref);
+      String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
       if (refTitle != null && visited.add(refTitle)) {
         ancestors.add(refTitle);
-        if (!GSM_BASE_TITLES.contains(refTitle)) {
+        if (!ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
           JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
           if (intermediateSchema != null) {
             collectAncestorTitles(intermediateSchema, ancestors, visited);
@@ -413,12 +381,12 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
           continue;
         }
         String ref = entry.get("$ref").asText();
-        String refTitle = extractTitleFromRef(ref);
+        String refTitle = ArchetypeSchemaService.extractTitleFromRef(ref);
         if (refTitle == null || !visited.add(refTitle)) {
           continue;
         }
         ancestors.add(refTitle);
-        if (GSM_BASE_TITLES.contains(refTitle)) {
+        if (ArchetypeSchemaService.isGsmBaseTitle(refTitle)) {
           continue;
         }
         JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
@@ -435,13 +403,5 @@ public class ArchetypeService extends AbstractAscriptionService<ArchetypeEntity>
 
   JsonNode resolveArchetypeSchema(String title) {
     return archetypeRepo.findInEffectByTitle(title).map(ArchetypeEntity::getStatement).orElse(null);
-  }
-
-  static String extractTitleFromRef(String ref) {
-    Matcher m = GSM_URI_PATTERN.matcher(ref);
-    if (m.matches()) {
-      return m.group(1);
-    }
-    return null;
   }
 }

@@ -20,7 +20,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.hateoas.CollectionModel;
@@ -32,7 +31,6 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -103,17 +101,7 @@ public class DefinitionController extends AbstractController {
               .withRel("first"));
       model.add(
           linkTo(AscriptionController.class).slash(ascriptions.get(0).getId()).withRel("last"));
-      // latest-version: first ascription with version >= 1 (omit if all v0)
-      for (AscriptionEntity a : ascriptions) {
-        if (a.getVersion() >= 1) {
-          model.add(linkTo(AscriptionController.class).slash(a.getId()).withRel("latest-version"));
-          break;
-        }
-      }
     }
-    model.add(
-        linkTo(methodOn(DefinitionController.class).listAscriptions(id, 1))
-            .withRel("version-history"));
     return model;
   }
 
@@ -130,30 +118,16 @@ public class DefinitionController extends AbstractController {
   @GetMapping("/{id}/ascriptions")
   @Operation(
       summary = "List ascriptions for a definition",
-      description =
-          "Returns ascription versions for this definition. "
-              + "Use minVersion=1 to retrieve only governance-approved versions (version-history).")
+      description = "Returns all ascriptions for this definition, ordered by timestamp.")
   @ApiResponse(responseCode = "200", description = "Ascription list")
   @ApiResponse(
       responseCode = "404",
       description = "Definition not found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public CollectionModel<EntityModel<AscriptionDto>> listAscriptions(
-      @Parameter(description = "Definition ID") @PathVariable UUID id,
-      @Parameter(
-              description =
-                  "Minimum version filter (inclusive). " + "Use 1 to exclude unapproved drafts.")
-          @RequestParam(required = false)
-          Integer minVersion) {
+      @Parameter(description = "Definition ID") @PathVariable UUID id) {
     DefinitionEntity entity = definitionService.getByIdWithArchetypes(id);
     List<AscriptionEntity> ascriptions = entity.getAscriptions();
-    if (minVersion != null) {
-      ascriptions =
-          ascriptions.stream()
-              .filter(a -> a.getVersion() >= minVersion)
-              .sorted(Comparator.comparingInt(AscriptionEntity::getVersion))
-              .toList();
-    }
     List<EntityModel<AscriptionDto>> items = new ArrayList<>();
     for (AscriptionEntity ascription : ascriptions) {
       ArchetypeEntity archetype = ascription.getArchetype();

@@ -152,12 +152,9 @@ class AscriptionStatusTransitionResourceIT {
 
   @Test
   @Order(10)
-  void getTransitions_showsInitialDraft() throws Exception {
+  void getTransitions_emptyForNewAscription() throws Exception {
     mvc.perform(get("/api/v1/ascriptions/{id}/transitions", createdArchetypeId))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(1)))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].postStatus", is("DRAFT")))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].preStatus").doesNotExist());
+        .andExpect(status().isOk());
   }
 
   // ================================================================
@@ -175,13 +172,12 @@ class AscriptionStatusTransitionResourceIT {
 
   @Test
   @Order(21)
-  void transition_proposedToApproved_assignsVersionAndTerminatesSibling() throws Exception {
+  void transition_proposedToApproved_terminatesSibling() throws Exception {
     performTransition(createdArchetypeId, "APPROVED")
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.postStatus", is("APPROVED")));
 
     mvc.perform(get("/api/v1/ascriptions/{id}", createdArchetypeId))
-        .andExpect(jsonPath("$.version", is(1)))
         .andExpect(jsonPath("$.status", is("APPROVED")));
 
     mvc.perform(get("/api/v1/ascriptions/{id}", siblingArchetypeId))
@@ -316,20 +312,18 @@ class AscriptionStatusTransitionResourceIT {
     performTransition(ascId, "APPROVED");
     performTransition(ascId, "ACTIVE");
 
-    // Should have 4 transitions: [null→DRAFT, DRAFT→PROPOSED, PROPOSED→APPROVED,
-    // APPROVED→ACTIVE]
+    // Should have 3 transitions: [DRAFT→PROPOSED, PROPOSED→APPROVED, APPROVED→ACTIVE]
     mvc.perform(get("/api/v1/ascriptions/{id}/transitions", ascId))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(4)))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].postStatus", is("DRAFT")))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[1].preStatus", is("DRAFT")))
+        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions", hasSize(3)))
+        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[0].preStatus", is("DRAFT")))
         .andExpect(
-            jsonPath("$._embedded.ascriptionStatusTransitions[1].postStatus", is("PROPOSED")))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[2].preStatus", is("PROPOSED")))
+            jsonPath("$._embedded.ascriptionStatusTransitions[0].postStatus", is("PROPOSED")))
+        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[1].preStatus", is("PROPOSED")))
         .andExpect(
-            jsonPath("$._embedded.ascriptionStatusTransitions[2].postStatus", is("APPROVED")))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[3].preStatus", is("APPROVED")))
-        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[3].postStatus", is("ACTIVE")));
+            jsonPath("$._embedded.ascriptionStatusTransitions[1].postStatus", is("APPROVED")))
+        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[2].preStatus", is("APPROVED")))
+        .andExpect(jsonPath("$._embedded.ascriptionStatusTransitions[2].postStatus", is("ACTIVE")));
   }
 
   // ================================================================

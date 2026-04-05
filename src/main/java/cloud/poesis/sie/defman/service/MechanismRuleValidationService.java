@@ -1,9 +1,8 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.service.MechanismRuleParsingService.ChainLink;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,16 +13,13 @@ import net.starlark.java.syntax.DictExpression;
 import net.starlark.java.syntax.DotExpression;
 import net.starlark.java.syntax.Expression;
 import net.starlark.java.syntax.ExpressionStatement;
-import net.starlark.java.syntax.FileOptions;
 import net.starlark.java.syntax.ForStatement;
 import net.starlark.java.syntax.Identifier;
 import net.starlark.java.syntax.ListExpression;
 import net.starlark.java.syntax.LoadStatement;
-import net.starlark.java.syntax.ParserInput;
 import net.starlark.java.syntax.StarlarkFile;
 import net.starlark.java.syntax.Statement;
 import net.starlark.java.syntax.StringLiteral;
-import net.starlark.java.syntax.SyntaxError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,7 +29,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>Validates Mechanism rule Starlark code against GSM constraints: syntax, execution budget,
  * trigger uniqueness, sys.* fluent API conformance, global whitelist, and best-effort dict literal
- * schema conformance. Also collects port signatures from the AST for auto-derivation.
+ * schema conformance.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -95,9 +91,12 @@ public class MechanismRuleValidationService {
 
   private static final Logger LOG = LoggerFactory.getLogger(MechanismRuleValidationService.class);
 
+  private final MechanismRuleParsingService parsingService;
   private final ArchetypeService archetypeService;
 
-  public MechanismRuleValidationService(ArchetypeService archetypeService) {
+  public MechanismRuleValidationService(
+      MechanismRuleParsingService parsingService, ArchetypeService archetypeService) {
+    this.parsingService = parsingService;
     this.archetypeService = archetypeService;
   }
 
@@ -110,7 +109,7 @@ public class MechanismRuleValidationService {
    * access.
    */
   String validateStarlarkRule(String rule) {
-    StarlarkFile file = parseStarlark(rule);
+    StarlarkFile file = parsingService.parseStarlark(rule);
 
     // GSM §Mechanism V14: execution budget — reject rules exceeding statement limit
     int stmtCount = countStatements(file);
@@ -205,46 +204,6 @@ public class MechanismRuleValidationService {
     return triggerArchetype;
   }
 
-  /**
-   * Collects port signatures from a Starlark rule AST for auto-derivation. Package-private for test
-   * access.
-   *
-   * @param rule the Starlark rule source
-   * @return the collected port signatures
-   */
-  List<PortSignature> collectPortSignatures(String rule) {
-    StarlarkFile file = parseStarlark(rule);
-    return collectPortSignatures(file);
-  }
-
-  /**
-   * A derived port signature from Starlark AST analysis. direction: "effector" or "receptor"
-   * dataArchetypeName: the data archetype schema.title portArchetypeName: optional port archetype
-   * name (from .by()/.on()); null means use base EffectorArchetype/ReceptorArchetype
-   */
-  record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {}
-
-  // ======================================================================
-  // Starlark parsing
-  // ======================================================================
-
-  StarlarkFile parseStarlark(String rule) {
-    ParserInput input = ParserInput.fromString(rule, "<mechanism-rule>");
-    StarlarkFile file = StarlarkFile.parse(input, FileOptions.DEFAULT);
-    if (!file.errors().isEmpty()) {
-      StringBuilder sb = new StringBuilder("Starlark syntax errors:");
-      for (SyntaxError e : file.errors()) {
-        sb.append("\n  - ").append(e.message());
-      }
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING,
-          sb.toString(),
-          "field",
-          "rule");
-    }
-    return file;
-  }
-
   // ======================================================================
   // Trigger validation
   // ======================================================================
@@ -262,7 +221,7 @@ public class MechanismRuleValidationService {
     }
 
     // Unwrap chain to find root receive() args
-    List<ChainLink> chain = unwrapReceiveChain(receiveCall);
+    List<ChainLink> chain = parsingService.unwrapReceiveChain(receiveCall);
     if (chain.isEmpty() || !"receive".equals(chain.get(0).method())) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
@@ -359,7 +318,7 @@ public class MechanismRuleValidationService {
     } else if (stmt instanceof AssignmentStatement as) {
       expr = as.getRHS();
     }
-    if (expr instanceof CallExpression call && isSysReceiveChain(call)) {
+    if (expr instanceof CallExpression call && parsingService.isSysReceiveChain(call)) {
       return call;
     }
     return null;
@@ -370,10 +329,10 @@ public class MechanismRuleValidationService {
     for (Statement stmt : file.getStatements()) {
       if (stmt instanceof ExpressionStatement es
           && es.getExpression() instanceof CallExpression call) {
-        if (isSysReceiveChain(call)) count++;
+        if (parsingService.isSysReceiveChain(call)) count++;
       }
       if (stmt instanceof AssignmentStatement as && as.getRHS() instanceof CallExpression call) {
-        if (isSysReceiveChain(call)) count++;
+        if (parsingService.isSysReceiveChain(call)) count++;
       }
     }
     return count;
@@ -395,8 +354,8 @@ public class MechanismRuleValidationService {
     if (!(expr instanceof CallExpression call)) return;
 
     // sys.effect() chains
-    if (isSysEffectChain(call)) {
-      List<ChainLink> chain = unwrapEffectChain(call);
+    if (parsingService.isSysEffectChain(call)) {
+      List<ChainLink> chain = parsingService.unwrapEffectChain(call);
       if (chain.isEmpty()) return;
 
       // Validate chain order: effect → [by] → [receive → [on]]
@@ -444,75 +403,6 @@ public class MechanismRuleValidationService {
 
     // sys.receive() chains are validated in validateOnTrigger; no extra check
     // needed here
-  }
-
-  // ======================================================================
-  // Chain link record and unwinding
-  // ======================================================================
-
-  /** A link in a sys.effect() fluent chain. */
-  record ChainLink(String method, List<Argument> args) {}
-
-  /**
-   * Check if a CallExpression is a sys.effect() chain (possibly with .by/.receive/.on methods).
-   * Walks from outermost call to innermost, looking for sys.effect root.
-   */
-  boolean isSysEffectChain(CallExpression call) {
-    Expression current = call;
-    while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
-      if (dot.getObject() instanceof Identifier id && "sys".equals(id.getName())) {
-        return "effect".equals(dot.getField().getName());
-      }
-      current = dot.getObject();
-    }
-    return false;
-  }
-
-  /**
-   * Check if a CallExpression is a sys.receive() chain (possibly with .on). Walks from outermost
-   * call to innermost, looking for sys.receive root.
-   */
-  boolean isSysReceiveChain(CallExpression call) {
-    Expression current = call;
-    while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
-      if (dot.getObject() instanceof Identifier id && "sys".equals(id.getName())) {
-        return "receive".equals(dot.getField().getName());
-      }
-      current = dot.getObject();
-    }
-    return false;
-  }
-
-  /**
-   * Unwrap a sys.effect() fluent chain from outermost to innermost, returning links in natural
-   * order: [effect, by, receive, on].
-   */
-  List<ChainLink> unwrapEffectChain(CallExpression call) {
-    List<ChainLink> links = new ArrayList<>();
-    Expression current = call;
-    while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
-      links.add(new ChainLink(dot.getField().getName(), c.getArguments()));
-      current = dot.getObject();
-      if (current instanceof Identifier) break;
-    }
-    Collections.reverse(links);
-    return links;
-  }
-
-  /**
-   * Unwrap a sys.receive() fluent chain from outermost to innermost, returning links in natural
-   * order: [receive, on].
-   */
-  List<ChainLink> unwrapReceiveChain(CallExpression call) {
-    List<ChainLink> links = new ArrayList<>();
-    Expression current = call;
-    while (current instanceof CallExpression c && c.getFunction() instanceof DotExpression dot) {
-      links.add(new ChainLink(dot.getField().getName(), c.getArguments()));
-      current = dot.getObject();
-      if (current instanceof Identifier) break;
-    }
-    Collections.reverse(links);
-    return links;
   }
 
   /**
@@ -680,15 +570,15 @@ public class MechanismRuleValidationService {
   private void collectSysArchetypeNamesInExpr(Expression expr, Set<String> names) {
     if (!(expr instanceof CallExpression call)) return;
 
-    if (isSysEffectChain(call)) {
-      List<ChainLink> chain = unwrapEffectChain(call);
+    if (parsingService.isSysEffectChain(call)) {
+      List<ChainLink> chain = parsingService.unwrapEffectChain(call);
       for (ChainLink link : chain) {
         if (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl) {
           names.add(sl.getValue());
         }
       }
-    } else if (isSysReceiveChain(call)) {
-      List<ChainLink> chain = unwrapReceiveChain(call);
+    } else if (parsingService.isSysReceiveChain(call)) {
+      List<ChainLink> chain = parsingService.unwrapReceiveChain(call);
       for (ChainLink link : chain) {
         if (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl) {
           names.add(sl.getValue());
@@ -711,10 +601,10 @@ public class MechanismRuleValidationService {
 
   private void validateDictLiteralInSysCall(Expression expr) {
     if (!(expr instanceof CallExpression call)) return;
-    if (!isSysEffectChain(call)) return;
+    if (!parsingService.isSysEffectChain(call)) return;
 
     // Unwrap chain to find root effect() args
-    List<ChainLink> chain = unwrapEffectChain(call);
+    List<ChainLink> chain = parsingService.unwrapEffectChain(call);
     if (chain.isEmpty()) return;
 
     ChainLink effectLink = chain.get(0);
@@ -750,122 +640,6 @@ public class MechanismRuleValidationService {
               schemaKeys);
         }
       }
-    }
-  }
-
-  // ======================================================================
-  // Port signature collection (for auto-derivation)
-  // ======================================================================
-
-  /**
-   * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
-   *
-   * <ul>
-   *   <li>sys.receive("X") → Receptor for X (trigger, base ReceptorArchetype)
-   *   <li>sys.receive("X").on("R") → Receptor for X (trigger, port type R)
-   *   <li>sys.effect("A", data) → Effector for A (base EffectorArchetype)
-   *   <li>sys.effect("A", data).by("E") → Effector for A (port type E)
-   *   <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F (base types)
-   *   <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor for F (port type
-   *       R)
-   *   <li>sys.effect("A", data).by("E").receive("F").on("R") → Effector for A (port type E) +
-   *       Receptor for F (port type R)
-   * </ul>
-   */
-  List<PortSignature> collectPortSignatures(StarlarkFile file) {
-    List<PortSignature> signatures = new ArrayList<>();
-
-    for (Statement stmt : file.getStatements()) {
-      // sys.receive("X") / sys.receive("X").on("R") → trigger Receptor
-      collectTriggerReceptorFromStatement(stmt, signatures);
-
-      collectPortSignaturesFromStatement(stmt, signatures);
-      if (stmt instanceof ForStatement fs) {
-        for (Statement body : fs.getBody()) {
-          collectPortSignaturesFromStatement(body, signatures);
-        }
-      }
-    }
-
-    return signatures;
-  }
-
-  private void collectTriggerReceptorFromStatement(Statement stmt, List<PortSignature> signatures) {
-    Expression expr = null;
-    if (stmt instanceof ExpressionStatement es) {
-      expr = es.getExpression();
-    } else if (stmt instanceof AssignmentStatement as) {
-      expr = as.getRHS();
-    }
-    if (expr == null) return;
-    if (!(expr instanceof CallExpression call)) return;
-    if (!isSysReceiveChain(call)) return;
-
-    List<ChainLink> chain = unwrapReceiveChain(call);
-    if (chain.isEmpty()) return;
-
-    String dataArchetype = null;
-    String portArchetype = null;
-    for (ChainLink link : chain) {
-      String arg =
-          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
-              ? sl.getValue()
-              : null;
-      switch (link.method()) {
-        case "receive" -> dataArchetype = arg;
-        case "on" -> portArchetype = arg;
-        default -> {}
-      }
-    }
-    if (dataArchetype != null) {
-      signatures.add(new PortSignature("receptor", dataArchetype, portArchetype));
-    }
-  }
-
-  private void collectPortSignaturesFromStatement(Statement stmt, List<PortSignature> signatures) {
-    Expression expr = null;
-
-    if (stmt instanceof ExpressionStatement es) {
-      expr = es.getExpression();
-    } else if (stmt instanceof AssignmentStatement as) {
-      expr = as.getRHS();
-    }
-
-    if (expr == null) return;
-    if (!(expr instanceof CallExpression call)) return;
-    if (!isSysEffectChain(call)) return;
-
-    List<ChainLink> chain = unwrapEffectChain(call);
-    if (chain.isEmpty()) return;
-
-    // Extract data from chain: effect("A"), by("E"), receive("F"), on("R")
-    String dataArchetype = null;
-    String effectorPortArchetype = null;
-    String receiveArchetype = null;
-    String receptorPortArchetype = null;
-
-    for (ChainLink link : chain) {
-      String arg =
-          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
-              ? sl.getValue()
-              : null;
-      switch (link.method()) {
-        case "effect" -> dataArchetype = arg;
-        case "by" -> effectorPortArchetype = arg;
-        case "receive" -> receiveArchetype = arg;
-        case "on" -> receptorPortArchetype = arg;
-        default -> {}
-      }
-    }
-
-    if (dataArchetype == null) return;
-
-    // Always derive Effector for the effect() data archetype
-    signatures.add(new PortSignature("effector", dataArchetype, effectorPortArchetype));
-
-    // If .receive() present → derive feedback Receptor (closed-loop)
-    if (receiveArchetype != null) {
-      signatures.add(new PortSignature("receptor", receiveArchetype, receptorPortArchetype));
     }
   }
 }

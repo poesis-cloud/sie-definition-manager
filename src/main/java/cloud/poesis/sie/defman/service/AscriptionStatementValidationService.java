@@ -3,7 +3,6 @@ package cloud.poesis.sie.defman.service;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,12 +19,9 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -65,21 +61,6 @@ public class AscriptionStatementValidationService {
                             return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
                           })));
 
-  /** GSM base archetype titles that live on classpath. */
-  private static final Set<String> CLASSPATH_ARCHETYPE_TITLES =
-      Set.of(
-          "Archetype",
-          "StructureArchetype",
-          "MechanismArchetype",
-          "EffectorArchetype",
-          "ReceptorArchetype",
-          "InteractionArchetype",
-          "DirectiveArchetype",
-          "NormArchetype");
-
-  private static final Pattern GSM_URI_PATTERN =
-      Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
-
   // GSM base schema property sets for extensible subject types (sealed — derived
   // from DefinitionSubjectType.statementProperties and never change at runtime).
   // Used to classify validation errors as GSM-base vs tenant-extension.
@@ -96,13 +77,13 @@ public class AscriptionStatementValidationService {
     GSM_BASE_PROPERTIES = Collections.unmodifiableMap(map);
   }
 
-  private final ArchetypeRepository archetypeRepository;
-  private final AscriptionAnnotationEnforcementService annotationEnforcement;
+  private final ArchetypeSchemaService archetypeSchemaService;
+  private final AscriptionArchetypeSchemaAnnotationEnforcementService annotationEnforcement;
 
   public AscriptionStatementValidationService(
-      ArchetypeRepository archetypeRepository,
-      AscriptionAnnotationEnforcementService annotationEnforcement) {
-    this.archetypeRepository = archetypeRepository;
+      ArchetypeSchemaService archetypeSchemaService,
+      AscriptionArchetypeSchemaAnnotationEnforcementService annotationEnforcement) {
+    this.archetypeSchemaService = archetypeSchemaService;
     this.annotationEnforcement = annotationEnforcement;
   }
 
@@ -285,10 +266,9 @@ public class AscriptionStatementValidationService {
       if (node.has("$ref")) {
         String ref = node.get("$ref").asText();
         if (!result.containsKey(ref)) {
-          Matcher m = GSM_URI_PATTERN.matcher(ref);
-          if (m.matches()) {
-            String title = m.group(1);
-            if (!CLASSPATH_ARCHETYPE_TITLES.contains(title)) {
+          String title = ArchetypeSchemaService.extractTitleFromRef(ref);
+          if (title != null) {
+            if (!DefinitionSubjectType.archetypeTitles().contains(title)) {
               resolveTenantArchetypeFromDb(ref, title, result);
             }
           }
@@ -305,7 +285,7 @@ public class AscriptionStatementValidationService {
   }
 
   private void resolveTenantArchetypeFromDb(String uri, String title, Map<String, String> result) {
-    Optional<ArchetypeEntity> found = archetypeRepository.findInEffectByTitle(title);
+    var found = archetypeSchemaService.findInEffectByTitle(title);
     if (found.isPresent()) {
       JsonNode stmt = found.get().getStatement();
       result.put(uri, stmt.toString());

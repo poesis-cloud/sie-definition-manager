@@ -158,7 +158,6 @@ class AscriptionResourceIT {
             .andExpect(header().exists("Location"))
             .andExpect(jsonPath("$.status", is("DRAFT")))
             .andExpect(jsonPath("$.id").exists())
-            .andExpect(jsonPath("$.version", is(0)))
             .andExpect(jsonPath("$.statement.title", is("TestArchetype")))
             .andExpect(jsonPath("$._links.self.href").exists())
             .andExpect(jsonPath("$._links.collection.href").exists())
@@ -489,7 +488,6 @@ class AscriptionResourceIT {
         .andExpect(jsonPath("$.properties.id.type", is("string")))
         .andExpect(jsonPath("$.properties.id.format", is("uuid")))
         .andExpect(jsonPath("$.properties.statement.title", is("StructureArchetype")))
-        .andExpect(jsonPath("$.properties.version.type", is("integer")))
         .andExpect(jsonPath("$.properties.status.type", is("string")))
         .andExpect(jsonPath("$.properties.timestamp.format", is("date-time")));
   }

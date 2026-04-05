@@ -298,21 +298,6 @@ class DirectiveServiceTest {
   }
 
   // ========================================================================
-  // ValidateActivationUniqueness
-  // ========================================================================
-
-  @Nested
-  class ValidateActivationUniquenessTests {
-
-    @Test
-    void noOp_doesNotThrow() {
-      DirectiveEntity entity = mock(DirectiveEntity.class);
-      service.validateActivationUniqueness(entity);
-      // TODO: re-wire when AppraisalService is introduced
-    }
-  }
-
-  // ========================================================================
   // FindAllByDefinitionId (exercises getRepository bridge)
   // ========================================================================
 

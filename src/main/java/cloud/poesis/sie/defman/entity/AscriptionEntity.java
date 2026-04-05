@@ -27,8 +27,8 @@ import org.hibernate.type.SqlTypes;
  * by the referenced {@link DefinitionEntity}.
  *
  * <p>Immutable-after-creation fields ({@code definition}, {@code archetype}, {@code statement}) are
- * set via constructor. All other fields ({@code timestamp}, {@code status}, {@code version}) are DB
- * trigger-managed — no setters exposed.
+ * set via constructor. All other fields ({@code timestamp}, {@code status}) are DB trigger-managed
+ * — no setters exposed.
  *
  * <p>DB triggers (6 per concrete table, TABLE_PER_CLASS):
  *
@@ -50,8 +50,6 @@ import org.hibernate.type.SqlTypes;
  * <ul>
  *   <li>{@code tgf_sync_ascription_status} — cascades {@code post_status} to this row's {@code
  *       status}
- *   <li>{@code tgf_assign_ascription_version} — increments {@code version} when {@code post_status
- *       = 'APPROVED'}
  * </ul>
  *
  * @author Clément Cazaud
@@ -87,9 +85,6 @@ public abstract class AscriptionEntity {
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
   @Column(name = "status", nullable = false, updatable = false, insertable = false)
   private AscriptionStatusType status;
-
-  @Column(name = "version", nullable = false, updatable = false, insertable = false)
-  private int version;
 
   /** JPA requires a no-arg constructor. */
   protected AscriptionEntity() {}
@@ -162,15 +157,6 @@ public abstract class AscriptionEntity {
    */
   public AscriptionStatusType getStatus() {
     return status;
-  }
-
-  /**
-   * Returns the governance-validated lineage version (trigger-assigned on APPROVED).
-   *
-   * @return the version number ({@code 0} before approval, {@code >= 1} after)
-   */
-  public int getVersion() {
-    return version;
   }
 
   // ---- equals / hashCode (Vlad Mihalcea pattern) ----

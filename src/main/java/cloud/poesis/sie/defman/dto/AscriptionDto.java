@@ -37,18 +37,14 @@ public class AscriptionDto {
   @Schema(description = "Authoritative creation timestamp (ISO 8601)")
   private final Instant timestamp;
 
-  @Schema(description = "Governance lineage version (0 = not yet approved, 1+ = approved)")
-  private final int version;
-
   @Schema(description = "Lifecycle status")
   private final AscriptionStatusType status;
 
   public AscriptionDto(
-      UUID id, JsonNode statement, Instant timestamp, int version, AscriptionStatusType status) {
+      UUID id, JsonNode statement, Instant timestamp, AscriptionStatusType status) {
     this.id = id;
     this.statement = statement;
     this.timestamp = timestamp;
-    this.version = version;
     this.status = status;
   }
 
@@ -62,10 +58,6 @@ public class AscriptionDto {
 
   public Instant getTimestamp() {
     return timestamp;
-  }
-
-  public int getVersion() {
-    return version;
   }
 
   public AscriptionStatusType getStatus() {

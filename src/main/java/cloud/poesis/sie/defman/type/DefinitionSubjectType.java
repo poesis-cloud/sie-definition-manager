@@ -1,6 +1,11 @@
 package cloud.poesis.sie.defman.type;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * GSM structural role of a Definition — what kind of primitive the subject is. Sealed enum: tenants
@@ -36,6 +41,22 @@ public enum DefinitionSubjectType {
           "temporalAggregation",
           "sustainedThreshold"));
 
+  private static final Set<String> ARCHETYPE_TITLES =
+      Collections.unmodifiableSet(
+          Stream.of(values())
+              .map(DefinitionSubjectType::getArchetypeTitle)
+              .collect(Collectors.toSet()));
+
+  private static final Map<String, DefinitionSubjectType> TITLE_TO_TYPE;
+
+  static {
+    Map<String, DefinitionSubjectType> map = new HashMap<>();
+    for (DefinitionSubjectType type : values()) {
+      map.put(type.getArchetypeTitle(), type);
+    }
+    TITLE_TO_TYPE = Collections.unmodifiableMap(map);
+  }
+
   private final PrimitiveType primitiveType;
   private final Set<String> statementProperties;
 
@@ -69,6 +90,39 @@ public enum DefinitionSubjectType {
    */
   public String getValue() {
     return primitiveType.getValue();
+  }
+
+  /**
+   * Returns the GSM base archetype title for this subject type. Convention: {@code
+   * {PascalCaseLabel}Archetype}, except {@link #ARCHETYPE} itself which maps to {@code
+   * "Archetype"}.
+   *
+   * @return the base archetype title; never {@code null}
+   */
+  public String getArchetypeTitle() {
+    if (this == ARCHETYPE) {
+      return "Archetype";
+    }
+    return primitiveType.getLabel() + "Archetype";
+  }
+
+  /**
+   * Returns the immutable set of all 8 GSM base archetype titles.
+   *
+   * @return unmodifiable set of archetype titles
+   */
+  public static Set<String> archetypeTitles() {
+    return ARCHETYPE_TITLES;
+  }
+
+  /**
+   * Resolves a {@code DefinitionSubjectType} from a GSM base archetype title.
+   *
+   * @param title the archetype title (e.g., {@code "StructureArchetype"})
+   * @return the matching enum constant, or {@code null} if the title is not a GSM base archetype
+   */
+  public static DefinitionSubjectType fromArchetypeTitle(String title) {
+    return TITLE_TO_TYPE.get(title);
   }
 
   /**

@@ -69,11 +69,7 @@ public abstract class AbstractController {
         statementProtection.applyInTransitProtection(
             ascription.getStatement(), archetype.getStatement());
     return new AscriptionDto(
-        ascription.getId(),
-        statement,
-        ascription.getTimestamp(),
-        ascription.getVersion(),
-        ascription.getStatus());
+        ascription.getId(), statement, ascription.getTimestamp(), ascription.getStatus());
   }
 
   /**

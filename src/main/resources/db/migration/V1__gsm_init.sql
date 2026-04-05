@@ -10,6 +10,8 @@
 --   5. subject_type dropped from transition table (V6 change).
 --   6. Effector/Receptor columns: output/input_archetype_id (V9).
 --   7. directive.purpose dematerialized (V7) — stored in statement JSONB only.
+--   8. version column dropped (design-phase cleanup; never used for queries).
+--   9. pre_status made NOT NULL (DRAFT implicit; no initial transition needed).
 -- ============================================================
 BEGIN;
 
@@ -127,11 +129,7 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             CONSTRAINT archetype_pk PRIMARY KEY(id),
-            CONSTRAINT archetype_version_check CHECK(
-                version >= 0
-            ),
             CONSTRAINT archetype_typed_by_fk FOREIGN KEY(archetype_id) REFERENCES archetype(id)
         );
 
@@ -145,11 +143,7 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
-            CONSTRAINT structure_pk PRIMARY KEY(id),
-            CONSTRAINT structure_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT structure_pk PRIMARY KEY(id)
         );
 
 -- 3d. mechanism ---------------------------------------------------
@@ -162,12 +156,8 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             structure_id uuid NOT NULL REFERENCES STRUCTURE(id),
-            CONSTRAINT mechanism_pk PRIMARY KEY(id),
-            CONSTRAINT mechanism_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT mechanism_pk PRIMARY KEY(id)
         );
 
 -- 3e. effector ----------------------------------------------------
@@ -180,13 +170,9 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             mechanism_id uuid NOT NULL REFERENCES mechanism(id),
             output_archetype_id uuid NOT NULL REFERENCES archetype(id),
-            CONSTRAINT effector_pk PRIMARY KEY(id),
-            CONSTRAINT effector_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT effector_pk PRIMARY KEY(id)
         );
 
 -- 3f. receptor ----------------------------------------------------
@@ -199,13 +185,9 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             mechanism_id uuid NOT NULL REFERENCES mechanism(id),
             input_archetype_id uuid NOT NULL REFERENCES archetype(id),
-            CONSTRAINT receptor_pk PRIMARY KEY(id),
-            CONSTRAINT receptor_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT receptor_pk PRIMARY KEY(id)
         );
 
 -- 3g. interaction -------------------------------------------------
@@ -218,13 +200,9 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             effector_id uuid NOT NULL REFERENCES effector(id),
             receptor_id uuid NOT NULL REFERENCES receptor(id),
-            CONSTRAINT interaction_pk PRIMARY KEY(id),
-            CONSTRAINT interaction_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT interaction_pk PRIMARY KEY(id)
         );
 
 -- 3h. directive ---------------------------------------------------
@@ -237,13 +215,9 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             structure_id uuid NOT NULL REFERENCES STRUCTURE(id),
             qualifier_id uuid NOT NULL REFERENCES archetype(id),
-            CONSTRAINT directive_pk PRIMARY KEY(id),
-            CONSTRAINT directive_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT directive_pk PRIMARY KEY(id)
         );
 
 -- 3i. norm --------------------------------------------------------
@@ -256,13 +230,9 @@ CREATE
             STATEMENT jsonb NOT NULL DEFAULT '{}'::jsonb,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             status ascription_status NOT NULL DEFAULT 'DRAFT',
-            version INTEGER NOT NULL DEFAULT 0,
             structure_id uuid NOT NULL REFERENCES STRUCTURE(id),
             qualifier_id uuid NOT NULL REFERENCES archetype(id),
-            CONSTRAINT norm_pk PRIMARY KEY(id),
-            CONSTRAINT norm_version_check CHECK(
-                version >= 0
-            )
+            CONSTRAINT norm_pk PRIMARY KEY(id)
         );
 
 -- 3j. ascription_status_transition --------------------------------
@@ -271,7 +241,7 @@ CREATE
         IF NOT EXISTS ascription_status_transition(
             id uuid NOT NULL DEFAULT uuid_v7(),
             ascription_id uuid NOT NULL,
-            pre_status ascription_status,
+            pre_status ascription_status NOT NULL,
             post_status ascription_status NOT NULL,
             "timestamp" timestamptz NOT NULL DEFAULT clock_timestamp(),
             CONSTRAINT ast_pk PRIMARY KEY(id),
@@ -459,12 +429,6 @@ CREATE
 CREATE
     INDEX IF NOT EXISTS idx_ast_ascription ON
     ascription_status_transition(ascription_id);
-
-CREATE
-    UNIQUE INDEX IF NOT EXISTS uq_ast_initial ON
-    ascription_status_transition(ascription_id)
-WHERE
-    pre_status IS NULL;
 
 CREATE
     INDEX IF NOT EXISTS idx_ast_latest_lookup ON
@@ -737,31 +701,6 @@ EXECUTE format(
 )
     USING NEW.post_status::ascription_status,
 NEW.ascription_id;
-
-RETURN NEW;
-END;
-
-$$ LANGUAGE plpgsql;
-
--- 6f. Assign governance version on APPROVED transition ------------
-CREATE
-    OR replace FUNCTION tgf_assign_ascription_version() RETURNS TRIGGER AS $$ DECLARE tbl text;
-
-BEGIN IF NEW.post_status <> 'APPROVED' THEN RETURN NEW;
-END IF;
-
-tbl := gsm_find_ascription_table(NEW.ascription_id);
-
-IF tbl IS NULL THEN raise EXCEPTION 'tgf_assign_ascription_version: no ascription row for id = %',
-NEW.ascription_id
-    USING errcode = 'foreign_key_violation';
-END IF;
-
-EXECUTE format(
-    'update %I set version = version + 1 where id = $1',
-    tbl
-)
-    USING NEW.ascription_id;
 
 RETURN NEW;
 END;
@@ -1154,11 +1093,6 @@ CREATE
         ascription_status_transition FOR EACH ROW EXECUTE FUNCTION tgf_assert_transition_ascription_exists();
 
 CREATE
-    TRIGGER trg_ast_assign_ascription_version AFTER INSERT
-        ON
-        ascription_status_transition FOR EACH ROW EXECUTE FUNCTION tgf_assign_ascription_version();
-
-CREATE
     TRIGGER trg_ast_sync_ascription_status AFTER INSERT
         ON
         ascription_status_transition FOR EACH ROW EXECUTE FUNCTION tgf_sync_ascription_status();
@@ -1180,7 +1114,6 @@ CREATE
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         archetype
@@ -1191,7 +1124,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         STRUCTURE
@@ -1202,7 +1134,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         mechanism
@@ -1213,7 +1144,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         effector
@@ -1224,7 +1154,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         receptor
@@ -1235,7 +1164,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         interaction
@@ -1246,7 +1174,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         directive
@@ -1257,7 +1184,6 @@ UNION ALL SELECT
         "timestamp",
         archetype_id,
         STATEMENT,
-        version,
         status
     FROM
         norm;

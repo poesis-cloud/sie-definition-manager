@@ -70,7 +70,7 @@ class ArchetypeSeedRunnerTest {
 
       runner.run(args);
 
-      verify(jdbc, times(4)).execute(anyString()); // 2 disable + 2 enable triggers
+      verify(jdbc, times(2)).execute(anyString()); // 1 disable + 1 enable sync trigger
     }
   }
 
@@ -93,13 +93,7 @@ class ArchetypeSeedRunnerTest {
               "ALTER TABLE ascription_status_transition DISABLE TRIGGER trg_ast_sync_ascription_status");
       verify(jdbc)
           .execute(
-              "ALTER TABLE ascription_status_transition DISABLE TRIGGER trg_ast_assign_ascription_version");
-      verify(jdbc)
-          .execute(
               "ALTER TABLE ascription_status_transition ENABLE TRIGGER trg_ast_sync_ascription_status");
-      verify(jdbc)
-          .execute(
-              "ALTER TABLE ascription_status_transition ENABLE TRIGGER trg_ast_assign_ascription_version");
     }
   }
 
@@ -154,8 +148,8 @@ class ArchetypeSeedRunnerTest {
 
       runner.run(args);
 
-      // 4 lifecycle transitions per archetype * 2 archetypes = 8 updates
-      verify(jdbc, times(8)).update(anyString(), anyString());
+      // 3 lifecycle transitions per archetype * 2 archetypes = 6 updates
+      verify(jdbc, times(6)).update(anyString(), anyString());
     }
 
     @Test

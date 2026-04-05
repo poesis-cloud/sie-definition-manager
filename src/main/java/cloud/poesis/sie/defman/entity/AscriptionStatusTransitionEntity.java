@@ -15,7 +15,6 @@ import java.util.UUID;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.springframework.lang.Nullable;
 
 /**
  * Immutable audit record of a lifecycle state change on an Ascription. Maps to the shared {@code
@@ -32,8 +31,6 @@ import org.springframework.lang.Nullable;
  *       ascription_id} references an existing ascription row across all 9 class tables
  *   <li>{@code tgf_sync_ascription_status} — AFTER INSERT: cascades {@code post_status} to the
  *       referenced ascription's {@code status}
- *   <li>{@code tgf_assign_ascription_version} — AFTER INSERT: increments the referenced
- *       ascription's {@code version} when {@code post_status = 'APPROVED'}
  *   <li>{@code tgf_reject_transition_mutation} — BEFORE UPDATE/DELETE: blocks any mutation (rows
  *       are append-only)
  * </ul>
@@ -56,7 +53,7 @@ public class AscriptionStatusTransitionEntity {
   private AscriptionEntity ascription;
 
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-  @Column(name = "pre_status", updatable = false)
+  @Column(name = "pre_status", nullable = false, updatable = false)
   private AscriptionStatusType preStatus;
 
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -73,15 +70,15 @@ public class AscriptionStatusTransitionEntity {
    * Creates a new transition record for the given ascription.
    *
    * @param ascription the ascription whose lifecycle state changed
-   * @param preStatus the status before the transition ({@code null} for initial creation)
+   * @param preStatus the status before the transition
    * @param postStatus the status after the transition
    */
   public AscriptionStatusTransitionEntity(
       AscriptionEntity ascription,
-      @Nullable AscriptionStatusType preStatus,
+      AscriptionStatusType preStatus,
       AscriptionStatusType postStatus) {
     this.ascription = Objects.requireNonNull(ascription, "ascription");
-    this.preStatus = preStatus;
+    this.preStatus = Objects.requireNonNull(preStatus, "preStatus");
     this.postStatus = Objects.requireNonNull(postStatus, "postStatus");
   }
 
@@ -108,9 +105,8 @@ public class AscriptionStatusTransitionEntity {
   /**
    * Returns the status before the transition.
    *
-   * @return the prior status, or {@code null} for the initial creation entry
+   * @return the prior status, never {@code null}
    */
-  @Nullable
   public AscriptionStatusType getPreStatus() {
     return preStatus;
   }

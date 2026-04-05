@@ -101,7 +101,6 @@ class AscriptionControllerTest {
     when(ascriptionEntity.getId()).thenReturn(ascriptionId);
     when(ascriptionEntity.getStatement()).thenReturn(ascriptionStatement);
     when(ascriptionEntity.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
-    when(ascriptionEntity.getVersion()).thenReturn(1);
     when(ascriptionEntity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
     when(ascriptionEntity.getDefinition()).thenReturn(ascriptionDefEntity);
     when(ascriptionEntity.getArchetype()).thenReturn(archetypeEntity);
@@ -122,7 +121,6 @@ class AscriptionControllerTest {
     when(entity.getId()).thenReturn(ascriptionId);
     when(entity.getStatement()).thenReturn(objectMapper.createObjectNode().put("purpose", "x"));
     when(entity.getTimestamp()).thenReturn(Instant.parse("2025-01-01T00:00:00Z"));
-    when(entity.getVersion()).thenReturn(1);
     when(entity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
     when(entity.getDefinition()).thenReturn(def);
     when(entity.getArchetype()).thenReturn(archetypeEntity);
@@ -165,7 +163,6 @@ class AscriptionControllerTest {
           .andExpect(status().isCreated())
           .andExpect(header().exists("Location"))
           .andExpect(jsonPath("$.id").value(ascriptionId.toString()))
-          .andExpect(jsonPath("$.version").value(1))
           .andExpect(jsonPath("$._links.self.href").exists())
           .andExpect(jsonPath("$._links.describedby.href").exists())
           .andExpect(jsonPath("$._links.type.href").exists())

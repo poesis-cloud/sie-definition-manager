@@ -262,8 +262,7 @@ class OpenApiCustomizerConfigTest {
 
       Schema links =
           (Schema) api.getComponents().getSchemas().get("Definition").getProperties().get("_links");
-      assertThat(links.getProperties())
-          .containsKeys("self", "first", "last", "latest-version", "version-history");
+      assertThat(links.getProperties()).containsKeys("self", "first", "last");
     }
 
     @Test

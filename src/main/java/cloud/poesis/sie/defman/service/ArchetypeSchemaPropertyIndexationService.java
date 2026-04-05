@@ -13,31 +13,43 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Manages annotation-driven PostgreSQL index provisioning/deprovisioning for Archetypes.
+ * Manages PostgreSQL index provisioning and deprovisioning on ascription statement JSONB columns,
+ * driven by {@code $gsm:*} annotations declared in Archetype schemas.
  *
- * <p>Scans {@code $gsm:queryable} and {@code $gsm:unique} annotations in archetype schemas and
- * creates or drops corresponding partial indexes on the target table's JSONB {@code statement}
- * column.
+ * <p><b>Precondition for indexation</b> ({@link #provisionIndexes}): an Archetype is activated and
+ * its JSON Schema declares properties annotated with {@code $gsm:queryable} (→ BTREE or GIN partial
+ * index) or {@code $gsm:unique} (→ UNIQUE partial index scoped to ACTIVE/DEPRECATED status). Only
+ * annotated properties produce indexes; unannotated properties are ignored.
+ *
+ * <p><b>Precondition for deindexation</b> ({@link #deprovisionIndexes}): an Archetype is
+ * deactivated (deprecated or withdrawn) and the same annotation scan identifies the indexes to
+ * drop.
+ *
+ * <p>Both operations are idempotent: {@code CREATE INDEX IF NOT EXISTS} / {@code DROP INDEX IF
+ * EXISTS}.
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
 @Service
-public class ArchetypeIndexProvisioningService {
+public class ArchetypeSchemaPropertyIndexationService {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(ArchetypeIndexProvisioningService.class);
+      LoggerFactory.getLogger(ArchetypeSchemaPropertyIndexationService.class);
 
   private final JdbcTemplate jdbcTemplate;
 
   record IndexSpec(String indexName, String ddl, String type, String propertyName) {}
 
-  public ArchetypeIndexProvisioningService(JdbcTemplate jdbcTemplate) {
+  public ArchetypeSchemaPropertyIndexationService(JdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
   }
 
   /**
-   * Provisions annotation-driven indexes for the given archetype on the target table.
+   * Provisions indexes for properties annotated with {@code $gsm:queryable} or {@code $gsm:unique}
+   * in the archetype's JSON Schema.
+   *
+   * <p>Called by {@link ArchetypeService#onActivation} when an Archetype transitions to ACTIVE.
    *
    * @param archetype the archetype entity whose schema annotations drive index creation
    * @param tableNameSupplier lazily resolved table name — only invoked when the archetype has
@@ -76,7 +88,11 @@ public class ArchetypeIndexProvisioningService {
   }
 
   /**
-   * Deprovisions annotation-driven indexes for the given archetype from the target table.
+   * Deprovisions indexes previously created for properties annotated with {@code $gsm:queryable} or
+   * {@code $gsm:unique} in the archetype's JSON Schema.
+   *
+   * <p>Called by {@link ArchetypeService#onDeactivation} when an Archetype is deprecated or
+   * withdrawn.
    *
    * @param archetype the archetype entity whose schema annotations drive index removal
    * @param tableNameSupplier lazily resolved table name — only invoked when the archetype has
@@ -123,7 +139,7 @@ public class ArchetypeIndexProvisioningService {
       String sanitizedProp = sanitizeIdentifier(propName);
 
       // $gsm:queryable
-      if (hasAnnotation(propSchema, "$gsm:queryable")) {
+      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:queryable")) {
         String indexName = "idx_gsm_q_" + sanitizedTitle + "_" + sanitizedProp;
         String type = propSchema.has("type") ? propSchema.get("type").asText() : "string";
         String indexType = "array".equals(type) ? "GIN" : "BTREE";
@@ -159,7 +175,7 @@ public class ArchetypeIndexProvisioningService {
       }
 
       // $gsm:unique
-      if (hasAnnotation(propSchema, "$gsm:unique")) {
+      if (ArchetypeSchemaService.hasAnnotation(propSchema, "$gsm:unique")) {
         String indexName = "idx_gsm_u_" + sanitizedTitle + "_" + sanitizedProp;
         String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
 
@@ -189,9 +205,5 @@ public class ArchetypeIndexProvisioningService {
 
   static String escapeJsonbKey(String key) {
     return key.replace("\\", "\\\\").replace("'", "''");
-  }
-
-  private static boolean hasAnnotation(JsonNode node, String annotation) {
-    return node.has(annotation) && node.get(annotation).asBoolean(false);
   }
 }
