@@ -1,11 +1,13 @@
 package cloud.poesis.sie.defman.repository;
 
 import cloud.poesis.sie.defman.entity.DirectiveEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Spring Data JPA repository for {@link DirectiveEntity} (the {@code directive} table).
@@ -33,16 +35,19 @@ public interface DirectiveRepository extends AbstractAscriptionRepository<Direct
   List<DirectiveEntity> findAllByStructureId(UUID structureId);
 
   /**
-   * Returns in-effect directives whose statement purpose matches the given string.
+   * Returns directives whose statement purpose matches and whose lifecycle status is in the given
+   * set.
    *
-   * @param purpose the governed purpose string (from statement JSONB)
+   * @param purpose the governed purpose string (from JSONB {@code statement->>'purpose'})
+   * @param statuses the lifecycle statuses to include
    * @return the matching directive entities
    */
   @Query(
       value =
           "SELECT * FROM directive"
-              + " WHERE statement->>'purpose' = ?1"
-              + " AND status IN ('ACTIVE', 'DEPRECATED')",
+              + " WHERE statement->>'purpose' = :purpose"
+              + " AND status::text IN (:statuses)",
       nativeQuery = true)
-  List<DirectiveEntity> findAllInEffectByPurpose(String purpose);
+  List<DirectiveEntity> findAllByStatementPurposeAndStatusIn(
+      @Param("purpose") String purpose, @Param("statuses") Collection<String> statuses);
 }

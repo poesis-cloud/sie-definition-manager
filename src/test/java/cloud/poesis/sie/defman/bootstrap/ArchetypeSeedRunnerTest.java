@@ -37,7 +37,7 @@ class ArchetypeSeedRunnerTest {
   @Mock private ResourcePatternResolver resolver;
   @Mock private ApplicationArguments args;
 
-  private static final String SCHEMA_PATTERN = "classpath:schemas/gsm-archetypes/*.schema.json";
+  private static final String SCHEMA_PATTERN = "classpath:statement/*.json";
   private ArchetypeSeedRunner runner;
 
   @BeforeEach
@@ -113,8 +113,8 @@ class ArchetypeSeedRunnerTest {
       JsonNode metaNode = realMapper.readTree("{\"title\":\"Archetype\"}");
       JsonNode structNode = realMapper.readTree("{\"title\":\"StructureArchetype\"}");
 
-      Resource metaResource = mockResource("Archetype.schema.json");
-      Resource structResource = mockResource("StructureArchetype.schema.json");
+      Resource metaResource = mockResource("Archetype.json");
+      Resource structResource = mockResource("StructureArchetype.json");
       when(resolver.getResources(SCHEMA_PATTERN))
           .thenReturn(new Resource[] {metaResource, structResource});
       when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(metaNode, structNode);
@@ -224,7 +224,7 @@ class ArchetypeSeedRunnerTest {
     Resource resource = mock(Resource.class);
     when(resource.getInputStream())
         .thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
-    when(resource.getFilename()).thenReturn("test.schema.json");
+    when(resource.getFilename()).thenReturn("test.json");
 
     // Parse the JSON into a real JsonNode so ObjectMapper.readTree works
     ObjectMapper realMapper = new ObjectMapper();

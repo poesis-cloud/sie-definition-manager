@@ -779,7 +779,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Meta-schema validation**: DM validates every incoming Archetype schema
     against the **GSM meta-schema** (`gsm://archetypes/Archetype/v1`,
-    defined in `Archetype.schema.json` — the seed Archetype's own
+    defined in `Archetype.json` — the seed Archetype's own
     statement). The
     meta-schema extends JSON Schema 2020-12 and declares `$gsm:*` as
     recognized vocabulary keywords with defined value shapes. This is the
@@ -788,7 +788,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     chain resolution, cross-Definition uniqueness, type-compatibility,
     mutual exclusion) are DM application-level.
 
-    **Concrete DM validation mechanism**: DM loads `Archetype.schema.json`
+    **Concrete DM validation mechanism**: DM loads `Archetype.json`
     (the seed Archetype's statement) at startup as a compiled JSON Schema
     validator (classpath resource). When an Archetype Ascription arrives,
     DM treats the `statement` (the incoming Archetype schema document) as
@@ -898,7 +898,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     (transparent). Hash/mask/suppression have per-measure
     restrictions.
     DM validates the keyword value against the DataProtection
-    `$defs` in Archetype.schema.json (the GSM meta-schema) at Archetype
+    `$defs` in Archetype.json (the GSM meta-schema) at Archetype
     authoring time.
     `$gsm:queryable` +
     `atRest.encryption` on the same property is rejected (ciphertext

@@ -120,7 +120,7 @@ class AscriptionParsingValidationServiceTest {
       when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
       when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
 
-      when(archetypeSchemaService.findInEffectByTitle("CustomTenantArchetype"))
+      when(archetypeSchemaService.findResolvableByTitle("CustomTenantArchetype"))
           .thenReturn(Optional.of(tenantArchetype));
 
       ObjectNode schema = MAPPER.createObjectNode();
@@ -134,6 +134,37 @@ class AscriptionParsingValidationServiceTest {
 
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("label", "hello").put("extra", 42);
+
+      assertDoesNotThrow(
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+    }
+
+    @Test
+    void draftTenantArchetypeRef_resolvedFromDb() {
+      ObjectNode tenantSchema = MAPPER.createObjectNode();
+      tenantSchema.put("title", "DraftTenantArchetype");
+      tenantSchema.put("type", "object");
+      tenantSchema.putObject("properties").putObject("name").put("type", "string");
+      tenantSchema.putArray("required").add("name");
+
+      ArchetypeEntity tenantArchetype = mock(ArchetypeEntity.class);
+      when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
+      when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.DRAFT);
+
+      when(archetypeSchemaService.findResolvableByTitle("DraftTenantArchetype"))
+          .thenReturn(Optional.of(tenantArchetype));
+
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("title", "CompositeWithDraft");
+      schema.put("type", "object");
+      var allOf = schema.putArray("allOf");
+      allOf.addObject().put("$ref", "gsm://archetypes/DraftTenantArchetype/v1");
+      var local = allOf.addObject();
+      local.put("type", "object");
+      local.putObject("properties").putObject("extra").put("type", "integer");
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+      ObjectNode statement = MAPPER.createObjectNode().put("name", "test").put("extra", 7);
 
       assertDoesNotThrow(
           () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));

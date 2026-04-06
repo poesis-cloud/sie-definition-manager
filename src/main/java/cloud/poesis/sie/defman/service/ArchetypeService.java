@@ -126,7 +126,11 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
    * @return an optional containing the archetype, or empty if not found
    */
   public java.util.Optional<ArchetypeEntity> findInEffectByTitle(String title) {
-    return archetypeRepo.findInEffectByTitle(title);
+    return archetypeRepo.findFirstByStatementTitleAndStatusIn(
+        title,
+        EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED).stream()
+            .map(Enum::name)
+            .toList());
   }
 
   private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
@@ -357,6 +361,13 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   // ArchetypeCompositionValidationService.
 
   JsonNode resolveArchetypeSchema(String title) {
-    return archetypeRepo.findInEffectByTitle(title).map(ArchetypeEntity::getStatement).orElse(null);
+    return archetypeRepo
+        .findFirstByStatementTitleAndStatusIn(
+            title,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED).stream()
+                .map(Enum::name)
+                .toList())
+        .map(ArchetypeEntity::getStatement)
+        .orElse(null);
   }
 }

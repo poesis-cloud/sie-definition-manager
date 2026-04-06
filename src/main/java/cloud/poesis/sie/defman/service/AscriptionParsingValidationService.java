@@ -54,7 +54,7 @@ public class AscriptionParsingValidationService {
                           uri -> {
                             String rest = uri.substring("gsm://archetypes/".length());
                             String name = rest.split("/")[0];
-                            return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                            return "classpath:statement/" + name + ".json";
                           })));
 
   // GSM base schema property sets for extensible subject types (sealed — derived
@@ -214,7 +214,7 @@ public class AscriptionParsingValidationService {
                               }
                               String rest = uri.substring("gsm://archetypes/".length());
                               String name = rest.split("/")[0];
-                              return "classpath:schemas/gsm-archetypes/" + name + ".schema.json";
+                              return "classpath:statement/" + name + ".json";
                             })));
   }
 
@@ -255,7 +255,7 @@ public class AscriptionParsingValidationService {
   }
 
   private void resolveTenantArchetypeFromDb(String uri, String title, Map<String, String> result) {
-    var found = archetypeSchemaService.findInEffectByTitle(title);
+    var found = archetypeSchemaService.findResolvableByTitle(title);
     if (found.isPresent()) {
       JsonNode stmt = found.get().getStatement();
       result.put(uri, stmt.toString());
@@ -263,8 +263,8 @@ public class AscriptionParsingValidationService {
       return;
     }
     LOG.warn(
-        "Tenant archetype '{}' referenced by gsm:// URI '{}' not found in-effect — "
-            + "statement validation may fail if it uses properties from this schema",
+        "Tenant archetype '{}' referenced by gsm:// URI '{}' not found in any non-terminal status"
+            + " — statement validation may fail if it uses properties from this schema",
         title,
         uri);
   }

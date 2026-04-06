@@ -59,7 +59,7 @@ springdoc:
 
 dm:
   bootstrap:
-    archetype-schema-pattern: ${DM_ARCHETYPE_SCHEMA_PATTERN:classpath:schemas/gsm-archetypes/*.schema.json}
+    archetype-schema-pattern: ${DM_ARCHETYPE_SCHEMA_PATTERN:classpath:statement/*.json}
   messaging:
     reliability-mode: ${DM_RELIABILITY_MODE:alo-idempotent}
   security:

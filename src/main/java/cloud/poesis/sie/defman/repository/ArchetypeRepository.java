@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Spring Data JPA repository for {@link ArchetypeEntity} (the {@code archetype} table).
@@ -44,15 +45,18 @@ public interface ArchetypeRepository extends AbstractAscriptionRepository<Archet
   List<ArchetypeEntity> findAllByStatusIn(Collection<AscriptionStatusType> statuses);
 
   /**
-   * Returns the in-effect archetype with the given schema title.
+   * Returns the first archetype whose schema title matches and whose lifecycle status is in the
+   * given set.
    *
-   * @param title the archetype schema title
+   * @param title the archetype schema title (from JSONB {@code statement->>'title'})
+   * @param statuses the lifecycle statuses to include
    * @return the matching archetype, if any
    */
   @Query(
       value =
-          "SELECT * FROM archetype WHERE statement->>'title' = ?1"
-              + " AND status IN ('ACTIVE', 'DEPRECATED') LIMIT 1",
+          "SELECT * FROM archetype WHERE statement->>'title' = :title"
+              + " AND status::text IN (:statuses) LIMIT 1",
       nativeQuery = true)
-  Optional<ArchetypeEntity> findInEffectByTitle(String title);
+  Optional<ArchetypeEntity> findFirstByStatementTitleAndStatusIn(
+      @Param("title") String title, @Param("statuses") Collection<String> statuses);
 }

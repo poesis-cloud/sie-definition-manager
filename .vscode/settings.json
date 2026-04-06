@@ -24,10 +24,10 @@
     "json.schemas": [
         {
             "fileMatch": [
-                "def/schemas/gsm-archetypes/*.schema.json",
-                "!def/schemas/gsm-archetypes/Archetype.schema.json"
+                "def/statement/*.json",
+                "!def/statement/Archetype.json"
             ],
-            "url": "./def/schemas/gsm-archetypes/Archetype.schema.json"
+            "url": "./def/statement/Archetype.json"
         }
     ]
 }

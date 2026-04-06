@@ -150,8 +150,8 @@
         <directory>src/main/resources</directory>
       </resource>
       <resource>
-        <directory>def/schemas</directory>
-        <targetPath>schemas</targetPath>
+        <directory>def/statement</directory>
+        <targetPath>statement</targetPath>
       </resource>
     </resources>
     <plugins>

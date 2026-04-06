@@ -62,9 +62,10 @@ class ArchetypeServiceTest {
     service =
         new ArchetypeService(
             archetypeRepo, indexProvisioning, annotationValidation, compositionValidation);
-    // Default: findInEffectByTitle returns empty for any title not explicitly
-    // mocked.
-    when(archetypeRepo.findInEffectByTitle(anyString())).thenReturn(Optional.empty());
+    // Default: findFirstByStatementTitleAndStatusIn returns empty for any title
+    // not explicitly mocked.
+    when(archetypeRepo.findFirstByStatementTitleAndStatusIn(anyString(), any()))
+        .thenReturn(Optional.empty());
   }
 
   // ========================================================================
@@ -261,7 +262,8 @@ class ArchetypeServiceTest {
     void resolveForCreation_rootlessWithAllOfOnly_rejected() {
       ObjectNode baseFacet = schemaNode("BaseFacet", false);
       ArchetypeEntity baseFacetEntity = mockArchetype(baseFacet);
-      when(archetypeRepo.findInEffectByTitle("BaseFacet")).thenReturn(Optional.of(baseFacetEntity));
+      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("BaseFacet"), any()))
+          .thenReturn(Optional.of(baseFacetEntity));
 
       UUID id = UUID.randomUUID();
       ObjectNode rootless = MAPPER.createObjectNode().put("title", "DetailedFacet");
@@ -397,14 +399,16 @@ class ArchetypeServiceTest {
     @Test
     void found_returnsOptional() {
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(archetypeRepo.findInEffectByTitle("Test")).thenReturn(Optional.of(entity));
+      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("Test"), any()))
+          .thenReturn(Optional.of(entity));
 
       assertTrue(service.findInEffectByTitle("Test").isPresent());
     }
 
     @Test
     void notFound_returnsEmpty() {
-      when(archetypeRepo.findInEffectByTitle("X")).thenReturn(Optional.empty());
+      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("X"), any()))
+          .thenReturn(Optional.empty());
 
       assertTrue(service.findInEffectByTitle("X").isEmpty());
     }
@@ -677,7 +681,7 @@ class ArchetypeServiceTest {
       when(intermediaryEntity.getStatement()).thenReturn(intermediarySchema);
       when(intermediaryEntity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
 
-      when(archetypeRepo.findInEffectByTitle("SecurityProperties"))
+      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("SecurityProperties"), any()))
           .thenReturn(Optional.of(intermediaryEntity));
 
       Set<String> ancestors = service.getAncestorTitles(id);
@@ -739,7 +743,7 @@ class ArchetypeServiceTest {
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
       // No in-effect archetypes in DB → intermediary not resolvable
-      // Default findInEffectByTitle returns Optional.empty()
+      // Default findFirstByStatementTitleAndStatusIn returns Optional.empty()
 
       Set<String> ancestors = service.getAncestorTitles(id);
 

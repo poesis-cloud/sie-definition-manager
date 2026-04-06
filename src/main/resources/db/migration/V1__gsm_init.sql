@@ -581,8 +581,8 @@ WHERE
 -- ============================================================
 -- §5  Seed data — GSM base archetypes
 --     Now loaded at application startup by ArchetypeSeedRunner
---     from classpath:schemas/gsm-archetypes/*.schema.json.
---     Single source of truth: def/schemas/gsm-archetypes/
+--     from classpath:statement/*.json.
+--     Single source of truth: def/statement/
 -- ============================================================
 -- ============================================================
 -- §6  Trigger functions

@@ -1,6 +1,8 @@
 package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,21 +43,56 @@ class ArchetypeParsingServiceTest {
     @Test
     void delegatesToRepository() {
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(archetypeRepository.findInEffectByTitle("StructureArchetype"))
+      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(
+              eq("StructureArchetype"), any()))
           .thenReturn(Optional.of(entity));
 
       Optional<ArchetypeEntity> result = service.findInEffectByTitle("StructureArchetype");
 
       assertTrue(result.isPresent());
       assertSame(entity, result.get());
-      verify(archetypeRepository).findInEffectByTitle("StructureArchetype");
+      verify(archetypeRepository)
+          .findFirstByStatementTitleAndStatusIn(eq("StructureArchetype"), any());
     }
 
     @Test
     void returnsEmptyWhenNotFound() {
-      when(archetypeRepository.findInEffectByTitle("Unknown")).thenReturn(Optional.empty());
+      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("Unknown"), any()))
+          .thenReturn(Optional.empty());
 
       Optional<ArchetypeEntity> result = service.findInEffectByTitle("Unknown");
+
+      assertTrue(result.isEmpty());
+    }
+  }
+
+  // ======================================================================
+  // findResolvableByTitle
+  // ======================================================================
+
+  @Nested
+  class FindResolvableByTitle {
+
+    @Test
+    void delegatesToRepository() {
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("CustomArchetype"), any()))
+          .thenReturn(Optional.of(entity));
+
+      Optional<ArchetypeEntity> result = service.findResolvableByTitle("CustomArchetype");
+
+      assertTrue(result.isPresent());
+      assertSame(entity, result.get());
+      verify(archetypeRepository)
+          .findFirstByStatementTitleAndStatusIn(eq("CustomArchetype"), any());
+    }
+
+    @Test
+    void returnsEmptyWhenNotFound() {
+      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("Unknown"), any()))
+          .thenReturn(Optional.empty());
+
+      Optional<ArchetypeEntity> result = service.findResolvableByTitle("Unknown");
 
       assertTrue(result.isEmpty());
     }

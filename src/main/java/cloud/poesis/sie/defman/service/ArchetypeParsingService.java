@@ -2,8 +2,10 @@ package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,6 +104,31 @@ public class ArchetypeParsingService {
    * @return the archetype entity if found in-effect, or empty
    */
   public Optional<ArchetypeEntity> findInEffectByTitle(String title) {
-    return archetypeRepository.findInEffectByTitle(title);
+    return archetypeRepository.findFirstByStatementTitleAndStatusIn(
+        title,
+        EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED).stream()
+            .map(Enum::name)
+            .toList());
+  }
+
+  /**
+   * Finds a resolvable archetype schema (statement) by title from the database. Includes all
+   * non-terminal lifecycle statuses (DRAFT through DEPRECATED), enabling {@code $ref} resolution
+   * during authoring workflows where referenced archetypes may not yet be activated.
+   *
+   * @param title the archetype title
+   * @return the archetype entity if found in a non-terminal status, or empty
+   */
+  public Optional<ArchetypeEntity> findResolvableByTitle(String title) {
+    return archetypeRepository.findFirstByStatementTitleAndStatusIn(
+        title,
+        EnumSet.complementOf(
+                EnumSet.of(
+                    AscriptionStatusType.RETIRED,
+                    AscriptionStatusType.ABANDONED,
+                    AscriptionStatusType.REJECTED))
+            .stream()
+            .map(Enum::name)
+            .toList());
   }
 }
