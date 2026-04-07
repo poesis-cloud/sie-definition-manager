@@ -35,7 +35,7 @@ public class NormEntity extends AscriptionEntity {
    * Creates a new Norm ascription.
    *
    * @param definition the stable identity this norm ascribes to
-   * @param archetype the typing archetype (NormArchetype)
+   * @param archetype the typing archetype (Norm)
    * @param statement the JSON payload containing applicability, assertion, and tolerance settings
    * @param structure the authoring structure
    * @param qualifier the archetype whose properties are constrained by the assertion

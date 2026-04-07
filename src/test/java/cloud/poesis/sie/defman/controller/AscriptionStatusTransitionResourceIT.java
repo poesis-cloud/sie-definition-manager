@@ -86,7 +86,7 @@ class AscriptionStatusTransitionResourceIT {
       if (stmtStr.contains("\"title\":\"Archetype\"")) {
         seedArchetypeId = UUID.fromString(item.get("id").asText());
       }
-      if (stmtStr.contains("\"title\":\"StructureArchetype\"")) {
+      if (stmtStr.contains("\"title\":\"Structure\"")) {
         structureArchetypeId = UUID.fromString(item.get("id").asText());
       }
     }

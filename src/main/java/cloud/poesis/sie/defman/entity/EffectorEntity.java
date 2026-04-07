@@ -35,7 +35,7 @@ public class EffectorEntity extends AscriptionEntity {
    * Creates a new Effector ascription for the given mechanism.
    *
    * @param definition the stable identity this effector ascribes to
-   * @param archetype the typing archetype (EffectorArchetype)
+   * @param archetype the typing archetype (Effector)
    * @param statement the JSON payload for this effector
    * @param mechanism the owning mechanism
    * @param outputArchetype the data archetype this effector produces

@@ -1,7 +1,7 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/EffectorArchetype/v1",
-  "title": "EffectorArchetype",
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/Effector/v1",
+  "title": "Effector",
   "description": "Schema for Effector Ascriptions — output endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the output payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Effector via allOf to add domain-specific port vocabulary while inheriting the base port schema.",
   "type": "object",
   "examples": [ {

@@ -39,9 +39,10 @@ public class AscriptionParsingValidationService {
       LoggerFactory.getLogger(AscriptionParsingValidationService.class);
 
   /**
-   * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsm://} URIs. Used
-   * when no tenant archetypes need DB resolution. GSM §8 security invariant: DM MUST NOT resolve
-   * {@code $schema} URIs from incoming tenant schemas via network — all resolution is local.
+   * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsmarc://gsm/} URIs.
+   * Used when no tenant archetypes need DB resolution. GSM §8 security invariant: DM MUST NOT
+   * resolve {@code $schema} URIs from incoming tenant schemas via network — all resolution is
+   * local.
    */
   private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY =
       JsonSchemaFactory.getInstance(
@@ -50,9 +51,9 @@ public class AscriptionParsingValidationService {
               builder.schemaMappers(
                   mappers ->
                       mappers.mappings(
-                          uri -> uri.startsWith("gsm://archetypes/"),
+                          uri -> uri.startsWith("gsmarc://gsm/"),
                           uri -> {
-                            String rest = uri.substring("gsm://archetypes/".length());
+                            String rest = uri.substring("gsmarc://gsm/".length());
                             String name = rest.split("/")[0];
                             return "classpath:statement/" + name + ".json";
                           })));
@@ -207,12 +208,12 @@ public class AscriptionParsingValidationService {
                 .schemaMappers(
                     mappers ->
                         mappers.mappings(
-                            uri -> uri.startsWith("gsm://archetypes/"),
+                            uri -> uri.startsWith("gsmarc://gsm/"),
                             uri -> {
                               if (tenantSchemaJsonByUri.containsKey(uri)) {
                                 return uri;
                               }
-                              String rest = uri.substring("gsm://archetypes/".length());
+                              String rest = uri.substring("gsmarc://gsm/".length());
                               String name = rest.split("/")[0];
                               return "classpath:statement/" + name + ".json";
                             })));
@@ -263,8 +264,8 @@ public class AscriptionParsingValidationService {
       return;
     }
     LOG.warn(
-        "Tenant archetype '{}' referenced by gsm:// URI '{}' not found in any non-terminal status"
-            + " — statement validation may fail if it uses properties from this schema",
+        "Tenant archetype '{}' referenced by gsmarc:// URI '{}' not found in any non-terminal"
+            + " status — statement validation may fail if it uses properties from this schema",
         title,
         uri);
   }

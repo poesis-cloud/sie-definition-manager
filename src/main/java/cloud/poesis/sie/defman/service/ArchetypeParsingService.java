@@ -29,8 +29,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ArchetypeParsingService {
 
-  private static final Pattern GSM_URI_PATTERN =
-      Pattern.compile("^gsm://archetypes/([^/]+)/v\\d+$");
+  private static final Pattern GSMARC_URI_PATTERN =
+      Pattern.compile("^gsmarc://[^/]+/(.+)/v(\\d+)$");
 
   private final ArchetypeRepository archetypeRepository;
 
@@ -59,28 +59,31 @@ public class ArchetypeParsingService {
   // ======================================================================
 
   /**
-   * Extracts the archetype title from a {@code gsm://archetypes/{title}/v{version}} URI.
+   * Extracts the archetype title from a {@code gsmarc://{authority}/{segments}/{title}/v{version}}
+   * URI. The title is the last path segment before the {@code /v{version}} suffix.
    *
    * @param ref the {@code $ref} URI string
    * @return the extracted title, or {@code null} if the URI does not match the convention
    */
   public static String extractTitleFromRef(String ref) {
-    Matcher m = GSM_URI_PATTERN.matcher(ref);
+    Matcher m = GSMARC_URI_PATTERN.matcher(ref);
     if (m.matches()) {
-      return m.group(1);
+      String path = m.group(1);
+      int lastSlash = path.lastIndexOf('/');
+      return lastSlash < 0 ? path : path.substring(lastSlash + 1);
     }
     return null;
   }
 
   /**
-   * Checks whether a {@code $ref} URI is allowed by the GSM URI policy: local JSON Pointers ({@code
-   * #/...}) or {@code gsm://archetypes/{title}/v{version}} URIs.
+   * Checks whether a {@code $ref} URI is allowed by the archetype URI policy: local JSON Pointers
+   * ({@code #/...}) or {@code gsmarc://{authority}/{segments}/{title}/v{version}} URIs.
    *
    * @param ref the {@code $ref} URI string to check
    * @return {@code true} if the URI is allowed
    */
   public static boolean isAllowedRef(String ref) {
-    return ref.startsWith("#") || GSM_URI_PATTERN.matcher(ref).matches();
+    return ref.startsWith("#") || GSMARC_URI_PATTERN.matcher(ref).matches();
   }
 
   /**

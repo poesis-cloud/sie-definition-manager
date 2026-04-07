@@ -312,7 +312,7 @@ public enum AscriptionConsistencyRuleType implements RuleType {
       "Archetype allOf exclusive base convergence",
       "A structural Archetype's allOf chain must converge to exactly one "
           + "GSM base Archetype (no divergence). Every $ref must use the "
-          + "gsm://archetypes/{title}/v{version} URI convention and "
+          + "gsmarc://{authority}/{segments}/{title}/v{version} URI convention and "
           + "resolve to a declared Archetype; at activation time, all "
           + "intermediary Archetypes must be in-effect."),
 
@@ -332,8 +332,8 @@ public enum AscriptionConsistencyRuleType implements RuleType {
       "gsm:rules/archetype/ref/norm",
       "Archetype $ref norm",
       "Every $ref URI in an Archetype schema must be either a local "
-          + "JSON Pointer (starting with '#') or a gsm:// URI following "
-          + "the gsm://archetypes/{title}/v{version} convention. "
+          + "JSON Pointer (starting with '#') or a gsmarc:// URI following "
+          + "the gsmarc://{authority}/{segments}/{title}/v{version} convention. "
           + "External URIs (http://, https://, file://, etc.) are "
           + "rejected to prevent SSRF and ensure all schema resolution "
           + "is local."),

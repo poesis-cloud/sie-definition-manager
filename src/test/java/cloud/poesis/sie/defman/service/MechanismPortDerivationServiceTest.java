@@ -205,12 +205,10 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {})");
 
-      ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
-          .thenReturn(Optional.of(effArchetype));
-      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
-          .thenReturn(Optional.of(recArchetype));
+      ArchetypeEntity effArchetype = mockArchetypeWithTitle("Effector");
+      ArchetypeEntity recArchetype = mockArchetypeWithTitle("Receptor");
+      when(archetypeService.findInEffectByTitle("Effector")).thenReturn(Optional.of(effArchetype));
+      when(archetypeService.findInEffectByTitle("Receptor")).thenReturn(Optional.of(recArchetype));
 
       ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
       ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
@@ -238,8 +236,8 @@ class MechanismPortDerivationServiceTest {
     void baseArchetypesMissing_returnsEmpty() {
       MechanismEntity mechanism = stubMechanism("sys.receive(\"X\")\nsys.effect(\"Y\", {})");
 
-      when(archetypeService.findInEffectByTitle("EffectorArchetype")).thenReturn(Optional.empty());
-      when(archetypeService.findInEffectByTitle("ReceptorArchetype")).thenReturn(Optional.empty());
+      when(archetypeService.findInEffectByTitle("Effector")).thenReturn(Optional.empty());
+      when(archetypeService.findInEffectByTitle("Receptor")).thenReturn(Optional.empty());
 
       List<PortDerivation> specs = service.derivePortSpecs(mechanism);
 
@@ -251,12 +249,10 @@ class MechanismPortDerivationServiceTest {
       MechanismEntity mechanism =
           stubMechanism("sys.receive(\"MissingType\")\nsys.effect(\"AlsoMissing\", {})");
 
-      ArchetypeEntity effArchetype = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity recArchetype = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
-          .thenReturn(Optional.of(effArchetype));
-      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
-          .thenReturn(Optional.of(recArchetype));
+      ArchetypeEntity effArchetype = mockArchetypeWithTitle("Effector");
+      ArchetypeEntity recArchetype = mockArchetypeWithTitle("Receptor");
+      when(archetypeService.findInEffectByTitle("Effector")).thenReturn(Optional.of(effArchetype));
+      when(archetypeService.findInEffectByTitle("Receptor")).thenReturn(Optional.of(recArchetype));
 
       when(archetypeService.findInEffectByTitle("MissingType")).thenReturn(Optional.empty());
       when(archetypeService.findInEffectByTitle("AlsoMissing")).thenReturn(Optional.empty());
@@ -289,12 +285,10 @@ class MechanismPortDerivationServiceTest {
           stubMechanism(
               "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"CustomEff\")");
 
-      ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
-          .thenReturn(Optional.of(baseEff));
-      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
-          .thenReturn(Optional.of(baseRec));
+      ArchetypeEntity baseEff = mockArchetypeWithTitle("Effector");
+      ArchetypeEntity baseRec = mockArchetypeWithTitle("Receptor");
+      when(archetypeService.findInEffectByTitle("Effector")).thenReturn(Optional.of(baseEff));
+      when(archetypeService.findInEffectByTitle("Receptor")).thenReturn(Optional.of(baseRec));
 
       ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
       ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
@@ -318,12 +312,10 @@ class MechanismPortDerivationServiceTest {
           stubMechanism(
               "sys.receive(\"InputType\")\nsys.effect(\"OutputType\", {}).by(\"UnknownPort\")");
 
-      ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
-          .thenReturn(Optional.of(baseEff));
-      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
-          .thenReturn(Optional.of(baseRec));
+      ArchetypeEntity baseEff = mockArchetypeWithTitle("Effector");
+      ArchetypeEntity baseRec = mockArchetypeWithTitle("Receptor");
+      when(archetypeService.findInEffectByTitle("Effector")).thenReturn(Optional.of(baseEff));
+      when(archetypeService.findInEffectByTitle("Receptor")).thenReturn(Optional.of(baseRec));
 
       ArchetypeEntity inputType = mockArchetypeWithTitle("InputType");
       ArchetypeEntity outputType = mockArchetypeWithTitle("OutputType");
@@ -345,12 +337,10 @@ class MechanismPortDerivationServiceTest {
           stubMechanism(
               "sys.receive(\"Trigger\")\nsys.effect(\"OutType\", {}).receive(\"AckType\").on(\"AckPort\")");
 
-      ArchetypeEntity baseEff = mockArchetypeWithTitle("EffectorArchetype");
-      ArchetypeEntity baseRec = mockArchetypeWithTitle("ReceptorArchetype");
-      when(archetypeService.findInEffectByTitle("EffectorArchetype"))
-          .thenReturn(Optional.of(baseEff));
-      when(archetypeService.findInEffectByTitle("ReceptorArchetype"))
-          .thenReturn(Optional.of(baseRec));
+      ArchetypeEntity baseEff = mockArchetypeWithTitle("Effector");
+      ArchetypeEntity baseRec = mockArchetypeWithTitle("Receptor");
+      when(archetypeService.findInEffectByTitle("Effector")).thenReturn(Optional.of(baseEff));
+      when(archetypeService.findInEffectByTitle("Receptor")).thenReturn(Optional.of(baseRec));
 
       ArchetypeEntity trigger = mockArchetypeWithTitle("Trigger");
       ArchetypeEntity outType = mockArchetypeWithTitle("OutType");

@@ -290,7 +290,7 @@ class AscriptionControllerTest {
           .when(ascriptionService)
           .findAllFiltered(
               eq(DefinitionSubjectType.STRUCTURE),
-              eq("StructureArchetype"),
+              eq("Structure"),
               any(),
               any(),
               any(Pageable.class));
@@ -299,7 +299,7 @@ class AscriptionControllerTest {
           .perform(
               get("/api/v1/ascriptions")
                   .param("type", "STRUCTURE")
-                  .param("archetype", "StructureArchetype")
+                  .param("archetype", "Structure")
                   .accept(MediaTypes.HAL_JSON))
           .andExpect(status().isOk());
     }

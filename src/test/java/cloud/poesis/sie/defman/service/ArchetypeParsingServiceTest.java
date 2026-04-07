@@ -43,16 +43,14 @@ class ArchetypeParsingServiceTest {
     @Test
     void delegatesToRepository() {
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(
-              eq("StructureArchetype"), any()))
+      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("Structure"), any()))
           .thenReturn(Optional.of(entity));
 
-      Optional<ArchetypeEntity> result = service.findInEffectByTitle("StructureArchetype");
+      Optional<ArchetypeEntity> result = service.findInEffectByTitle("Structure");
 
       assertTrue(result.isPresent());
       assertSame(entity, result.get());
-      verify(archetypeRepository)
-          .findFirstByStatementTitleAndStatusIn(eq("StructureArchetype"), any());
+      verify(archetypeRepository).findFirstByStatementTitleAndStatusIn(eq("Structure"), any());
     }
 
     @Test
@@ -134,8 +132,23 @@ class ArchetypeParsingServiceTest {
     @Test
     void extractsTitleFromValidUri() {
       assertEquals(
-          "StructureArchetype",
-          ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/StructureArchetype/v1"));
+          "Structure", ArchetypeParsingService.extractTitleFromRef("gsmarc://gsm/Structure/v1"));
+    }
+
+    @Test
+    void extractsTitleFromMultiSegmentPath() {
+      assertEquals(
+          "SCAPPlatformIdentifier",
+          ArchetypeParsingService.extractTitleFromRef(
+              "gsmarc://itip/frameworks/scap/cpe/SCAPPlatformIdentifier/v1"));
+    }
+
+    @Test
+    void extractsTitleFromOpsAuthority() {
+      assertEquals(
+          "HttpRequest",
+          ArchetypeParsingService.extractTitleFromRef(
+              "gsmarc://ops/protocols/http/HttpRequest/v1"));
     }
 
     @Test
@@ -163,7 +176,14 @@ class ArchetypeParsingServiceTest {
 
     @Test
     void allowsGsmUri() {
-      assertTrue(ArchetypeParsingService.isAllowedRef("gsm://archetypes/MechanismArchetype/v1"));
+      assertTrue(ArchetypeParsingService.isAllowedRef("gsmarc://gsm/Mechanism/v1"));
+    }
+
+    @Test
+    void allowsNonGsmAuthorityUri() {
+      assertTrue(
+          ArchetypeParsingService.isAllowedRef(
+              "gsmarc://itip/frameworks/scap/cpe/SCAPPlatformIdentifier/v1"));
     }
 
     @Test
@@ -181,7 +201,7 @@ class ArchetypeParsingServiceTest {
 
     @Test
     void returnsTrueForBaseTitle() {
-      assertTrue(ArchetypeParsingService.isGsmBaseTitle("StructureArchetype"));
+      assertTrue(ArchetypeParsingService.isGsmBaseTitle("Structure"));
       assertTrue(ArchetypeParsingService.isGsmBaseTitle("Archetype"));
     }
 

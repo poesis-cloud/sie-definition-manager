@@ -54,7 +54,7 @@ public class MechanismPortDerivationService {
    * A derived port specification: archetype ID and pre-built statement, ready for {@link
    * AscriptionService#create(UUID, JsonNode, UUID)}.
    *
-   * @param archetypeId the port archetype UUID (EffectorArchetype/ReceptorArchetype or custom)
+   * @param archetypeId the port archetype UUID (Effector/Receptor or custom)
    * @param statement the pre-built JSON statement (mechanism + data archetype references)
    */
   public record PortDerivation(UUID archetypeId, JsonNode statement) {}
@@ -81,7 +81,7 @@ public class MechanismPortDerivationService {
   /**
    * A derived port signature from Starlark AST analysis. direction: "effector" or "receptor"
    * dataArchetypeName: the data archetype schema.title portArchetypeName: optional port archetype
-   * name (from .by()/.on()); null means use base EffectorArchetype/ReceptorArchetype
+   * name (from .by()/.on()); null means use base Effector/Receptor
    */
   record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {}
 
@@ -101,9 +101,9 @@ public class MechanismPortDerivationService {
    * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
    *
    * <ul>
-   *   <li>sys.receive("X") → Receptor for X (trigger, base ReceptorArchetype)
+   *   <li>sys.receive("X") → Receptor for X (trigger, base Receptor)
    *   <li>sys.receive("X").on("R") → Receptor for X (trigger, port type R)
-   *   <li>sys.effect("A", data) → Effector for A (base EffectorArchetype)
+   *   <li>sys.effect("A", data) → Effector for A (base Effector)
    *   <li>sys.effect("A", data).by("E") → Effector for A (port type E)
    *   <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F (base types)
    *   <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor for F (port type
@@ -222,11 +222,11 @@ public class MechanismPortDerivationService {
   private List<PortDerivation> resolvePortDerivations(
       MechanismEntity mechanism, List<PortSignature> signatures) {
     ArchetypeEntity baseEffectorArchetype =
-        archetypeService.findInEffectByTitle("EffectorArchetype").orElse(null);
+        archetypeService.findInEffectByTitle("Effector").orElse(null);
     ArchetypeEntity baseReceptorArchetype =
-        archetypeService.findInEffectByTitle("ReceptorArchetype").orElse(null);
+        archetypeService.findInEffectByTitle("Receptor").orElse(null);
     if (baseEffectorArchetype == null || baseReceptorArchetype == null) {
-      LOG.warn("Base EffectorArchetype/ReceptorArchetype not in-effect; skipping auto-derivation");
+      LOG.warn("Base Effector/Receptor archetype not in-effect; skipping auto-derivation");
       return List.of();
     }
 

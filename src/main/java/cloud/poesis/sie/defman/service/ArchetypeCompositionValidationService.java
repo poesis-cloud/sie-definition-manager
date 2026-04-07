@@ -136,7 +136,7 @@ public class ArchetypeCompositionValidationService {
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           "Cannot resolve $ref '"
               + ref
-              + "': must use gsm://archetypes/{title}/v{version} convention",
+              + "': must use gsmarc://{authority}/{segments}/{title}/v{version} convention",
           "ref",
           ref);
     }
@@ -225,7 +225,7 @@ public class ArchetypeCompositionValidationService {
             AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
             "Cannot resolve allOf $ref '"
                 + ref
-                + "': must use gsm://archetypes/{title}/v{version} convention",
+                + "': must use gsmarc://{authority}/{segments}/{title}/v{version} convention",
             "ref",
             ref);
       }

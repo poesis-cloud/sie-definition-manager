@@ -35,7 +35,7 @@ public class ReceptorEntity extends AscriptionEntity {
    * Creates a new Receptor ascription for the given mechanism.
    *
    * @param definition the stable identity this receptor ascribes to
-   * @param archetype the typing archetype (ReceptorArchetype)
+   * @param archetype the typing archetype (Receptor)
    * @param statement the JSON payload for this receptor
    * @param mechanism the owning mechanism
    * @param inputArchetype the data archetype this receptor consumes

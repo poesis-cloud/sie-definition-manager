@@ -1,7 +1,7 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/DirectiveArchetype/v1",
-  "title": "DirectiveArchetype",
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/Directive/v1",
+  "title": "Directive",
   "description": "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). A Directive is a constitutive act that opens a governance relationship between a governing Structure (structure) and a governed purpose (purpose string) along a viability dimension (qualifier Archetype). The purpose MAY name a Structure that does not yet exist, enabling anticipatory governance — the Directive becomes a generative specification for a required Structure. Without a Directive, there is no governance scope — no Norms can constrain the governed Structure's internal Elements along that dimension. Natural grammar: {structure} {modal} {verb} {qualifier} FOR {purpose}. Extensible — tenant-defined archetypes MAY extend Directive via allOf to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type": "object",
   "examples": [ {

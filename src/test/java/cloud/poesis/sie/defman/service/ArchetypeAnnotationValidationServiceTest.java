@@ -191,7 +191,7 @@ class ArchetypeAnnotationValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "MyArchetype");
       var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsm://archetypes/StructureArchetype/v1");
+      allOf.addObject().put("$ref", "gsmarc://gsm/Structure/v1");
 
       assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
     }

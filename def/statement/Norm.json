@@ -1,7 +1,7 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/NormArchetype/v1",
-  "title": "NormArchetype",
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/Norm/v1",
+  "title": "Norm",
   "description": "Schema for Norm Ascriptions — measurable governance assertions (DNA 'N'). A Norm operates within the governance scope opened by a Directive — it constrains only the internal Elements (Mechanisms, Effectors, Receptors, Interactions) of the governed Structure along the qualifier Archetype's viability dimension. Natural grammar: {structure} ON {qualifier}: WHEN {applicability} ASSERT {assertion} ({toleranceMode}). DM validates CEL expressions against their profiles. Extensible — tenant-defined archetypes MAY extend Norm via allOf to add domain-specific measurement vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type": "object",
   "examples": [ {

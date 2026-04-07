@@ -127,7 +127,7 @@ class AscriptionParsingValidationServiceTest {
       schema.put("title", "CompositeTenant");
       schema.put("type", "object");
       var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsm://archetypes/CustomTenantArchetype/v1");
+      allOf.addObject().put("$ref", "gsmarc://gsm/CustomTenantArchetype/v1");
       var local = allOf.addObject();
       local.put("type", "object");
       local.putObject("properties").putObject("extra").put("type", "integer");
@@ -158,7 +158,7 @@ class AscriptionParsingValidationServiceTest {
       schema.put("title", "CompositeWithDraft");
       schema.put("type", "object");
       var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsm://archetypes/DraftTenantArchetype/v1");
+      allOf.addObject().put("$ref", "gsmarc://gsm/DraftTenantArchetype/v1");
       var local = allOf.addObject();
       local.put("type", "object");
       local.putObject("properties").putObject("extra").put("type", "integer");

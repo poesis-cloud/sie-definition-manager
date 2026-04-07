@@ -103,11 +103,11 @@ class AscriptionResourceIT {
         seedArchetypeId = UUID.fromString(item.get("id").asText());
         seedArchetypeDefinitionId = defId;
       }
-      if (stmtStr.contains("\"title\":\"StructureArchetype\"")) {
+      if (stmtStr.contains("\"title\":\"Structure\"")) {
         structureArchetypeId = UUID.fromString(item.get("id").asText());
         structureArchetypeDefinitionId = defId;
       }
-      if (stmtStr.contains("\"title\":\"MechanismArchetype\"")) {
+      if (stmtStr.contains("\"title\":\"Mechanism\"")) {
         mechanismArchetypeId = UUID.fromString(item.get("id").asText());
         mechanismArchetypeDefinitionId = defId;
       }
@@ -316,7 +316,7 @@ class AscriptionResourceIT {
     String[] segs3 = collHref.split("/");
     createdMechanismDefinitionId = UUID.fromString(segs3[segs3.length - 2]);
 
-    // Verify type link points to MechanismArchetype's Definition
+    // Verify type link points to Mechanism archetype's Definition
     mvc.perform(get("/api/v1/ascriptions/{id}", createdMechanismId))
         .andExpect(
             jsonPath(
@@ -424,7 +424,7 @@ class AscriptionResourceIT {
     mvc.perform(
             get("/api/v1/ascriptions")
                 .param("type", "mechanism")
-                .param("archetype", "MechanismArchetype")
+                .param("archetype", "Mechanism")
                 .param("statement.rule", "foo"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.detail", containsString("$gsm:queryable")));
@@ -450,7 +450,7 @@ class AscriptionResourceIT {
   @Order(110)
   void getSchema_returnsComposedJsonSchema() throws Exception {
     // Create a fresh structure to test with — its typing archetype is
-    // StructureArchetype
+    // Structure archetype
     ObjectNode stmt = mapper.createObjectNode().put("purpose", "schema-endpoint-test");
     ObjectNode req = mapper.createObjectNode();
     req.put("archetypeId", structureArchetypeId.toString());
@@ -468,14 +468,14 @@ class AscriptionResourceIT {
 
     // The composed schema inlines the typing archetype's schema as the statement
     // property.
-    // For a Structure ascription, the typing archetype is StructureArchetype.
+    // For a Structure ascription, the typing archetype is Structure archetype.
     mvc.perform(get("/api/v1/ascriptions/{id}/schema", ascId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title", is("Ascription")))
         .andExpect(jsonPath("$.type", is("object")))
         .andExpect(jsonPath("$.properties.id.type", is("string")))
         .andExpect(jsonPath("$.properties.id.format", is("uuid")))
-        .andExpect(jsonPath("$.properties.statement.title", is("StructureArchetype")))
+        .andExpect(jsonPath("$.properties.statement.title", is("Structure")))
         .andExpect(jsonPath("$.properties.status.type", is("string")))
         .andExpect(jsonPath("$.properties.timestamp.format", is("date-time")));
   }

@@ -93,17 +93,14 @@ public enum DefinitionSubjectType {
   }
 
   /**
-   * Returns the GSM base archetype title for this subject type. Convention: {@code
-   * {PascalCaseLabel}Archetype}, except {@link #ARCHETYPE} itself which maps to {@code
-   * "Archetype"}.
+   * Returns the GSM base archetype title for this subject type. Convention: the PascalCase label of
+   * the backing primitive type (e.g., {@code "Structure"}, {@code "Mechanism"}, {@code
+   * "Archetype"}).
    *
    * @return the base archetype title; never {@code null}
    */
   public String getArchetypeTitle() {
-    if (this == ARCHETYPE) {
-      return "Archetype";
-    }
-    return primitiveType.getLabel() + "Archetype";
+    return primitiveType.getLabel();
   }
 
   /**
@@ -118,7 +115,7 @@ public enum DefinitionSubjectType {
   /**
    * Resolves a {@code DefinitionSubjectType} from a GSM base archetype title.
    *
-   * @param title the archetype title (e.g., {@code "StructureArchetype"})
+   * @param title the archetype title (e.g., {@code "Structure"})
    * @return the matching enum constant, or {@code null} if the title is not a GSM base archetype
    */
   public static DefinitionSubjectType fromArchetypeTitle(String title) {

@@ -178,16 +178,16 @@ class ArchetypeServiceTest {
     void validUri() {
       assertEquals(
           "SecurityProperties",
-          ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/SecurityProperties/v1"));
+          ArchetypeParsingService.extractTitleFromRef("gsmarc://gsm/SecurityProperties/v1"));
       assertEquals(
-          "MyType", ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/MyType/v42"));
+          "MyType", ArchetypeParsingService.extractTitleFromRef("gsmarc://gsm/MyType/v42"));
     }
 
     @Test
     void invalidUri() {
       assertNull(ArchetypeParsingService.extractTitleFromRef("https://example.com/schema"));
       assertNull(ArchetypeParsingService.extractTitleFromRef("not-a-uri"));
-      assertNull(ArchetypeParsingService.extractTitleFromRef("gsm://archetypes/NoVersion"));
+      assertNull(ArchetypeParsingService.extractTitleFromRef("gsmarc://gsm/NoVersion"));
     }
   }
 
@@ -201,7 +201,7 @@ class ArchetypeServiceTest {
     @Test
     void baseArchetype_resolvesDirectly() {
       UUID id = UUID.randomUUID();
-      ArchetypeEntity base = mockArchetype(schemaNode("StructureArchetype", false));
+      ArchetypeEntity base = mockArchetype(schemaNode("Structure", false));
       when(base.getId()).thenReturn(id);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(base));
 
@@ -213,13 +213,13 @@ class ArchetypeServiceTest {
     void resolveForCreation_tenantStructuralArchetype_walksRefChain() {
       UUID tenantId = UUID.randomUUID();
       ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "MyServiceArchetype");
-      tenantSchema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
+      tenantSchema.put("$ref", "gsmarc://gsm/Structure/v1");
       ArchetypeEntity tenant = mockArchetype(tenantSchema);
       when(tenant.getId()).thenReturn(tenantId);
       when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
       when(compositionValidation.resolveGsmBases(
-              eq("gsm://archetypes/StructureArchetype/v1"), eq("MyServiceArchetype"), any()))
-          .thenReturn(Set.of("StructureArchetype"));
+              eq("gsmarc://gsm/Structure/v1"), eq("MyServiceArchetype"), any()))
+          .thenReturn(Set.of("Structure"));
 
       var resolution = service.resolveForCreation(tenantId);
       assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
@@ -229,13 +229,13 @@ class ArchetypeServiceTest {
     void resolveForCreation_tenantViaIntermediary_walksRefChain() {
       UUID tenantId = UUID.randomUUID();
       ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "SpecificMechanism");
-      tenantSchema.put("$ref", "gsm://archetypes/BaseMechanismTemplate/v1");
+      tenantSchema.put("$ref", "gsmarc://gsm/BaseMechanismTemplate/v1");
       ArchetypeEntity tenant = mockArchetype(tenantSchema);
       when(tenant.getId()).thenReturn(tenantId);
       when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
       when(compositionValidation.resolveGsmBases(
-              eq("gsm://archetypes/BaseMechanismTemplate/v1"), eq("SpecificMechanism"), any()))
-          .thenReturn(Set.of("MechanismArchetype"));
+              eq("gsmarc://gsm/BaseMechanismTemplate/v1"), eq("SpecificMechanism"), any()))
+          .thenReturn(Set.of("Mechanism"));
 
       var resolution = service.resolveForCreation(tenantId);
       assertEquals(DefinitionSubjectType.MECHANISM, resolution.subjectType());
@@ -267,7 +267,7 @@ class ArchetypeServiceTest {
 
       UUID id = UUID.randomUUID();
       ObjectNode rootless = MAPPER.createObjectNode().put("title", "DetailedFacet");
-      rootless.putArray("allOf").addObject().put("$ref", "gsm://archetypes/BaseFacet/v1");
+      rootless.putArray("allOf").addObject().put("$ref", "gsmarc://gsm/BaseFacet/v1");
       ArchetypeEntity entity = mockArchetype(rootless);
       when(entity.getId()).thenReturn(id);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
@@ -465,13 +465,13 @@ class ArchetypeServiceTest {
       Map<String, DefinitionSubjectType> expected =
           Map.of(
               "Archetype", DefinitionSubjectType.ARCHETYPE,
-              "StructureArchetype", DefinitionSubjectType.STRUCTURE,
-              "MechanismArchetype", DefinitionSubjectType.MECHANISM,
-              "EffectorArchetype", DefinitionSubjectType.EFFECTOR,
-              "ReceptorArchetype", DefinitionSubjectType.RECEPTOR,
-              "InteractionArchetype", DefinitionSubjectType.INTERACTION,
-              "DirectiveArchetype", DefinitionSubjectType.DIRECTIVE,
-              "NormArchetype", DefinitionSubjectType.NORM);
+              "Structure", DefinitionSubjectType.STRUCTURE,
+              "Mechanism", DefinitionSubjectType.MECHANISM,
+              "Effector", DefinitionSubjectType.EFFECTOR,
+              "Receptor", DefinitionSubjectType.RECEPTOR,
+              "Interaction", DefinitionSubjectType.INTERACTION,
+              "Directive", DefinitionSubjectType.DIRECTIVE,
+              "Norm", DefinitionSubjectType.NORM);
 
       for (var entry : expected.entrySet()) {
         UUID id = UUID.randomUUID();
@@ -497,7 +497,7 @@ class ArchetypeServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void onActivation_delegatesToIndexProvisioning() {
-      ArchetypeEntity entity = archetypeWithBaseTitle("StructureArchetype");
+      ArchetypeEntity entity = archetypeWithBaseTitle("Structure");
 
       service.onActivation(entity);
 
@@ -516,7 +516,7 @@ class ArchetypeServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void onDeactivation_delegatesToIndexProvisioning() {
-      ArchetypeEntity entity = archetypeWithBaseTitle("StructureArchetype");
+      ArchetypeEntity entity = archetypeWithBaseTitle("Structure");
 
       service.onDeactivation(entity);
 
@@ -647,7 +647,7 @@ class ArchetypeServiceTest {
       UUID id = UUID.randomUUID();
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "SecurityProperties");
-      schema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
+      schema.put("$ref", "gsmarc://gsm/Structure/v1");
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
@@ -656,17 +656,17 @@ class ArchetypeServiceTest {
       Set<String> ancestors = service.getAncestorTitles(id);
 
       assertTrue(ancestors.contains("SecurityProperties"));
-      assertTrue(ancestors.contains("StructureArchetype"));
+      assertTrue(ancestors.contains("Structure"));
       assertEquals(2, ancestors.size());
     }
 
     @Test
     void getAncestorTitles_chainThroughIntermediary_resolvesAll() {
       UUID id = UUID.randomUUID();
-      // Child → ($ref) → SecurityProperties → ($ref) → StructureArchetype (base)
+      // Child → ($ref) → SecurityProperties → ($ref) → Structure (base)
       ObjectNode childSchema = MAPPER.createObjectNode();
       childSchema.put("title", "DetailedSecurity");
-      childSchema.put("$ref", "gsm://archetypes/SecurityProperties/v1");
+      childSchema.put("$ref", "gsmarc://gsm/SecurityProperties/v1");
 
       ArchetypeEntity childEntity = mock(ArchetypeEntity.class);
       when(childEntity.getStatement()).thenReturn(childSchema);
@@ -675,7 +675,7 @@ class ArchetypeServiceTest {
       // Intermediary schema in DB
       ObjectNode intermediarySchema = MAPPER.createObjectNode();
       intermediarySchema.put("title", "SecurityProperties");
-      intermediarySchema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
+      intermediarySchema.put("$ref", "gsmarc://gsm/Structure/v1");
 
       ArchetypeEntity intermediaryEntity = mock(ArchetypeEntity.class);
       when(intermediaryEntity.getStatement()).thenReturn(intermediarySchema);
@@ -688,7 +688,7 @@ class ArchetypeServiceTest {
 
       assertTrue(ancestors.contains("DetailedSecurity"));
       assertTrue(ancestors.contains("SecurityProperties"));
-      assertTrue(ancestors.contains("StructureArchetype"));
+      assertTrue(ancestors.contains("Structure"));
       assertEquals(3, ancestors.size());
     }
 
@@ -709,13 +709,13 @@ class ArchetypeServiceTest {
       UUID id = UUID.randomUUID();
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "DetailedSecurity");
-      schema.put("$ref", "gsm://archetypes/StructureArchetype/v1");
+      schema.put("$ref", "gsmarc://gsm/Structure/v1");
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      assertTrue(service.isDescendantOf(id, "StructureArchetype"));
+      assertTrue(service.isDescendantOf(id, "Structure"));
     }
 
     @Test
@@ -736,7 +736,7 @@ class ArchetypeServiceTest {
       UUID id = UUID.randomUUID();
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "Child");
-      schema.put("$ref", "gsm://archetypes/UnknownParent/v1");
+      schema.put("$ref", "gsmarc://gsm/UnknownParent/v1");
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);

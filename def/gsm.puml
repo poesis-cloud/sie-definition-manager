@@ -223,13 +223,13 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Directive and Norm extend Ascription: they inherit lifecycle,
     Archetype-typing, and statement from the Ascription base. Identity is
     held by the referenced Definition. What makes them governance DNA is
-    their Archetype: DirectiveArchetype and NormArchetype define the
+    their Archetype: Directive and Norm define the
     governance grammar within the `statement` payload. Tenant-defined
-    archetypes MAY extend DirectiveArchetype and NormArchetype via allOf
+    archetypes MAY extend Directive and Norm via allOf
     to add domain-specific vocabulary (e.g., Principle, Standard, Measure)
     while inheriting the full governance grammar. A governance Mechanism
     producing a Directive simply creates one via
-    `sys.effect("DirectiveArchetype", {...})`.
+    `sys.effect("Directive", {...})`.
 
     Like biological DNA encodes the instructions for proteins that build and
     regulate an organism, a System's DNA encodes the governance instructions
@@ -352,7 +352,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     3. Therefore Mechanisms can operate on any Ascription.
     4. Including: Mechanisms operating on other Mechanisms.
     5. Including: Mechanisms producing governance DNA (Directives and Norms
-       typed by DirectiveArchetype / NormArchetype).
+       typed by Directive / Norm).
     6. Including: Mechanisms governed by DNA they produced.
     Closure: the system defines itself through itself.
 
@@ -434,11 +434,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     referenced Definition. Their governance
     grammar (modal, verb, applicability, assertion, etc.) lives in the
     `statement` payload, typed by GSM Archetypes
-    (DirectiveArchetype, NormArchetype). Domain-specific accessors
+    (Directive, Norm). Domain-specific accessors
     (getModal(), getApplicability(), etc.) are convenience delegations into
     `statement`.
     A governance Mechanism creates a Directive by calling
-    `sys.effect("DirectiveArchetype", {...})`. This closes §3 systemic
+    `sys.effect("Directive", {...})`. This closes §3 systemic
     recursion naturally: governance DNA follows the same Archetype typing
     and the same Effector→Archetype type model as all other Ascriptions.
 
@@ -518,7 +518,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     structural base.
 
     A single Archetype schema MAY mix structural and rootless `allOf`
-    entries (e.g., extending `StructureArchetype` AND a rootless
+    entries (e.g., extending `Structure` AND a rootless
     `SecurityProperties` facet). The structural convergence rule
     applies only to the subset of `allOf` paths that reach a GSM
     base — exactly one structural base must be found among them.
@@ -585,16 +585,16 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     governance, and information-flow concerns simultaneously —
     unified by identity, differentiated by FK position.
 
-    GSM base archetypes: StructureArchetype, MechanismArchetype,
-    InteractionArchetype, EffectorArchetype, ReceptorArchetype,
-    DirectiveArchetype, NormArchetype, and the Archetype meta-schema.
+    GSM base archetypes: Structure, Mechanism,
+    Interaction, Effector, Receptor,
+    Directive, Norm, and the Archetype meta-schema.
     All GSM base archetypes except the Archetype meta-schema are
     **extensible** — tenant-defined archetypes MAY extend them via
     allOf to add domain-specific vocabulary while inheriting the base
-    schema. EffectorArchetype and ReceptorArchetype define Mechanism
+    schema. Effector and Receptor define Mechanism
     port schemas (lifecycle-coupled, derived at authoring time);
     tenants extend them to add port-level vocabulary (transport,
-    security, observability). DirectiveArchetype and NormArchetype
+    security, observability). Directive and Norm
     are governance DNA archetypes; tenants extend them to add
     domain-specific governance vocabulary. The Archetype meta-schema
     itself carries `$gsm:sealed` and MUST NOT be tenant-extended.
@@ -778,7 +778,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     that tell DM *how* to manage Ascription data governed by the Archetype.
 
     **Meta-schema validation**: DM validates every incoming Archetype schema
-    against the **GSM meta-schema** (`gsm://archetypes/Archetype/v1`,
+    against the **GSM meta-schema** (`gsmarc://gsm/Archetype/v1`,
     defined in `Archetype.json` — the seed Archetype's own
     statement). The
     meta-schema extends JSON Schema 2020-12 and declares `$gsm:*` as
@@ -806,7 +806,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     against its own bundled seed Archetype. The `$schema` field in Archetype
     schemas is a **declaration** (documents which meta-schema governs
     the schema), not an enforcement vector. GSM base Archetype schemas
-    declare `"$schema": "gsm://archetypes/Archetype/v1"` — the truthful
+    declare `"$schema": "gsmarc://gsm/Archetype/v1"` — the truthful
     declaration.
 
     DM introspects vocabulary keywords at **Archetype authoring time**
@@ -838,9 +838,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     Marks an Archetype schema as non-extensible. Tenant-defined Archetypes
     MUST NOT declare `allOf` referencing a sealed schema. Applied only to
     the Archetype meta-schema itself. All other GSM base archetypes
-    (StructureArchetype, MechanismArchetype, InteractionArchetype,
-    EffectorArchetype, ReceptorArchetype, DirectiveArchetype,
-    NormArchetype) are NOT sealed — tenants extend them.
+    (Structure, Mechanism, Interaction,
+    Effector, Receptor, Directive,
+    Norm) are NOT sealed — tenants extend them.
 
     `$gsm:identityBound: true` (property-level)
     Marks a property as constitutive of the Definition's identity.
@@ -1138,7 +1138,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Extends Ascription. Inherits lifecycle
       (`status`, `version`, `statusTransitions`), Archetype-typing
       (`archetype`), and `statement`. Typed by the sealed
-      DirectiveArchetype: the governance grammar (modal, verb, qualifier,
+      Directive: the governance grammar (modal, verb, qualifier,
       purpose) lives in `statement`. Class-specific accessors
       (`getModal()`, `getVerb()`, etc.) are convenience delegations into
       `statement`.
@@ -1407,7 +1407,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     **Concept Semantics**:
 
     - Extends Ascription. Inherits lifecycle, Archetype-typing,
-      and statement. Typed by the sealed NormArchetype: the governance
+      and statement. Typed by the sealed Norm: the governance
       grammar (applicability, assertion, toleranceMode, etc.) lives in
       `statement`. Class-specific accessors (`getApplicability()`,
       `getAssertion()`, etc.) are convenience delegations into
@@ -2292,7 +2292,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       exist **for a purpose** and are the product of governance.
     - **Governing Structure (governance relation)**: a Structure `G` governs a
       Structure `S` when `G` produces a Directive whose `purpose` string equals
-      `S`'s `StructureArchetype.purpose`, and `S` bears Norms
+      `S`'s `Structure.purpose`, and `S` bears Norms
       operationalizing that Directive which constrain `S`'s own internal
       Elements. This is how inter-Structure governance is expressed in GSM:
       not by containment, but by Directive + Norm targeting.
@@ -2318,7 +2318,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       chains: `G` governs `S`; `S` governs `T` (separate Directives).
       (VSM: System 3 jurisdiction ≡ System 1 operational boundary;
       Ashby: regulator scope ≤ variety-absorption capacity.)
-    - **Purpose is owned by governance**: `StructureArchetype.purpose` is the
+    - **Purpose is owned by governance**: `Structure.purpose` is the
       Structure's identity field, but it is not self-declared — it is a
       **governed outcome**. A governing Structure confers purpose by producing
       Directives that address it. Purpose without governance addressing is an
@@ -2341,8 +2341,8 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Validation Rules**:
 
-    - `StructureArchetype.purpose` MUST be non-empty (enforced by base schema).
-    - `StructureArchetype.purpose` MUST be globally unique among in-effect
+    - `Structure.purpose` MUST be non-empty (enforced by base schema).
+    - `Structure.purpose` MUST be globally unique among in-effect
       (ACTIVE or DEPRECATED) Structure Ascriptions.
     - `statement.purpose` is **identity-bound**: MUST NOT change across
       Ascriptions of the same Definition (see Ascription identity invariant).
@@ -2397,7 +2397,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     **Concept Semantics**:
 
-    - Composite of processing logic (`MechanismArchetype.rule`) and its
+    - Composite of processing logic (`Mechanism.rule`) and its
       I/O Effectors and Receptors.
     - Effectors and Receptors do not exist independently — destroying a
       Mechanism destroys its Effectors and Receptors. This is a
@@ -2406,7 +2406,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       ports. An Effector or Receptor without a Mechanism has no causal
       autonomy. See `gsm-ascription-lifecycle` for constitutive cascade
       semantics.
-    - When `MechanismArchetype.rule` targets the owning Structure's
+    - When `Mechanism.rule` targets the owning Structure's
       Elements, it is reflexive. Reflexive Mechanisms produce governance DNA
       (Directives, Norms), making the Structure a *System*.
     - At least 1 Effector (1..*) and at least 1 Receptor (1..*).
@@ -2497,7 +2497,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
         Declares the triggering Archetype and returns its payload.
         Auto-derives a Receptor typed by the named Archetype.
       - `sys.receive("ArchetypeName").on("ReceptorPortArch")` — qualifies the
-        trigger Receptor port type (resolved to a tenant ReceptorArchetype extension).
+        trigger Receptor port type (resolved to a tenant Receptor extension).
       - `.receive("FeedbackArch")` chain on a `sys.effect()` call
         auto-derives a feedback Receptor (closed-loop).
     - *Effector derivation (outputs)*
@@ -2505,7 +2505,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
         Auto-derives an Effector typed by the named Archetype.
       - Optional fluent chain qualifiers:
         - `.by("EffectorPortArch")` — qualifies the Effector port type
-          (resolved to a tenant EffectorArchetype extension).
+          (resolved to a tenant Effector extension).
         - `.receive("FeedbackArch")` — declares feedback expectation
           (closed-loop). Auto-derives a Receptor.
         - `.on("ReceptorPortArch")` — qualifies the feedback Receptor
@@ -2604,7 +2604,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Effector's output. Note: this is the **data archetype** (from
       `statement.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Effector Ascription
-      itself as EffectorArchetype.
+      itself as Effector.
 
     **Validation Rules**:
 
@@ -2683,7 +2683,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       Receptor's input. Note: this is the **data archetype** (from
       `statement.archetype`), distinct from the Ascription-level
       `archetype` (envelope column) that types the Receptor Ascription
-      itself as ReceptorArchetype.
+      itself as Receptor.
 
     **Validation Rules**:
 
@@ -2853,7 +2853,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       type of information they emit/consume. The Archetype's `statement`
       IS the JSON Schema document, persisted as-is. DM
       assigns `$id` inside the schema document using the convention
-      `gsm://archetypes/{title}/v{version}`.
+      `gsmarc://gsm/{title}/v{version}`.
     - **Identity via `title`**: the Archetype's human-readable
       identity is carried by `title` inside the JSON Schema
       document — not by a separate `name` property. This avoids
@@ -2871,7 +2871,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       (draft 2020-12+) defining the structure and semantics of instances
       typed by this Archetype. Persisted as-is. DM assigns `$id`
       inside the schema document using the convention
-      `gsm://archetypes/{title}/v{version}` — deterministic from
+      `gsmarc://gsm/{title}/v{version}` — deterministic from
       title (identity) and Ascription version. The schema content may
       evolve across Ascription versions (new properties, updated
       constraints). However, the set of properties annotated
@@ -2882,7 +2882,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       properties to declare governance capabilities to DM (identity
       invariants, query indexes, uniqueness, data protection, CEL
       validation). DM validates the schema against the GSM meta-schema
-      (`gsm://archetypes/Archetype/v1`) at authoring time — see §8 for the full
+      (`gsmarc://gsm/Archetype/v1`) at authoring time — see §8 for the full
       vocabulary catalog.
       - `title`: **DM-enforced identity-bound**. The Archetype's
         human-readable identity — what the Archetype IS. Globally unique
@@ -2897,7 +2897,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
     - `statement` MUST be a valid JSON Schema document (not null).
     - `statement` MUST validate against the GSM meta-schema
-      (`gsm://archetypes/Archetype/v1`). This validates: (a) standard JSON Schema
+      (`gsmarc://gsm/Archetype/v1`). This validates: (a) standard JSON Schema
       2020-12 structure (inherited via allOf), (b) `$gsm:*` vocabulary
       keyword value shapes (via the meta-schema's `properties` +
       `$defs`). Schemas that are not valid JSON Schema or carry
@@ -2952,11 +2952,11 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     - Authors provide the Archetype Ascription statement as a JSON
       Schema document (with `title` as the identity).
     - DM validates the schema against the GSM meta-schema
-      (`gsm://archetypes/Archetype/v1`) — first-pass structural validation of both
+      (`gsmarc://gsm/Archetype/v1`) — first-pass structural validation of both
       JSON Schema structure and `$gsm:*` keyword values. Then runs
       semantic checks (allOf chain, uniqueness, type-compatibility,
       mutual exclusion). Assigns `$id` inside the schema document
-      using the convention `gsm://archetypes/{title}/v{version}`,
+      using the convention `gsmarc://gsm/{title}/v{version}`,
       and persists the Ascription as-is (1:1).
 
     **State Rules**:
@@ -3026,5 +3026,59 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
 
   Archetype --|> Ascription
 }
+
+' ============================================================
+' ARCHETYPE URI CONVENTION (gsmarc://)
+' ============================================================
+
+note as N_URI_CONVENTION
+  **Archetype URI Convention — gsmarc://**
+
+  All Archetype schema identifiers (`$id`, `$ref`, `$schema`)
+  use the unified **gsmarc://** URI scheme.
+
+  **Scheme**: `gsmarc` = GSM Archetype naming system.
+  Identifies archetype definitions governed by GSM.
+
+  **Structure** (RFC 3986-aligned):
+
+  `gsmarc://{authority}/{segments}/{title}/v{version}`
+
+  | Component    | Position (RFC 3986)  | Semantics                                     |
+  |------------|---------------------|-----------------------------------------------|
+  | `gsmarc`     | scheme               | Naming system — GSM Archetype identifiers       |
+  | `{authority}` | authority            | Provenance / trust tier (resolution strategy)   |
+  | `{segments}` | path (optional)      | Taxonomy / classification path (0+ segments)    |
+  | `{title}`    | path (last segment)  | Archetype title — schema identity               |
+  | `v{version}` | path (terminal)      | Ascription version (monotonically increasing)   |
+
+  **Authorities** (sealed set — DM resolution strategy per authority):
+
+  | Authority | Resolution  | Scope                                         |
+  |-----------|-------------|-----------------------------------------------|
+  | `gsm`     | classpath   | 8 sealed GSM base archetypes (bundled in DM)  |
+  | `ops`     | classpath   | SIE Operator protocol archetypes              |
+  | `itip`    | DB          | ITIP domain archetypes + sourced frameworks   |
+  | `{tenant}` | DB          | Tenant-defined archetypes                     |
+
+  **Examples**:
+
+  - `gsmarc://gsm/Structure/v1` — GSM base (classpath)
+  - `gsmarc://ops/protocols/http/HttpRequest/v1` — SIE Operator
+  - `gsmarc://itip/SoftwareTechnology/v1` — ITIP domain archetype
+  - `gsmarc://itip/frameworks/iso25000/iso25010/product-quality/ProductSecurity/v1`
+    — ITIP sourced framework archetype
+
+  **Parsing rule**: title = last path segment before `/v{version}`.
+  DM regex: `^gsmarc://[^/]+/(.+)/v(\d+)$`
+  → title = last segment of captured group.
+
+  **DM assignment**: DM writes `$id` into the schema at persist time
+  using `gsmarc://gsm/{title}/v{version}` for GSM base archetypes.
+  Tenant archetypes use the appropriate authority.
+
+  **Security**: DM MUST NOT resolve `$schema` URIs from incoming
+  tenant schemas. Validation always uses the bundled seed Archetype.
+end note
 
 @enduml

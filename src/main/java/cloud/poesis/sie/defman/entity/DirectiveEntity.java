@@ -35,7 +35,7 @@ public class DirectiveEntity extends AscriptionEntity {
    * Creates a new Directive ascription.
    *
    * @param definition the stable identity this directive ascribes to
-   * @param archetype the typing archetype (DirectiveArchetype)
+   * @param archetype the typing archetype (Directive)
    * @param statement the JSON payload containing modal, verb, and governance grammar
    * @param structure the authoring structure
    * @param qualifier the archetype defining the viability dimension being governed

@@ -108,13 +108,13 @@ class ArchetypeSeedRunnerTest {
     void seedsMetaArchetypeAndOthers() throws Exception {
       when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
 
-      // 2 schemas: Archetype (meta) + StructureArchetype
+      // 2 schemas: Archetype (meta) + Structure
       ObjectMapper realMapper = new ObjectMapper();
       JsonNode metaNode = realMapper.readTree("{\"title\":\"Archetype\"}");
-      JsonNode structNode = realMapper.readTree("{\"title\":\"StructureArchetype\"}");
+      JsonNode structNode = realMapper.readTree("{\"title\":\"Structure\"}");
 
       Resource metaResource = mockResource("Archetype.json");
-      Resource structResource = mockResource("StructureArchetype.json");
+      Resource structResource = mockResource("Structure.json");
       when(resolver.getResources(SCHEMA_PATTERN))
           .thenReturn(new Resource[] {metaResource, structResource});
       when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(metaNode, structNode);

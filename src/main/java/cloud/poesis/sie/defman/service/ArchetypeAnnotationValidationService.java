@@ -179,9 +179,9 @@ public class ArchetypeAnnotationValidationService {
 
   /**
    * Recursively scans the entire schema tree for {@code $ref} values and enforces the URI policy:
-   * only local JSON Pointers ({@code #/...}) and {@code gsm://archetypes/{title}/v{version}} URIs
-   * are allowed. Rejects external URIs (http, https, file, etc.) to prevent SSRF and ensure all
-   * schema resolution is local.
+   * only local JSON Pointers ({@code #/...}) and {@code
+   * gsmarc://{authority}/{segments}/{title}/v{version}} URIs are allowed. Rejects external URIs
+   * (http, https, file, etc.) to prevent SSRF and ensure all schema resolution is local.
    *
    * @param schema the archetype JSON Schema to scan
    * @throws RuleViolationException if any {@code $ref} violates the URI policy
@@ -206,7 +206,7 @@ public class ArchetypeAnnotationValidationService {
                   + ": '"
                   + ref
                   + "'. "
-                  + "Only local JSON Pointers (#/...) and gsm://archetypes/{title}/v{version} "
+                  + "Only local JSON Pointers (#/...) and gsmarc://{authority}/{segments}/{title}/v{version} "
                   + "URIs are allowed",
               "path",
               path,

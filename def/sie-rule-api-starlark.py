@@ -110,7 +110,7 @@ class SystemContext:
 
         GSM auto-derivation:
             sys.receive("A") → Receptor (data Archetype "A",
-                                port type: base ReceptorArchetype)
+                                port type: base Receptor)
             sys.receive("A").on("R") → Receptor (data Archetype "A",
                                         port type: Archetype "R")
         """
@@ -176,7 +176,7 @@ class SystemContext:
 
         GSM auto-derivation:
             sys.effect("A", data) → Effector (data Archetype "A",
-                                    port type: base EffectorArchetype)
+                                    port type: base Effector)
         """
         ...
 
@@ -189,7 +189,7 @@ class Reception:
 
         Args:
             receptor_archetype: String literal — Receptor Archetype name.
-                                Defaults to base ReceptorArchetype when
+                                Defaults to base Receptor when
                                 omitted.
 
         Returns:
@@ -198,7 +198,7 @@ class Reception:
 
         GSM auto-derivation:
             .on("R") → trigger Receptor port typed by Archetype "R"
-                       (instead of base ReceptorArchetype).
+                       (instead of base Receptor).
         """
         ...
 
@@ -212,7 +212,7 @@ class Effect:
 
         Args:
             effector_archetype: String literal — Effector Archetype name.
-                                Defaults to base EffectorArchetype when
+                                Defaults to base Effector when
                                 omitted.
 
         Returns:
@@ -220,7 +220,7 @@ class Effect:
 
         GSM auto-derivation:
             .by("E") → Effector port typed by Archetype "E"
-                       (instead of base EffectorArchetype).
+                       (instead of base Effector).
         """
         ...
 
@@ -248,7 +248,7 @@ class Effect:
 
         Args:
             receptor_archetype: String literal — Receptor Archetype name.
-                                Defaults to base ReceptorArchetype when
+                                Defaults to base Receptor when
                                 omitted.
 
         Returns:
@@ -256,7 +256,7 @@ class Effect:
 
         GSM auto-derivation:
             .on("R") → Receptor port typed by Archetype "R"
-                       (instead of base ReceptorArchetype).
+                       (instead of base Receptor).
         """
         ...
 
@@ -391,32 +391,32 @@ def search(pattern: str, string: str) -> Optional[str]:
 # PORT ARCHETYPE QUALIFICATION
 # ----------------------------
 # .by() and .on() qualify the port archetype (tenant-defined
-# specialization of EffectorArchetype / ReceptorArchetype).
-# When omitted, the base EffectorArchetype / ReceptorArchetype
+# specialization of Effector / Receptor).
+# When omitted, the base Effector / Receptor
 # is used.
 #
 # ┌──────────────────────────────────────────┬──────────────────────────────────────────┐
 # │ Starlark construct                       │ GSM primitives auto-derived              │
 # ├──────────────────────────────────────────┼──────────────────────────────────────────┤
 # │ sys.receive("A")                         │ Receptor (data Arch "A",                 │
-# │                                          │          port: base ReceptorArchetype)   │
+# │                                          │          port: base Receptor)   │
 # │                                          │                                          │
 # │ sys.receive("A").on("R")                 │ Receptor (data Arch "A",                 │
 # │                                          │          port: Archetype "R")            │
 # │                                          │                                          │
 # │ sys.effect("A", data)                    │ Effector (data Arch "A",                 │
-# │                                          │          port: base EffectorArchetype)   │
+# │                                          │          port: base Effector)   │
 # │                                          │                                          │
 # │ sys.effect("A", data).by("E")            │ Effector (data Arch "A",                 │
 # │                                          │          port: Archetype "E")            │
 # │                                          │                                          │
 # │ sys.effect("A", data).receive("F")       │ Effector (data Arch "A",                 │
-# │                                          │          port: base EffectorArchetype)   │
+# │                                          │          port: base Effector)   │
 # │                                          │ + Receptor (data Arch "F",               │
-# │                                          │            port: base ReceptorArchetype) │
+# │                                          │            port: base Receptor) │
 # │                                          │                                          │
 # │ sys.effect("A", data).receive("F")       │ Effector (data Arch "A",                 │
-# │   .on("R")                               │          port: base EffectorArchetype)   │
+# │   .on("R")                               │          port: base Effector)   │
 # │                                          │ + Receptor (data Arch "F",               │
 # │                                          │            port: Archetype "R")          │
 # │                                          │                                          │

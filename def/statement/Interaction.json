@@ -1,7 +1,7 @@
 {
-  "$schema": "gsm://archetypes/Archetype/v1",
-  "$id": "gsm://archetypes/InteractionArchetype/v1",
-  "title": "InteractionArchetype",
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/Interaction/v1",
+  "title": "Interaction",
   "description": "Schema for Interaction Ascriptions — causal coupling between Mechanisms. Defines the Effector→Receptor binding. DM validates Archetype schema-compatibility between the Effector output and Receptor input. DM input = DM output (1:1). Tenant-defined archetypes extending Interaction MUST reference this schema via allOf.",
   "type": "object",
   "examples": [ {
