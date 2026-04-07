@@ -12,15 +12,11 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 
 /**
- * Validates {@code $gsm:*} annotation vocabulary and {@code $ref} URI policy on
- * Archetype JSON
+ * Validates {@code $gsm:*} annotation vocabulary and {@code $ref} URI policy on Archetype JSON
  * Schemas.
  *
- * <p>
- * Extracted from {@link ArchetypeService} to separate annotation validation
- * from schema
- * composition and lifecycle logic. This service is stateless — it receives the
- * pre-fetched existing
+ * <p>Extracted from {@link ArchetypeService} to separate annotation validation from schema
+ * composition and lifecycle logic. This service is stateless — it receives the pre-fetched existing
  * ascriptions when identity-bound immutability checks are needed.
  *
  * @author Clément Cazaud
@@ -33,12 +29,13 @@ public class ArchetypeAnnotationValidationService {
   // $gsm:* annotation constants
   // ========================================================================
 
-  private static final Set<String> KNOWN_ANNOTATIONS = Set.of(
-      "$gsm:sealed",
-      "$gsm:identityBound",
-      "$gsm:queryable",
-      "$gsm:unique",
-      "$gsm:dataProtection");
+  private static final Set<String> KNOWN_ANNOTATIONS =
+      Set.of(
+          "$gsm:sealed",
+          "$gsm:identityBound",
+          "$gsm:queryable",
+          "$gsm:unique",
+          "$gsm:dataProtection");
 
   private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed");
 
@@ -47,17 +44,13 @@ public class ArchetypeAnnotationValidationService {
   // ========================================================================
 
   /**
-   * Validates {@code $gsm:*} annotations on the given archetype schema. Checks
-   * annotation
-   * vocabulary compliance, top-level placement rules, and identity-bound set
-   * immutability against
+   * Validates {@code $gsm:*} annotations on the given archetype schema. Checks annotation
+   * vocabulary compliance, top-level placement rules, and identity-bound set immutability against
    * existing ascriptions for the same definition.
    *
-   * @param schema              the archetype JSON Schema to validate
-   * @param existingAscriptions existing ascriptions for the definition (ordered
-   *                            by timestamp desc),
-   *                            used for identity-bound immutability check; may be
-   *                            empty
+   * @param schema the archetype JSON Schema to validate
+   * @param existingAscriptions existing ascriptions for the definition (ordered by timestamp desc),
+   *     used for identity-bound immutability check; may be empty
    */
   void validateArchetypeAnnotations(JsonNode schema, List<ArchetypeEntity> existingAscriptions) {
     validateTopLevelAnnotations(schema);
@@ -185,13 +178,10 @@ public class ArchetypeAnnotationValidationService {
   // ========================================================================
 
   /**
-   * Recursively scans the entire schema tree for {@code $ref} values and enforces
-   * the URI policy:
+   * Recursively scans the entire schema tree for {@code $ref} values and enforces the URI policy:
    * only local JSON Pointers ({@code #/...}) and {@code
-   * gsmarc://{authority}/{segments}/{title}/v{version}} URIs are allowed. Rejects
-   * external URIs
-   * (http, https, file, etc.) to prevent SSRF and ensure all schema resolution is
-   * local.
+   * gsmarc://{authority}/{segments}/{title}/v{version}} URIs are allowed. Rejects external URIs
+   * (http, https, file, etc.) to prevent SSRF and ensure all schema resolution is local.
    *
    * @param schema the archetype JSON Schema to scan
    * @throws RuleViolationException if any {@code $ref} violates the URI policy

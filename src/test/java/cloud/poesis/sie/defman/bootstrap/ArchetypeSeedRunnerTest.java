@@ -37,7 +37,7 @@ class ArchetypeSeedRunnerTest {
   @Mock private ResourcePatternResolver resolver;
   @Mock private ApplicationArguments args;
 
-  private static final String SCHEMA_PATTERN = "classpath:statement/*.json";
+  private static final String SCHEMA_PATTERN = "classpath:statement/*.schema.json";
   private ArchetypeSeedRunner runner;
 
   @BeforeEach
@@ -113,8 +113,8 @@ class ArchetypeSeedRunnerTest {
       JsonNode metaNode = realMapper.readTree("{\"title\":\"Archetype\"}");
       JsonNode structNode = realMapper.readTree("{\"title\":\"Structure\"}");
 
-      Resource metaResource = mockResource("Archetype.json");
-      Resource structResource = mockResource("Structure.json");
+      Resource metaResource = mockResource("Archetype.schema.json");
+      Resource structResource = mockResource("Structure.schema.json");
       when(resolver.getResources(SCHEMA_PATTERN))
           .thenReturn(new Resource[] {metaResource, structResource});
       when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(metaNode, structNode);

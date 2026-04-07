@@ -12,26 +12,61 @@ All base schemas use the URI convention:
 
 `title` is the Archetype's identity (DM-enforced identity-bound). `version` is the Ascription version number. DM assigns `$id` deterministically — clients can construct URIs from known values.
 
+## Statement File Naming Convention
+
+Statement files are the design-time representation of Ascription statements. Every statement file uses a PascalCase filename whose **extension** and **suffix** identify what the file is and what governs it:
+
+- **Archetype schemas** (JSON Schema documents): `.schema.json` extension
+- **Statement instances** (plain JSON): `.json` extension
+
+**Rule**:
+
+| File kind                                   | Pattern                              | Example                                                                                                                 |
+| ------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Archetype schema** (rootless — no `$ref`) | `{Title}.schema.json`                | `GdprProcessingPrinciple.schema.json`                                                                                   |
+| **Archetype schema** (based — has `$ref`)   | `{Title}.schema.json`                | `SourcedDirective.schema.json`, `HttpRequestEffector.schema.json`                                                       |
+| **Statement instance** (non-schema)         | `{ConceptName}{ArchetypeTitle}.json` | `ProcessingPrinciplesSourcedDirective.json`, `LawfulnessFairnessTransparencySourcedNorm.json`, `OperatorMechanism.json` |
+
+**Extension rationale**: `.schema.json` is the [conventional extension for JSON Schema files](https://json-schema.org/learn/file-system#json-schema-in-files). It structurally distinguishes schemas from instances — two files in a directory can never be ambiguous even if a concept name happens to match an archetype title. `.schema.json` also enables IDE/toolchain schema-aware features (validation, autocomplete, navigation).
+
+**Suffix rationale**: the suffix on instance files is the archetype identity — it tells you which schema governs the statement without opening the file. For archetype schemas themselves, the `title` is the filename (identity-bound); the `$ref` target is visible in the schema content.
+
+**Acronym casing**: all names (filenames, `$id` path segments, `title` values, type references) use **strict PascalCase** — including acronyms. Write `Gdpr`, `Nis2`, `Scap`, `Dpia`, `Dpo`, never `GDPR`, `NIS2`, `SCAP`, `DPIA`, `DPO` inside identifiers. Standalone prose references to the standard/regulation itself (e.g., "GDPR Art 33", "NIS2 Annex I") remain uppercase as proper nouns.
+
+**`$id` alignment**: the `$id` path segment before `/v{version}` MUST match the filename stem (minus `.schema.json` or `.json`). Example: filename `ProcessingPrinciplesSourcedDirective.json` → `$id` URI `gsmarc://itip/frameworks/gdpr/principles/ProcessingPrinciplesSourcedDirective/v1`.
+
+**Instance examples across layers**:
+
+| Layer    | Statement                     | Validating archetype | Filename                                         |
+| -------- | ----------------------------- | -------------------- | ------------------------------------------------ |
+| GSM base | Structure schema              | —                    | `Structure.schema.json`                          |
+| GSM base | Operator structure instance   | `Structure`          | `OperatorStructure.json`                         |
+| GSM base | Operator mechanism instance   | `Mechanism`          | `OperatorMechanism.json`                         |
+| ITIP     | SourcedDirective archetype    | —                    | `SourcedDirective.schema.json`                   |
+| ITIP     | GDPR directive instance       | `SourcedDirective`   | `ProcessingPrinciplesSourcedDirective.json`      |
+| ITIP     | GDPR norm instance            | `SourcedNorm`        | `LawfulnessFairnessTransparencySourcedNorm.json` |
+| ITIP     | Governance mechanism instance | `Mechanism`          | `DirectiveNormOperationalizationMechanism.json`  |
+
 ## `$schema` Convention
 
 All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "gsmarc://gsm/Archetype/v1"`. This is the truthful declaration: Archetype schemas are governed by the seed Archetype (the GSM meta-schema), not just standard JSON Schema 2020-12.
 
-**DM validation mechanism**: DM loads `Archetype.json` (the seed Archetype's statement) at startup as a compiled JSON Schema validator. When an Archetype Ascription arrives, DM treats the `statement` (the incoming Archetype schema document) as a JSON instance and validates it against the seed Archetype validator. This validates standard JSON Schema 2020-12 structure (inherited via `allOf` in the meta-schema) AND `$gsm:*` keyword value shapes — in one pass.
+**DM validation mechanism**: DM loads `Archetype.schema.json` (the seed Archetype's statement) at startup as a compiled JSON Schema validator. When an Archetype Ascription arrives, DM treats the `statement` (the incoming Archetype schema document) as a JSON instance and validates it against the seed Archetype validator. This validates standard JSON Schema 2020-12 structure (inherited via `allOf` in the meta-schema) AND `$gsm:*` keyword value shapes — in one pass.
 
 **Security invariant**: DM MUST NOT resolve `$schema` URIs from incoming tenant schemas for validation purposes. DM always validates against its own bundled seed Archetype. A tenant declaring `"$schema": "https://evil.com/permissive.json"` does not affect which meta-schema DM uses. The `$schema` field is a declaration, not an enforcement vector.
 
 ## Schemas
 
-| Schema             | GSM Class   | Sealed | Tenant-Extensible | Identity-bound fields                 |
-| ------------------ | ----------- | ------ | ----------------- | ------------------------------------- |
-| `Structure.json`   | Structure   | No     | Yes (`$ref`)      | `purpose`                             |
-| `Mechanism.json`   | Mechanism   | No     | Yes (`$ref`)      | `structure`, `function`               |
-| `Effector.json`    | Effector    | No     | Yes (`$ref`)      | `mechanism`, `archetype`              |
-| `Receptor.json`    | Receptor    | No     | Yes (`$ref`)      | `mechanism`, `archetype`              |
-| `Interaction.json` | Interaction | No     | Yes (`$ref`)      | `effector`, `receptor`                |
-| `Archetype.json`   | Archetype   | Yes    | No                | `title` (DM-enforced)                 |
-| `Directive.json`   | Directive   | No     | Yes (`$ref`)      | `structure`, `qualifier`, `purpose`   |
-| `Norm.json`        | Norm        | No     | Yes (`$ref`)      | `structure`, `qualifier`, `assertion` |
+| Schema                    | GSM Class   | Sealed | Tenant-Extensible | Identity-bound fields                 |
+| ------------------------- | ----------- | ------ | ----------------- | ------------------------------------- |
+| `Structure.schema.json`   | Structure   | No     | Yes (`$ref`)      | `purpose`                             |
+| `Mechanism.schema.json`   | Mechanism   | No     | Yes (`$ref`)      | `structure`, `function`               |
+| `Effector.schema.json`    | Effector    | No     | Yes (`$ref`)      | `mechanism`, `archetype`              |
+| `Receptor.schema.json`    | Receptor    | No     | Yes (`$ref`)      | `mechanism`, `archetype`              |
+| `Interaction.schema.json` | Interaction | No     | Yes (`$ref`)      | `effector`, `receptor`                |
+| `Archetype.schema.json`   | Archetype   | Yes    | No                | `title` (DM-enforced)                 |
+| `Directive.schema.json`   | Directive   | No     | Yes (`$ref`)      | `structure`, `qualifier`, `purpose`   |
+| `Norm.schema.json`        | Norm        | No     | Yes (`$ref`)      | `structure`, `qualifier`, `assertion` |
 
 **Extensible** schemas use `unevaluatedProperties: false` (allows `allOf` facet additions and `$ref` base extension).
 **Sealed** schemas use `additionalProperties: false` and carry `$gsm:sealed: true`.
@@ -56,7 +91,7 @@ Archetype schemas carry `$gsm:*` vocabulary keywords — schema-level declaratio
 
 DM introspects vocabulary keywords at **Archetype authoring time** (validates well-formedness, provisions infrastructure) and enforces them at **Ascription authoring time** (validates data). No runtime behavior — pure definition-plane governance signals.
 
-Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema** ([`Archetype.json`](Archetype.json) — the seed Archetype's own statement). DM validates every incoming Archetype schema against this meta-schema at authoring time — this validates standard JSON Schema 2020-12 structure AND `$gsm:*` keyword value shapes in one pass. Archetype schemas do NOT reference this file via `allOf` or `$ref` for vocabulary — vocabulary keywords are schema-level (like `type`, `required`), not data-level.
+Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema** ([`Archetype.schema.json`](Archetype.schema.json) — the seed Archetype's own statement). DM validates every incoming Archetype schema against this meta-schema at authoring time — this validates standard JSON Schema 2020-12 structure AND `$gsm:*` keyword value shapes in one pass. Archetype schemas do NOT reference this file via `allOf` or `$ref` for vocabulary — vocabulary keywords are schema-level (like `type`, `required`), not data-level.
 
 ### Sealed vocabulary keywords (GSM-defined, DM-implemented)
 
@@ -287,9 +322,9 @@ PostgreSQL indexes operate on persisted JSONB values. Only `atRest` affects quer
 
 ### GSM meta-schema (`$gsm:dataProtection` detail)
 
-`$gsm:dataProtection` is a structured object. DM validates keyword values against the `DataProtection` and `DataProtectionMeasures` `$defs` in [`Archetype.json`](Archetype.json) at Archetype authoring time.
+`$gsm:dataProtection` is a structured object. DM validates keyword values against the `DataProtection` and `DataProtectionMeasures` `$defs` in [`Archetype.schema.json`](Archetype.schema.json) at Archetype authoring time.
 
-All `$gsm:*` vocabulary keyword schemas are defined in [`Archetype.json`](Archetype.json) as `$defs` entries. DM validates keyword values against these definitions at Archetype authoring time. The `DataProtection` and `DataProtectionMeasures` `$defs` define the full protection structure shown below.
+All `$gsm:*` vocabulary keyword schemas are defined in [`Archetype.schema.json`](Archetype.schema.json) as `$defs` entries. DM validates keyword values against these definitions at Archetype authoring time. The `DataProtection` and `DataProtectionMeasures` `$defs` define the full protection structure shown below.
 
 ```json
 {

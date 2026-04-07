@@ -1,21 +1,17 @@
 package cloud.poesis.sie.defman.entity;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Objects;
 
 /**
  * Norm — measurable governance assertion. Extends AscriptionEntity.
  *
- * <p>
- * Carries the standard 6-trigger set on the {@code norm} table (see
- * {@link AscriptionEntity} for
+ * <p>Carries the standard 6-trigger set on the {@code norm} table (see {@link AscriptionEntity} for
  * details).
  *
  * @author Clément Cazaud
@@ -33,19 +29,16 @@ public class NormEntity extends AscriptionEntity {
   @JoinColumn(name = "qualifier_id", nullable = false, updatable = false)
   private ArchetypeEntity qualifier;
 
-  protected NormEntity() {
-  }
+  protected NormEntity() {}
 
   /**
    * Creates a new Norm ascription.
    *
    * @param definition the stable identity this norm ascribes to
-   * @param archetype  the typing archetype (Norm)
-   * @param statement  the JSON payload containing applicability, assertion, and
-   *                   tolerance settings
-   * @param structure  the authoring structure
-   * @param qualifier  the archetype whose properties are constrained by the
-   *                   assertion
+   * @param archetype the typing archetype (Norm)
+   * @param statement the JSON payload containing applicability, assertion, and tolerance settings
+   * @param structure the authoring structure
+   * @param qualifier the archetype whose properties are constrained by the assertion
    */
   public NormEntity(
       DefinitionEntity definition,

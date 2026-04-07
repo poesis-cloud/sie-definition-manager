@@ -8,20 +8,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * GSM structural role of a Definition — what kind of primitive the subject is.
- * Sealed enum: tenants
- * MUST NOT extend it. Domain-level typing extensibility is expressed through
- * Archetypes.
+ * GSM structural role of a Definition — what kind of primitive the subject is. Sealed enum: tenants
+ * MUST NOT extend it. Domain-level typing extensibility is expressed through Archetypes.
  *
- * <p>
- * Maps to PostgreSQL enum {@code definition_subject_type}. Values stored as
- * uppercase enum names
+ * <p>Maps to PostgreSQL enum {@code definition_subject_type}. Values stored as uppercase enum names
  * via {@link org.hibernate.annotations.JdbcTypeCode} / {@link
  * org.hibernate.type.SqlTypes#NAMED_ENUM}.
  *
- * <p>
- * The lowercase {@link #value} is provided for API-layer compatibility (e.g.,
- * query parameters,
+ * <p>The lowercase {@link #value} is provided for API-layer compatibility (e.g., query parameters,
  * OpenAPI type discriminators).
  *
  * @author Clément Cazaud
@@ -47,10 +41,11 @@ public enum DefinitionSubjectType {
           "temporalAggregation",
           "sustainedThreshold"));
 
-  private static final Set<String> ARCHETYPE_TITLES = Collections.unmodifiableSet(
-      Stream.of(values())
-          .map(DefinitionSubjectType::getArchetypeTitle)
-          .collect(Collectors.toSet()));
+  private static final Set<String> ARCHETYPE_TITLES =
+      Collections.unmodifiableSet(
+          Stream.of(values())
+              .map(DefinitionSubjectType::getArchetypeTitle)
+              .collect(Collectors.toSet()));
 
   private static final Map<String, DefinitionSubjectType> TITLE_TO_TYPE;
 
@@ -80,8 +75,7 @@ public enum DefinitionSubjectType {
   }
 
   /**
-   * Returns the GSM base archetype statement property names for this subject
-   * type.
+   * Returns the GSM base archetype statement property names for this subject type.
    *
    * @return unmodifiable set of property names; empty for non-ascription types
    */
@@ -99,10 +93,8 @@ public enum DefinitionSubjectType {
   }
 
   /**
-   * Returns the GSM base archetype title for this subject type. Convention: the
-   * PascalCase label of
-   * the backing primitive type (e.g., {@code "Structure"}, {@code "Mechanism"},
-   * {@code
+   * Returns the GSM base archetype title for this subject type. Convention: the PascalCase label of
+   * the backing primitive type (e.g., {@code "Structure"}, {@code "Mechanism"}, {@code
    * "Archetype"}).
    *
    * @return the base archetype title; never {@code null}
@@ -124,8 +116,7 @@ public enum DefinitionSubjectType {
    * Resolves a {@code DefinitionSubjectType} from a GSM base archetype title.
    *
    * @param title the archetype title (e.g., {@code "Structure"})
-   * @return the matching enum constant, or {@code null} if the title is not a GSM
-   *         base archetype
+   * @return the matching enum constant, or {@code null} if the title is not a GSM base archetype
    */
   public static DefinitionSubjectType fromArchetypeTitle(String title) {
     return TITLE_TO_TYPE.get(title);

@@ -98,7 +98,8 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
     // Meta-archetype must be seeded first (all others reference it)
     JsonNode axiomaticArchetypeSchema = schemas.remove("Archetype");
     if (axiomaticArchetypeSchema == null) {
-      throw new IllegalStateException("Archetype.json (title='Archetype') not found on classpath");
+      throw new IllegalStateException(
+          "Archetype.schema.json (title='Archetype') not found on classpath");
     }
 
     UUID axiomaticDefinitionId = insertDefinition();

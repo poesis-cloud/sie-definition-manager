@@ -24,10 +24,10 @@
     "json.schemas": [
         {
             "fileMatch": [
-                "def/statement/*.json",
-                "!def/statement/Archetype.json"
+                "def/statement/*.schema.json",
+                "!def/statement/Archetype.schema.json"
             ],
-            "url": "./def/statement/Archetype.json"
+            "url": "./def/statement/Archetype.schema.json"
         }
     ]
 }
