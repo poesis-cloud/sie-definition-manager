@@ -22,11 +22,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * GSM §Mechanism U12: derives port specifications from a Mechanism's Starlark rule AST.
+ * GSM §Mechanism U12: derives port specifications from a Mechanism's Starlark
+ * rule AST.
  *
- * <p>Parses port signatures from the Starlark rule AST, resolves data and port archetypes, and
- * returns derivation results. Does NOT create entities — the caller is responsible for creating
- * ports via {@link AscriptionService}. Supports typed port archetypes via {@code .by()} and {@code
+ * <p>
+ * Parses port signatures from the Starlark rule AST, resolves data and port
+ * archetypes, and
+ * returns derivation results. Does NOT create entities — the caller is
+ * responsible for creating
+ * ports via {@link AscriptionService}. Supports typed port archetypes via
+ * {@code .by()} and {@code
  * .on()} Starlark DSL clauses.
  *
  * @author Clément Cazaud
@@ -51,16 +56,20 @@ public class MechanismPortDerivationService {
   }
 
   /**
-   * A derived port specification: archetype ID and pre-built statement, ready for {@link
+   * A derived port specification: archetype ID and pre-built statement, ready for
+   * {@link
    * AscriptionService#create(UUID, JsonNode, UUID)}.
    *
    * @param archetypeId the port archetype UUID (Effector/Receptor or custom)
-   * @param statement the pre-built JSON statement (mechanism + data archetype references)
+   * @param statement   the pre-built JSON statement (mechanism + data archetype
+   *                    references)
    */
-  public record PortDerivation(UUID archetypeId, JsonNode statement) {}
+  public record PortDerivation(UUID archetypeId, JsonNode statement) {
+  }
 
   /**
-   * Derives port specifications (Effectors and Receptors) from the Mechanism's Starlark rule.
+   * Derives port specifications (Effectors and Receptors) from the Mechanism's
+   * Starlark rule.
    *
    * @param mechanism the Mechanism entity to derive ports from
    * @return list of port derivations (may be empty)
@@ -79,14 +88,18 @@ public class MechanismPortDerivationService {
   // ======================================================================
 
   /**
-   * A derived port signature from Starlark AST analysis. direction: "effector" or "receptor"
-   * dataArchetypeName: the data archetype schema.title portArchetypeName: optional port archetype
+   * A derived port signature from Starlark AST analysis. direction: "effector" or
+   * "receptor"
+   * dataArchetypeName: the data archetype schema.title portArchetypeName:
+   * optional port archetype
    * name (from .by()/.on()); null means use base Effector/Receptor
    */
-  record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {}
+  record PortSignature(String direction, String dataArchetypeName, String portArchetypeName) {
+  }
 
   /**
-   * Collects port signatures from a Starlark rule AST for auto-derivation. Package-private for test
+   * Collects port signatures from a Starlark rule AST for auto-derivation.
+   * Package-private for test
    * access.
    *
    * @param rule the Starlark rule source
@@ -101,15 +114,18 @@ public class MechanismPortDerivationService {
    * GSM §Mechanism U3/U4: collect port signatures from Starlark AST.
    *
    * <ul>
-   *   <li>sys.receive("X") → Receptor for X (trigger, base Receptor)
-   *   <li>sys.receive("X").on("R") → Receptor for X (trigger, port type R)
-   *   <li>sys.effect("A", data) → Effector for A (base Effector)
-   *   <li>sys.effect("A", data).by("E") → Effector for A (port type E)
-   *   <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F (base types)
-   *   <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor for F (port type
-   *       R)
-   *   <li>sys.effect("A", data).by("E").receive("F").on("R") → Effector for A (port type E) +
-   *       Receptor for F (port type R)
+   * <li>sys.receive("X") → Receptor for X (trigger, base Receptor)
+   * <li>sys.receive("X").on("R") → Receptor for X (trigger, port type R)
+   * <li>sys.effect("A", data) → Effector for A (base Effector)
+   * <li>sys.effect("A", data).by("E") → Effector for A (port type E)
+   * <li>sys.effect("A", data).receive("F") → Effector for A + Receptor for F
+   * (base types)
+   * <li>sys.effect("A", data).receive("F").on("R") → Effector for A + Receptor
+   * for F (port type
+   * R)
+   * <li>sys.effect("A", data).by("E").receive("F").on("R") → Effector for A (port
+   * type E) +
+   * Receptor for F (port type R)
    * </ul>
    */
   List<PortSignature> collectPortSignatures(StarlarkFile file) {
@@ -137,24 +153,28 @@ public class MechanismPortDerivationService {
     } else if (stmt instanceof AssignmentStatement as) {
       expr = as.getRHS();
     }
-    if (expr == null) return;
-    if (!(expr instanceof CallExpression call)) return;
-    if (!parsingService.isSysReceiveChain(call)) return;
+    if (expr == null)
+      return;
+    if (!(expr instanceof CallExpression call))
+      return;
+    if (!parsingService.isSysReceiveChain(call))
+      return;
 
     List<ChainLink> chain = parsingService.unwrapReceiveChain(call);
-    if (chain.isEmpty()) return;
+    if (chain.isEmpty())
+      return;
 
     String dataArchetype = null;
     String portArchetype = null;
     for (ChainLink link : chain) {
-      String arg =
-          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
-              ? sl.getValue()
-              : null;
+      String arg = (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
+          ? sl.getValue()
+          : null;
       switch (link.method()) {
         case "receive" -> dataArchetype = arg;
         case "on" -> portArchetype = arg;
-        default -> {}
+        default -> {
+        }
       }
     }
     if (dataArchetype != null) {
@@ -171,12 +191,16 @@ public class MechanismPortDerivationService {
       expr = as.getRHS();
     }
 
-    if (expr == null) return;
-    if (!(expr instanceof CallExpression call)) return;
-    if (!parsingService.isSysEffectChain(call)) return;
+    if (expr == null)
+      return;
+    if (!(expr instanceof CallExpression call))
+      return;
+    if (!parsingService.isSysEffectChain(call))
+      return;
 
     List<ChainLink> chain = parsingService.unwrapEffectChain(call);
-    if (chain.isEmpty()) return;
+    if (chain.isEmpty())
+      return;
 
     // Extract data from chain: effect("A"), by("E"), receive("F"), on("R")
     String dataArchetype = null;
@@ -185,20 +209,21 @@ public class MechanismPortDerivationService {
     String receptorPortArchetype = null;
 
     for (ChainLink link : chain) {
-      String arg =
-          (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
-              ? sl.getValue()
-              : null;
+      String arg = (!link.args().isEmpty() && link.args().get(0).getValue() instanceof StringLiteral sl)
+          ? sl.getValue()
+          : null;
       switch (link.method()) {
         case "effect" -> dataArchetype = arg;
         case "by" -> effectorPortArchetype = arg;
         case "receive" -> receiveArchetype = arg;
         case "on" -> receptorPortArchetype = arg;
-        default -> {}
+        default -> {
+        }
       }
     }
 
-    if (dataArchetype == null) return;
+    if (dataArchetype == null)
+      return;
 
     // Always derive Effector for the effect() data archetype
     signatures.add(new PortSignature("effector", dataArchetype, effectorPortArchetype));
@@ -216,15 +241,16 @@ public class MechanismPortDerivationService {
   /**
    * GSM §Mechanism U12: resolve port derivation specifications from signatures.
    *
-   * <p>Each port signature is resolved to an archetype and a pre-built statement. The caller is
-   * responsible for creating the actual port entities via {@link AscriptionService}.
+   * <p>
+   * Each port signature is resolved to an archetype and a pre-built statement.
+   * The caller is
+   * responsible for creating the actual port entities via
+   * {@link AscriptionService}.
    */
   private List<PortDerivation> resolvePortDerivations(
       MechanismEntity mechanism, List<PortSignature> signatures) {
-    ArchetypeEntity baseEffectorArchetype =
-        archetypeService.findInEffectByTitle("Effector").orElse(null);
-    ArchetypeEntity baseReceptorArchetype =
-        archetypeService.findInEffectByTitle("Receptor").orElse(null);
+    ArchetypeEntity baseEffectorArchetype = archetypeService.findInEffectByTitle("Effector").orElse(null);
+    ArchetypeEntity baseReceptorArchetype = archetypeService.findInEffectByTitle("Receptor").orElse(null);
     if (baseEffectorArchetype == null || baseReceptorArchetype == null) {
       LOG.warn("Base Effector/Receptor archetype not in-effect; skipping auto-derivation");
       return List.of();
@@ -233,8 +259,7 @@ public class MechanismPortDerivationService {
     List<PortDerivation> derivations = new ArrayList<>();
 
     for (PortSignature sig : signatures) {
-      ArchetypeEntity dataArchetype =
-          archetypeService.findInEffectByTitle(sig.dataArchetypeName()).orElse(null);
+      ArchetypeEntity dataArchetype = archetypeService.findInEffectByTitle(sig.dataArchetypeName()).orElse(null);
       if (dataArchetype == null) {
         LOG.warn(
             "Auto-derivation: data Archetype '{}' not in-effect; skipping port",
@@ -244,11 +269,9 @@ public class MechanismPortDerivationService {
 
       ArchetypeEntity portArchetype;
       if ("effector".equals(sig.direction())) {
-        portArchetype =
-            resolvePortArchetype(sig.portArchetypeName(), baseEffectorArchetype, "Effector");
+        portArchetype = resolvePortArchetype(sig.portArchetypeName(), baseEffectorArchetype, "Effector");
       } else {
-        portArchetype =
-            resolvePortArchetype(sig.portArchetypeName(), baseReceptorArchetype, "Receptor");
+        portArchetype = resolvePortArchetype(sig.portArchetypeName(), baseReceptorArchetype, "Receptor");
       }
 
       ObjectNode statement = objectMapper.createObjectNode();

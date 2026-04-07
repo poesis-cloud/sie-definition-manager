@@ -30,7 +30,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Integration tests for Definition endpoints against a real PostgreSQL instance (Testcontainers).
+ * Integration tests for Definition endpoints against a real PostgreSQL instance
+ * (Testcontainers).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -39,7 +40,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DefinitionResourceIT {
 
-  @Container static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
+  @Container
+  static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
 
   @DynamicPropertySource
   static void pgProperties(DynamicPropertyRegistry registry) {
@@ -48,8 +50,10 @@ class DefinitionResourceIT {
     registry.add("spring.datasource.password", pg::getPassword);
   }
 
-  @Autowired MockMvc mvc;
-  @Autowired ObjectMapper mapper;
+  @Autowired
+  MockMvc mvc;
+  @Autowired
+  ObjectMapper mapper;
 
   // ================================================================
   // Shared state across ordered tests
@@ -67,15 +71,14 @@ class DefinitionResourceIT {
   @Test
   @Order(1)
   void setup_listSeedArchetypes() throws Exception {
-    MvcResult result =
-        mvc.perform(
-                get("/api/v1/ascriptions")
-                    .param("type", "archetype")
-                    .param("status", "ACTIVE")
-                    .param("size", "20"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
-            .andReturn();
+    MvcResult result = mvc.perform(
+        get("/api/v1/ascriptions")
+            .param("type", "archetype")
+            .param("status", "ACTIVE")
+            .param("size", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     JsonNode items = body.at("/_embedded/ascriptions");
@@ -102,13 +105,12 @@ class DefinitionResourceIT {
     request.put("archetypeId", seedArchetypeId.toString());
     request.set("statement", statement);
 
-    MvcResult result =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andReturn();
+    MvcResult result = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     String collectionHref = body.at("/_links/collection/href").asText();
@@ -126,13 +128,12 @@ class DefinitionResourceIT {
     request.put("archetypeId", structureArchetypeId.toString());
     request.set("statement", statement);
 
-    MvcResult result =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andReturn();
+    MvcResult result = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     String collHref = body.at("/_links/collection/href").asText();
