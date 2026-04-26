@@ -11,11 +11,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import cloud.poesis.sie.defman.entity.ArchetypeEntity;
-import cloud.poesis.sie.defman.repository.ArchetypeRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,12 +20,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.repository.ArchetypeRepository;
+
 @ExtendWith(MockitoExtension.class)
 class ArchetypeParsingServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ArchetypeRepository archetypeRepository;
+  @Mock
+  private ArchetypeRepository archetypeRepository;
 
   private ArchetypeParsingService service;
 
@@ -150,9 +154,9 @@ class ArchetypeParsingServiceTest {
     @Test
     void extractsTitleFromOpsAuthority() {
       assertEquals(
-          "HttpRequest",
+          "GovernanceEvent",
           ArchetypeParsingService.extractTitleFromRef(
-              "gsmarc://ops/protocols/http/HttpRequest/v1"));
+              "gsmarc://ops/protocols/governance/GovernanceEvent/v1"));
     }
 
     @Test

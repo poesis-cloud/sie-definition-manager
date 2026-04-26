@@ -3057,14 +3057,15 @@ note as N_URI_CONVENTION
   | Authority | Resolution  | Scope                                         |
   |-----------|-------------|-----------------------------------------------|
   | `gsm`     | classpath   | 8 sealed GSM base archetypes (bundled in DM)  |
-  | `ops`     | classpath   | SIE Operator protocol archetypes              |
-  | `itip`    | DB          | ITIP domain archetypes + sourced frameworks   |
+  | `ops`     | classpath   | SIE Operator internal protocols (relay, governance) |
+  | `itip`    | DB          | ITIP domain archetypes + sourced frameworks (incl. application protocols: HTTP, Kafka, gRPC, …) |
   | `{tenant}` | DB          | Tenant-defined archetypes                     |
 
   **Examples**:
 
   - `gsmarc://gsm/Structure/v1` — GSM base (classpath)
-  - `gsmarc://ops/protocols/http/HttpRequest/v1` — SIE Operator
+  - `gsmarc://ops/protocols/governance/GovernanceEvent/v1` — SIE Operator internal protocol
+  - `gsmarc://itip/frameworks/http/HttpRequest/v1` — ITIP-sourced application protocol archetype
   - `gsmarc://itip/SoftwareTechnology/v1` — ITIP domain archetype
   - `gsmarc://itip/frameworks/iso25000/iso25010/product-quality/ProductSecurity/v1`
     — ITIP sourced framework archetype
