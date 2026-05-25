@@ -40,8 +40,21 @@ spec:
               value: {{ .Values.env.KAFKA_BOOTSTRAP_SERVERS | quote }}
             - name: OIDC_ISSUER_URI
               value: {{ .Values.env.OIDC_ISSUER_URI | quote }}
+            # OTel SDK env vars (S-001 AC-5). Built from .Values.observability
+            # and .Values.service — no literals here. observability.mode is
+            # adopted in values now but behavioral wiring (mode switch)
+            # lands in S-003. JAVA_TOOL_OPTIONS is baked into the image
+            # (cycle 1 Dockerfile), not set here.
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.service.name | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: {{ .Values.env.OTEL_EXPORTER_OTLP_ENDPOINT | quote }}
+              value: {{ .Values.observability.otlp.endpoint | quote }}
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_TRACES_SAMPLER
+              value: {{ .Values.observability.tracesSampler | quote }}
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: {{ include "sie-definition-manager.otelResourceAttributes" . | quote }}
             - name: DM_RELIABILITY_MODE
               value: {{ .Values.env.DM_RELIABILITY_MODE | quote }}
             - name: KAFKA_ENABLE_IDEMPOTENCE

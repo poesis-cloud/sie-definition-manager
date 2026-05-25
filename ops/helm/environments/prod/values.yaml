@@ -15,6 +15,21 @@ fullnameOverride: ""
 service:
   type: ClusterIP
   port: 8080
+  # OTel service identity (ADR-001 D-1). service.version is sourced from
+  # .Chart.AppVersion in templates/_helpers.tpl.
+  name: sie-definition-manager
+  namespace: sie
+
+# ADR-001 D-1 Implementation hooks (full shape per S-001 cycle 2).
+observability:
+  mode: shared-collector            # enum: shared-collector | direct | stdout — wired in S-003
+  otlp:
+    endpoint: http://sie-collector.sie.svc.cluster.local:4317
+  sampling:
+    headRatio: 1.0                  # ADR-001 D-2 keep-all
+  payloadCapBytes: 16384            # consumed Sprint-3
+  payloadBypassRate: 0.01           # consumed Sprint-3
+  tracesSampler: parentbased_always_on
 
 ingress:
   enabled: false
@@ -33,7 +48,6 @@ env:
   SCHEMA_REGISTRY_URL: http://schemaregistry:8081
   KAFKA_BOOTSTRAP_SERVERS: sie-definition-manager-eventbus:9092
   OIDC_ISSUER_URI: https://login.microsoftonline.com/<prod-tenant-id>/v2.0
-  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.monitoring.svc.cluster.local:4317
   DM_RELIABILITY_MODE: alo-idempotent
   KAFKA_ENABLE_IDEMPOTENCE: "true"
   KAFKA_TX_ID_PREFIX: dm-tx-
