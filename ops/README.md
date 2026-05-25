@@ -60,6 +60,40 @@ helm lint sie/sie-definition-manager/ops/helm \
   --set-string secrets.DB_PASSWORD=dummy
 ```
 
+## Observability modes (`observability.mode`)
+
+Per [ADR-001 D-1](../../../products/sie-definition/architecture/adr-001-observability-shared-collector.md),
+the chart exposes a single Helm value — `observability.mode` — that selects how
+OpenTelemetry data leaves the pod. The Helm template translates the mode into
+SDK env vars (`OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER`,
+`OTEL_EXPORTER_OTLP_ENDPOINT`); no Java code change is required to switch.
+
+| `observability.mode`           | Exporters | Endpoint                                               | Use when                                                                                                                                                                   |
+| ------------------------------ | --------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared-collector` _(default)_ | `otlp`    | `http://sie-otel-collector.sie.svc.cluster.local:4317` | Standard managed deployment with the shared SIE collector in the cluster.                                                                                                  |
+| `direct`                       | `otlp`    | `observability.otlp.endpoint` _(required)_             | Customer-owned OTLP backend (on-prem APM, vendor SaaS reachable directly). Helm install **fails fast** if `observability.otlp.endpoint` is unset.                          |
+| `stdout`                       | `logging` | _(unset)_                                              | Air-gapped / forensic mode — OTLP JSON is written to the app's own pod stdout; no collector traffic. Inspect with `kubectl logs deployment/sie-definition-manager -n sie`. |
+
+Override at install/upgrade time, e.g.:
+
+```bash
+# direct mode to a customer-owned collector
+helm upgrade --install sie-definition-manager sie/sie-definition-manager/ops/helm \
+  -n sie \
+  -f sie/sie-definition-manager/ops/helm/environments/prod/values.yaml \
+  --set observability.mode=direct \
+  --set observability.otlp.endpoint=https://customer.example.com:4317
+
+# stdout mode (no collector dependency)
+helm upgrade --install sie-definition-manager sie/sie-definition-manager/ops/helm \
+  -n sie \
+  -f sie/sie-definition-manager/ops/helm/environments/dev/values.yaml \
+  --set observability.mode=stdout
+```
+
+Out of scope (future sprints): multi-exporter fan-out, vendor-specific exporters
+(Datadog/Splunk/AppInsights), OTLP `direct`-mode auth headers.
+
 ## Dev dependencies for `run-api`
 
 Use `make dev-up` from `sie/sie-definition-manager` to deploy only DM

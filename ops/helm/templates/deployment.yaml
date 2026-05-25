@@ -40,17 +40,39 @@ spec:
               value: {{ .Values.env.KAFKA_BOOTSTRAP_SERVERS | quote }}
             - name: OIDC_ISSUER_URI
               value: {{ .Values.env.OIDC_ISSUER_URI | quote }}
-            # OTel SDK env vars (S-001 AC-5). Built from .Values.observability
-            # and .Values.service — no literals here. observability.mode is
-            # adopted in values now but behavioral wiring (mode switch)
-            # lands in S-003. JAVA_TOOL_OPTIONS is baked into the image
-            # (cycle 1 Dockerfile), not set here.
+            # OTel SDK env vars (S-001 AC-5, S-003 wires mode switch).
+            # observability.mode (enum: shared-collector | direct | stdout)
+            # selects exporter + endpoint per ADR-001 D-1.
+            #   shared-collector → otlp → in-cluster sie-otel-collector
+            #   direct           → otlp → customer-provided endpoint (required)
+            #   stdout           → logging → app pod stdout (no collector)
+            # JAVA_TOOL_OPTIONS is baked into the image (cycle 1 Dockerfile),
+            # not set here.
             - name: OTEL_SERVICE_NAME
               value: {{ .Values.service.name | quote }}
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: {{ .Values.observability.otlp.endpoint | quote }}
+            {{- $mode := .Values.observability.mode | default "shared-collector" }}
+            {{- if eq $mode "shared-collector" }}
             - name: OTEL_TRACES_EXPORTER
               value: "otlp"
+            - name: OTEL_LOGS_EXPORTER
+              value: "otlp"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.otlp.endpoint | quote }}
+            {{- else if eq $mode "direct" }}
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_LOGS_EXPORTER
+              value: "otlp"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ required "observability.otlp.endpoint is required when observability.mode=direct" .Values.observability.otlp.endpoint | quote }}
+            {{- else if eq $mode "stdout" }}
+            - name: OTEL_TRACES_EXPORTER
+              value: "logging"
+            - name: OTEL_LOGS_EXPORTER
+              value: "logging"
+            {{- else }}
+            {{- fail (printf "observability.mode must be one of: shared-collector, direct, stdout (got %q)" $mode) }}
+            {{- end }}
             - name: OTEL_TRACES_SAMPLER
               value: {{ .Values.observability.tracesSampler | quote }}
             - name: OTEL_RESOURCE_ATTRIBUTES
