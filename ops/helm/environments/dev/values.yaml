@@ -20,7 +20,7 @@ service:
   # do NOT leak into the resource-attrs string. service.version is sourced
   # from .Chart.AppVersion in the helper (single source of truth).
   name: sie-definition-manager
-  namespace: sie
+  namespace: poesis
 
 # ADR-001 D-1 Implementation hooks (full shape adopted in S-001 so S-003
 # does not have to restructure). Keys not yet behaviorally consumed in
@@ -28,7 +28,7 @@ service:
 observability:
   mode: shared-collector            # enum: shared-collector | direct | stdout — wired in S-003
   otlp:
-    endpoint: http://sie-collector.sie.svc.cluster.local:4317
+    endpoint: http://sie-otel-collector.sie.svc.cluster.local:4317
   sampling:
     headRatio: 1.0                  # ADR-001 D-2 keep-all
   payloadCapBytes: 16384            # consumed Sprint-3

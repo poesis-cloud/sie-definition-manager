@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Pure unit test for {@link StartupSpanEmitter}: builds an in-process SDK wired to {@link
- * InMemorySpanExporter}, invokes the listener directly, asserts exactly one {@code sie.startup}
+ * InMemorySpanExporter}, invokes the listener directly, asserts exactly one {@code startup}
  * span was exported. Resource attributes are NOT asserted here (they come from env in production;
  * covered by {@link StartupSpanEmitterSpringIT}).
  */

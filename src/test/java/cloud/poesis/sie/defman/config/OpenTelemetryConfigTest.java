@@ -1,4 +1,4 @@
-package cloud.poesis.sie.defman.observability;
+package cloud.poesis.sie.defman.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

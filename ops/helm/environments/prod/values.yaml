@@ -18,13 +18,13 @@ service:
   # OTel service identity (ADR-001 D-1). service.version is sourced from
   # .Chart.AppVersion in templates/_helpers.tpl.
   name: sie-definition-manager
-  namespace: sie
+  namespace: poesis
 
 # ADR-001 D-1 Implementation hooks (full shape per S-001 cycle 2).
 observability:
   mode: shared-collector            # enum: shared-collector | direct | stdout — wired in S-003
   otlp:
-    endpoint: http://sie-collector.sie.svc.cluster.local:4317
+    endpoint: http://sie-otel-collector.sie.svc.cluster.local:4317
   sampling:
     headRatio: 1.0                  # ADR-001 D-2 keep-all
   payloadCapBytes: 16384            # consumed Sprint-3

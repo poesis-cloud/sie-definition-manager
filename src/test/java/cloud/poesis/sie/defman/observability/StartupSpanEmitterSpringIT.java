@@ -25,7 +25,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 /**
  * Spring integration test for {@link StartupSpanEmitter}: validates that the full Spring context
  * reaches {@link org.springframework.boot.context.event.ApplicationReadyEvent} and exactly one
- * {@code sie.startup} span is emitted via the SDK-overridden {@link OpenTelemetry} bean.
+ * {@code startup} span is emitted via the SDK-overridden {@link OpenTelemetry} bean.
  *
  * <p><b>AC-4 graceful-degradation slice:</b> {@code OTEL_EXPORTER_OTLP_ENDPOINT} is set to an
  * unreachable address ({@code http://localhost:1}) via {@link DynamicPropertySource}. Because this
