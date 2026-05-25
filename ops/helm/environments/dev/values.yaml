@@ -26,13 +26,13 @@ service:
 # does not have to restructure). Keys not yet behaviorally consumed in
 # S-001 are kept for forward compatibility.
 observability:
-  mode: shared-collector            # enum: shared-collector | direct | stdout — wired in S-003
+  mode: shared-collector # enum: shared-collector | direct | stdout — wired in S-003
   otlp:
     endpoint: http://sie-otel-collector.sie.svc.cluster.local:4317
   sampling:
-    headRatio: 1.0                  # ADR-001 D-2 keep-all
-  payloadCapBytes: 16384            # consumed Sprint-3
-  payloadBypassRate: 0.01           # consumed Sprint-3
+    headRatio: 1.0 # ADR-001 D-2 keep-all
+  payloadCapBytes: 16384 # consumed Sprint-3
+  payloadBypassRate: 0.01 # consumed Sprint-3
   tracesSampler: parentbased_always_on
 
 ingress:

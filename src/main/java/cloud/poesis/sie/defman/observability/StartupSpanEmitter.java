@@ -7,8 +7,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Emits a single deliberate {@code startup} marker span on {@link ApplicationReadyEvent},
- * providing a guaranteed first span before any inbound traffic. Satisfies S-001 AC-3.
+ * Emits a single deliberate {@code startup} marker span on {@link ApplicationReadyEvent}, providing
+ * a guaranteed first span before any inbound traffic. Satisfies S-001 AC-3.
  *
  * <p>The span name is unqualified ({@code "startup"}) by design: the SIE/Poesis identity is carried
  * by the OTel resource attributes {@code service.namespace=poesis} and {@code
