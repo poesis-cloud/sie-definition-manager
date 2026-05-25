@@ -19,6 +19,13 @@
   <properties>
     <java.version>21</java.version>
     <testcontainers.version>1.21.4</testcontainers.version>
+    <!-- OTel SDK/API/exporter version. Aligned with Spring Boot 3.5.13's
+         transitively-managed opentelemetry-bom (1.49.0). Pinned here as the
+         single source of truth per S-001 HUDDLE decision. -->
+    <otel.version>1.49.0</otel.version>
+    <!-- OTel Java agent (instrumentation) version. The 2.x agent line tracks
+         the 1.x SDK; 2.15.0 is the stable release aligned with SDK 1.49.0. -->
+    <otel.agent.version>2.15.0</otel.agent.version>
   </properties>
 
   <dependencyManagement>
@@ -27,6 +34,13 @@
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
         <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-bom</artifactId>
+        <version>${otel.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -89,6 +103,14 @@
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-otlp</artifactId>
     </dependency>
     <dependency>
@@ -142,6 +164,11 @@
       <artifactId>kafka</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-testing</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -158,6 +185,34 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <!-- Copy the OTel Java agent jar into target/otel/ at prepare-package
+             so the Dockerfile can COPY it into the runtime image. Reproducible
+             and offline-safe per ADR-001 D-1 supply-chain guidance. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-otel-javaagent</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>io.opentelemetry.javaagent</groupId>
+                  <artifactId>opentelemetry-javaagent</artifactId>
+                  <version>${otel.agent.version}</version>
+                  <type>jar</type>
+                </artifactItem>
+              </artifactItems>
+              <stripVersion>true</stripVersion>
+              <outputDirectory>${project.build.directory}/otel</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
