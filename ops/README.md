@@ -68,11 +68,11 @@ OpenTelemetry data leaves the pod. The Helm template translates the mode into
 SDK env vars (`OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER`,
 `OTEL_EXPORTER_OTLP_ENDPOINT`); no Java code change is required to switch.
 
-| `observability.mode` | Exporters | Endpoint | Use when |
-|---|---|---|---|
-| `shared-collector` *(default)* | `otlp` | `http://sie-otel-collector.sie.svc.cluster.local:4317` | Standard managed deployment with the shared SIE collector in the cluster. |
-| `direct` | `otlp` | `observability.otlp.endpoint` *(required)* | Customer-owned OTLP backend (on-prem APM, vendor SaaS reachable directly). Helm install **fails fast** if `observability.otlp.endpoint` is unset. |
-| `stdout` | `logging` | *(unset)* | Air-gapped / forensic mode — OTLP JSON is written to the app's own pod stdout; no collector traffic. Inspect with `kubectl logs deployment/sie-definition-manager -n sie`. |
+| `observability.mode`           | Exporters | Endpoint                                               | Use when                                                                                                                                                                   |
+| ------------------------------ | --------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared-collector` _(default)_ | `otlp`    | `http://sie-otel-collector.sie.svc.cluster.local:4317` | Standard managed deployment with the shared SIE collector in the cluster.                                                                                                  |
+| `direct`                       | `otlp`    | `observability.otlp.endpoint` _(required)_             | Customer-owned OTLP backend (on-prem APM, vendor SaaS reachable directly). Helm install **fails fast** if `observability.otlp.endpoint` is unset.                          |
+| `stdout`                       | `logging` | _(unset)_                                              | Air-gapped / forensic mode — OTLP JSON is written to the app's own pod stdout; no collector traffic. Inspect with `kubectl logs deployment/sie-definition-manager -n sie`. |
 
 Override at install/upgrade time, e.g.:
 
