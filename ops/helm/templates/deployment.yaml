@@ -83,6 +83,9 @@ spec:
               value: {{ .Values.env.KAFKA_ENABLE_IDEMPOTENCE | quote }}
             - name: KAFKA_TX_ID_PREFIX
               value: {{ .Values.env.KAFKA_TX_ID_PREFIX | quote }}
+            # S-004b / ADR-002 D-8: AOP broad instrumentation log level.
+            - name: OBSERVABILITY_AOP_LOGLEVEL
+              value: {{ .Values.observability.aop.logLevel | quote }}
           readinessProbe:
             httpGet:
               path: /actuator/health

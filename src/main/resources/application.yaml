@@ -64,3 +64,8 @@ dm:
     reliability-mode: ${DM_RELIABILITY_MODE:alo-idempotent}
   security:
     oauth2-login-enabled: ${DM_OAUTH2_LOGIN_ENABLED:false}
+
+observability:
+  aop:
+    # S-004b / ADR-002 D-8: single configurable level for AOP entry/exit/exception logs. TRACE|DEBUG|INFO|WARN|ERROR|OFF.
+    logLevel: ${OBSERVABILITY_AOP_LOGLEVEL:INFO}
