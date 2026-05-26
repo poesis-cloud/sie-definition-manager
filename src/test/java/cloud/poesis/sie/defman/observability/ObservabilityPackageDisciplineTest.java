@@ -25,16 +25,83 @@ class ObservabilityPackageDisciplineTest {
 
   @Test
   void allObservabilityClassesLiveUnderCorrectPackage() throws Exception {
-    // Given: The observability source directory
-    Path observabilitySourcePath = Paths.get("src/main/java", EXPECTED_PACKAGE_PATH);
+    // Given: The src/main/java directory (scan all sources, not just observability)
+    Path srcMainJava = Paths.get("src/main/java");
 
-    if (!Files.exists(observabilitySourcePath)) {
-      // If the directory doesn't exist, fail with a clear message
-      throw new AssertionError(
-          "Observability package directory does not exist: " + observabilitySourcePath);
+    if (!Files.exists(srcMainJava)) {
+      throw new AssertionError("src/main/java directory does not exist: " + srcMainJava);
     }
 
-    // When: We collect all Java files under observability/
+    // When: We collect all Java files that define custom observability primitives
+    // (not just classes that import OTel for config/bean wiring)
+    List<String> observabilityViolations = new ArrayList<>();
+    try (Stream<Path> paths = Files.walk(srcMainJava)) {
+      paths
+          .filter(Files::isRegularFile)
+          .filter(p -> p.toString().endsWith(".java"))
+          .forEach(
+              filePath -> {
+                try {
+                  List<String> lines = Files.readAllLines(filePath);
+                  String packageDeclaration =
+                      lines.stream()
+                          .map(String::trim)
+                          .filter(line -> line.startsWith("package "))
+                          .findFirst()
+                          .orElse(null);
+
+                  if (packageDeclaration == null) {
+                    return; // Skip files without package declaration
+                  }
+
+                  String declaredPackage =
+                      packageDeclaration.replace("package ", "").replace(";", "").trim();
+
+                  // Check if file DEFINES custom observability primitives
+                  // (annotations, aspects, span emitters - not just imports OTel for config)
+                  String fileContent = String.join("\n", lines);
+                  boolean definesObservabilityPrimitive =
+                      fileContent.contains("@interface InternalSpan")
+                          || fileContent.contains("class InternalSpanAspect")
+                          || fileContent.contains("class StartupSpanEmitter")
+                          || (fileContent.contains("@Aspect")
+                              && fileContent.contains("io.opentelemetry.api.trace.Span"))
+                          || (fileContent.contains("@Retention")
+                              && fileContent.contains("@Target")
+                              && lines.stream()
+                                  .anyMatch(
+                                      line ->
+                                          line.contains("public @interface")
+                                              && line.contains("Span")));
+
+                  if (definesObservabilityPrimitive) {
+                    // Verify it's under the correct package (exact match or subpackage)
+                    if (!declaredPackage.equals(EXPECTED_PACKAGE)
+                        && !declaredPackage.startsWith(EXPECTED_PACKAGE + ".")) {
+                      observabilityViolations.add(
+                          String.format(
+                              "File %s defines custom observability primitive but declares package '%s' "
+                                  + "(expected '%s' or '%s.*')",
+                              filePath, declaredPackage, EXPECTED_PACKAGE, EXPECTED_PACKAGE));
+                    }
+                  }
+                } catch (Exception e) {
+                  throw new RuntimeException("Failed to read file: " + filePath, e);
+                }
+              });
+    }
+
+    // Then: No violations found
+    assertThat(observabilityViolations)
+        .withFailMessage(
+            "Found custom observability primitives outside allowed package:\n%s",
+            String.join("\n", observabilityViolations))
+        .isEmpty();
+
+    // Then: Verify known observability classes exist in correct package
+    Path observabilitySourcePath = Paths.get("src/main/java", EXPECTED_PACKAGE_PATH);
+    assertThat(observabilitySourcePath).exists();
+
     List<String> javaFiles = new ArrayList<>();
     try (Stream<Path> paths = Files.walk(observabilitySourcePath)) {
       paths
@@ -43,35 +110,10 @@ class ObservabilityPackageDisciplineTest {
           .forEach(p -> javaFiles.add(p.toString()));
     }
 
-    // Then: At least the known classes exist
     assertThat(javaFiles)
         .isNotEmpty()
-        .anyMatch(f -> f.contains("DomainOperation.java"))
-        .anyMatch(f -> f.contains("DomainOperationAspect.java"))
+        .anyMatch(f -> f.contains("InternalSpan.java"))
+        .anyMatch(f -> f.contains("InternalSpanAspect.java"))
         .anyMatch(f -> f.contains("StartupSpanEmitter.java"));
-
-    // Then: All collected Java files declare the correct package
-    for (String javaFile : javaFiles) {
-      Path filePath = Paths.get(javaFile);
-      List<String> lines = Files.readAllLines(filePath);
-
-      // Find the package declaration line
-      String packageDeclaration =
-          lines.stream()
-              .map(String::trim)
-              .filter(line -> line.startsWith("package "))
-              .findFirst()
-              .orElseThrow(() -> new AssertionError("No package declaration found in " + javaFile));
-
-      // Extract the package name (between "package " and ";")
-      String declaredPackage = packageDeclaration.replace("package ", "").replace(";", "").trim();
-
-      // Verify it's under cloud.poesis.sie.defman.observability.*
-      assertThat(declaredPackage)
-          .withFailMessage(
-              "File %s declares package '%s' but should be under '%s.*'",
-              javaFile, declaredPackage, EXPECTED_PACKAGE)
-          .startsWith(EXPECTED_PACKAGE);
-    }
   }
 }

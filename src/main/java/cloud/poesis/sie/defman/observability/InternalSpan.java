@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Marker annotation for service-layer methods that represent GSM-meaningful domain operations.
  *
- * <p>When a method is annotated with {@code @DomainOperation}, the {@link DomainOperationAspect}
+ * <p>When a method is annotated with {@code @InternalSpan}, the {@link InternalSpanAspect}
  * intercepts it and creates an OpenTelemetry INTERNAL span named by the annotation value.
  *
  * <p><strong>Usage:</strong> Annotate service-layer methods that represent business-meaningful
@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
  * <p><strong>Example:</strong>
  *
  * <pre>
- * {@literal @}DomainOperation("gsm.definition.create")
+ * {@literal @}InternalSpan("gsm.definition.create")
  * public Definition create(UUID definitionId, JsonNode payload, UUID userId) {
  *     // implementation
  * }
@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface DomainOperation {
+public @interface InternalSpan {
   /**
    * The span name for the domain operation (e.g., "gsm.definition.create").
    *

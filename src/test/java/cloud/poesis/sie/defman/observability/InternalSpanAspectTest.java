@@ -16,7 +16,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
 /**
- * Unit tests for {@link DomainOperationAspect}.
+ * Unit tests for {@link InternalSpanAspect}.
  *
  * <p><strong>Coverage:</strong>
  *
@@ -28,23 +28,23 @@ import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
  *
  * <p><strong>Story:</strong> S-004
  */
-class DomainOperationAspectTest {
+class InternalSpanAspectTest {
 
   @RegisterExtension
   static final OpenTelemetryExtension otelTesting = OpenTelemetryExtension.create();
 
   private Tracer tracer;
-  private DomainOperationAspect aspect;
+  private InternalSpanAspect aspect;
 
   @BeforeEach
   void setUp() {
     tracer = otelTesting.getOpenTelemetry().getTracer("test-tracer");
-    aspect = new DomainOperationAspect(tracer);
+    aspect = new InternalSpanAspect(otelTesting.getOpenTelemetry());
   }
 
   @Test
   void annotatedMethodCreatesSpanWithCorrectNameAndAttributes() {
-    // Given: A stub service with @DomainOperation annotation
+    // Given: A stub service with @InternalSpan annotation
     StubService stubService = createProxiedStubService();
 
     // When: The annotated method is called within a parent span
@@ -137,7 +137,7 @@ class DomainOperationAspectTest {
   /** Stub service for testing aspect behavior. */
   static class StubService {
 
-    @DomainOperation("gsm.test.operation")
+    @InternalSpan("gsm.test.operation")
     public String annotatedOperation(String input) {
       return "annotated-result";
     }
@@ -146,7 +146,7 @@ class DomainOperationAspectTest {
       return "unannotated-result";
     }
 
-    @DomainOperation("gsm.test.throwing")
+    @InternalSpan("gsm.test.throwing")
     public void throwingOperation() {
       throw new RuntimeException("Expected test exception");
     }
