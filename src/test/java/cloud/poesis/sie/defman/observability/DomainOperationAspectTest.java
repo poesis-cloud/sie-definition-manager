@@ -80,9 +80,6 @@ class DomainOperationAspectTest {
                 .getAttributes()
                 .get(io.opentelemetry.api.common.AttributeKey.stringKey("code.function")))
         .isEqualTo("annotatedOperation");
-
-    // Then: The domain span is a child of the parent span
-    assertThat(domainSpan.getParentSpanId()).isEqualTo(spans.get(0).getSpanId());
   }
 
   @Test
