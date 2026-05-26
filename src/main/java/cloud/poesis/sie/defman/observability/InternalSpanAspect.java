@@ -55,7 +55,7 @@ public class InternalSpanAspect {
   public Object aroundInternalSpan(ProceedingJoinPoint joinPoint) throws Throwable {
     MethodSignature signature = (MethodSignature) joinPoint.getSignature();
     Method method = signature.getMethod();
-    
+
     // Use AnnotationUtils for robust annotation resolution across proxies
     InternalSpan annotation = AnnotationUtils.findAnnotation(method, InternalSpan.class);
 
