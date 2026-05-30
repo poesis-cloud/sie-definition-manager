@@ -1,6 +1,6 @@
 package cloud.poesis.sie.defman.observability;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
@@ -40,10 +40,11 @@ import org.springframework.util.ClassUtils;
 @Component
 public class BroadInstrumentationAspect {
 
-  private static final Tracer TRACER =
-      GlobalOpenTelemetry.getTracer("cloud.poesis.sie.defman.observability.aop", "1");
+  static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability.aop";
 
   private static final Logger SELF_LOG = LoggerFactory.getLogger(BroadInstrumentationAspect.class);
+
+  private final Tracer tracer;
 
   // Span attribute keys
   private static final String ATTR_CODE_NAMESPACE = "code.namespace";
@@ -62,11 +63,18 @@ public class BroadInstrumentationAspect {
   private static final String MDC_EXCEPTION_TYPE = "exception.type";
   private static final String MDC_EXCEPTION_MESSAGE = "exception.message";
 
-  /** Configured log level for AOP entry/exit/exception lines (default INFO). */
-  private final String logLevel;
+  /**
+   * Configured log level for AOP entry/exit/exception lines (default INFO). Non-final so the
+   * integration test ({@code BroadInstrumentationAspectIT}) can flip it via reflection to exercise
+   * the DEBUG / OFF gating branches without restarting the Spring context for each level. Prod
+   * code MUST NOT mutate this field — it is set once by the constructor.
+   */
+  private volatile String logLevel;
 
   public BroadInstrumentationAspect(
+      OpenTelemetry openTelemetry,
       @Value("${observability.aop.logLevel:INFO}") String logLevel) {
+    this.tracer = openTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1");
     this.logLevel = normaliseLevel(logLevel);
   }
 
@@ -118,7 +126,7 @@ public class BroadInstrumentationAspect {
     Logger targetLog = LoggerFactory.getLogger(className);
 
     Span span =
-        TRACER
+        tracer
             .spanBuilder(spanName)
             .setSpanKind(SpanKind.INTERNAL)
             .setAttribute(ATTR_CODE_NAMESPACE, className)

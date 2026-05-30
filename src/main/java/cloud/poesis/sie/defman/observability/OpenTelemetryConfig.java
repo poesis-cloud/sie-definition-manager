@@ -1,4 +1,4 @@
-package cloud.poesis.sie.defman.config;
+package cloud.poesis.sie.defman.observability;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
