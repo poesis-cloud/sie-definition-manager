@@ -3,7 +3,6 @@ package cloud.poesis.sie.defman.observability;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -39,6 +38,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -69,6 +69,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("tc")
 @Testcontainers
 @Import(BroadInstrumentationAspectIT.AopItTestConfig.class)
+// S-004b QA-blocker B-1 fix: drive the single configurable knob via test properties; the
+// application.yaml binding propagates this to Logback's filter level, so this IT exercises the
+// same production path (no test-only Logback level mutation in @BeforeEach).
+@TestPropertySource(properties = "observability.aop.logLevel=DEBUG")
 class BroadInstrumentationAspectIT {
 
   @Container static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
@@ -87,15 +91,16 @@ class BroadInstrumentationAspectIT {
 
   private ListAppender<ILoggingEvent> appender;
   private Logger defmanLogger;
-  private Level originalLevel;
 
   @BeforeEach
   void setUp() {
     spanExporter.reset();
     LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
     defmanLogger = lc.getLogger("cloud.poesis.sie.defman");
-    originalLevel = defmanLogger.getLevel();
-    defmanLogger.setLevel(Level.TRACE); // let appender see all levels; per-test thresholds below
+    // NOTE: we deliberately do NOT call defmanLogger.setLevel(...) here. The Logback level is
+    // driven by application.yaml binding `logging.level."[cloud.poesis.sie.defman]" =
+    // ${observability.aop.logLevel}`, which @TestPropertySource on the class sets to DEBUG.
+    // Mutating it from the test would mask the very production binding we're validating.
     appender = new ListAppender<>();
     appender.setContext(lc);
     appender.start();
@@ -108,7 +113,6 @@ class BroadInstrumentationAspectIT {
       defmanLogger.detachAppender(appender);
       appender.stop();
     }
-    defmanLogger.setLevel(originalLevel);
   }
 
   // --------------------------------------------------------------------------
@@ -225,13 +229,8 @@ class BroadInstrumentationAspectIT {
   @Test
   @DisplayName("AC-3 (DEBUG): success path emits 2 AOP log lines; exception path emits 3")
   void debugLogLevelEmitsCorrectLineCounts() {
-    // Find the live aspect bean and swap its logLevel via reflection to DEBUG (avoids context
-    // restart). We restore in @AfterEach implicitly by re-reading from application.yaml on next
-    // test class boot.
-    BroadInstrumentationAspect aspect =
-        applicationContext.getBean(BroadInstrumentationAspect.class);
-    setAspectLogLevel(aspect, "DEBUG");
-
+    // observability.aop.logLevel=DEBUG via @TestPropertySource — both the aspect's per-call
+    // method selection AND Logback's filter level are now DEBUG via the application.yaml binding.
     appender.list.clear();
     probeService.greet();
 
@@ -260,40 +259,10 @@ class BroadInstrumentationAspectIT {
         .isGreaterThanOrEqualTo(2L);
   }
 
-  // --------------------------------------------------------------------------
-  // AC-3 OFF: no log lines, span still emitted
-  // --------------------------------------------------------------------------
-
-  @Test
-  @DisplayName(
-      "AC-3 (OFF): no AOP log lines, but the span is STILL emitted (log gate ≠ span gate)")
-  void offLogLevelEmitsNoLogsButStillEmitsSpan() {
-    BroadInstrumentationAspect aspect =
-        applicationContext.getBean(BroadInstrumentationAspect.class);
-    setAspectLogLevel(aspect, "OFF");
-
-    appender.list.clear();
-    spanExporter.reset();
-    probeService.greet();
-
-    long aopLogs =
-        appender.list.stream()
-            .filter(ev -> ev.getMessage() != null && ev.getMessage().startsWith("AOP "))
-            .count();
-    assertThat(aopLogs)
-        .as("AC-3 OFF: no AOP log lines must be emitted")
-        .isZero();
-
-    long greetSpans =
-        spanExporter.getFinishedSpanItems().stream()
-            .filter(s -> s.getName().equals("AopProbeService.greet"))
-            .count();
-    assertThat(greetSpans)
-        .as(
-            "AC-3 OFF: span MUST still be emitted even when AOP log level is OFF "
-                + "(log gating must not gate span emission)")
-        .isGreaterThanOrEqualTo(1L);
-  }
+  // AC-3 OFF (span still emitted while no log lines fire) is covered in a sibling IT class
+  // BroadInstrumentationAspectOffIT, which sets observability.aop.logLevel=OFF via
+  // @TestPropertySource. A separate context is required because @TestPropertySource is class-
+  // scoped and Spring Boot must rebuild the property source / Logback binding from boot.
 
   // --------------------------------------------------------------------------
   // AC-5: secret-shaped arg values never leak into spans or logs
@@ -303,10 +272,8 @@ class BroadInstrumentationAspectIT {
   @DisplayName(
       "AC-5: secret-shaped arg values never appear in any AOP span attribute or log message")
   void secretArgValuesNeverLeak() {
-    BroadInstrumentationAspect aspect =
-        applicationContext.getBean(BroadInstrumentationAspect.class);
-    setAspectLogLevel(aspect, "DEBUG");
-
+    // observability.aop.logLevel=DEBUG via @TestPropertySource — aspect emits at DEBUG and
+    // Logback lets DEBUG through, so the appender captures the lines we're asserting against.
     String secret = "AOP_PROBE_SECRET_LEAK";
     appender.list.clear();
     spanExporter.reset();
@@ -420,22 +387,6 @@ class BroadInstrumentationAspectIT {
       break;
     }
     return best;
-  }
-
-  /**
-   * Flips the aspect's {@code logLevel} field reflectively. The field is non-final and volatile
-   * specifically so the IT can exercise DEBUG / OFF gating branches without restarting the Spring
-   * context per level. Prod code must not mutate the field.
-   */
-  private static void setAspectLogLevel(BroadInstrumentationAspect aspect, String level) {
-    try {
-      java.lang.reflect.Field f =
-          BroadInstrumentationAspect.class.getDeclaredField("logLevel");
-      f.setAccessible(true);
-      f.set(aspect, level);
-    } catch (ReflectiveOperationException e) {
-      throw new AssertionError("Could not flip aspect logLevel for test", e);
-    }
   }
 
   /** Synthetic non-String secret carrier; its toString embeds the secret on purpose. */
