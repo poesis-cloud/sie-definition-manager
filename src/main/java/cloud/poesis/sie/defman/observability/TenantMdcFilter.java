@@ -80,9 +80,8 @@ public class TenantMdcFilter extends OncePerRequestFilter {
     MDC.put(MDC_TENANT_ID, sanitizedTenant);
     MDC.put(MDC_COMPONENT, COMPONENT_VALUE);
 
-    enrichActiveSpan(sanitizedTenant);
-
     try {
+      enrichActiveSpan(sanitizedTenant);
       chain.doFilter(request, response);
     } finally {
       restore(MDC_TENANT_ID, priorTenant);
@@ -116,7 +115,7 @@ public class TenantMdcFilter extends OncePerRequestFilter {
   /**
    * Mirrors the sanitized tenant id and the {@code sie.component} constant onto the currently
    * active OTel span (typically the agent-created inbound SERVER span). No-op when no valid span is
-   * is in context — log correlation via MDC still works even when the agent is absent (e.g. {@code
+   * in context — log correlation via MDC still works even when the agent is absent (e.g. {@code
    * observability.mode=stdout} without agent attach, or unit tests without an SDK).
    *
    * <p>Attribute names match ADR-001 D-3 exactly and are written as strings. Writes happen BEFORE
@@ -128,8 +127,12 @@ public class TenantMdcFilter extends OncePerRequestFilter {
     if (!current.getSpanContext().isValid()) {
       return;
     }
-    current.setAttribute(MDC_TENANT_ID, sanitizedTenant);
-    current.setAttribute(MDC_COMPONENT, COMPONENT_VALUE);
+    try {
+      current.setAttribute(MDC_TENANT_ID, sanitizedTenant);
+      current.setAttribute(MDC_COMPONENT, COMPONENT_VALUE);
+    } catch (RuntimeException ignored) {
+      // observability must never break the request; suppressed by contract
+    }
   }
 
   /**

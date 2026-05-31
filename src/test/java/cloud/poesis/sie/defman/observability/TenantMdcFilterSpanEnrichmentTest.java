@@ -1,14 +1,21 @@
 package cloud.poesis.sie.defman.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import jakarta.servlet.FilterChain;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -102,5 +109,108 @@ class TenantMdcFilterSpanEnrichmentTest {
     return (r, s) -> {
       // intentionally empty — span enrichment happens before chain.doFilter.
     };
+  }
+
+  @Test
+  @DisplayName("AC-3: span.setAttribute throws → request not broken, MDC restored to prior values")
+  void spanSetAttributeThrows_doesNotBreakRequestNorLeakMdc() throws Exception {
+    // Pre-seed MDC with sentinel values so we can verify exact restoration.
+    MDC.put(TenantMdcFilter.MDC_TENANT_ID, "prior-tenant");
+    MDC.put(TenantMdcFilter.MDC_COMPONENT, "prior-component");
+
+    // Build a valid SpanContext so enrichActiveSpan does not short-circuit on isValid().
+    SpanContext validCtx =
+        SpanContext.create(
+            "00000000000000000000000000000001",
+            "0000000000000002",
+            TraceFlags.getSampled(),
+            TraceState.getDefault());
+    Span throwingSpan = new ThrowingSetAttributeSpan(validCtx);
+
+    TenantMdcFilter filter = new TenantMdcFilter();
+    MockHttpServletRequest req = new MockHttpServletRequest();
+    req.addHeader(TenantMdcFilter.HEADER_TENANT_ID, "acme");
+
+    int[] chainInvocations = {0};
+    FilterChain chain = (r, s) -> chainInvocations[0]++;
+
+    try (Scope ignored = throwingSpan.makeCurrent()) {
+      assertThatCode(() -> filter.doFilter(req, new MockHttpServletResponse(), chain))
+          .doesNotThrowAnyException();
+    }
+
+    assertThat(chainInvocations[0]).as("chain.doFilter must be invoked exactly once").isEqualTo(1);
+    assertThat(MDC.get(TenantMdcFilter.MDC_TENANT_ID))
+        .as("prior MDC tenant must be restored, not leaked")
+        .isEqualTo("prior-tenant");
+    assertThat(MDC.get(TenantMdcFilter.MDC_COMPONENT))
+        .as("prior MDC component must be restored, not leaked")
+        .isEqualTo("prior-component");
+
+    MDC.clear();
+  }
+
+  /**
+   * Hand-rolled {@link Span} that exposes a valid {@link SpanContext} (so {@code
+   * Span.current().getSpanContext().isValid()} returns true) but throws {@link RuntimeException}
+   * from {@code setAttribute(AttributeKey, T)} — which the {@code setAttribute(String, String)}
+   * default delegates to. Used to simulate a misbehaving span implementation or OTel SDK bug.
+   */
+  private static final class ThrowingSetAttributeSpan implements Span {
+    private final SpanContext ctx;
+
+    ThrowingSetAttributeSpan(SpanContext ctx) {
+      this.ctx = ctx;
+    }
+
+    @Override
+    public <T> Span setAttribute(AttributeKey<T> key, T value) {
+      throw new RuntimeException("simulated misbehaving span: setAttribute boom");
+    }
+
+    @Override
+    public Span addEvent(String name, Attributes attributes) {
+      return this;
+    }
+
+    @Override
+    public Span addEvent(String name, Attributes attributes, long timestamp, TimeUnit unit) {
+      return this;
+    }
+
+    @Override
+    public Span setStatus(StatusCode statusCode, String description) {
+      return this;
+    }
+
+    @Override
+    public Span recordException(Throwable exception, Attributes additionalAttributes) {
+      return this;
+    }
+
+    @Override
+    public Span updateName(String name) {
+      return this;
+    }
+
+    @Override
+    public void end() {
+      // no-op
+    }
+
+    @Override
+    public void end(long timestamp, TimeUnit unit) {
+      // no-op
+    }
+
+    @Override
+    public SpanContext getSpanContext() {
+      return ctx;
+    }
+
+    @Override
+    public boolean isRecording() {
+      return true;
+    }
   }
 }
