@@ -7,7 +7,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import org.junit.jupiter.api.Test;
@@ -47,24 +46,19 @@ class ArgsSummaryTest {
 
   @Test
   void stringRendersWithLength() {
-    assertThat(ArgsSummary.summarize(new Object[] {""}))
-        .isEqualTo("(String[len=0])");
-    assertThat(ArgsSummary.summarize(new Object[] {"hello"}))
-        .isEqualTo("(String[len=5])");
+    assertThat(ArgsSummary.summarize(new Object[] {""})).isEqualTo("(String[len=0])");
+    assertThat(ArgsSummary.summarize(new Object[] {"hello"})).isEqualTo("(String[len=5])");
   }
 
   @Test
   void byteArrayRendersWithSize() {
-    assertThat(ArgsSummary.summarize(new Object[] {new byte[0]}))
-        .isEqualTo("(byte[size=0])");
-    assertThat(ArgsSummary.summarize(new Object[] {new byte[42]}))
-        .isEqualTo("(byte[size=42])");
+    assertThat(ArgsSummary.summarize(new Object[] {new byte[0]})).isEqualTo("(byte[size=0])");
+    assertThat(ArgsSummary.summarize(new Object[] {new byte[42]})).isEqualTo("(byte[size=42])");
   }
 
   @Test
   void objectArraysRenderWithComponentTypeAndSize() {
-    assertThat(ArgsSummary.summarize(new Object[] {new Object[3]}))
-        .isEqualTo("(Object[size=3])");
+    assertThat(ArgsSummary.summarize(new Object[] {new Object[3]})).isEqualTo("(Object[size=3])");
     assertThat(ArgsSummary.summarize(new Object[] {new String[] {"a", "b"}}))
         .isEqualTo("(String[size=2])");
   }
@@ -75,12 +69,9 @@ class ArgsSummaryTest {
     HashSet<String> set = new HashSet<>();
     set.add("a");
     Collection<String> raw = new ArrayList<>();
-    assertThat(ArgsSummary.summarize(new Object[] {list}))
-        .isEqualTo("(ArrayList<size=3>)");
-    assertThat(ArgsSummary.summarize(new Object[] {set}))
-        .isEqualTo("(HashSet<size=1>)");
-    assertThat(ArgsSummary.summarize(new Object[] {raw}))
-        .isEqualTo("(ArrayList<size=0>)");
+    assertThat(ArgsSummary.summarize(new Object[] {list})).isEqualTo("(ArrayList<size=3>)");
+    assertThat(ArgsSummary.summarize(new Object[] {set})).isEqualTo("(HashSet<size=1>)");
+    assertThat(ArgsSummary.summarize(new Object[] {raw})).isEqualTo("(ArrayList<size=0>)");
   }
 
   @Test
@@ -89,10 +80,8 @@ class ArgsSummaryTest {
     h.put("a", 1);
     h.put("b", 2);
     TreeMap<String, Integer> t = new TreeMap<>();
-    assertThat(ArgsSummary.summarize(new Object[] {h}))
-        .isEqualTo("(HashMap<size=2>)");
-    assertThat(ArgsSummary.summarize(new Object[] {t}))
-        .isEqualTo("(TreeMap<size=0>)");
+    assertThat(ArgsSummary.summarize(new Object[] {h})).isEqualTo("(HashMap<size=2>)");
+    assertThat(ArgsSummary.summarize(new Object[] {t})).isEqualTo("(TreeMap<size=0>)");
   }
 
   @Test
@@ -106,8 +95,7 @@ class ArgsSummaryTest {
   @Test
   void recordRendersComponentCountOnly() {
     SamplePoint p = new SamplePoint(1, 2, "SECRET_LEAK_MARKER");
-    assertThat(ArgsSummary.summarize(new Object[] {p}))
-        .isEqualTo("(SamplePoint[components=3])");
+    assertThat(ArgsSummary.summarize(new Object[] {p})).isEqualTo("(SamplePoint[components=3])");
   }
 
   @Test
@@ -130,8 +118,7 @@ class ArgsSummaryTest {
   void mixedArgsRenderInOrderJoinedByCommaSpace() {
     ArrayList<Integer> list = new ArrayList<>(List.of(1, 2));
     String out =
-        ArgsSummary.summarize(
-            new Object[] {null, 1, "hi", new byte[2], list, Optional.empty()});
+        ArgsSummary.summarize(new Object[] {null, 1, "hi", new byte[2], list, Optional.empty()});
     assertThat(out)
         .isEqualTo(
             "(null, Integer, String[len=2], byte[size=2],"

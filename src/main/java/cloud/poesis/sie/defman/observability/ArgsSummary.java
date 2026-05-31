@@ -6,16 +6,15 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Renders a stable, single-line, value-free summary of method arguments for use
- * as the {@code sie.aop.args.summary} span attribute and as part of structured
- * log lines emitted by {@code BroadInstrumentationAspect}.
+ * Renders a stable, single-line, value-free summary of method arguments for use as the {@code
+ * sie.aop.args.summary} span attribute and as part of structured log lines emitted by {@code
+ * BroadInstrumentationAspect}.
  *
- * <p>The output carries argument types and sizes only. Per ADR-001 D-7 the
- * final string is capped at 16 KiB ({@value #MAX_SUMMARY_CHARS} characters)
- * with a {@value #TRUNCATION_SUFFIX} suffix. To enforce AC-5 (no value
- * leakage), this helper MUST NEVER stringify any argument value, MUST NEVER
- * invoke any value-rendering method on an argument, and MUST NEVER
- * reflectively read any argument field.
+ * <p>The output carries argument types and sizes only. Per ADR-001 D-7 the final string is capped
+ * at 16 KiB ({@value #MAX_SUMMARY_CHARS} characters) with a {@value #TRUNCATION_SUFFIX} suffix. To
+ * enforce AC-5 (no value leakage), this helper MUST NEVER stringify any argument value, MUST NEVER
+ * invoke any value-rendering method on an argument, and MUST NEVER reflectively read any argument
+ * field.
  */
 public final class ArgsSummary {
 
@@ -33,9 +32,8 @@ public final class ArgsSummary {
    * Render the given args array as a single-line, value-free summary string.
    *
    * @param args method arguments captured by AOP advice; may be {@code null}
-   * @return summary string of the form {@code "(<arg1>, <arg2>, ...)"}, capped
-   *     at {@link #MAX_SUMMARY_CHARS} with the {@link #TRUNCATION_SUFFIX}
-   *     suffix when the cap is exceeded
+   * @return summary string of the form {@code "(<arg1>, <arg2>, ...)"}, capped at {@link
+   *     #MAX_SUMMARY_CHARS} with the {@link #TRUNCATION_SUFFIX} suffix when the cap is exceeded
    */
   public static String summarize(Object[] args) {
     if (args == null || args.length == 0) {
