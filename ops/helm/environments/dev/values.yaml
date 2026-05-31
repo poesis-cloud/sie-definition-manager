@@ -34,6 +34,9 @@ observability:
   payloadCapBytes: 16384 # consumed Sprint-3
   payloadBypassRate: 0.01 # consumed Sprint-3
   tracesSampler: parentbased_always_on
+  aop:
+    # DEBUG in dev for full AOP visibility (S-004b / ADR-002).
+    logLevel: DEBUG
 
 ingress:
   enabled: false

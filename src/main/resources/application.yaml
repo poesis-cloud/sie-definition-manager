@@ -64,3 +64,17 @@ dm:
     reliability-mode: ${DM_RELIABILITY_MODE:alo-idempotent}
   security:
     oauth2-login-enabled: ${DM_OAUTH2_LOGIN_ENABLED:false}
+
+observability:
+  aop:
+    # S-004b / ADR-002 D-8: single configurable level for AOP entry/exit/exception logs. TRACE|DEBUG|INFO|WARN|ERROR|OFF.
+    logLevel: ${OBSERVABILITY_AOP_LOGLEVEL:INFO}
+
+# S-004b QA-blocker B-1: bind the cloud.poesis.sie.defman package-level Logback logger to the
+# SAME knob as the aspect's choose-which-SLF4J-method switch. Without this binding, the aspect
+# would call logger.debug(...) under DEBUG but Logback would filter it out at INFO (Spring Boot's
+# default), so observability.aop.logLevel=DEBUG would emit nothing in production. AC-3 / AC-4
+# require a single configurable knob; this propagates the same value to Logback's filter level.
+logging:
+  level:
+    "[cloud.poesis.sie.defman]": ${observability.aop.logLevel:INFO}

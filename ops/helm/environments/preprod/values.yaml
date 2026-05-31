@@ -30,6 +30,9 @@ observability:
   payloadCapBytes: 16384 # consumed Sprint-3
   payloadBypassRate: 0.01 # consumed Sprint-3
   tracesSampler: parentbased_always_on
+  aop:
+    # INFO in preprod (S-004b / ADR-002). Drop to WARN if volume becomes an issue.
+    logLevel: INFO
 
 ingress:
   enabled: false
