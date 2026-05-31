@@ -117,7 +117,8 @@ Domains and checklist placeholders (fill in per-PR as code lands):
 
 ## Revision History
 
-| Date       | Story  | Change                                                                                                        |
-| ---------- | ------ | ------------------------------------------------------------------------------------------------------------- |
-| 2026-05-26 | S-004  | Initial map created per approved HUDDLE outline                                                               |
-| 2026-05-26 | S-004b | Split per ADR-002 D-9; AOP rows collapsed under structural invariant; branch-level discipline checklist added |
+| Date       | Story  | Change                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-26 | S-004  | Initial map created per approved HUDDLE outline                                                                                                                                                                                                                                                                            |
+| 2026-05-26 | S-004b | Split per ADR-002 D-9; AOP rows collapsed under structural invariant; branch-level discipline checklist added                                                                                                                                                                                                              |
+| 2026-05-31 | S-005  | `TenantMdcFilter.doFilterInternal` actuated as the SOLE writer of `gsm.tenant.id` and `sie.component` MDC keys (and matching active-span attributes per ADR-001 D-3). `BroadInstrumentationAspect` remains a pure reader of both keys. Coverage on `TenantMdcFilter` + `TenantMdcFilterConfiguration` at 100% INSTRUCTION. |
