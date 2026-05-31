@@ -116,13 +116,20 @@ public class TenantMdcFilter extends OncePerRequestFilter {
   /**
    * Mirrors the sanitized tenant id and the {@code sie.component} constant onto the currently
    * active OTel span (typically the agent-created inbound SERVER span). No-op when no valid span is
-   * in context — log correlation via MDC still works.
+   * is in context — log correlation via MDC still works even when the agent is absent (e.g. {@code
+   * observability.mode=stdout} without agent attach, or unit tests without an SDK).
    *
-   * <p>Implemented in {@link #doFilterInternal} via {@link Span#current()}; deferred to Unit 2 of
-   * the S-005 DRIVE plan when this method is wired in. Kept here as the documented extension point.
+   * <p>Attribute names match ADR-001 D-3 exactly and are written as strings. Writes happen BEFORE
+   * {@code chain.doFilter(...)} so the SERVER span carries them at export time. Never throws — a
+   * misbehaving span implementation must not break request handling.
    */
-  private void enrichActiveSpan(String sanitizedTenant) {
-    // Unit 2 will populate this method body with Span.current() enrichment.
+  private static void enrichActiveSpan(String sanitizedTenant) {
+    Span current = Span.current();
+    if (!current.getSpanContext().isValid()) {
+      return;
+    }
+    current.setAttribute(MDC_TENANT_ID, sanitizedTenant);
+    current.setAttribute(MDC_COMPONENT, COMPONENT_VALUE);
   }
 
   /**
