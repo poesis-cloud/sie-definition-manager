@@ -30,10 +30,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * orthogonal to span gate).
  *
  * <p>QA-blocker B-1 fix: this IT exercises the production code path end-to-end. The Logback level
- * for {@code cloud.poesis.sie.defman} is bound in {@code application.yaml} to the same
- * {@code observability.aop.logLevel} value, so setting it to {@code OFF} via
- * {@link TestPropertySource} drives BOTH the aspect's choose-which-SLF4J-method switch AND
- * Logback's filter level. No test-only {@code logger.setLevel(...)} mutation is performed.
+ * for {@code cloud.poesis.sie.defman} is bound in {@code application.yaml} to the same {@code
+ * observability.aop.logLevel} value, so setting it to {@code OFF} via {@link TestPropertySource}
+ * drives BOTH the aspect's choose-which-SLF4J-method switch AND Logback's filter level. No
+ * test-only {@code logger.setLevel(...)} mutation is performed.
  *
  * <p>Lives in a separate IT class from {@link BroadInstrumentationAspectIT} because
  * {@code @TestPropertySource} is class-scoped: a different property value requires a different
@@ -85,8 +85,7 @@ class BroadInstrumentationAspectOffIT {
   }
 
   @Test
-  @DisplayName(
-      "AC-3 (OFF): no AOP log lines, but the span is STILL emitted (log gate ≠ span gate)")
+  @DisplayName("AC-3 (OFF): no AOP log lines, but the span is STILL emitted (log gate ≠ span gate)")
   void offLogLevelEmitsNoLogsButStillEmitsSpan() {
     appender.list.clear();
     spanExporter.reset();

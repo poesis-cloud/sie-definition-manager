@@ -19,22 +19,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
 /**
- * Broad AOP instrumentation per ADR-002 D-8: wraps every method of every Spring
- * stereotype bean (@Component / @Service / @Repository / @Controller /
- * @RestController / @Configuration) declared under
- * {@code cloud.poesis.sie.defman.**} with one INTERNAL OTel span and three
- * structured SLF4J log lines (entry, exit, exception).
+ * Broad AOP instrumentation per ADR-002 D-8: wraps every method of every Spring stereotype bean
+ * (@Component / @Service / @Repository / @Controller / @RestController / @Configuration) declared
+ * under {@code cloud.poesis.sie.defman.**} with one INTERNAL OTel span and three structured SLF4J
+ * log lines (entry, exit, exception).
  *
- * <p><strong>Self-exclusion</strong>: this aspect lives inside
- * {@code cloud.poesis.sie.defman.observability} which is itself under the
- * instrumented package. To prevent infinite advice recursion the pointcut
- * explicitly excludes {@code cloud.poesis.sie.defman.observability..*}. This is
- * the ONLY exclusion permitted by ADR-002; no other opt-out mechanism exists.
+ * <p><strong>Self-exclusion</strong>: this aspect lives inside {@code
+ * cloud.poesis.sie.defman.observability} which is itself under the instrumented package. To prevent
+ * infinite advice recursion the pointcut explicitly excludes {@code
+ * cloud.poesis.sie.defman.observability..*}. This is the ONLY exclusion permitted by ADR-002; no
+ * other opt-out mechanism exists.
  *
- * <p>Per ADR-001 D-3 the MDC keys {@code gsm.tenant.id} and {@code sie.component}
- * (if present) are mirrored as span attributes. Per ADR-001 D-7 the
- * {@code sie.aop.args.summary} attribute is capped at 16 KiB by
- * {@link ArgsSummary}.
+ * <p>Per ADR-001 D-3 the MDC keys {@code gsm.tenant.id} and {@code sie.component} (if present) are
+ * mirrored as span attributes. Per ADR-001 D-7 the {@code sie.aop.args.summary} attribute is capped
+ * at 16 KiB by {@link ArgsSummary}.
  */
 @Aspect
 @Component
@@ -66,14 +64,13 @@ public class BroadInstrumentationAspect {
   /**
    * Configured log level for AOP entry/exit/exception lines (default INFO). Non-final so the
    * integration test ({@code BroadInstrumentationAspectIT}) can flip it via reflection to exercise
-   * the DEBUG / OFF gating branches without restarting the Spring context for each level. Prod
-   * code MUST NOT mutate this field — it is set once by the constructor.
+   * the DEBUG / OFF gating branches without restarting the Spring context for each level. Prod code
+   * MUST NOT mutate this field — it is set once by the constructor.
    */
   private volatile String logLevel;
 
   public BroadInstrumentationAspect(
-      OpenTelemetry openTelemetry,
-      @Value("${observability.aop.logLevel:INFO}") String logLevel) {
+      OpenTelemetry openTelemetry, @Value("${observability.aop.logLevel:INFO}") String logLevel) {
     this.tracer = openTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1");
     this.logLevel = normaliseLevel(logLevel);
   }
@@ -92,8 +89,7 @@ public class BroadInstrumentationAspect {
       case "OFF":
         return upper;
       default:
-        SELF_LOG.warn(
-            "Unsupported observability.aop.logLevel '{}' — falling back to INFO", raw);
+        SELF_LOG.warn("Unsupported observability.aop.logLevel '{}' — falling back to INFO", raw);
         return "INFO";
     }
   }
@@ -216,9 +212,9 @@ public class BroadInstrumentationAspect {
   }
 
   /**
-   * Single dispatch point for the configured log level. Entry/exit pass
-   * {@code thrown=null}; the exception path passes the throwable so Logback's
-   * JSON encoder can render it natively (never concatenated into the message).
+   * Single dispatch point for the configured log level. Entry/exit pass {@code thrown=null}; the
+   * exception path passes the throwable so Logback's JSON encoder can render it natively (never
+   * concatenated into the message).
    */
   private void logAtLevel(Logger log, String msg, Throwable thrown) {
     switch (logLevel) {

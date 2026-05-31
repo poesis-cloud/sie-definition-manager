@@ -54,9 +54,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  *   <li><b>AC-1</b> — enumerates every Defman stereotype bean and asserts a span is recorded for a
  *       no-arg public method call, with required structural attributes ({@code code.namespace},
  *       {@code code.function}, {@code sie.aop.args.summary}, {@code sie.aop.duration_ms}).
- *   <li><b>AC-2</b> — there is no opt-out hook class on the classpath ({@code
- *       NoAopInstrumentation} marker must not exist). Structural compile-time check lives in
- *       {@link FinalStereotypeMethodTest}.
+ *   <li><b>AC-2</b> — there is no opt-out hook class on the classpath ({@code NoAopInstrumentation}
+ *       marker must not exist). Structural compile-time check lives in {@link
+ *       FinalStereotypeMethodTest}.
  *   <li><b>AC-3</b> — at {@code DEBUG}, 2 log lines fire on success and 3 on exception; at {@code
  *       OFF}, no AOP log lines fire BUT the span is still emitted.
  *   <li><b>AC-5</b> — secret-shaped arg values never appear in span attributes or log MDC/messages
@@ -151,7 +151,9 @@ class BroadInstrumentationAspectIT {
     List<SpanData> spans = spanExporter.getFinishedSpanItems();
     TreeSet<String> capturedClasses = new TreeSet<>();
     for (SpanData s : spans) {
-      String ns = s.getAttributes().get(io.opentelemetry.api.common.AttributeKey.stringKey("code.namespace"));
+      String ns =
+          s.getAttributes()
+              .get(io.opentelemetry.api.common.AttributeKey.stringKey("code.namespace"));
       if (ns != null) {
         capturedClasses.add(ns);
       }
@@ -171,20 +173,26 @@ class BroadInstrumentationAspectIT {
     // Each captured AOP span must carry the required structural attributes.
     long aopSpanCount =
         spans.stream()
-            .filter(s -> BroadInstrumentationAspect.INSTRUMENTATION_SCOPE
-                .equals(s.getInstrumentationScopeInfo().getName()))
+            .filter(
+                s ->
+                    BroadInstrumentationAspect.INSTRUMENTATION_SCOPE.equals(
+                        s.getInstrumentationScopeInfo().getName()))
             .count();
-    assertThat(aopSpanCount).as("at least one span must use the AOP instrumentation scope")
+    assertThat(aopSpanCount)
+        .as("at least one span must use the AOP instrumentation scope")
         .isGreaterThan(0L);
 
     spans.stream()
-        .filter(s -> BroadInstrumentationAspect.INSTRUMENTATION_SCOPE
-            .equals(s.getInstrumentationScopeInfo().getName()))
+        .filter(
+            s ->
+                BroadInstrumentationAspect.INSTRUMENTATION_SCOPE.equals(
+                    s.getInstrumentationScopeInfo().getName()))
         .forEach(
             s -> {
               assertThat(
                       s.getAttributes()
-                          .get(io.opentelemetry.api.common.AttributeKey.stringKey("code.namespace")))
+                          .get(
+                              io.opentelemetry.api.common.AttributeKey.stringKey("code.namespace")))
                   .as("code.namespace required on AOP span %s", s.getName())
                   .isNotNull();
               assertThat(
@@ -289,7 +297,8 @@ class BroadInstrumentationAspectIT {
                     .forEach(
                         (k, v) ->
                             assertThat(String.valueOf(v))
-                                .as("AC-5: span attr %s on span %s must not leak secret value",
+                                .as(
+                                    "AC-5: span attr %s on span %s must not leak secret value",
                                     k.getKey(), s.getName())
                                 .doesNotContain(secret)));
 
@@ -341,12 +350,26 @@ class BroadInstrumentationAspectIT {
 
   private Map<String, Object> collectDefmanStereotypeBeans() {
     Map<String, Object> all = new LinkedHashMap<>();
-    addBeans(all, applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Component.class));
-    addBeans(all, applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Service.class));
-    addBeans(all, applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Repository.class));
-    addBeans(all, applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Controller.class));
-    addBeans(all, applicationContext.getBeansWithAnnotation(org.springframework.web.bind.annotation.RestController.class));
-    addBeans(all, applicationContext.getBeansWithAnnotation(org.springframework.context.annotation.Configuration.class));
+    addBeans(
+        all,
+        applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Component.class));
+    addBeans(
+        all,
+        applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Service.class));
+    addBeans(
+        all,
+        applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Repository.class));
+    addBeans(
+        all,
+        applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Controller.class));
+    addBeans(
+        all,
+        applicationContext.getBeansWithAnnotation(
+            org.springframework.web.bind.annotation.RestController.class));
+    addBeans(
+        all,
+        applicationContext.getBeansWithAnnotation(
+            org.springframework.context.annotation.Configuration.class));
 
     Map<String, Object> filtered = new LinkedHashMap<>();
     for (Map.Entry<String, Object> e : all.entrySet()) {
@@ -378,9 +401,15 @@ class BroadInstrumentationAspectIT {
       if (m.isSynthetic() || m.isBridge()) continue;
       String n = m.getName();
       // Skip Object overrides — they're usually inherited and not interesting.
-      if (n.equals("toString") || n.equals("hashCode") || n.equals("equals")
-          || n.equals("getClass") || n.equals("notify") || n.equals("notifyAll")
-          || n.equals("wait") || n.equals("clone") || n.equals("finalize")) {
+      if (n.equals("toString")
+          || n.equals("hashCode")
+          || n.equals("equals")
+          || n.equals("getClass")
+          || n.equals("notify")
+          || n.equals("notifyAll")
+          || n.equals("wait")
+          || n.equals("clone")
+          || n.equals("finalize")) {
         continue;
       }
       best = m;
@@ -421,5 +450,4 @@ class BroadInstrumentationAspectIT {
       return OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build();
     }
   }
-
 }

@@ -34,20 +34,20 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * tracking only \u2014 no assertion.
  *
  * <p><strong>This is NOT the authoritative perf-budget verification.</strong> The end-to-end p95
- * budget verification is owned by S-015 (k6 perf harness with the OTel Java agent and OTLP
- * exporter under representative load). This micro-bench exercises only the AOP advice cost on a
- * synthetic JVM-resident method and is intentionally narrow.
+ * budget verification is owned by S-015 (k6 perf harness with the OTel Java agent and OTLP exporter
+ * under representative load). This micro-bench exercises only the AOP advice cost on a synthetic
+ * JVM-resident method and is intentionally narrow.
  *
  * <p>JMH is intentionally NOT used: it is not on the project classpath and adding it for one
- * preliminary bench is unjustified. The micro-bench uses {@code System.nanoTime()} with warmup
- * and a fixed sample count.
+ * preliminary bench is unjustified. The micro-bench uses {@code System.nanoTime()} with warmup and
+ * a fixed sample count.
  *
  * <p><strong>Assertion-free by design.</strong> ADR-001 D-4 (5% p95 overhead budget) is a
  * SYSTEM-LEVEL budget measured at request scale (HTTP / JDBC dominate the per-request work). At
  * nanosecond-scale microbench against a trivial probe method, AOP overhead is dominated by
  * tracer/span/MDC bookkeeping and may exceed the system-level budget by orders of magnitude in
- * relative terms. Authoritative verification of ADR-001 D-4 is deferred to S-015 (perf harness
- * with realistic workload). This bench is preserved for trend tracking only — assertion-free.
+ * relative terms. Authoritative verification of ADR-001 D-4 is deferred to S-015 (perf harness with
+ * realistic workload). This bench is preserved for trend tracking only — assertion-free.
  */
 @SpringBootTest
 @ActiveProfiles("tc")
@@ -55,7 +55,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Import(BroadInstrumentationAspectPerfBenchIT.PerfBenchConfig.class)
 class BroadInstrumentationAspectPerfBenchIT {
 
-  private static final Logger log = LoggerFactory.getLogger(BroadInstrumentationAspectPerfBenchIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(BroadInstrumentationAspectPerfBenchIT.class);
 
   @Container static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
 

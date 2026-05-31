@@ -19,8 +19,8 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
  * "no-opt-out" invariant (ADR-002) must therefore be preserved structurally rather than degraded
  * silently at runtime.
  *
- * <p>This test enumerates every {@code @Component / @Service / @Repository / @Controller /
- * @RestController / @Configuration} class under {@code cloud.poesis.sie.defman.**} (excluding the
+ * <p>This test enumerates every {@code @Component / @Service / @Repository / @Controller
+ * / @RestController / @Configuration} class under {@code cloud.poesis.sie.defman.**} (excluding the
  * observability package — the aspect self-excludes there) and fails the build if any such class is
  * {@code final} or declares a {@code public final} method.
  */

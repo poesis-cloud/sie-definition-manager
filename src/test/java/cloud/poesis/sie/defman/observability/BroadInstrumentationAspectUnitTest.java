@@ -2,7 +2,6 @@ package cloud.poesis.sie.defman.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +48,9 @@ class BroadInstrumentationAspectUnitTest {
     MDC.clear();
   }
 
-  /** Mock JoinPoint where {@code getTarget()} returns a real instance (drives {@code userClass}). */
+  /**
+   * Mock JoinPoint where {@code getTarget()} returns a real instance (drives {@code userClass}).
+   */
   private ProceedingJoinPoint jp(Object target, String methodName, Object[] args) throws Throwable {
     ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
     Signature sig = mock(Signature.class);
@@ -92,9 +93,7 @@ class BroadInstrumentationAspectUnitTest {
     aspect.aroundDefmanStereotypeMethod(pjp);
 
     SpanData span = exporter.getFinishedSpanItems().get(0);
-    assertThat(span.getAttributes().asMap().toString())
-        .contains("tenant-42")
-        .contains("test-comp");
+    assertThat(span.getAttributes().asMap().toString()).contains("tenant-42").contains("test-comp");
   }
 
   @Test
@@ -162,7 +161,9 @@ class BroadInstrumentationAspectUnitTest {
     assertThat(f.get(aspect)).isEqualTo("DEBUG");
   }
 
-  /** Stand-in target with predictable simple-name; lives in observability so userClass is stable. */
+  /**
+   * Stand-in target with predictable simple-name; lives in observability so userClass is stable.
+   */
   static class DummyTarget {
     public String doWork(String s, int n) {
       return s + n;
