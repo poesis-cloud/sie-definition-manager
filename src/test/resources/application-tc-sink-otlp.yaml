@@ -1,0 +1,13 @@
+# S-006 Unit 5 — simulate Helm-rendered sink=otlp case.
+# logging.threshold.console=OFF is loaded by ConfigDataEnvironmentPostProcessor
+# BEFORE LoggingApplicationListener fires, so Boot's CONSOLE appender is gated
+# off from the moment Logback is configured. Profile-specific yaml overrides
+# the placeholder in application.yaml (logging.threshold.console:
+# ${LOGGING_THRESHOLD_CONSOLE:TRACE}) without depending on an actual env var.
+observability:
+  logs:
+    sink: otlp
+
+logging:
+  threshold:
+    console: OFF

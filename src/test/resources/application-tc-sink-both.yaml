@@ -1,0 +1,8 @@
+# S-006 Unit 5 — simulate Helm-rendered sink=both case.
+observability:
+  logs:
+    sink: both
+
+logging:
+  threshold:
+    console: TRACE

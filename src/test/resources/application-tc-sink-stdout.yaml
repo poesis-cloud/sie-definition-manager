@@ -1,0 +1,8 @@
+# S-006 Unit 5 — simulate Helm-rendered sink=stdout case.
+observability:
+  logs:
+    sink: stdout
+
+logging:
+  threshold:
+    console: TRACE
