@@ -98,6 +98,14 @@ spec:
             # S-014 lands collector-outage handling, then flips to `otlp`.
             - name: OBSERVABILITY_LOGS_SINK
               value: {{ .Values.observability.logs.sink | default "both" | quote }}
+            # S-006 AC-4 (ADR-003 D-2): pure-yaml stdout suppression. Bridges
+            # the sink enum to Spring Boot 3.5's logging.threshold.console
+            # property (R-INV-9: no logback-spring.xml). When sink=otlp the
+            # CONSOLE appender threshold is OFF (no stdout); otherwise TRACE
+            # (default — sink-level filters apply normally).
+            {{- $sink := .Values.observability.logs.sink | default "both" }}
+            - name: LOGGING_THRESHOLD_CONSOLE
+              value: {{ if eq $sink "otlp" }}"OFF"{{ else }}"TRACE"{{ end }}
           readinessProbe:
             httpGet:
               path: /actuator/health
