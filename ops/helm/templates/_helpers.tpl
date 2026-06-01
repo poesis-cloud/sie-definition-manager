@@ -34,3 +34,19 @@ S-001 cycle 2: consumed by templates/deployment.yaml only.
 {{- $pairs = append $pairs (printf "service.version=%s" .Chart.AppVersion) -}}
 {{- join "," $pairs -}}
 {{- end -}}
+
+{{/*
+Validate observability.logs.sink ∈ {otlp, stdout, both}. Fails helm template
+rendering with a clear error if violated. The enum is the AC-1 contract for
+S-006 (ADR-003 D-2 dual-sink switch). Default `both` matches ADR-003 D-2
+default until S-014 (collector-outage handling) lands and flips it to `otlp`.
+
+Invoked from templates/deployment.yaml near the top of the Pod template so
+that any bad value short-circuits chart rendering before env wiring runs.
+*/}}
+{{- define "sie-defman.validateLogsSink" -}}
+{{- $sink := .Values.observability.logs.sink | default "both" -}}
+{{- if not (has $sink (list "otlp" "stdout" "both")) -}}
+{{- fail (printf "observability.logs.sink must be one of: otlp, stdout, both (got %q)" $sink) -}}
+{{- end -}}
+{{- end -}}

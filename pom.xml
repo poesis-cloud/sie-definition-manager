@@ -173,6 +173,19 @@
       <artifactId>opentelemetry-sdk-testing</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- OTel Logback appender bridge (test-scope only). In production the OTel
+         Java agent auto-installs the bridge when OTEL_LOGS_EXPORTER=otlp; under
+         `mvn test` no agent is attached, so S-006 ITs call
+         OpenTelemetryAppender.install(sdk) explicitly. Instrumentation libraries
+         are published under the agent version line with an `-alpha` suffix
+         (stable in practice — used by the agent itself). See ADR-003 D-2 and
+         https://opentelemetry.io/docs/zero-code/java/agent/configuration/#logback-appender -->
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+      <version>${otel.agent.version}-alpha</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

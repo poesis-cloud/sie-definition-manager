@@ -1,0 +1,51 @@
+name: dm-helm-template-matrix
+
+# S-006 / ADR-003 D-2 (AC-1): validate the Helm sink switch on every PR.
+# Renders the umbrella chart with observability.logs.sink ∈ {otlp, stdout, both}
+# and asserts the rendered env vars; then asserts the negative case
+# (sink=bogus) fails with the enum-guard message from _helpers.tpl.
+#
+# Implementation lives in the Makefile target `helm-template-matrix` so local
+# dev and CI run the exact same checks (DRY / local-vs-CI parity per the
+# SIE Repository Structure Consistency Rule).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ops/helm/**"
+      - "Makefile"
+      - ".github/workflows/helm-template-matrix.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ops/helm/**"
+      - "Makefile"
+      - ".github/workflows/helm-template-matrix.yaml"
+
+jobs:
+  helm-template-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.3
+
+      - name: Verify subchart archives are present
+        # Subcharts are pulled via file:// from sibling repos that are NOT
+        # checked out in this repo's CI runner. Rendering relies on the
+        # checked-in charts/*.tgz (built locally via `helm dependency build`
+        # and committed). Fail fast with a clear message if they are missing
+        # rather than letting `helm template` produce a confusing error.
+        run: |
+          set -euo pipefail
+          for dep in sie-event-bus-kafka sie-schema-registry sie-definition-database; do
+            ls "./ops/helm/charts/${dep}"-*.tgz >/dev/null \
+              || { echo "Missing subchart archive for ${dep} under ops/helm/charts/. Run 'helm dependency build ops/helm/' locally and commit the tgz files."; exit 1; }
+          done
+
+      - name: Run helm-template-matrix
+        run: make helm-template-matrix

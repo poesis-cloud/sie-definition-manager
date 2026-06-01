@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .EXPORT_ALL_VARIABLES:
 
-.PHONY: dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime
+.PHONY: dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime helm-template-matrix
 
 -include .env
 -include .env.dev
@@ -114,6 +114,72 @@ package-helm:
 	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
 	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
 	helm package $(DM_CHART)
+
+# ---------------------------------------------------------------------------
+# helm-template-matrix — S-006 / ADR-003 D-2 (AC-1) Helm sink switch validator.
+#
+# Renders the chart with observability.logs.sink ∈ {otlp, stdout, both} and
+# asserts that:
+#   - render exits 0
+#   - OBSERVABILITY_LOGS_SINK env carries the expected value
+#   - LOGGING_THRESHOLD_CONSOLE env follows the sink→threshold mapping
+#       sink=otlp   → LOGGING_THRESHOLD_CONSOLE=OFF
+#       sink=stdout → LOGGING_THRESHOLD_CONSOLE=TRACE
+#       sink=both   → LOGGING_THRESHOLD_CONSOLE=TRACE
+# Then runs the negative case (sink=bogus) and asserts:
+#   - render exits non-zero
+#   - stderr contains the enum-guard message from _helpers.tpl
+#
+# HELM_TEMPLATE_DUMMY_ARGS supplies sentinel values for umbrella + subchart
+# secrets so `helm template` can render in CI without any real credentials.
+# These sentinels are NEVER applied to a cluster — only consumed by `helm
+# template`. The string `ci-template-validation-not-a-real-secret` makes that
+# intent explicit on the off chance a sentinel leaks into a log line.
+# ---------------------------------------------------------------------------
+HELM_TEMPLATE_DUMMY_ARGS := \
+	--set deployApp=true \
+	--set secrets.DB_PASSWORD=ci-template-validation-not-a-real-secret \
+	--set dbBootstrap.adminPassword=ci-template-validation-not-a-real-secret \
+	--set dbBootstrap.dbPassword=ci-template-validation-not-a-real-secret \
+	--set definitiondatabase.secrets.DB_PASSWORD=ci-template-validation-not-a-real-secret \
+	--set definitiondatabase.postgres.dbPassword=ci-template-validation-not-a-real-secret
+
+helm-template-matrix:
+	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
+	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
+	@echo "==> helm lint (dev / preprod / prod)"
+	helm lint $(DM_CHART) -f $(DM_CHART)/environments/dev/values.yaml     $(HELM_TEMPLATE_DUMMY_ARGS)
+	helm lint $(DM_CHART) -f $(DM_CHART)/environments/preprod/values.yaml $(HELM_TEMPLATE_DUMMY_ARGS)
+	helm lint $(DM_CHART) -f $(DM_CHART)/environments/prod/values.yaml    $(HELM_TEMPLATE_DUMMY_ARGS)
+	@echo
+	@echo "==> Positive matrix: helm template with sink ∈ {otlp, stdout, both}"
+	@for sink in otlp stdout both; do \
+		echo "    -- sink=$$sink"; \
+		out=$$(helm template t $(DM_CHART) -f $(DM_CHART)/environments/dev/values.yaml \
+			$(HELM_TEMPLATE_DUMMY_ARGS) \
+			--set observability.logs.sink=$$sink) || { echo "FAIL: render exited non-zero for sink=$$sink"; exit 1; }; \
+		expected_threshold=$$([ "$$sink" = "otlp" ] && echo OFF || echo TRACE); \
+		echo "$$out" | grep -q "name: OBSERVABILITY_LOGS_SINK" \
+			|| { echo "FAIL: OBSERVABILITY_LOGS_SINK env missing for sink=$$sink"; exit 1; }; \
+		echo "$$out" | grep -A1 "name: OBSERVABILITY_LOGS_SINK" | grep -q "value: \"$$sink\"" \
+			|| { echo "FAIL: OBSERVABILITY_LOGS_SINK value != $$sink"; exit 1; }; \
+		echo "$$out" | grep -A1 "name: LOGGING_THRESHOLD_CONSOLE" | grep -q "value: \"$$expected_threshold\"" \
+			|| { echo "FAIL: LOGGING_THRESHOLD_CONSOLE value != $$expected_threshold for sink=$$sink"; exit 1; }; \
+		echo "       PASS  OBSERVABILITY_LOGS_SINK=$$sink  LOGGING_THRESHOLD_CONSOLE=$$expected_threshold"; \
+	done
+	@echo
+	@echo "==> Negative case: sink=bogus must FAIL with enum-guard message"
+	@err=$$(helm template t $(DM_CHART) -f $(DM_CHART)/environments/dev/values.yaml \
+		$(HELM_TEMPLATE_DUMMY_ARGS) \
+		--set observability.logs.sink=bogus 2>&1); rc=$$?; \
+		if [ "$$rc" = "0" ]; then \
+			echo "FAIL: render unexpectedly succeeded for sink=bogus"; exit 1; \
+		fi; \
+		echo "$$err" | grep -q "observability.logs.sink must be one of: otlp, stdout, both" \
+			|| { echo "FAIL: enum-guard message not found in stderr. Got:"; echo "$$err"; exit 1; }; \
+		echo "       PASS  render exited rc=$$rc and stderr carries enum-guard message"
+	@echo
+	@echo "helm-template-matrix: all matrix cells + negative case PASS"
 
 test:
 	mvn test

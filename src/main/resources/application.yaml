@@ -69,6 +69,13 @@ observability:
   aop:
     # S-004b / ADR-002 D-8: single configurable level for AOP entry/exit/exception logs. TRACE|DEBUG|INFO|WARN|ERROR|OFF.
     logLevel: ${OBSERVABILITY_AOP_LOGLEVEL:INFO}
+  logs:
+    # S-006 / ADR-003 D-2: dual-sink switch. enum: otlp | stdout | both.
+    # Default `both` matches Helm defaults until S-014 flips to `otlp`.
+    # This property is informational on the app side (Logback wiring is
+    # driven by logging.threshold.console below, which Helm computes from
+    # the same sink value — see deployment.yaml LOGGING_THRESHOLD_CONSOLE).
+    sink: ${OBSERVABILITY_LOGS_SINK:both}
 
 # S-004b QA-blocker B-1: bind the cloud.poesis.sie.defman package-level Logback logger to the
 # SAME knob as the aspect's choose-which-SLF4J-method switch. Without this binding, the aspect
@@ -78,3 +85,14 @@ observability:
 logging:
   level:
     "[cloud.poesis.sie.defman]": ${observability.aop.logLevel:INFO}
+  threshold:
+    # S-006 AC-4 (ADR-003 D-2): pure-yaml stdout suppression for sink=otlp.
+    # Spring Boot 3.5+ exposes logging.threshold.console (default TRACE) to
+    # gate the CONSOLE appender at the framework level — no logback-spring.xml
+    # required (R-INV-9). Helm computes LOGGING_THRESHOLD_CONSOLE from
+    # observability.logs.sink:
+    #   sink=otlp           → OFF   (no stdout)
+    #   sink=stdout | both  → TRACE (stdout passes through level filters)
+    # Local default TRACE keeps developer `mvn spring-boot:run` behavior
+    # unchanged (console on) unless the env var is explicitly set.
+    console: ${LOGGING_THRESHOLD_CONSOLE:TRACE}

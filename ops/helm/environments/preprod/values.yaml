@@ -33,6 +33,14 @@ observability:
   aop:
     # INFO in preprod (S-004b / ADR-002). Drop to WARN if volume becomes an issue.
     logLevel: INFO
+  logs:
+    # S-006 / ADR-003 D-2: dual-sink switch. enum: otlp | stdout | both.
+    # Default `both` until S-014 lands collector-outage handling, then flips to `otlp`.
+    sink: both
+  shutdown:
+    # S-006 / ADR-003 D-6: graceful shutdown window (seconds) for in-flight
+    # OTLP log/span flush before SIGKILL. Drives Pod terminationGracePeriodSeconds.
+    gracePeriodSeconds: 30
 
 ingress:
   enabled: false
