@@ -16,6 +16,12 @@ spec:
       labels:
         app: {{ include "sie-definition-manager.fullname" . }}
     spec:
+      # ADR-003 D-6: graceful shutdown window for in-flight OTLP log/span
+      # flush before SIGKILL. Kubernetes default is 30s; we make it explicit
+      # and configurable via observability.shutdown.gracePeriodSeconds so
+      # operators can tune per-env (longer in prod if OTLP batch latency
+      # observed).
+      terminationGracePeriodSeconds: {{ .Values.observability.shutdown.gracePeriodSeconds | default 30 }}
       containers:
         - name: dm
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
