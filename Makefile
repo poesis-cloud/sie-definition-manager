@@ -171,7 +171,7 @@ helm-template-matrix:
 	@echo "==> Negative case: sink=bogus must FAIL with enum-guard message"
 	@err=$$(helm template t $(DM_CHART) -f $(DM_CHART)/environments/dev/values.yaml \
 		$(HELM_TEMPLATE_DUMMY_ARGS) \
-		--set observability.logs.sink=bogus 2>&1 >/dev/null); rc=$$?; \
+		--set observability.logs.sink=bogus 2>&1); rc=$$?; \
 		if [ "$$rc" = "0" ]; then \
 			echo "FAIL: render unexpectedly succeeded for sink=bogus"; exit 1; \
 		fi; \

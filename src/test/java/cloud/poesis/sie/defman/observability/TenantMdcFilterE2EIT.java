@@ -56,11 +56,10 @@ import org.springframework.web.bind.annotation.RestController;
  *       is instantiated as-is and wired into the standalone MockMvc filter chain.
  *   <li><b>R-INV-2</b> &mdash; no semantic-convention key written by test code; the only attributes
  *       asserted are the {@code gsm.*} / {@code sie.*} vendor namespace per ADR-001 D-3.
- *   <li><b>R-INV-4</b> &mdash; the second assertion uses {@code .isNull()} (absent &ne; empty) on
- *       the {@code gsm.tenant.id} attribute when the header is omitted to confirm the filter's
- *       sentinel value still propagates as a present attribute (it does &mdash; the filter writes
- *       {@code "unknown"}, NOT the empty string, so the attribute is non-null and equals {@code
- *       "unknown"}).
+ *   <li><b>R-INV-4</b> &mdash; the second assertion confirms the filter's sentinel value {@code
+ *       "unknown"} is present on the {@code gsm.tenant.id} attribute when the header is omitted via
+ *       {@code .isEqualTo(TenantMdcFilter.UNKNOWN_TENANT)}. This validates the filter writes the
+ *       sentinel deterministically, not the empty string or null.
  * </ul>
  */
 class TenantMdcFilterE2EIT {

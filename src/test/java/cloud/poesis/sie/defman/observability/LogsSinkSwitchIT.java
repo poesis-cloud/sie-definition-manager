@@ -45,8 +45,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  *
  * <p>Helm computes {@code LOGGING_THRESHOLD_CONSOLE} from {@code observability.logs.sink} (Unit 2
  * deployment.yaml mapping). This IT validates the <b>Spring property contract itself</b>: each
- * nested class boots Spring with a hard-coded {@code @TestPropertySource} simulating one Helm-
- * rendered case, then probes Logback through SLF4J and asserts presence/absence on captured stdout.
+ * nested class boots Spring with {@code @ActiveProfiles} + profile-specific YAML (not
+ * {@code @TestPropertySource}) to set {@code logging.threshold.console}, then probes Logback
+ * through SLF4J and asserts presence/absence on captured stdout.
  *
  * <h2>Capture-after-ready discipline (R-INV-4 / PO HUDDLE flag #5)</h2>
  *
@@ -74,9 +75,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * for this property. Profile-specific yaml files ({@code
  * application-tc-sink-{otlp,stdout,both}.yaml}) work cleanly: they are loaded by {@code
  * ConfigDataEnvironmentPostProcessor} BEFORE the listener fires, and profile-specific sources
- * override the base {@code application.yaml} placeholder. Each nested class declares
- * {@code @ActiveProfiles("tc-sink-XXX")}; each profile yaml includes the {@code tc} profile via
- * {@code spring.profiles.include} so Postgres/Flyway setup carries over.
+ * override the base {@code application.yaml} placeholder. Each nested class explicitly composes
+ * profiles via {@code @ActiveProfiles({"tc", "tc-sink-XXX"})} so both the sink-specific
+ * configuration and the shared Postgres/Flyway setup ({@code tc} profile) load together.
  *
  * <h2>Nested-class shape</h2>
  *
