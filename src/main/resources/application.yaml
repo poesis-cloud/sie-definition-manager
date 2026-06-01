@@ -83,6 +83,9 @@ observability:
 # default), so observability.aop.logLevel=DEBUG would emit nothing in production. AC-3 / AC-4
 # require a single configurable knob; this propagates the same value to Logback's filter level.
 logging:
+  structured:
+    format:
+      console: ecs
   level:
     "[cloud.poesis.sie.defman]": ${observability.aop.logLevel:INFO}
   threshold:

@@ -8,12 +8,15 @@ import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.filter.Filter;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.logs.SdkLoggerProvider;
 import io.opentelemetry.sdk.logs.data.LogRecordData;
 import io.opentelemetry.sdk.logs.export.SimpleLogRecordProcessor;
 import io.opentelemetry.sdk.testing.exporter.InMemoryLogRecordExporter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -100,6 +103,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class LogsSinkSwitchIT {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   // Shared PG container across all nested @SpringBootTest classes — keeps suite cost bounded.
   // Started by @Testcontainers on the outer class; nested classes reference it via their own
   // @DynamicPropertySource methods.
@@ -138,6 +143,23 @@ class LogsSinkSwitchIT {
     filter.setContext(ctx);
     filter.start();
     console.addFilter((Filter<ch.qos.logback.classic.spi.ILoggingEvent>) filter);
+  }
+
+  private static String requireProbeLineAfterSentinel(
+      String captured, String sentinel, String probe) {
+    int sentinelIdx = captured.indexOf(sentinel);
+    assertThat(sentinelIdx)
+        .as("sentinel must appear on stdout — proves OutputCaptureExtension is active")
+        .isGreaterThanOrEqualTo(0);
+
+    String afterSentinel = captured.substring(sentinelIdx);
+    return Arrays.stream(afterSentinel.split("\\R"))
+        .filter(line -> line.contains(probe))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new AssertionError(
+                    "expected a stdout line containing probe after sentinel, but none found"));
   }
 
   // --------------------------------------------------------------------------
@@ -228,6 +250,34 @@ class LogsSinkSwitchIT {
       assertThat(afterSentinel)
           .as("AC-4: SLF4J INFO probe must reach stdout when sink=stdout (after sentinel)")
           .contains(probe);
+    }
+
+    @Test
+    @DisplayName(
+        "Unit 1 / AC-1+AC-3: stdout probe is valid JSON and omits trace_id/span_id when no span"
+            + " is active")
+    void stdoutProbeIsJsonAndOmitsAbsentTraceKeys(CapturedOutput output) throws Exception {
+      String sentinel = "S006B-SENTINEL-JSON-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-JSON-" + UUID.randomUUID();
+
+      System.out.println(sentinel);
+      LoggerFactory.getLogger(getClass()).info(probe);
+
+      String probeLine = requireProbeLineAfterSentinel(output.getOut(), sentinel, probe);
+      JsonNode node = OBJECT_MAPPER.readTree(probeLine);
+
+      assertThat(node.has("message"))
+          .as("AC-1: structured stdout payload should expose a message field")
+          .isTrue();
+      assertThat(node.get("message").asText())
+          .as("AC-1: message field should contain the emitted probe")
+          .contains(probe);
+      assertThat(node.has("trace_id"))
+          .as("AC-3: no-span logs must omit trace_id rather than emit empty/null placeholder")
+          .isFalse();
+      assertThat(node.has("span_id"))
+          .as("AC-3: no-span logs must omit span_id rather than emit empty/null placeholder")
+          .isFalse();
     }
   }
 
