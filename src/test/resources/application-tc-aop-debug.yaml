@@ -1,0 +1,11 @@
+# S-006 C-1 — simulate Helm-rendered AOP DEBUG case.
+#
+# Loaded by profile `tc-aop-debug` (composed with `tc` via @ActiveProfiles, not via
+# spring.profiles.include — see Boot-4 trap in .S-006-huddle.md). Profile-specific yaml is the only
+# property carrier that lands BEFORE Spring Boot's LoggingApplicationListener fires; both
+# @TestPropertySource and @SpringBootTest(properties=...) fail to influence the
+# `logging.level."[cloud.poesis.sie.defman]"` binding for the same reason `logging.threshold.console`
+# fails under them (Boot-1, Boot-2 traps).
+observability:
+  aop:
+    logLevel: DEBUG
