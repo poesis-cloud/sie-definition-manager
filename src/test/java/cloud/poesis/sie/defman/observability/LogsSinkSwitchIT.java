@@ -1,6 +1,8 @@
 package cloud.poesis.sie.defman.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -10,12 +12,15 @@ import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.filter.Filter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.logs.SdkLoggerProvider;
 import io.opentelemetry.sdk.logs.data.LogRecordData;
 import io.opentelemetry.sdk.logs.export.SimpleLogRecordProcessor;
 import io.opentelemetry.sdk.testing.exporter.InMemoryLogRecordExporter;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -26,12 +31,18 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -97,7 +108,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  *   <li>R-INV-1: {@code TenantMdcFilter} / {@code BroadInstrumentationAspect} untouched.
  *   <li>R-INV-2: no sem-conv keys set in test code.
  *   <li>R-INV-4: capture-after-ready (sentinel ordering + per-method capture).
- *   <li>R-INV-6: NO JSON-shape assertions; sink matrix only (stdout shape is S-006b's surface).
+ *   <li>S-006b: stdout JSON assertions cover no-span omission, correlation field presence, and MDC
+ *       vocabulary rendering.
  * </ul>
  */
 @Testcontainers
@@ -160,6 +172,51 @@ class LogsSinkSwitchIT {
             () ->
                 new AssertionError(
                     "expected a stdout line containing probe after sentinel, but none found"));
+  }
+
+  private static void assertProbeAbsentAfterSentinel(
+      String captured, String sentinel, String probe) {
+    int sentinelIdx = captured.indexOf(sentinel);
+    assertThat(sentinelIdx)
+        .as("sentinel must appear on stdout — proves OutputCaptureExtension is active")
+        .isGreaterThanOrEqualTo(0);
+
+    String afterSentinel = captured.substring(sentinelIdx);
+    assertThat(afterSentinel)
+        .as("probe emitted below INFO must not appear after sentinel")
+        .doesNotContain(probe);
+  }
+
+  private static String readDottedOrNestedString(JsonNode node, String dottedKey) {
+    JsonNode direct = node.get(dottedKey);
+    if (direct != null && !direct.isNull()) {
+      return direct.asText();
+    }
+
+    JsonNode cursor = node;
+    for (String part : dottedKey.split("\\.")) {
+      if (cursor == null) {
+        return null;
+      }
+      cursor = cursor.get(part);
+    }
+
+    if (cursor == null || cursor.isNull()) {
+      return null;
+    }
+    return cursor.asText();
+  }
+
+  @RestController
+  static class StdoutTenantProbeController {
+    private static final org.slf4j.Logger LOG =
+        LoggerFactory.getLogger(StdoutTenantProbeController.class);
+
+    @GetMapping("/__test/stdout-tenant-probe")
+    String emit(@RequestParam("probe") String probe) {
+      LOG.info(probe);
+      return "ok";
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -279,6 +336,96 @@ class LogsSinkSwitchIT {
           .as("AC-3: no-span logs must omit span_id rather than emit empty/null placeholder")
           .isFalse();
     }
+
+    @Test
+    @DisplayName(
+        "AC-2: stdout JSON includes trace_id/span_id when correlation MDC keys are populated"
+            + " inside an active span")
+    void stdoutProbeIncludesTraceAndSpanWhenCorrelationMdcPresent(CapturedOutput output)
+        throws Exception {
+      String sentinel = "S006B-SENTINEL-SPAN-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-SPAN-" + UUID.randomUUID();
+
+      try (SdkTracerProvider tracerProvider = SdkTracerProvider.builder().build();
+          OpenTelemetrySdk otel =
+              OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()) {
+        Span span = otel.getTracer("S-006b-test").spanBuilder("stdout-correlation").startSpan();
+        try (Scope ignored = span.makeCurrent()) {
+          MDC.put("trace_id", span.getSpanContext().getTraceId());
+          MDC.put("span_id", span.getSpanContext().getSpanId());
+          System.out.println(sentinel);
+          LoggerFactory.getLogger(getClass()).info(probe);
+        } finally {
+          MDC.remove("trace_id");
+          MDC.remove("span_id");
+          span.end();
+        }
+      }
+
+      String probeLine = requireProbeLineAfterSentinel(output.getOut(), sentinel, probe);
+      JsonNode node = OBJECT_MAPPER.readTree(probeLine);
+
+      assertThat(node.has("trace_id"))
+          .as("AC-2: trace_id must be present when correlation MDC is populated")
+          .isTrue();
+      assertThat(node.has("span_id"))
+          .as("AC-2: span_id must be present when correlation MDC is populated")
+          .isTrue();
+      assertThat(node.get("trace_id").asText())
+          .as("AC-2: trace_id must carry the active span trace id")
+          .isNotBlank();
+      assertThat(node.get("span_id").asText())
+          .as("AC-2: span_id must carry the active span id")
+          .isNotBlank();
+    }
+
+    @Test
+    @DisplayName(
+        "AC-4: stdout JSON includes gsm.tenant.id and sie.component vocabulary fields"
+            + " during HTTP request handling")
+    void stdoutProbeIncludesTenantVocabularyFromHttpRequest(CapturedOutput output)
+        throws Exception {
+      String sentinel = "S006B-SENTINEL-HTTP-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-HTTP-" + UUID.randomUUID();
+
+      MockMvc mockMvc =
+          MockMvcBuilders.standaloneSetup(new StdoutTenantProbeController())
+              .addFilter(new TenantMdcFilter(), "/*")
+              .build();
+
+      System.out.println(sentinel);
+      mockMvc
+          .perform(
+              get("/__test/stdout-tenant-probe")
+                  .header(TenantMdcFilter.HEADER_TENANT_ID, "tenant-ac4")
+                  .param("probe", probe))
+          .andExpect(status().isOk());
+
+      String probeLine = requireProbeLineAfterSentinel(output.getOut(), sentinel, probe);
+      JsonNode node = OBJECT_MAPPER.readTree(probeLine);
+
+      assertThat(readDottedOrNestedString(node, TenantMdcFilter.MDC_TENANT_ID))
+          .as("AC-4: gsm.tenant.id vocabulary must render on stdout with filter value")
+          .isEqualTo("tenant-ac4");
+      assertThat(readDottedOrNestedString(node, TenantMdcFilter.MDC_COMPONENT))
+          .as("AC-4: sie.component vocabulary must render on stdout with filter constant")
+          .isEqualTo(TenantMdcFilter.COMPONENT_VALUE);
+    }
+
+    @Test
+    @DisplayName(
+        "AC-6 regression (stdout): package logger binding remains INFO by default"
+            + " so DEBUG probes stay filtered")
+    void aopBindingPreservedUnderStdoutSink(CapturedOutput output) {
+      String sentinel = "S006B-SENTINEL-LVL-STDOUT-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-LVL-STDOUT-" + UUID.randomUUID();
+
+      System.out.println(sentinel);
+      LoggerFactory.getLogger("cloud.poesis.sie.defman.observability.LogsSinkSwitchIT")
+          .debug(probe);
+
+      assertProbeAbsentAfterSentinel(output.getOut(), sentinel, probe);
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -358,6 +505,21 @@ class LogsSinkSwitchIT {
       assertThat(afterSentinel)
           .as("AC-4: SLF4J INFO probe must reach stdout when sink=both (after sentinel)")
           .contains(probe);
+    }
+
+    @Test
+    @DisplayName(
+        "AC-6 regression (both): package logger binding remains INFO by default"
+            + " so DEBUG probes stay filtered")
+    void aopBindingPreservedUnderBothSink(CapturedOutput output) {
+      String sentinel = "S006B-SENTINEL-LVL-BOTH-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-LVL-BOTH-" + UUID.randomUUID();
+
+      System.out.println(sentinel);
+      LoggerFactory.getLogger("cloud.poesis.sie.defman.observability.LogsSinkSwitchIT")
+          .debug(probe);
+
+      assertProbeAbsentAfterSentinel(output.getOut(), sentinel, probe);
     }
 
     @Test
