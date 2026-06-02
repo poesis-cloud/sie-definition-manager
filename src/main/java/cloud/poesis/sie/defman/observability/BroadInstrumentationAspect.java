@@ -5,6 +5,7 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import java.util.Locale;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -138,7 +139,7 @@ public class BroadInstrumentationAspect {
     }
 
     long startNs = System.nanoTime();
-    try {
+    try (Scope ignored = span.makeCurrent()) {
       // ENTRY log
       MDC.put(MDC_CODE_FUNCTION, methodName);
       MDC.put(MDC_ARGS_SUMMARY, argsSummary);

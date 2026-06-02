@@ -187,24 +187,26 @@ class LogsSinkSwitchIT {
         .doesNotContain(probe);
   }
 
-  private static String readDottedOrNestedString(JsonNode node, String dottedKey) {
-    JsonNode direct = node.get(dottedKey);
-    if (direct != null && !direct.isNull()) {
-      return direct.asText();
-    }
-
-    JsonNode cursor = node;
-    for (String part : dottedKey.split("\\.")) {
-      if (cursor == null) {
-        return null;
+  private static String readDottedOrNestedString(JsonNode node, String... dottedKeys) {
+    for (String dottedKey : dottedKeys) {
+      JsonNode direct = node.get(dottedKey);
+      if (direct != null && !direct.isNull()) {
+        return direct.asText();
       }
-      cursor = cursor.get(part);
-    }
 
-    if (cursor == null || cursor.isNull()) {
-      return null;
+      JsonNode cursor = node;
+      for (String part : dottedKey.split("\\.")) {
+        if (cursor == null) {
+          break;
+        }
+        cursor = cursor.get(part);
+      }
+
+      if (cursor != null && !cursor.isNull()) {
+        return cursor.asText();
+      }
     }
-    return cursor.asText();
+    return null;
   }
 
   @RestController
@@ -329,12 +331,12 @@ class LogsSinkSwitchIT {
       assertThat(node.get("message").asText())
           .as("AC-1: message field should contain the emitted probe")
           .contains(probe);
-      assertThat(node.has("trace_id"))
+      assertThat(readDottedOrNestedString(node, "trace_id", "trace.id"))
           .as("AC-3: no-span logs must omit trace_id rather than emit empty/null placeholder")
-          .isFalse();
-      assertThat(node.has("span_id"))
+          .isNull();
+      assertThat(readDottedOrNestedString(node, "span_id", "span.id"))
           .as("AC-3: no-span logs must omit span_id rather than emit empty/null placeholder")
-          .isFalse();
+          .isNull();
     }
 
     @Test
@@ -365,16 +367,10 @@ class LogsSinkSwitchIT {
       String probeLine = requireProbeLineAfterSentinel(output.getOut(), sentinel, probe);
       JsonNode node = OBJECT_MAPPER.readTree(probeLine);
 
-      assertThat(node.has("trace_id"))
-          .as("AC-2: trace_id must be present when correlation MDC is populated")
-          .isTrue();
-      assertThat(node.has("span_id"))
-          .as("AC-2: span_id must be present when correlation MDC is populated")
-          .isTrue();
-      assertThat(node.get("trace_id").asText())
+      assertThat(readDottedOrNestedString(node, "trace_id", "trace.id"))
           .as("AC-2: trace_id must carry the active span trace id")
           .isNotBlank();
-      assertThat(node.get("span_id").asText())
+      assertThat(readDottedOrNestedString(node, "span_id", "span.id"))
           .as("AC-2: span_id must carry the active span id")
           .isNotBlank();
     }

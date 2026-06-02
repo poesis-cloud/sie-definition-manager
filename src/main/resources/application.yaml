@@ -85,6 +85,11 @@ observability:
 logging:
   structured:
     format:
+      # ECS is the Spring Boot 3.5 built-in structured console format we use for stdout JSON.
+      # It is not OpenTelemetry log encoding: OTel governs the semantic meaning/correlation fields,
+      # while ECS is the JSON envelope rendered to stdout. Alternatives are Boot's GELF and Logstash
+      # formats, but ECS is the closest fit for operator-facing structured logs here without adding
+      # a third-party encoder dependency.
       console: ecs
   level:
     "[cloud.poesis.sie.defman]": ${observability.aop.logLevel:INFO}

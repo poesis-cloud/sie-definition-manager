@@ -168,18 +168,22 @@ class BroadInstrumentationAspectUnitTest {
     String priorSpan = "span-prior";
     MDC.put("trace_id", priorTrace);
     MDC.put("span_id", priorSpan);
+    try {
+      BroadInstrumentationAspect aspect = new BroadInstrumentationAspect(otel, "INFO");
+      ProceedingJoinPoint pjp = jp(new DummyTarget(), "m", new Object[0]);
 
-    BroadInstrumentationAspect aspect = new BroadInstrumentationAspect(otel, "INFO");
-    ProceedingJoinPoint pjp = jp(new DummyTarget(), "m", new Object[0]);
+      aspect.aroundDefmanStereotypeMethod(pjp);
 
-    aspect.aroundDefmanStereotypeMethod(pjp);
-
-    assertThat(MDC.get("trace_id"))
-        .as("trace_id is agent-owned and must not be rewritten/removed by application code")
-        .isEqualTo(priorTrace);
-    assertThat(MDC.get("span_id"))
-        .as("span_id is agent-owned and must not be rewritten/removed by application code")
-        .isEqualTo(priorSpan);
+      assertThat(MDC.get("trace_id"))
+          .as("trace_id is agent-owned and must not be rewritten/removed by application code")
+          .isEqualTo(priorTrace);
+      assertThat(MDC.get("span_id"))
+          .as("span_id is agent-owned and must not be rewritten/removed by application code")
+          .isEqualTo(priorSpan);
+    } finally {
+      MDC.remove("trace_id");
+      MDC.remove("span_id");
+    }
   }
 
   /**
