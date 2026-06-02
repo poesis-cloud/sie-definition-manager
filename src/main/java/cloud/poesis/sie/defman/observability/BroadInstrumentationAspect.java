@@ -2,7 +2,6 @@ package cloud.poesis.sie.defman.observability;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -56,8 +55,6 @@ public class BroadInstrumentationAspect {
   private static final String MDC_CODE_FUNCTION = "code.function";
   private static final String MDC_ARGS_SUMMARY = "sie.aop.args.summary";
   private static final String MDC_DURATION_MS = "sie.aop.duration_ms";
-  private static final String MDC_TRACE_ID = "trace_id";
-  private static final String MDC_SPAN_ID = "span_id";
   private static final String MDC_EXCEPTION_TYPE = "exception.type";
   private static final String MDC_EXCEPTION_MESSAGE = "exception.message";
 
@@ -140,24 +137,16 @@ public class BroadInstrumentationAspect {
       span.setAttribute(MDC_COMPONENT, component);
     }
 
-    SpanContext sc = span.getSpanContext();
-    String traceId = sc.getTraceId();
-    String spanId = sc.getSpanId();
-
     long startNs = System.nanoTime();
     try {
       // ENTRY log
       MDC.put(MDC_CODE_FUNCTION, methodName);
       MDC.put(MDC_ARGS_SUMMARY, argsSummary);
-      MDC.put(MDC_TRACE_ID, traceId);
-      MDC.put(MDC_SPAN_ID, spanId);
       try {
         logAtLevel(targetLog, "AOP entry", null);
       } finally {
         MDC.remove(MDC_CODE_FUNCTION);
         MDC.remove(MDC_ARGS_SUMMARY);
-        MDC.remove(MDC_TRACE_ID);
-        MDC.remove(MDC_SPAN_ID);
       }
 
       Object result;
@@ -173,8 +162,6 @@ public class BroadInstrumentationAspect {
         MDC.put(MDC_DURATION_MS, Long.toString(durationMs));
         MDC.put(MDC_EXCEPTION_TYPE, ex.getClass().getName());
         MDC.put(MDC_EXCEPTION_MESSAGE, String.valueOf(ex.getMessage()));
-        MDC.put(MDC_TRACE_ID, traceId);
-        MDC.put(MDC_SPAN_ID, spanId);
         try {
           logAtLevel(targetLog, "AOP exception", ex);
         } finally {
@@ -182,8 +169,6 @@ public class BroadInstrumentationAspect {
           MDC.remove(MDC_DURATION_MS);
           MDC.remove(MDC_EXCEPTION_TYPE);
           MDC.remove(MDC_EXCEPTION_MESSAGE);
-          MDC.remove(MDC_TRACE_ID);
-          MDC.remove(MDC_SPAN_ID);
         }
         throw ex;
       }
@@ -194,15 +179,11 @@ public class BroadInstrumentationAspect {
       // EXIT log
       MDC.put(MDC_CODE_FUNCTION, methodName);
       MDC.put(MDC_DURATION_MS, Long.toString(durationMs));
-      MDC.put(MDC_TRACE_ID, traceId);
-      MDC.put(MDC_SPAN_ID, spanId);
       try {
         logAtLevel(targetLog, "AOP exit", null);
       } finally {
         MDC.remove(MDC_CODE_FUNCTION);
         MDC.remove(MDC_DURATION_MS);
-        MDC.remove(MDC_TRACE_ID);
-        MDC.remove(MDC_SPAN_ID);
       }
 
       return result;

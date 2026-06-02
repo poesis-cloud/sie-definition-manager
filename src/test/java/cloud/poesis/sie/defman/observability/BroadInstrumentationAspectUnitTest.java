@@ -161,6 +161,27 @@ class BroadInstrumentationAspectUnitTest {
     assertThat(f.get(aspect)).isEqualTo("DEBUG");
   }
 
+  @Test
+  @DisplayName("agent-owned trace/span MDC keys are not mutated by the aspect")
+  void traceAndSpanMdcKeysAreNotMutatedByAspect() throws Throwable {
+    String priorTrace = "trace-prior";
+    String priorSpan = "span-prior";
+    MDC.put("trace_id", priorTrace);
+    MDC.put("span_id", priorSpan);
+
+    BroadInstrumentationAspect aspect = new BroadInstrumentationAspect(otel, "INFO");
+    ProceedingJoinPoint pjp = jp(new DummyTarget(), "m", new Object[0]);
+
+    aspect.aroundDefmanStereotypeMethod(pjp);
+
+    assertThat(MDC.get("trace_id"))
+        .as("trace_id is agent-owned and must not be rewritten/removed by application code")
+        .isEqualTo(priorTrace);
+    assertThat(MDC.get("span_id"))
+        .as("span_id is agent-owned and must not be rewritten/removed by application code")
+        .isEqualTo(priorSpan);
+  }
+
   /**
    * Stand-in target with predictable simple-name; lives in observability so userClass is stable.
    */
