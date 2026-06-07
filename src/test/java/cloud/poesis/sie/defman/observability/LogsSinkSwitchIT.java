@@ -14,6 +14,7 @@ import io.opentelemetry.sdk.logs.SdkLoggerProvider;
 import io.opentelemetry.sdk.logs.data.LogRecordData;
 import io.opentelemetry.sdk.logs.export.SimpleLogRecordProcessor;
 import io.opentelemetry.sdk.testing.exporter.InMemoryLogRecordExporter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -94,7 +95,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  *   <li>R-INV-1: {@code TenantMdcFilter} / {@code BroadInstrumentationAspect} untouched.
  *   <li>R-INV-2: no sem-conv keys set in test code.
  *   <li>R-INV-4: capture-after-ready (sentinel ordering + per-method capture).
- *   <li>R-INV-6: NO JSON-shape assertions; sink matrix only (stdout shape is S-006b's surface).
  * </ul>
  */
 @Testcontainers
@@ -138,6 +138,36 @@ class LogsSinkSwitchIT {
     filter.setContext(ctx);
     filter.start();
     console.addFilter((Filter<ch.qos.logback.classic.spi.ILoggingEvent>) filter);
+  }
+
+  private static String requireProbeLineAfterSentinel(
+      String captured, String sentinel, String probe) {
+    int sentinelIdx = captured.indexOf(sentinel);
+    assertThat(sentinelIdx)
+        .as("sentinel must appear on stdout — proves OutputCaptureExtension is active")
+        .isGreaterThanOrEqualTo(0);
+
+    String afterSentinel = captured.substring(sentinelIdx);
+    return Arrays.stream(afterSentinel.split("\\R"))
+        .filter(line -> line.contains(probe))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new AssertionError(
+                    "expected a stdout line containing probe after sentinel, but none found"));
+  }
+
+  private static void assertProbeAbsentAfterSentinel(
+      String captured, String sentinel, String probe) {
+    int sentinelIdx = captured.indexOf(sentinel);
+    assertThat(sentinelIdx)
+        .as("sentinel must appear on stdout — proves OutputCaptureExtension is active")
+        .isGreaterThanOrEqualTo(0);
+
+    String afterSentinel = captured.substring(sentinelIdx);
+    assertThat(afterSentinel)
+        .as("probe emitted below INFO must not appear after sentinel")
+        .doesNotContain(probe);
   }
 
   // --------------------------------------------------------------------------
@@ -229,6 +259,21 @@ class LogsSinkSwitchIT {
           .as("AC-4: SLF4J INFO probe must reach stdout when sink=stdout (after sentinel)")
           .contains(probe);
     }
+
+    @Test
+    @DisplayName(
+        "AC-6 regression (stdout): package logger binding remains INFO by default"
+            + " so DEBUG probes stay filtered")
+    void aopBindingPreservedUnderStdoutSink(CapturedOutput output) {
+      String sentinel = "S006B-SENTINEL-LVL-STDOUT-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-LVL-STDOUT-" + UUID.randomUUID();
+
+      System.out.println(sentinel);
+      LoggerFactory.getLogger("cloud.poesis.sie.defman.observability.LogsSinkSwitchIT")
+          .debug(probe);
+
+      assertProbeAbsentAfterSentinel(output.getOut(), sentinel, probe);
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -308,6 +353,21 @@ class LogsSinkSwitchIT {
       assertThat(afterSentinel)
           .as("AC-4: SLF4J INFO probe must reach stdout when sink=both (after sentinel)")
           .contains(probe);
+    }
+
+    @Test
+    @DisplayName(
+        "AC-6 regression (both): package logger binding remains INFO by default"
+            + " so DEBUG probes stay filtered")
+    void aopBindingPreservedUnderBothSink(CapturedOutput output) {
+      String sentinel = "S006B-SENTINEL-LVL-BOTH-" + UUID.randomUUID();
+      String probe = "S006B-PROBE-LVL-BOTH-" + UUID.randomUUID();
+
+      System.out.println(sentinel);
+      LoggerFactory.getLogger("cloud.poesis.sie.defman.observability.LogsSinkSwitchIT")
+          .debug(probe);
+
+      assertProbeAbsentAfterSentinel(output.getOut(), sentinel, probe);
     }
 
     @Test
