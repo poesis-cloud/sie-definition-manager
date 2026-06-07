@@ -5,7 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -13,12 +19,14 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.UUID;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import org.slf4j.LoggerFactory;
 
 /**
  * Direct unit test for {@link BroadInstrumentationAspect}.
@@ -35,6 +43,8 @@ import org.slf4j.MDC;
  * branch in {@code aroundDefmanStereotypeMethod} and {@code logAtLevel}.
  */
 class BroadInstrumentationAspectUnitTest {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private InMemorySpanExporter exporter;
   private OpenTelemetry otel;
@@ -186,6 +196,108 @@ class BroadInstrumentationAspectUnitTest {
     }
   }
 
+  @Test
+  @DisplayName("AC-3 runtime: truncated payload emits summary event on active span")
+  void truncatedPayloadEmitsSummaryEventInRuntimePath() throws Throwable {
+    BroadInstrumentationAspect aspect =
+        new BroadInstrumentationAspect(otel, "INFO", 40, 0.0d, () -> 0.99d);
+    String payload = "{\"statement\":\"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\"}";
+    ProceedingJoinPoint pjp =
+        jp(
+            new DummyAscriptionTarget(),
+            "create",
+            new Object[] {UUID.fromString("9dc2da8c-b639-4eb3-9f7d-bf29543fc830"), OBJECT_MAPPER.readTree(payload)});
+
+    aspect.aroundDefmanStereotypeMethod(pjp);
+
+    SpanData span = exporter.getFinishedSpanItems().get(0);
+    assertThat(span.getEvents())
+        .anySatisfy(
+            event -> {
+              assertThat(event.getName()).isEqualTo("sie.payload.truncated.summary");
+              assertThat(event.getAttributes().get(AttributeKey.stringKey("operation")))
+                  .isEqualTo(
+                      "cloud.poesis.sie.defman.observability.BroadInstrumentationAspectUnitTest$DummyAscriptionTarget.create");
+              assertThat(event.getAttributes().get(AttributeKey.stringKey("id")))
+                  .isEqualTo("9dc2da8c-b639-4eb3-9f7d-bf29543fc830");
+              assertThat(event.getAttributes().get(AttributeKey.stringKey("capped.preview")))
+                  .contains("<truncated:");
+            });
+  }
+
+  @Test
+  @DisplayName("AC-4 runtime: sampled bypass selected emits sibling full-payload line with sampled tag")
+  void sampledBypassSelectedEmitsSiblingPayloadLine() throws Throwable {
+    BroadInstrumentationAspect aspect =
+        new BroadInstrumentationAspect(otel, "INFO", 40, 1.0d, () -> 0.0d);
+    String payload = "{\"statement\":\"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\"}";
+    ProceedingJoinPoint pjp =
+        jp(
+            new DummyAscriptionTarget(),
+            "create",
+            new Object[] {UUID.randomUUID(), OBJECT_MAPPER.readTree(payload)});
+
+    ListAppender<ILoggingEvent> appender = attachAppender(DummyAscriptionTarget.class);
+    try {
+      aspect.aroundDefmanStereotypeMethod(pjp);
+    } finally {
+      detachAppender(DummyAscriptionTarget.class, appender);
+    }
+
+    assertThat(appender.list)
+        .anySatisfy(
+            event -> {
+              if (!"AOP payload sampled".equals(event.getMessage())) {
+                return;
+              }
+              assertThat(event.getMDCPropertyMap().get("sie.payload.sampled")).isEqualTo("true");
+              assertThat(event.getMDCPropertyMap().get("sie.payload")).isEqualTo(payload);
+            });
+  }
+
+  @Test
+  @DisplayName("AC-4 runtime: sampled bypass not selected does not emit sibling full-payload line")
+  void sampledBypassNotSelectedDoesNotEmitSiblingPayloadLine() throws Throwable {
+    BroadInstrumentationAspect aspect =
+        new BroadInstrumentationAspect(otel, "INFO", 40, 0.5d, () -> 0.9d);
+    String payload = "{\"statement\":\"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\"}";
+    ProceedingJoinPoint pjp =
+        jp(
+            new DummyAscriptionTarget(),
+            "create",
+            new Object[] {UUID.randomUUID(), OBJECT_MAPPER.readTree(payload)});
+
+    ListAppender<ILoggingEvent> appender = attachAppender(DummyAscriptionTarget.class);
+    try {
+      aspect.aroundDefmanStereotypeMethod(pjp);
+    } finally {
+      detachAppender(DummyAscriptionTarget.class, appender);
+    }
+
+    assertThat(appender.list)
+        .noneSatisfy(
+            event -> {
+              assertThat(event.getMessage()).isEqualTo("AOP payload sampled");
+            });
+  }
+
+  private static ListAppender<ILoggingEvent> attachAppender(Class<?> loggerClass) {
+    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+    Logger logger = context.getLogger(loggerClass.getName());
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.setContext(context);
+    appender.start();
+    logger.addAppender(appender);
+    return appender;
+  }
+
+  private static void detachAppender(Class<?> loggerClass, ListAppender<ILoggingEvent> appender) {
+    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+    Logger logger = context.getLogger(loggerClass.getName());
+    logger.detachAppender(appender);
+    appender.stop();
+  }
+
   /**
    * Stand-in target with predictable simple-name; lives in observability so userClass is stable.
    */
@@ -200,6 +312,12 @@ class BroadInstrumentationAspectUnitTest {
 
     public void boom() {
       throw new IllegalStateException("never invoked directly");
+    }
+  }
+
+  static class DummyAscriptionTarget {
+    public String create(UUID id, Object statement) {
+      return id + String.valueOf(statement);
     }
   }
 }

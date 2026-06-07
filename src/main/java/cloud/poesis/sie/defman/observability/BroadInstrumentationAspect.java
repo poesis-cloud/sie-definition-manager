@@ -6,7 +6,12 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.lang.reflect.Method;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleSupplier;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -58,6 +63,11 @@ public class BroadInstrumentationAspect {
   private static final String MDC_DURATION_MS = "sie.aop.duration_ms";
   private static final String MDC_EXCEPTION_TYPE = "exception.type";
   private static final String MDC_EXCEPTION_MESSAGE = "exception.message";
+  private static final String MDC_PAYLOAD = "sie.payload";
+  private static final String MDC_PAYLOAD_SAMPLED = "sie.payload.sampled";
+
+  private static final String PAYLOAD_LOG_LINE = "AOP payload";
+  private static final String PAYLOAD_SAMPLED_LOG_LINE = "AOP payload sampled";
 
   /**
    * Configured log level for AOP entry/exit/exception lines (default INFO). Non-final so the
@@ -67,10 +77,38 @@ public class BroadInstrumentationAspect {
    */
   private volatile String logLevel;
 
+  private final int payloadCapBytes;
+  private final double payloadBypassRate;
+  private final DoubleSupplier payloadSampleSupplier;
+
   public BroadInstrumentationAspect(
-      OpenTelemetry openTelemetry, @Value("${observability.aop.logLevel:INFO}") String logLevel) {
+      OpenTelemetry openTelemetry,
+      @Value("${observability.aop.logLevel:INFO}") String logLevel,
+      @Value("${observability.payloadCapBytes:16384}") int payloadCapBytes,
+      @Value("${observability.payloadBypassRate:0.0}") double payloadBypassRate) {
+    this(
+        openTelemetry,
+        logLevel,
+        payloadCapBytes,
+        payloadBypassRate,
+        () -> ThreadLocalRandom.current().nextDouble());
+  }
+
+  BroadInstrumentationAspect(OpenTelemetry openTelemetry, String logLevel) {
+    this(openTelemetry, logLevel, 16 * 1024, 0.0d, () -> ThreadLocalRandom.current().nextDouble());
+  }
+
+  BroadInstrumentationAspect(
+      OpenTelemetry openTelemetry,
+      String logLevel,
+      int payloadCapBytes,
+      double payloadBypassRate,
+      DoubleSupplier payloadSampleSupplier) {
     this.tracer = openTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1");
     this.logLevel = normaliseLevel(logLevel);
+    this.payloadCapBytes = payloadCapBytes;
+    this.payloadBypassRate = payloadBypassRate;
+    this.payloadSampleSupplier = payloadSampleSupplier;
   }
 
   private static String normaliseLevel(String raw) {
@@ -140,6 +178,27 @@ public class BroadInstrumentationAspect {
 
     long startNs = System.nanoTime();
     try (Scope ignored = span.makeCurrent()) {
+      PayloadLogEmission payloadEmission = buildPayloadEmission(className, methodName, pjp.getArgs());
+      if (payloadEmission != null) {
+        MDC.put(MDC_PAYLOAD, payloadEmission.boundedPayload());
+        try {
+          logAtLevel(targetLog, PAYLOAD_LOG_LINE, null);
+        } finally {
+          MDC.remove(MDC_PAYLOAD);
+        }
+
+        if (payloadEmission.sampledPayload() != null) {
+          MDC.put(MDC_PAYLOAD, payloadEmission.sampledPayload());
+          MDC.put(MDC_PAYLOAD_SAMPLED, "true");
+          try {
+            logAtLevel(targetLog, PAYLOAD_SAMPLED_LOG_LINE, null);
+          } finally {
+            MDC.remove(MDC_PAYLOAD);
+            MDC.remove(MDC_PAYLOAD_SAMPLED);
+          }
+        }
+      }
+
       // ENTRY log
       MDC.put(MDC_CODE_FUNCTION, methodName);
       MDC.put(MDC_ARGS_SUMMARY, argsSummary);
@@ -192,6 +251,111 @@ public class BroadInstrumentationAspect {
       span.end();
     }
   }
+
+  private PayloadLogEmission buildPayloadEmission(String className, String methodName, Object[] args) {
+    if (!isDefinitionOrAscriptionContext(className)) {
+      return null;
+    }
+
+    String payload = extractPayload(args);
+    if (payload == null || payload.isBlank()) {
+      return null;
+    }
+
+    String id = extractId(args);
+    String operation = className + "." + methodName;
+    String bounded =
+        PayloadLogHelper.boundedPayloadWithSpanSummary(operation, id, payload, payloadCapBytes);
+    boolean truncated = PayloadLogHelper.utf8Bytes(payload) > payloadCapBytes;
+    if (!truncated) {
+      return new PayloadLogEmission(bounded, null);
+    }
+
+    double sample = payloadSampleSupplier.getAsDouble();
+    if (PayloadLogHelper.shouldBypassPayloadCap(payloadBypassRate, sample)) {
+      return new PayloadLogEmission(bounded, payload);
+    }
+    return new PayloadLogEmission(bounded, null);
+  }
+
+  private static boolean isDefinitionOrAscriptionContext(String className) {
+    return className.contains("Definition") || className.contains("Ascription");
+  }
+
+  private static String extractPayload(Object[] args) {
+    if (args == null) {
+      return null;
+    }
+    for (Object arg : args) {
+      String payload = coercePayload(arg);
+      if (payload != null) {
+        return payload;
+      }
+    }
+    return null;
+  }
+
+  private static String coercePayload(Object arg) {
+    if (arg == null) {
+      return null;
+    }
+    if (arg instanceof JsonNode node) {
+      return node.toString();
+    }
+
+    try {
+      Method getter = arg.getClass().getMethod("getStatement");
+      if (getter.getParameterCount() == 0) {
+        Object value = getter.invoke(arg);
+        if (value instanceof JsonNode node) {
+          return node.toString();
+        }
+      }
+    } catch (ReflectiveOperationException ignored) {
+      // no statement payload on this argument type
+    }
+
+    return null;
+  }
+
+  private static String extractId(Object[] args) {
+    if (args == null) {
+      return "unknown";
+    }
+    for (Object arg : args) {
+      if (arg instanceof UUID uuid) {
+        return uuid.toString();
+      }
+      if (arg == null) {
+        continue;
+      }
+      try {
+        Method getter = arg.getClass().getMethod("getDefinitionId");
+        if (getter.getParameterCount() == 0) {
+          Object value = getter.invoke(arg);
+          if (value instanceof UUID uuid) {
+            return uuid.toString();
+          }
+        }
+      } catch (ReflectiveOperationException ignored) {
+        // no definition id on this argument type
+      }
+      try {
+        Method getter = arg.getClass().getMethod("getId");
+        if (getter.getParameterCount() == 0) {
+          Object value = getter.invoke(arg);
+          if (value instanceof UUID uuid) {
+            return uuid.toString();
+          }
+        }
+      } catch (ReflectiveOperationException ignored) {
+        // no id on this argument type
+      }
+    }
+    return "unknown";
+  }
+
+  private record PayloadLogEmission(String boundedPayload, String sampledPayload) {}
 
   /**
    * Single dispatch point for the configured log level. Entry/exit pass {@code thrown=null}; the
