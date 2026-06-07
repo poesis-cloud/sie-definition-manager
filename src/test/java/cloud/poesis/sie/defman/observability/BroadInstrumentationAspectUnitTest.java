@@ -25,8 +25,8 @@ import org.aspectj.lang.Signature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.slf4j.MDC;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Direct unit test for {@link BroadInstrumentationAspect}.
@@ -206,7 +206,10 @@ class BroadInstrumentationAspectUnitTest {
         jp(
             new DummyAscriptionTarget(),
             "create",
-            new Object[] {UUID.fromString("9dc2da8c-b639-4eb3-9f7d-bf29543fc830"), OBJECT_MAPPER.readTree(payload)});
+            new Object[] {
+              UUID.fromString("9dc2da8c-b639-4eb3-9f7d-bf29543fc830"),
+              OBJECT_MAPPER.readTree(payload)
+            });
 
     aspect.aroundDefmanStereotypeMethod(pjp);
 
@@ -226,7 +229,8 @@ class BroadInstrumentationAspectUnitTest {
   }
 
   @Test
-  @DisplayName("AC-4 runtime: sampled bypass selected emits sibling full-payload line with sampled tag")
+  @DisplayName(
+      "AC-4 runtime: sampled bypass selected emits sibling full-payload line with sampled tag")
   void sampledBypassSelectedEmitsSiblingPayloadLine() throws Throwable {
     BroadInstrumentationAspect aspect =
         new BroadInstrumentationAspect(otel, "INFO", 40, 1.0d, () -> 0.0d);

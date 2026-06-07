@@ -1,12 +1,12 @@
 package cloud.poesis.sie.defman.observability;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.reflect.Method;
 import java.util.Locale;
 import java.util.UUID;
@@ -19,6 +19,7 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
@@ -81,6 +82,7 @@ public class BroadInstrumentationAspect {
   private final double payloadBypassRate;
   private final DoubleSupplier payloadSampleSupplier;
 
+  @Autowired
   public BroadInstrumentationAspect(
       OpenTelemetry openTelemetry,
       @Value("${observability.aop.logLevel:INFO}") String logLevel,
@@ -178,7 +180,8 @@ public class BroadInstrumentationAspect {
 
     long startNs = System.nanoTime();
     try (Scope ignored = span.makeCurrent()) {
-      PayloadLogEmission payloadEmission = buildPayloadEmission(className, methodName, pjp.getArgs());
+      PayloadLogEmission payloadEmission =
+          buildPayloadEmission(className, methodName, pjp.getArgs());
       if (payloadEmission != null) {
         MDC.put(MDC_PAYLOAD, payloadEmission.boundedPayload());
         try {
@@ -252,7 +255,8 @@ public class BroadInstrumentationAspect {
     }
   }
 
-  private PayloadLogEmission buildPayloadEmission(String className, String methodName, Object[] args) {
+  private PayloadLogEmission buildPayloadEmission(
+      String className, String methodName, Object[] args) {
     if (!isDefinitionOrAscriptionContext(className)) {
       return null;
     }
