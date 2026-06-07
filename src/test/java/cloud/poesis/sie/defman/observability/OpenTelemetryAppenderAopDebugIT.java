@@ -63,7 +63,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  *   <li><b>R-INV-7</b> — the {@code application.yaml} AOP-level binding line is preserved verbatim;
  *       this test only overrides the {@code observability.aop.logLevel} property via profile yaml
  *       (which is exactly how Helm flips it in production via the {@code
- *       OBSERVABILITY_AOP_LOGLEVEL} env var).
+ *       OBSERVABILITY_AOP_LOG_LEVEL} env var).
  * </ul>
  */
 @SpringBootTest

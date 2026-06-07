@@ -70,10 +70,9 @@ observability:
   payloadBypassRate: ${OBSERVABILITY_PAYLOAD_BYPASS_RATE:0.0}
   aop:
     # S-004b / ADR-002 D-8: single configurable level for AOP entry/exit/exception logs. TRACE|DEBUG|INFO|WARN|ERROR|OFF.
-    # Both env aliases are accepted explicitly:
-    #   OBSERVABILITY_AOP_LOGLEVEL
+    # Single env binding:
     #   OBSERVABILITY_AOP_LOG_LEVEL
-    logLevel: ${OBSERVABILITY_AOP_LOGLEVEL:${OBSERVABILITY_AOP_LOG_LEVEL:INFO}}
+    logLevel: ${OBSERVABILITY_AOP_LOG_LEVEL:INFO}
   logs:
     # S-006 / ADR-003 D-2: dual-sink switch. enum: otlp | stdout | both.
     # Default `both` matches Helm defaults until S-014 flips to `otlp`.

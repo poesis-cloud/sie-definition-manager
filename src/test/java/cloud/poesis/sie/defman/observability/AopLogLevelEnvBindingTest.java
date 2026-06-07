@@ -14,17 +14,10 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.PropertySourcesPropertyResolver;
 import org.springframework.core.io.ClassPathResource;
 
-class AopLogLevelEnvAliasBindingTest {
+class AopLogLevelEnvBindingTest {
 
   @Test
-  void aopLogLevelBindsFromLegacyEnvAlias() throws IOException {
-    String resolved = resolveAopLogLevel(Map.of("OBSERVABILITY_AOP_LOGLEVEL", "DEBUG"));
-
-    assertThat(resolved).isEqualTo("DEBUG");
-  }
-
-  @Test
-  void aopLogLevelBindsFromUnderscoreEnvAlias() throws IOException {
+  void aopLogLevelBindsFromCanonicalEnvVar() throws IOException {
     String resolved = resolveAopLogLevel(Map.of("OBSERVABILITY_AOP_LOG_LEVEL", "DEBUG"));
 
     assertThat(resolved).isEqualTo("DEBUG");

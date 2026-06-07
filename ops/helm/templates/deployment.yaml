@@ -91,7 +91,7 @@ spec:
             - name: KAFKA_TX_ID_PREFIX
               value: {{ .Values.env.KAFKA_TX_ID_PREFIX | quote }}
             # S-004b / ADR-002 D-8: AOP broad instrumentation log level.
-            - name: OBSERVABILITY_AOP_LOGLEVEL
+            - name: OBSERVABILITY_AOP_LOG_LEVEL
               value: {{ .Values.observability.aop.logLevel | quote }}
             # S-007 AC-5: payload truncation/bypass operability knobs exposed via
             # Helm values per environment and bridged to Spring properties.
