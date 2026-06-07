@@ -99,6 +99,15 @@ class PayloadLogHelperTest {
   }
 
   @Test
+  void malformedSurrogateInputDoesNotThrowDuringTruncation() {
+    String payload = "\uD800" + "abcdef";
+
+    String out = PayloadLogHelper.boundedPayload(payload, 4);
+
+    assertThat(out).isNotNull();
+  }
+
+  @Test
   @DisplayName("AC-3: truncation with active span emits capped payload summary event")
   void truncationWithActiveSpanEmitsSummaryEvent() {
     String payload = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";

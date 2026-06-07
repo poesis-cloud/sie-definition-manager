@@ -155,14 +155,15 @@ public final class PayloadLogHelper {
     int bytes = 0;
     for (int i = 0; i < value.length(); ) {
       int cp = value.codePointAt(i);
-      String chunk = new String(Character.toChars(cp));
+      int charCount = Character.charCount(cp);
+      String chunk = value.substring(i, Math.min(value.length(), i + charCount));
       int cpBytes = utf8Bytes(chunk);
       if (bytes + cpBytes > maxBytes) {
         break;
       }
-      out.appendCodePoint(cp);
+      out.append(chunk);
       bytes += cpBytes;
-      i += Character.charCount(cp);
+      i += charCount;
     }
     return out.toString();
   }

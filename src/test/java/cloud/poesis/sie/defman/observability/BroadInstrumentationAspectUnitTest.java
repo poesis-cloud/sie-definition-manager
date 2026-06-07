@@ -285,6 +285,32 @@ class BroadInstrumentationAspectUnitTest {
             });
   }
 
+  @Test
+  @DisplayName("non-positive cap never emits sampled raw payload sibling line")
+  void nonPositiveCapNeverEmitsSampledRawPayloadLine() throws Throwable {
+    BroadInstrumentationAspect aspect =
+        new BroadInstrumentationAspect(otel, "INFO", 0, 1.0d, () -> 0.0d);
+    String payload = "{\"statement\":\"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\"}";
+    ProceedingJoinPoint pjp =
+        jp(
+            new DummyAscriptionTarget(),
+            "create",
+            new Object[] {UUID.randomUUID(), OBJECT_MAPPER.readTree(payload)});
+
+    ListAppender<ILoggingEvent> appender = attachAppender(DummyAscriptionTarget.class);
+    try {
+      aspect.aroundDefmanStereotypeMethod(pjp);
+    } finally {
+      detachAppender(DummyAscriptionTarget.class, appender);
+    }
+
+    assertThat(appender.list)
+        .noneSatisfy(
+            event -> {
+              assertThat(event.getMessage()).isEqualTo("AOP payload sampled");
+            });
+  }
+
   private static ListAppender<ILoggingEvent> attachAppender(Class<?> loggerClass) {
     LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
     Logger logger = context.getLogger(loggerClass.getName());
