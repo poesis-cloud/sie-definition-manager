@@ -23,8 +23,11 @@ public final class PayloadLogHelper {
    * @return bounded payload representation
    */
   public static String boundedPayload(String payload, int capBytes) {
-    if (payload == null || capBytes <= 0) {
+    if (payload == null) {
       return payload;
+    }
+    if (capBytes <= 0) {
+      return "";
     }
 
     int originalBytes = utf8Bytes(payload);
@@ -35,7 +38,7 @@ public final class PayloadLogHelper {
     String marker = truncationMarker(originalBytes);
     int markerBytes = utf8Bytes(marker);
     if (markerBytes >= capBytes) {
-      return truncateUtf8(marker, capBytes);
+      return tinyCapMarker(capBytes);
     }
 
     int previewBudget = capBytes - markerBytes;
@@ -48,6 +51,11 @@ public final class PayloadLogHelper {
 
   static int utf8Bytes(String value) {
     return value.getBytes(StandardCharsets.UTF_8).length;
+  }
+
+  private static String tinyCapMarker(int capBytes) {
+    String minimalMarker = "…";
+    return utf8Bytes(minimalMarker) <= capBytes ? minimalMarker : "";
   }
 
   private static String truncateUtf8(String value, int maxBytes) {
