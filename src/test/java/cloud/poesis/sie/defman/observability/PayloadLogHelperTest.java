@@ -62,6 +62,16 @@ class PayloadLogHelperTest {
   }
 
   @Test
+  void exactMarkerFitUsesFullMarkerWithoutPreview() {
+    String payload = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+    String marker = PayloadLogHelper.truncationMarker(PayloadLogHelper.utf8Bytes(payload));
+
+    String out = PayloadLogHelper.boundedPayload(payload, PayloadLogHelper.utf8Bytes(marker));
+
+    assertThat(out).isEqualTo(marker);
+  }
+
+  @Test
   void truncationPreservesUtf8AndSurrogateBoundaries() {
     String payload = "😀".repeat(20);
     int originalBytes = PayloadLogHelper.utf8Bytes(payload);

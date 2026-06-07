@@ -37,7 +37,7 @@ public final class PayloadLogHelper {
 
     String marker = truncationMarker(originalBytes);
     int markerBytes = utf8Bytes(marker);
-    if (markerBytes >= capBytes) {
+    if (markerBytes > capBytes) {
       return tinyCapMarker(capBytes);
     }
 
