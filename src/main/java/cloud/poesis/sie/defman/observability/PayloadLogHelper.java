@@ -1,6 +1,10 @@
 package cloud.poesis.sie.defman.observability;
 
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.Span;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Builds bounded payload previews for structured logs while preserving UTF-8 byte semantics.
@@ -10,6 +14,17 @@ import java.nio.charset.StandardCharsets;
  * byte length.
  */
 public final class PayloadLogHelper {
+
+  private static final String TRUNCATION_EVENT_NAME = "sie.payload.truncated.summary";
+
+  private static final AttributeKey<String> ATTR_OPERATION = AttributeKey.stringKey("operation");
+  private static final AttributeKey<String> ATTR_ID = AttributeKey.stringKey("id");
+  private static final AttributeKey<Long> ATTR_ORIGINAL_BYTES =
+      AttributeKey.longKey("original.byte_length");
+  private static final AttributeKey<String> ATTR_TRUNCATION_MARKER =
+      AttributeKey.stringKey("truncation.marker");
+  private static final AttributeKey<String> ATTR_CAPPED_PREVIEW =
+      AttributeKey.stringKey("capped.preview");
 
   private PayloadLogHelper() {
     // utility
@@ -43,6 +58,79 @@ public final class PayloadLogHelper {
 
     int previewBudget = capBytes - markerBytes;
     return truncateUtf8(payload, previewBudget) + marker;
+  }
+
+  /**
+   * Returns a bounded payload and, when truncation occurs under an active span, emits a capped
+   * payload summary event on the current span.
+   */
+  public static String boundedPayloadWithSpanSummary(
+      String operation, String id, String payload, int capBytes) {
+    if (payload == null) {
+      return null;
+    }
+
+    int originalBytes = utf8Bytes(payload);
+    String bounded = boundedPayload(payload, capBytes);
+    boolean truncated = originalBytes > capBytes;
+    if (!truncated) {
+      return bounded;
+    }
+
+    Span current = Span.current();
+    if (!current.getSpanContext().isValid()) {
+      return bounded;
+    }
+
+    current.addEvent(
+        TRUNCATION_EVENT_NAME,
+        Attributes.of(
+            ATTR_OPERATION,
+            operation == null ? "unknown" : operation,
+            ATTR_ID,
+            id == null ? "unknown" : id,
+            ATTR_ORIGINAL_BYTES,
+            (long) originalBytes,
+            ATTR_TRUNCATION_MARKER,
+            truncationMarker(originalBytes),
+            ATTR_CAPPED_PREVIEW,
+            bounded));
+    return bounded;
+  }
+
+  /**
+   * Applies deterministic payload-cap bypass sampling for tests and a random draw for production.
+   */
+  public static String boundedPayloadWithSampledBypass(
+      String payload, int capBytes, double payloadBypassRate) {
+    return boundedPayloadWithSampledBypass(
+        payload, capBytes, payloadBypassRate, ThreadLocalRandom.current().nextDouble());
+  }
+
+  static String boundedPayloadWithSampledBypass(
+      String payload, int capBytes, double payloadBypassRate, double sample) {
+    if (shouldBypassPayloadCap(payloadBypassRate, sample)) {
+      return payload;
+    }
+    return boundedPayload(payload, capBytes);
+  }
+
+  static boolean shouldBypassPayloadCap(double payloadBypassRate, double sample) {
+    double boundedRate = normalizeRate(payloadBypassRate);
+    if (sample < 0.0d || sample >= 1.0d) {
+      return false;
+    }
+    return sample < boundedRate;
+  }
+
+  private static double normalizeRate(double raw) {
+    if (Double.isNaN(raw) || raw <= 0.0d) {
+      return 0.0d;
+    }
+    if (raw >= 1.0d) {
+      return 1.0d;
+    }
+    return raw;
   }
 
   static String truncationMarker(int originalBytes) {

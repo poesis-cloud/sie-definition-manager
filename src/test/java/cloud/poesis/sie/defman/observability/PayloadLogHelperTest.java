@@ -2,9 +2,20 @@ package cloud.poesis.sie.defman.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;
+import io.opentelemetry.sdk.trace.data.EventData;
+import io.opentelemetry.sdk.trace.data.SpanData;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 class PayloadLogHelperTest {
+
+  @RegisterExtension static final OpenTelemetryExtension otel = OpenTelemetryExtension.create();
 
   @Test
   void nonPositiveCapNeverReturnsRawPayload() {
@@ -85,5 +96,75 @@ class PayloadLogHelperTest {
     assertThat(out).endsWith(expectedMarker);
     assertThat(out).doesNotContain("\uFFFD");
     assertThat(PayloadLogHelper.utf8Bytes(out)).isLessThanOrEqualTo(cap);
+  }
+
+  @Test
+  @DisplayName("AC-3: truncation with active span emits capped payload summary event")
+  void truncationWithActiveSpanEmitsSummaryEvent() {
+    String payload = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+    int cap = 40;
+    Tracer tracer = otel.getOpenTelemetry().getTracer("payload-helper-test");
+    Span span = tracer.spanBuilder("payload-span").startSpan();
+    String bounded;
+    try (Scope ignored = span.makeCurrent()) {
+      bounded =
+          PayloadLogHelper.boundedPayloadWithSpanSummary(
+              "POST /ascriptions", "asc-42", payload, cap);
+    } finally {
+      span.end();
+    }
+
+    SpanData captured =
+        otel.getSpans().stream()
+            .filter(s -> s.getName().equals("payload-span"))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(captured.getEvents()).hasSize(1);
+    EventData event = captured.getEvents().get(0);
+    assertThat(event.getName()).isEqualTo("sie.payload.truncated.summary");
+    assertThat(event.getAttributes().get(AttributeKey.stringKey("operation")))
+        .isEqualTo("POST /ascriptions");
+    assertThat(event.getAttributes().get(AttributeKey.stringKey("id"))).isEqualTo("asc-42");
+    assertThat(event.getAttributes().get(AttributeKey.longKey("original.byte_length")))
+        .isEqualTo((long) PayloadLogHelper.utf8Bytes(payload));
+    assertThat(event.getAttributes().get(AttributeKey.stringKey("truncation.marker")))
+        .isEqualTo(PayloadLogHelper.truncationMarker(PayloadLogHelper.utf8Bytes(payload)));
+    assertThat(event.getAttributes().get(AttributeKey.stringKey("capped.preview")))
+        .isEqualTo(bounded);
+    assertThat(event.getAttributes().get(AttributeKey.stringKey("capped.preview")))
+        .isNotEqualTo(payload);
+  }
+
+  @Test
+  @DisplayName("AC-3: truncation without active span does not fail")
+  void truncationWithoutActiveSpanDoesNotFail() {
+    String payload = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+
+    String bounded =
+        PayloadLogHelper.boundedPayloadWithSpanSummary("POST /ascriptions", "asc-42", payload, 40);
+
+    assertThat(bounded).contains("<truncated:");
+  }
+
+  @Test
+  @DisplayName("AC-4: sampled bypass selected path returns uncapped payload")
+  void sampledBypassSelectedPathReturnsOriginalPayload() {
+    String payload = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+
+    String out = PayloadLogHelper.boundedPayloadWithSampledBypass(payload, 24, 0.30d, 0.20d);
+
+    assertThat(out).isEqualTo(payload);
+  }
+
+  @Test
+  @DisplayName("AC-4: sampled bypass not-selected path returns bounded payload")
+  void sampledBypassNotSelectedPathReturnsBoundedPayload() {
+    String payload = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+
+    String out = PayloadLogHelper.boundedPayloadWithSampledBypass(payload, 24, 0.30d, 0.80d);
+
+    assertThat(out).contains("<truncated:");
+    assertThat(out).isNotEqualTo(payload);
   }
 }
