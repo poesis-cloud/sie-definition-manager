@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 class ArgsSummaryTest {
@@ -22,6 +23,8 @@ class ArgsSummaryTest {
   }
 
   private record SamplePoint(int x, int y, String label) {}
+
+  private static final class RésuméToken {}
 
   @Test
   void nullArgsArrayRendersEmptyParens() {
@@ -136,15 +139,31 @@ class ArgsSummaryTest {
       args[i] = ten;
     }
     String out = ArgsSummary.summarize(args);
-    assertThat(out).hasSize(ArgsSummary.MAX_SUMMARY_CHARS);
-    assertThat(out).endsWith(ArgsSummary.TRUNCATION_SUFFIX);
-    assertThat(ArgsSummary.TRUNCATION_SUFFIX).isEqualTo("\u2026[truncated]");
+    assertThat(out.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
+        .isLessThanOrEqualTo(ArgsSummary.MAX_SUMMARY_BYTES);
+    assertThat(out)
+        .matches(Pattern.compile(".*<TRUNCATED:\\d+_bytes>$", Pattern.DOTALL).pattern());
   }
 
   @Test
   void outputBelowCapIsNotTruncated() {
     String out = ArgsSummary.summarize(new Object[] {"a", 1, true});
-    assertThat(out).doesNotEndWith(ArgsSummary.TRUNCATION_SUFFIX);
-    assertThat(out.length()).isLessThan(ArgsSummary.MAX_SUMMARY_CHARS);
+    assertThat(out).doesNotContain("<TRUNCATED:");
+    assertThat(out.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
+        .isLessThan(ArgsSummary.MAX_SUMMARY_BYTES);
+  }
+
+  @Test
+  void utf8ByteCapTriggersWhenCharLengthIsUnderCapButByteLengthExceedsCap() {
+    int n = 2500;
+    Object[] args = new Object[n];
+    for (int i = 0; i < n; i++) {
+      args[i] = new RésuméToken();
+    }
+    String out = ArgsSummary.summarize(args);
+
+    assertThat(out).contains("<TRUNCATED:");
+    assertThat(out.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
+        .isLessThanOrEqualTo(ArgsSummary.MAX_SUMMARY_BYTES);
   }
 }

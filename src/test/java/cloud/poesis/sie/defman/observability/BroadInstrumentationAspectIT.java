@@ -17,6 +17,7 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.annotation.Annotation;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +125,8 @@ class BroadInstrumentationAspectIT {
       "AC-1: every Defman stereotype bean (outside observability) is wrapped — invoking a no-arg"
           + " public method emits a span with required attributes")
   void everyStereotypeBeanIsWrapped() throws Exception {
+    assertStereotypePopulation();
+
     Map<String, Object> stereotypeBeans = collectDefmanStereotypeBeans();
     assertThat(stereotypeBeans)
         .as("sanity: scan must find at least one Defman stereotype bean")
@@ -371,6 +374,10 @@ class BroadInstrumentationAspectIT {
         applicationContext.getBeansWithAnnotation(
             org.springframework.context.annotation.Configuration.class));
 
+    return filterDefmanBeans(all);
+  }
+
+  private static Map<String, Object> filterDefmanBeans(Map<String, Object> all) {
     Map<String, Object> filtered = new LinkedHashMap<>();
     for (Map.Entry<String, Object> e : all.entrySet()) {
       Object bean = e.getValue();
@@ -379,12 +386,36 @@ class BroadInstrumentationAspectIT {
       String name = user.getName();
       if (!name.startsWith("cloud.poesis.sie.defman.")) continue;
       if (name.startsWith("cloud.poesis.sie.defman.observability.")) continue;
-      if (name.startsWith("cloud.poesis.sie.defman.testbeans.")) continue;
       // Exclude the test config itself.
       if (name.contains("$")) continue;
       filtered.put(e.getKey(), bean);
     }
     return filtered;
+  }
+
+  private <A extends Annotation> Map<String, Object> beansForStereotype(Class<A> annotation) {
+    return filterDefmanBeans(applicationContext.getBeansWithAnnotation(annotation));
+  }
+
+  private void assertStereotypePopulation() {
+    assertThat(beansForStereotype(org.springframework.stereotype.Component.class))
+        .as("structural guard: @Component population in production package set")
+        .isNotEmpty();
+    assertThat(beansForStereotype(org.springframework.stereotype.Service.class))
+        .as("structural guard: @Service population in production package set")
+        .isNotEmpty();
+    assertThat(beansForStereotype(org.springframework.stereotype.Repository.class))
+        .as("structural guard: @Repository population in production package set")
+        .isNotEmpty();
+    assertThat(beansForStereotype(org.springframework.stereotype.Controller.class))
+        .as("structural guard: @Controller population in production package set")
+        .isNotEmpty();
+    assertThat(beansForStereotype(org.springframework.web.bind.annotation.RestController.class))
+        .as("structural guard: @RestController population in production package set")
+        .isNotEmpty();
+    assertThat(beansForStereotype(org.springframework.context.annotation.Configuration.class))
+        .as("structural guard: @Configuration population in production package set")
+        .isNotEmpty();
   }
 
   private static void addBeans(Map<String, Object> sink, Map<String, Object> src) {
