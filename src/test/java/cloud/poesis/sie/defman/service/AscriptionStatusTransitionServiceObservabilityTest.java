@@ -9,6 +9,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -35,6 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +49,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   private static final String EVENT_HOOK_APPROVAL = "gsm.ascription.hook.approval";
   private static final String EVENT_HOOK_CASCADE = "gsm.ascription.hook.cascade";
   private static final String EVENT_HOOK_CASCADE_SKIP = "gsm.ascription.hook.cascade-skip";
+  private static final String EVENT_HOOK_ERROR = "gsm.ascription.hook.error";
 
   @RegisterExtension static final OpenTelemetryExtension otel = OpenTelemetryExtension.create();
 
@@ -119,11 +124,30 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype));
     stubRepoSave();
 
-    service.transition(ascriptionId, "ACTIVE");
+    Logger logger = (Logger) LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.start();
+    logger.addAppender(appender);
+
+    try {
+      service.transition(ascriptionId, "ACTIVE");
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
 
     SpanData transitionSpan = findTransitionSpanByAscription(ascriptionId);
     assertThat(transitionSpan.getEvents())
       .anyMatch(event -> event.getName().equals(EVENT_HOOK_ACTIVATION));
+    assertThat(appender.list)
+        .anyMatch(
+            event ->
+                event.getFormattedMessage().contains("event.correlation")
+                    && event.getFormattedMessage().contains("trace_id=")
+                    && event.getFormattedMessage().contains("span_id=")
+                    && event.getFormattedMessage().contains("event.name=" + EVENT_HOOK_ACTIVATION)
+                    && event.getFormattedMessage().contains("event.outcome=success")
+                    && event.getFormattedMessage().contains("sie.component=definition-manager"));
     assertThat(
         otel.getSpans().stream()
           .filter(span -> span.getName().equals(TRANSITION_SPAN_NAME))
@@ -257,11 +281,27 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype, mechanismSubtype));
     stubRepoSave();
 
-    service.transition(sourceId, "PROPOSED");
+    Logger logger = (Logger) LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.start();
+    logger.addAppender(appender);
+
+    try {
+      service.transition(sourceId, "PROPOSED");
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
     assertThat(sourceTransition.getEvents())
       .anyMatch(event -> event.getName().equals(EVENT_HOOK_CASCADE_SKIP));
+    assertThat(appender.list)
+        .anyMatch(
+            event ->
+                event.getFormattedMessage().contains("event.correlation")
+                    && event.getFormattedMessage().contains("event.name=" + EVENT_HOOK_CASCADE_SKIP)
+                    && event.getFormattedMessage().contains("event.outcome=skipped"));
     assertThat(
         otel.getSpans().stream()
           .filter(span -> span.getName().equals(TRANSITION_SPAN_NAME))
@@ -282,7 +322,17 @@ class AscriptionStatusTransitionServiceObservabilityTest {
       .when(stateMachine)
       .validateTransition(ascriptionId, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
 
-    assertThrows(RuleViolationException.class, () -> service.transition(ascriptionId, "PROPOSED"));
+    Logger logger = (Logger) LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.start();
+    logger.addAppender(appender);
+
+    try {
+      assertThrows(RuleViolationException.class, () -> service.transition(ascriptionId, "PROPOSED"));
+    } finally {
+      logger.detachAppender(appender);
+      appender.stop();
+    }
 
     SpanData transitionSpan =
         otel.getSpans().stream()
@@ -291,6 +341,13 @@ class AscriptionStatusTransitionServiceObservabilityTest {
             .orElseThrow();
 
     assertThat(transitionSpan.getEvents()).anyMatch(event -> event.getName().equals("exception"));
+    assertThat(transitionSpan.getEvents()).anyMatch(event -> event.getName().equals(EVENT_HOOK_ERROR));
+    assertThat(appender.list)
+        .anyMatch(
+            event ->
+                event.getFormattedMessage().contains("event.correlation")
+                    && event.getFormattedMessage().contains("event.name=" + EVENT_HOOK_ERROR)
+                    && event.getFormattedMessage().contains("event.outcome=failure"));
   }
 
   private AscriptionEntity stubEntity(
