@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -89,6 +90,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> subtypeByType;
   private Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeTargetsBySourceType;
 
+  @Autowired
   public AscriptionStatusTransitionService(
       AscriptionStatusTransitionRepository transitionRepo,
       AscriptionStateMachineService stateMachine,
