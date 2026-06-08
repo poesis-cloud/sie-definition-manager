@@ -10,6 +10,13 @@ import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -21,6 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -45,6 +53,24 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
   private static final Logger LOG =
       LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
+  private static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability";
+  private static final String TRANSITION_SPAN_NAME = "gsm.ascription.transition";
+  private static final String ATTR_ASCRIPTION_ID = "gsm.ascription.id";
+  private static final String ATTR_STATE_FROM = "gsm.ascription.state.from";
+  private static final String ATTR_STATE_TO = "gsm.ascription.state.to";
+  private static final String ATTR_TENANT_ID = "gsm.tenant.id";
+  private static final String ATTR_COMPONENT = "sie.component";
+  private static final String COMPONENT_DEFINITION_MANAGER = "definition-manager";
+  private static final String ATTR_SUBJECT_TYPE = "gsm.ascription.subject.type";
+  private static final String ATTR_CASCADE_TYPE = "gsm.ascription.cascade.type";
+  private static final String ATTR_CASCADE_TARGET_ID = "gsm.ascription.cascade.target.id";
+  private static final String ATTR_CASCADE_TARGET_TYPE = "gsm.ascription.cascade.target.type";
+  private static final String ATTR_CASCADE_REASON = "gsm.ascription.cascade.reason";
+  private static final String EVENT_HOOK_ACTIVATION = "gsm.ascription.hook.activation";
+  private static final String EVENT_HOOK_DEACTIVATION = "gsm.ascription.hook.deactivation";
+  private static final String EVENT_HOOK_APPROVAL = "gsm.ascription.hook.approval";
+  private static final String EVENT_HOOK_CASCADE = "gsm.ascription.hook.cascade";
+  private static final String EVENT_HOOK_CASCADE_SKIP = "gsm.ascription.hook.cascade-skip";
 
   // ======================================================================
   // Cascade graph (built at startup from subtype declarations)
@@ -58,6 +84,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private final AscriptionStateMachineService stateMachine;
   private final EntityManager entityManager;
   private final List<AscriptionSubtypeService<?>> subtypeServices;
+  private final Tracer tracer;
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> subtypeByType;
   private Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeTargetsBySourceType;
@@ -67,10 +94,25 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       AscriptionStateMachineService stateMachine,
       EntityManager entityManager,
       List<AscriptionSubtypeService<?>> subtypeServices) {
+    this(
+        transitionRepo,
+        stateMachine,
+        entityManager,
+        subtypeServices,
+        GlobalOpenTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1"));
+  }
+
+  AscriptionStatusTransitionService(
+      AscriptionStatusTransitionRepository transitionRepo,
+      AscriptionStateMachineService stateMachine,
+      EntityManager entityManager,
+      List<AscriptionSubtypeService<?>> subtypeServices,
+      Tracer tracer) {
     this.transitionRepo = transitionRepo;
     this.stateMachine = stateMachine;
     this.entityManager = entityManager;
     this.subtypeServices = List.copyOf(subtypeServices);
+    this.tracer = tracer;
   }
 
   /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
@@ -163,60 +205,84 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     DefinitionSubjectType type = entity.getDefinition().getSubjectType();
     AscriptionStatusType currentStatus = entity.getStatus();
 
-    // 1. Validate state machine transition
-    stateMachine.validateTransition(ascriptionId, currentStatus, targetStatusType);
+    Span transitionSpan = startTransitionSpan(ascriptionId, currentStatus, targetStatusType);
 
-    // 2. Check referee preconditions
-    validateRefereePreconditions(entity, type, currentStatus, targetStatusType);
+    try (Scope ignored = transitionSpan.makeCurrent()) {
+      // 1. Validate state machine transition
+      stateMachine.validateTransition(ascriptionId, currentStatus, targetStatusType);
 
-    // 3. Activation uniqueness (Structure purpose, Mechanism function, Archetype
-    // title)
-    if (targetStatusType == AscriptionStatusType.ACTIVE) {
-      validateActivationUniqueness(entity, type);
-    }
+      // 2. Check referee preconditions
+      validateRefereePreconditions(entity, type, currentStatus, targetStatusType);
 
-    // 3b. Subtype-specific activation hook
-    if (targetStatusType == AscriptionStatusType.ACTIVE) {
-      AscriptionSubtypeService<?> svc = subtypeByType.get(type);
-      if (svc != null) {
-        svc.onActivation(entity);
-      }
-    }
-
-    // 3c. Subtype-specific deactivation hook (leaving in-effect)
-    if (EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
-            .contains(currentStatus)
-        && !EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
-            .contains(targetStatusType)) {
-      AscriptionSubtypeService<?> svc = subtypeByType.get(type);
-      if (svc != null) {
-        svc.onDeactivation(entity);
-      }
-    }
-
-    // 4–7. Persistence operations (translate DB constraint violations to domain
-    // exceptions)
-    try {
-      // 4. Activation handoff (ACTIVE → previous ACTIVE to DEPRECATED)
+      // 3. Activation uniqueness (Structure purpose, Mechanism function, Archetype
+      // title)
       if (targetStatusType == AscriptionStatusType.ACTIVE) {
-        handleActivation(type, entity);
+        validateActivationUniqueness(entity, type);
       }
 
-      // 5. Record transition (DB trigger updates entity status/version)
-      AscriptionStatusTransitionEntity saved =
-          recordTransition(entity, currentStatus, targetStatusType);
-
-      // 6. Governance convergence (APPROVED → sibling termination)
-      if (targetStatusType == AscriptionStatusType.APPROVED) {
-        handleApproval(type, entity);
+      // 3b. Subtype-specific activation hook
+      if (targetStatusType == AscriptionStatusType.ACTIVE) {
+        AscriptionSubtypeService<?> svc = subtypeByType.get(type);
+        if (svc != null) {
+          transitionSpan.addEvent(
+              EVENT_HOOK_ACTIVATION,
+              Attributes.of(
+                  AttributeKey.stringKey(ATTR_SUBJECT_TYPE),
+                  type.name()));
+          svc.onActivation(entity);
+        }
       }
 
-      // 7. Execute cascades
-      executeCascades(entity, type, currentStatus, targetStatusType);
+      // 3c. Subtype-specific deactivation hook (leaving in-effect)
+      if (EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
+              .contains(currentStatus)
+          && !EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
+              .contains(targetStatusType)) {
+        AscriptionSubtypeService<?> svc = subtypeByType.get(type);
+        if (svc != null) {
+          transitionSpan.addEvent(
+              EVENT_HOOK_DEACTIVATION,
+              Attributes.of(
+                  AttributeKey.stringKey(ATTR_SUBJECT_TYPE),
+                  type.name()));
+          svc.onDeactivation(entity);
+        }
+      }
 
-      return saved;
-    } catch (DataIntegrityViolationException ex) {
-      throw PersistenceExceptionTranslationService.translate(ex);
+      // 4–7. Persistence operations (translate DB constraint violations to domain
+      // exceptions)
+      try {
+        // 4. Activation handoff (ACTIVE → previous ACTIVE to DEPRECATED)
+        if (targetStatusType == AscriptionStatusType.ACTIVE) {
+          handleActivation(type, entity);
+        }
+
+        // 5. Record transition (DB trigger updates entity status/version)
+        AscriptionStatusTransitionEntity saved =
+            recordTransition(entity, currentStatus, targetStatusType);
+
+        // 6. Governance convergence (APPROVED → sibling termination)
+        if (targetStatusType == AscriptionStatusType.APPROVED) {
+          transitionSpan.addEvent(
+              EVENT_HOOK_APPROVAL,
+              Attributes.of(
+                  AttributeKey.stringKey(ATTR_SUBJECT_TYPE),
+                  type.name()));
+          handleApproval(type, entity);
+        }
+
+        // 7. Execute cascades
+        executeCascades(entity, type, currentStatus, targetStatusType);
+
+        return saved;
+      } catch (DataIntegrityViolationException ex) {
+        throw PersistenceExceptionTranslationService.translate(ex);
+      }
+    } catch (RuntimeException ex) {
+      transitionSpan.recordException(ex);
+      throw ex;
+    } finally {
+      transitionSpan.end();
     }
   }
 
@@ -268,6 +334,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     for (CascadeTargetEntry entry : targetEntries) {
       if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT
           && !stateMachine.isDependentCascadeApplicable(fromStatus, toStatus)) {
+        Span.current()
+            .addEvent(
+                EVENT_HOOK_CASCADE_SKIP,
+                Attributes.builder()
+                    .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                    .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                    .put(ATTR_CASCADE_REASON, "dependent-not-applicable")
+                    .build());
         continue;
       }
 
@@ -276,6 +350,15 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
       for (AscriptionEntity target : targets) {
         if (target.getStatus() != fromStatus) {
+          Span.current()
+              .addEvent(
+                  EVENT_HOOK_CASCADE_SKIP,
+                  Attributes.builder()
+                      .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                      .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                      .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                      .put(ATTR_CASCADE_REASON, "status-mismatch")
+                      .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
                 AscriptionStatusTransitionRuleType
@@ -328,6 +411,15 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               entry.targetService().getRefereeReferences(target);
           stateMachine.validateRefereePreconditions(refs, fromStatus, toStatus);
         } catch (RuleViolationException e) {
+          Span.current()
+              .addEvent(
+                  EVENT_HOOK_CASCADE_SKIP,
+                  Attributes.builder()
+                      .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                      .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                      .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                      .put(ATTR_CASCADE_REASON, "referee-precondition")
+                      .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
                 AscriptionStatusTransitionRuleType
@@ -356,9 +448,56 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
           continue;
         }
 
-        recordTransition(target, fromStatus, toStatus);
-        executeCascades(target, targetType, fromStatus, toStatus);
+        Span.current()
+            .addEvent(
+                EVENT_HOOK_CASCADE,
+                Attributes.builder()
+                    .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                    .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                    .put(ATTR_CASCADE_TARGET_TYPE, targetType.name())
+                    .build());
+
+        transitionCascadeTarget(target, targetType, fromStatus, toStatus);
       }
+    }
+  }
+
+  private Span startTransitionSpan(
+      UUID ascriptionId, AscriptionStatusType fromStatus, AscriptionStatusType toStatus) {
+    Span transitionSpan =
+        tracer
+            .spanBuilder(TRANSITION_SPAN_NAME)
+            .setSpanKind(SpanKind.INTERNAL)
+            .setAttribute(ATTR_ASCRIPTION_ID, ascriptionId.toString())
+            .setAttribute(ATTR_STATE_FROM, fromStatus.name())
+            .setAttribute(ATTR_STATE_TO, toStatus.name())
+            .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
+            .startSpan();
+
+    String tenantId = MDC.get(ATTR_TENANT_ID);
+    if (tenantId != null && !tenantId.isBlank()) {
+      transitionSpan.setAttribute(ATTR_TENANT_ID, tenantId);
+    }
+
+    return transitionSpan;
+  }
+
+  private void transitionCascadeTarget(
+      AscriptionEntity target,
+      DefinitionSubjectType targetType,
+      AscriptionStatusType fromStatus,
+      AscriptionStatusType toStatus) {
+    UUID targetId = Objects.requireNonNull(target.getId(), "cascade.target.id");
+    Span cascadeSpan = startTransitionSpan(targetId, fromStatus, toStatus);
+
+    try (Scope ignored = cascadeSpan.makeCurrent()) {
+      recordTransition(target, fromStatus, toStatus);
+      executeCascades(target, targetType, fromStatus, toStatus);
+    } catch (RuntimeException ex) {
+      cascadeSpan.recordException(ex);
+      throw ex;
+    } finally {
+      cascadeSpan.end();
     }
   }
 
