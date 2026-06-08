@@ -13,10 +13,12 @@ import cloud.poesis.sie.defman.type.PrimitiveType;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
@@ -94,6 +96,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private final EntityManager entityManager;
   private final List<AscriptionSubtypeService<?>> subtypeServices;
   private final Tracer tracer;
+  private final io.opentelemetry.api.logs.Logger otelLogger;
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> subtypeByType;
   private Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeTargetsBySourceType;
@@ -123,6 +126,13 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     this.entityManager = entityManager;
     this.subtypeServices = List.copyOf(subtypeServices);
     this.tracer = tracer;
+    this.otelLogger =
+      GlobalOpenTelemetry
+        .get()
+        .getLogsBridge()
+        .loggerBuilder(INSTRUMENTATION_SCOPE)
+        .setInstrumentationVersion("1")
+        .build();
   }
 
   /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
@@ -583,36 +593,39 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     String tenantId = MDC.get(ATTR_TENANT_ID);
 
     if (OUTCOME_FAILURE.equals(eventOutcome)) {
-      LOG.error(
-          "event.correlation trace_id={} span_id={} event.name={} event.outcome={} sie.component={} gsm.tenant.id={}",
-          traceId,
-          spanId,
-          eventName,
-          eventOutcome,
-          COMPONENT_DEFINITION_MANAGER,
-          tenantId);
+      emitOtelLifecycleLogRecord(eventName, eventOutcome, traceId, spanId, tenantId, Severity.ERROR);
       return;
     }
 
     if (OUTCOME_SKIPPED.equals(eventOutcome)) {
-      LOG.warn(
-          "event.correlation trace_id={} span_id={} event.name={} event.outcome={} sie.component={} gsm.tenant.id={}",
-          traceId,
-          spanId,
-          eventName,
-          eventOutcome,
-          COMPONENT_DEFINITION_MANAGER,
-          tenantId);
+      emitOtelLifecycleLogRecord(eventName, eventOutcome, traceId, spanId, tenantId, Severity.WARN);
       return;
     }
+    emitOtelLifecycleLogRecord(eventName, eventOutcome, traceId, spanId, tenantId, Severity.INFO);
+    }
 
-    LOG.info(
-        "event.correlation trace_id={} span_id={} event.name={} event.outcome={} sie.component={} gsm.tenant.id={}",
-        traceId,
-        spanId,
-        eventName,
-        eventOutcome,
-        COMPONENT_DEFINITION_MANAGER,
-        tenantId);
+    private void emitOtelLifecycleLogRecord(
+      String eventName,
+      String eventOutcome,
+      String traceId,
+      String spanId,
+      String tenantId,
+      Severity severity) {
+    otelLogger
+      .logRecordBuilder()
+      .setContext(Context.current())
+      .setSeverity(severity)
+      .setSeverityText(severity.name())
+      .setBody(
+        String.format(
+          "event.correlation event.name=%s event.outcome=%s sie.component=%s",
+          eventName, eventOutcome, COMPONENT_DEFINITION_MANAGER))
+      .setAttribute("event.name", eventName)
+      .setAttribute("event.outcome", eventOutcome)
+      .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
+      .setAttribute("trace_id", traceId == null ? "" : traceId)
+      .setAttribute("span_id", spanId == null ? "" : spanId)
+      .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
+      .emit();
   }
 }
