@@ -1,5 +1,6 @@
 package cloud.poesis.sie.defman.service;
 
+import cloud.poesis.sie.defman.observability.PayloadLogHelper;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
@@ -19,9 +20,16 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.logs.Severity;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import org.hibernate.Hibernate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -46,8 +54,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional("transactionManager")
 public class AscriptionService implements SmartInitializingSingleton {
-
-  private static final Logger LOG = LoggerFactory.getLogger(AscriptionService.class);
+  private static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability";
+  private static final String CREATE_SPAN_NAME = "gsm.definition.create";
+  private static final String TRANSFORM_SPAN_NAME = "gsm.definition.transform";
+  private static final String OPERATION_CREATE = "create";
+  private static final String OPERATION_TRANSFORM = "transform";
+  private static final String ATTR_OPERATION = "gsm.definition.operation";
+  private static final String ATTR_DEFINITION_ID = "gsm.definition.id";
+  private static final String ATTR_DEFINITION_KIND = "gsm.definition.kind";
+  private static final String ATTR_TENANT_ID = "gsm.tenant.id";
+  private static final String ATTR_COMPONENT = "sie.component";
+  private static final String COMPONENT_DEFINITION_MANAGER = "definition-manager";
+  private static final String EVENT_VALIDATE_STATEMENT = "validate-statement";
+  private static final String EVENT_RESOLVE_DEFINITION = "resolve-definition";
+  private static final String EVENT_PROTECT_STATEMENT = "apply-data-protection";
+  private static final String EVENT_BUILD_SUBTYPE = "build-subtype";
+  private static final String EVENT_VALIDATE_IDENTITY = "validate-identity-bound";
+  private static final String EVENT_VALIDATE_UNIQUENESS = "validate-uniqueness";
+  private static final String EVENT_VALIDATE_REFEREES = "validate-referees";
+  private static final String EVENT_PERSIST = "persist";
+  private static final String EVENT_AFTER_CREATE = "after-create";
+  private static final String EVENT_OUTCOME_SUCCESS = "success";
+  private static final String MDC_TRACE_ID = "trace_id";
+  private static final String MDC_SPAN_ID = "span_id";
+  private static final int DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES = 16_384;
 
   private final AscriptionRepository ascriptionRepository;
   private final ArchetypeService archetypeService;
@@ -59,6 +89,9 @@ public class AscriptionService implements SmartInitializingSingleton {
   private final AscriptionProtectionService statementProtection;
   private final EntityManager entityManager;
   private final List<AscriptionSubtypeService<?>> handlerList;
+  private final Tracer tracer;
+  private final io.opentelemetry.api.logs.Logger otelLogger;
+  private final int createResultPayloadCapBytes;
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> handlers;
 
@@ -73,6 +106,34 @@ public class AscriptionService implements SmartInitializingSingleton {
       AscriptionProtectionService statementProtection,
       EntityManager entityManager,
       List<AscriptionSubtypeService<?>> handlerList) {
+      this(
+        ascriptionRepository,
+        archetypeService,
+        definitionService,
+        stateMachine,
+        statementValidation,
+        identityBoundValidation,
+        uniquenessValidation,
+        statementProtection,
+        entityManager,
+        handlerList,
+        GlobalOpenTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1"),
+        DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES);
+      }
+
+      AscriptionService(
+        AscriptionRepository ascriptionRepository,
+        ArchetypeService archetypeService,
+        DefinitionService definitionService,
+        AscriptionStateMachineService stateMachine,
+        AscriptionParsingValidationService statementValidation,
+        AscriptionIdentityBoundValidationService identityBoundValidation,
+        AscriptionUniquenessValidationService uniquenessValidation,
+        AscriptionProtectionService statementProtection,
+        EntityManager entityManager,
+        List<AscriptionSubtypeService<?>> handlerList,
+        Tracer tracer,
+        int createResultPayloadCapBytes) {
     this.ascriptionRepository = ascriptionRepository;
     this.archetypeService = archetypeService;
     this.definitionService = definitionService;
@@ -83,6 +144,15 @@ public class AscriptionService implements SmartInitializingSingleton {
     this.statementProtection = statementProtection;
     this.entityManager = entityManager;
     this.handlerList = List.copyOf(handlerList);
+    this.tracer = tracer;
+    this.otelLogger =
+      GlobalOpenTelemetry
+        .get()
+        .getLogsBridge()
+        .loggerBuilder(INSTRUMENTATION_SCOPE)
+        .setInstrumentationVersion("1")
+        .build();
+    this.createResultPayloadCapBytes = createResultPayloadCapBytes;
   }
 
   @Override
@@ -123,8 +193,60 @@ public class AscriptionService implements SmartInitializingSingleton {
   public AscriptionEntity create(UUID archetypeId, JsonNode statement, UUID definitionId) {
     ArchetypeService.ArchetypeResolution resolution =
         archetypeService.resolveForCreation(archetypeId);
-    return doCreate(
-        requireHandler(resolution.subjectType()), resolution.archetype(), statement, definitionId);
+    if (definitionId == null) {
+      return doCreateWithOperationSpan(
+          requireHandler(resolution.subjectType()), resolution.archetype(), statement);
+    }
+    return doTransformWithOperationSpan(
+        requireHandler(resolution.subjectType()),
+        resolution.archetype(),
+        statement,
+        definitionId);
+  }
+
+  private <T extends AscriptionEntity> T doCreateWithOperationSpan(
+      AscriptionSubtypeService<T> handler, ArchetypeEntity archetype, JsonNode statement) {
+    Span createSpan =
+        startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
+
+    try (Scope ignored = createSpan.makeCurrent()) {
+      return doCreate(handler, archetype, statement, null, createSpan, OPERATION_CREATE, null);
+    } catch (RuntimeException ex) {
+      createSpan.recordException(ex);
+      throw ex;
+    } finally {
+      createSpan.end();
+    }
+  }
+
+  private <T extends AscriptionEntity> T doTransformWithOperationSpan(
+      AscriptionSubtypeService<T> handler,
+      ArchetypeEntity archetype,
+      JsonNode statement,
+      UUID definitionId) {
+    Span transformSpan =
+        startDefinitionSpan(
+            TRANSFORM_SPAN_NAME,
+            OPERATION_TRANSFORM,
+            handler.getSubjectType(),
+            definitionId);
+    JsonNode priorStatement = (statement == null) ? null : statement.deepCopy();
+
+    try (Scope ignored = transformSpan.makeCurrent()) {
+      return doCreate(
+          handler,
+          archetype,
+          statement,
+          definitionId,
+          transformSpan,
+          OPERATION_TRANSFORM,
+          priorStatement);
+    } catch (RuntimeException ex) {
+      transformSpan.recordException(ex);
+      throw ex;
+    } finally {
+      transformSpan.end();
+    }
   }
 
   private <T extends AscriptionEntity> T doCreate(
@@ -132,28 +254,49 @@ public class AscriptionService implements SmartInitializingSingleton {
       ArchetypeEntity archetype,
       JsonNode statement,
       UUID definitionId) {
+    return doCreate(handler, archetype, statement, definitionId, null, OPERATION_CREATE, null);
+  }
+
+  private <T extends AscriptionEntity> T doCreate(
+      AscriptionSubtypeService<T> handler,
+      ArchetypeEntity archetype,
+      JsonNode statement,
+      UUID definitionId,
+      Span definitionSpan,
+      String operation,
+      JsonNode priorStatement) {
+    addDefinitionEvent(definitionSpan, operation, EVENT_VALIDATE_STATEMENT);
     // 1. Validate statement against archetype schema
     statementValidation.validateStatement(statement, archetype, handler.getSubjectType());
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_RESOLVE_DEFINITION);
     // 2. Resolve or create Definition
     DefinitionEntity definition = definitionService.resolve(definitionId, handler.getSubjectType());
+    setCreateSpanDefinitionAttributes(definitionSpan, definition.getId(), handler.getSubjectType());
+    emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_RESOLVE_DEFINITION, EVENT_OUTCOME_SUCCESS);
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_PROTECT_STATEMENT);
     // 3. Apply $gsm:dataProtection (at-rest) transformations on statement
     applyDataProtection(statement, archetype);
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_BUILD_SUBTYPE);
     // 4. Create subtype-specific entity
     T entity = handler.create(definition, archetype, statement);
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_VALIDATE_IDENTITY);
     // 5. Validate identity-bound invariant (handler-declared + annotation-declared)
     identityBoundValidation.validate(handler, entity, archetype);
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_VALIDATE_UNIQUENESS);
     // 6. Validate $gsm:unique annotation-driven uniqueness
     uniquenessValidation.validate(statement, archetype, definition.getId());
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_VALIDATE_REFEREES);
     // 7. Validate creation referee preconditions
     stateMachine.validateRefereePreconditions(
         handler.getRefereeReferences(entity), null, AscriptionStatusType.DRAFT);
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_PERSIST);
     // 8. Persist
     T saved;
     try {
@@ -168,14 +311,144 @@ public class AscriptionService implements SmartInitializingSingleton {
       // 10b. Ensure archetype is initialized after refresh (entity graph does not
       // apply to refresh)
       Hibernate.initialize(saved.getArchetype());
+      emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_PERSIST, EVENT_OUTCOME_SUCCESS);
     } catch (DataIntegrityViolationException ex) {
       throw PersistenceExceptionTranslationService.translate(ex);
     }
 
+    addDefinitionEvent(definitionSpan, operation, EVENT_AFTER_CREATE);
     // 11. Post-creation hook (e.g., auto-derivation of ports)
     handler.afterCreate(saved);
+    emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_AFTER_CREATE, EVENT_OUTCOME_SUCCESS);
+    emitOperationPayloadLog(
+        definitionSpan,
+        operation,
+        saved,
+        definition.getId(),
+        priorStatement);
 
     return saved;
+  }
+
+  private Span startDefinitionSpan(
+      String spanName,
+      String operation,
+      DefinitionSubjectType definitionKind,
+      UUID definitionId) {
+    Span definitionSpan =
+        tracer
+            .spanBuilder(spanName)
+            .setSpanKind(SpanKind.INTERNAL)
+            .setAttribute(ATTR_OPERATION, operation)
+            .setAttribute(ATTR_DEFINITION_KIND, definitionKind.name())
+            .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
+            .startSpan();
+
+    if (definitionId != null) {
+      definitionSpan.setAttribute(ATTR_DEFINITION_ID, definitionId.toString());
+    }
+
+    String tenantId = MDC.get(ATTR_TENANT_ID);
+    if (tenantId != null && !tenantId.isBlank()) {
+      definitionSpan.setAttribute(ATTR_TENANT_ID, tenantId);
+    }
+
+    return definitionSpan;
+  }
+
+  private static void addDefinitionEvent(Span definitionSpan, String operation, String eventSuffix) {
+    if (definitionSpan != null) {
+      definitionSpan.addEvent("gsm.definition." + operation + "." + eventSuffix);
+    }
+  }
+
+  private static void setCreateSpanDefinitionAttributes(
+      Span createSpan, UUID definitionId, DefinitionSubjectType definitionKind) {
+    if (createSpan == null) {
+      return;
+    }
+    createSpan.setAttribute(ATTR_DEFINITION_ID, definitionId.toString());
+    createSpan.setAttribute(ATTR_DEFINITION_KIND, definitionKind.name());
+  }
+
+  private void emitCorrelatedMilestoneLog(
+      Span definitionSpan, String operation, String eventSuffix, String eventOutcome) {
+    if (definitionSpan == null) {
+      return;
+    }
+
+    String eventName = "gsm.definition." + operation + "." + eventSuffix;
+    SpanContext spanContext = definitionSpan.getSpanContext();
+    String traceId = spanContext.isValid() ? spanContext.getTraceId() : MDC.get(MDC_TRACE_ID);
+    String spanId = spanContext.isValid() ? spanContext.getSpanId() : MDC.get(MDC_SPAN_ID);
+    String tenantId = MDC.get(ATTR_TENANT_ID);
+
+    emitOtelCorrelationLogRecord(eventName, eventOutcome, traceId, spanId, tenantId);
+  }
+
+  private void emitOtelCorrelationLogRecord(
+      String eventName,
+      String eventOutcome,
+      String traceId,
+      String spanId,
+      String tenantId) {
+    otelLogger
+        .logRecordBuilder()
+        .setContext(Context.current())
+        .setSeverity(Severity.INFO)
+        .setSeverityText(Severity.INFO.name())
+        .setAttribute("event.name", eventName)
+        .setAttribute("event.outcome", eventOutcome)
+        .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
+        .setAttribute("trace_id", traceId == null ? "" : traceId)
+        .setAttribute("span_id", spanId == null ? "" : spanId)
+        .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
+        .emit();
+  }
+
+  private void emitOperationPayloadLog(
+      Span definitionSpan,
+      String operation,
+      AscriptionEntity saved,
+      UUID definitionId,
+      JsonNode priorStatement) {
+    if (definitionSpan == null) {
+      return;
+    }
+
+    if (OPERATION_CREATE.equals(operation)) {
+      emitCreateResultPayloadLog(saved, definitionId);
+      return;
+    }
+
+    emitTransformPayloadContextLog(definitionId, priorStatement, saved.getStatement());
+  }
+
+  private void emitCreateResultPayloadLog(AscriptionEntity saved, UUID definitionId) {
+    if (saved.getStatement() == null) {
+      return;
+    }
+
+    String payload = saved.getStatement().toString();
+    PayloadLogHelper.boundedPayloadWithSpanSummary(
+      "create", definitionId.toString(), payload, createResultPayloadCapBytes);
+  }
+
+  private void emitTransformPayloadContextLog(
+      UUID definitionId,
+      JsonNode priorStatement,
+      JsonNode resultStatement) {
+    String priorPayload = priorStatement == null ? null : priorStatement.toString();
+    String resultPayload = resultStatement == null ? null : resultStatement.toString();
+
+    if (priorPayload == null && resultPayload == null) {
+      return;
+    }
+
+    PayloadLogHelper.boundedPayloadWithSpanSummary(
+      "transform.prior", definitionId.toString(), priorPayload, createResultPayloadCapBytes);
+    PayloadLogHelper.boundedPayloadWithSpanSummary(
+      "transform.result", definitionId.toString(), resultPayload, createResultPayloadCapBytes);
   }
 
   // ======================================================================

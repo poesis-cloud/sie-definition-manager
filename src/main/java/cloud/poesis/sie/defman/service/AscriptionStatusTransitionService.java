@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -54,9 +52,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional("transactionManager")
 public class AscriptionStatusTransitionService implements SmartInitializingSingleton {
-
-  private static final Logger LOG =
-      LoggerFactory.getLogger(AscriptionStatusTransitionService.class);
   private static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability";
   private static final String TRANSITION_SPAN_NAME = "gsm.ascription.transition";
   private static final String ATTR_ASCRIPTION_ID = "gsm.ascription.id";
@@ -414,26 +409,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
                 "cascadeType",
                 entry.cascadeType().name());
           }
-          if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.GOVERNING) {
-            LOG.debug(
-                "[{}] Governing cascade skipped: target {} ({}) is {}, expected {}",
-                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS
-                    .getType(),
-                target.getId(),
-                entry.targetService().getSubjectType().name(),
-                target.getStatus().name(),
-                fromStatus.name());
-          } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
-            LOG.debug(
-                "[{}] Dependent cascade skipped: target {} ({}) is {}, expected {}",
-                AscriptionStatusTransitionRuleType
-                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
-                    .getType(),
-                target.getId(),
-                entry.targetService().getSubjectType().name(),
-                target.getStatus().name(),
-                fromStatus.name());
-          }
           continue;
         }
 
@@ -461,22 +436,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
                 e,
                 "cascadeType",
                 entry.cascadeType().name());
-          }
-          if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.GOVERNING) {
-            LOG.debug(
-                "[{}] Governing cascade skipped (referee precondition): target {} — {}",
-                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_SUBJECTS
-                    .getType(),
-                target.getId(),
-                e.getMessage());
-          } else if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT) {
-            LOG.debug(
-                "[{}] Dependent cascade skipped (referee precondition): target {} — {}",
-                AscriptionStatusTransitionRuleType
-                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_DEPENDENTS
-                    .getType(),
-                target.getId(),
-                e.getMessage());
           }
           continue;
         }
@@ -556,13 +515,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       } else {
         continue;
       }
-      LOG.debug(
-          "[{}] Governance convergence: sibling {} ({}) → {}",
-          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE
-              .getType(),
-          sibling.getId(),
-          siblingStatus.name(),
-          terminalStatus.name());
       recordTransition(sibling, siblingStatus, terminalStatus);
     }
   }
@@ -576,11 +528,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
         svc.findAllByDefinitionIdAndStatus(definitionId, List.of(AscriptionStatusType.ACTIVE));
     for (AscriptionEntity prev : activeAscriptions) {
       if (prev.getId().equals(activating.getId())) continue;
-      LOG.debug(
-          "[{}] Activation handoff: predecessor {} (ACTIVE → DEPRECATED)",
-          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ACTIVATION_HANDOFF
-              .getType(),
-          prev.getId());
       recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
     }
   }
@@ -611,21 +558,27 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       String spanId,
       String tenantId,
       Severity severity) {
-    otelLogger
-      .logRecordBuilder()
-      .setContext(Context.current())
-      .setSeverity(severity)
-      .setSeverityText(severity.name())
-      .setBody(
-        String.format(
-          "event.correlation event.name=%s event.outcome=%s sie.component=%s",
-          eventName, eventOutcome, COMPONENT_DEFINITION_MANAGER))
-      .setAttribute("event.name", eventName)
-      .setAttribute("event.outcome", eventOutcome)
-      .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
-      .setAttribute("trace_id", traceId == null ? "" : traceId)
-      .setAttribute("span_id", spanId == null ? "" : spanId)
-      .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
-      .emit();
+      var builder =
+        otelLogger
+          .logRecordBuilder()
+          .setContext(Context.current())
+          .setSeverity(severity)
+          .setSeverityText(severity.name())
+          .setAttribute("event.name", eventName)
+          .setAttribute("event.outcome", eventOutcome)
+          .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
+          .setAttribute("trace_id", traceId == null ? "" : traceId)
+          .setAttribute("span_id", spanId == null ? "" : spanId)
+          .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId);
+
+      if (severity != Severity.INFO) {
+        builder.setBody(
+          String.format(
+            "Ascription lifecycle milestone %s with outcome %s",
+            eventName,
+            eventOutcome));
+      }
+
+      builder.emit();
   }
 }
