@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.logs.Logger;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -90,7 +91,7 @@ public class AscriptionService implements SmartInitializingSingleton {
   private final EntityManager entityManager;
   private final List<AscriptionSubtypeService<?>> handlerList;
   private final Tracer tracer;
-  private final io.opentelemetry.api.logs.Logger otelLogger;
+  private final Logger otelLogger;
   private final int createResultPayloadCapBytes;
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> handlers;
