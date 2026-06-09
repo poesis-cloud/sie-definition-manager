@@ -100,7 +100,9 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     assertThat(transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.id")))
         .isEqualTo(ascriptionId.toString());
     assertThat(
-            transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.state.from")))
+            transitionSpan
+                .getAttributes()
+                .get(AttributeKey.stringKey("gsm.ascription.state.from")))
         .isEqualTo("DRAFT");
     assertThat(
             transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.state.to")))
@@ -292,6 +294,38 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   }
 
   @Test
+  void activationHandoff_doesNotEmitSuccessEventWhenSiblingPersistenceFails() {
+    UUID activatingId = UUID.randomUUID();
+    UUID previousActiveId = UUID.randomUUID();
+    AscriptionEntity activating =
+        stubEntity(activatingId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.APPROVED);
+    AscriptionEntity previousActive =
+        stubEntity(previousActiveId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE);
+    when(entityManager.find(AscriptionEntity.class, activatingId)).thenReturn(activating);
+
+    @SuppressWarnings("unchecked")
+    AscriptionSubtypeService<AscriptionEntity> structureSubtype =
+        mock(AscriptionSubtypeService.class);
+    when(structureSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+    when(structureSubtype.getCascadeTargetRoles()).thenReturn(Map.of());
+    when(structureSubtype.findAllByDefinitionIdAndStatus(any(), any()))
+        .thenReturn(List.of(activating, previousActive));
+
+    service = createService(List.of(structureSubtype));
+    when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class)))
+        .thenThrow(new IllegalStateException("handoff persistence failed"));
+
+    withTransitionSpan(
+        () ->
+            assertThrows(
+                IllegalStateException.class, () -> service.transition(activatingId, "ACTIVE")));
+
+    SpanData transitionSpan = findTransitionSpanByAscription(activatingId);
+    assertThat(transitionSpan.getEvents())
+        .noneMatch(event -> event.getName().equals(EVENT_HOOK_ACTIVATION_HANDOFF));
+  }
+
+  @Test
   void approvalConvergence_emitsGovernanceEventsForTerminatedSiblings() {
     UUID approvedId = UUID.randomUUID();
     UUID draftSiblingId = UUID.randomUUID();
@@ -362,6 +396,48 @@ class AscriptionStatusTransitionServiceObservabilityTest {
                         record.getAttributes().get(AttributeKey.stringKey("event.name")))
                     && OUTCOME_SUCCESS.equals(
                         record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
+  }
+
+  @Test
+  void approvalConvergence_doesNotEmitSuccessEventWhenSiblingPersistenceFails() {
+    UUID approvedId = UUID.randomUUID();
+    UUID draftSiblingId = UUID.randomUUID();
+    AscriptionEntity approved =
+        stubEntity(approvedId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.PROPOSED);
+    AscriptionEntity draftSibling =
+        stubEntity(draftSiblingId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
+    when(entityManager.find(AscriptionEntity.class, approvedId)).thenReturn(approved);
+
+    @SuppressWarnings("unchecked")
+    AscriptionSubtypeService<AscriptionEntity> structureSubtype =
+        mock(AscriptionSubtypeService.class);
+    when(structureSubtype.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+    when(structureSubtype.getCascadeTargetRoles()).thenReturn(Map.of());
+    when(structureSubtype.findAllByDefinitionId(any())).thenReturn(List.of(approved, draftSibling));
+
+    service = createService(List.of(structureSubtype));
+    AtomicInteger saves = new AtomicInteger(0);
+    when(transitionRepo.save(any(AscriptionStatusTransitionEntity.class)))
+        .thenAnswer(
+            invocation -> {
+              if (saves.incrementAndGet() > 1) {
+                throw new IllegalStateException("approval convergence persistence failed");
+              }
+              AscriptionStatusTransitionEntity saved = mock(AscriptionStatusTransitionEntity.class);
+              UUID transitionId = UUID.randomUUID();
+              when(saved.getId()).thenReturn(transitionId);
+              when(transitionRepo.findById(transitionId)).thenReturn(Optional.of(saved));
+              return saved;
+            });
+
+    withTransitionSpan(
+        () ->
+            assertThrows(
+                IllegalStateException.class, () -> service.transition(approvedId, "APPROVED")));
+
+    SpanData transitionSpan = findTransitionSpanByAscription(approvedId);
+    assertThat(transitionSpan.getEvents())
+        .noneMatch(event -> event.getName().equals(EVENT_HOOK_APPROVAL_CONVERGENCE));
   }
 
   @Test
@@ -675,7 +751,8 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     stubRepoSave();
 
     withTransitionSpan(
-        () -> assertThrows(RuleViolationException.class, () -> service.transition(sourceId, "PROPOSED")));
+        () ->
+            assertThrows(RuleViolationException.class, () -> service.transition(sourceId, "PROPOSED")));
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
     assertThat(sourceTransition.getEvents())
@@ -739,21 +816,14 @@ class AscriptionStatusTransitionServiceObservabilityTest {
             });
 
     withTransitionSpan(
-        () -> assertThrows(IllegalStateException.class, () -> service.transition(sourceId, "PROPOSED")));
+        () ->
+            assertThrows(
+                IllegalStateException.class, () -> service.transition(sourceId, "PROPOSED")));
 
     SpanData transitionSpan = findTransitionSpanByAscription(sourceId);
     assertThat(transitionSpan.getEvents())
         .noneMatch(event -> event.getName().equals(EVENT_HOOK_ERROR));
-    assertThat(transitionSpan.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
-    assertThat(transitionSpan.getEvents())
-        .anyMatch(
-            event ->
-                event.getName().equals("exception")
-                    && "java.lang.IllegalStateException"
-                        .equals(
-                            event
-                                .getAttributes()
-                                .get(AttributeKey.stringKey("exception.type"))));
+    assertThat(transitionSpan.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
     assertThat(otel.getLogRecords())
         .noneMatch(
             record ->
@@ -805,10 +875,9 @@ class AscriptionStatusTransitionServiceObservabilityTest {
 
   private AscriptionStatusTransitionService createService(
       List<AscriptionSubtypeService<?>> subtypes) {
-    Tracer tracer = otel.getOpenTelemetry().getTracer("test.ascription.transition", "1");
     AscriptionStatusTransitionService configuredService =
-        new AscriptionStatusTransitionService(
-            transitionRepo, stateMachine, entityManager, subtypes, tracer);
+                new AscriptionStatusTransitionService(
+                        transitionRepo, stateMachine, entityManager, subtypes);
     configuredService.afterSingletonsInstantiated();
     return configuredService;
   }

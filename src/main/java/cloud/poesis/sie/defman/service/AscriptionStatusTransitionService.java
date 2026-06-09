@@ -30,7 +30,6 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import jakarta.persistence.EntityManager;
@@ -52,7 +51,6 @@ import jakarta.persistence.EntityManager;
 @Transactional("transactionManager")
 public class AscriptionStatusTransitionService implements SmartInitializingSingleton {
   private static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability";
-  private static final String TRANSITION_SPAN_NAME = "gsm.ascription.transition";
   private static final String ATTR_ASCRIPTION_ID = "gsm.ascription.id";
   private static final String ATTR_STATE_FROM = "gsm.ascription.state.from";
   private static final String ATTR_STATE_TO = "gsm.ascription.state.to";
@@ -86,7 +84,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private final AscriptionStateMachineService stateMachine;
   private final EntityManager entityManager;
   private final List<AscriptionSubtypeService<?>> subtypeServices;
-  private final Tracer tracer;
   private final io.opentelemetry.api.logs.Logger otelLogger;
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> subtypeByType;
@@ -98,12 +95,16 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       AscriptionStateMachineService stateMachine,
       EntityManager entityManager,
       List<AscriptionSubtypeService<?>> subtypeServices) {
-    this(
-        transitionRepo,
-        stateMachine,
-        entityManager,
-        subtypeServices,
-        GlobalOpenTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1"));
+    this.transitionRepo = transitionRepo;
+    this.stateMachine = stateMachine;
+    this.entityManager = entityManager;
+    this.subtypeServices = List.copyOf(subtypeServices);
+    this.otelLogger =
+      GlobalOpenTelemetry.get()
+        .getLogsBridge()
+        .loggerBuilder(INSTRUMENTATION_SCOPE)
+        .setInstrumentationVersion("1")
+        .build();
   }
 
   AscriptionStatusTransitionService(
@@ -112,17 +113,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       EntityManager entityManager,
       List<AscriptionSubtypeService<?>> subtypeServices,
       Tracer tracer) {
-    this.transitionRepo = transitionRepo;
-    this.stateMachine = stateMachine;
-    this.entityManager = entityManager;
-    this.subtypeServices = List.copyOf(subtypeServices);
-    this.tracer = tracer;
-    this.otelLogger =
-        GlobalOpenTelemetry.get()
-            .getLogsBridge()
-            .loggerBuilder(INSTRUMENTATION_SCOPE)
-            .setInstrumentationVersion("1")
-            .build();
+    this(transitionRepo, stateMachine, entityManager, subtypeServices);
   }
 
   /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
@@ -153,37 +144,21 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
   private AscriptionStatusTransitionEntity recordTransition(
       AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
-    try {
-      AscriptionStatusTransitionEntity transition =
-          transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
-      entityManager.flush();
-      entityManager.detach(transition);
-      UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
-      AscriptionStatusTransitionEntity recorded =
-          transitionRepo.findById(transitionId).orElseThrow();
-      emitLifecycleEvent(
-          EVENT_HOOK_PERSISTENCE,
-          OUTCOME_SUCCESS,
-          Attributes.builder()
-              .put(ATTR_ASCRIPTION_ID, String.valueOf(entity.getId()))
-              .put(ATTR_STATE_FROM, from.name())
-              .put(ATTR_STATE_TO, to.name())
-              .build());
-      return recorded;
-    } catch (RuntimeException ex) {
-      Span currentSpan = Span.current();
-      currentSpan.recordException(ex);
-      currentSpan.setStatus(StatusCode.ERROR);
-      emitLifecycleEvent(
-          EVENT_HOOK_PERSISTENCE,
-          OUTCOME_FAILURE,
-          Attributes.builder()
-              .put(ATTR_ASCRIPTION_ID, String.valueOf(entity.getId()))
-              .put(ATTR_STATE_FROM, from.name())
-              .put(ATTR_STATE_TO, to.name())
-              .build());
-      throw ex;
-    }
+    AscriptionStatusTransitionEntity transition =
+        transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
+    entityManager.flush();
+    entityManager.detach(transition);
+    UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
+    AscriptionStatusTransitionEntity recorded = transitionRepo.findById(transitionId).orElseThrow();
+    emitLifecycleEvent(
+        EVENT_HOOK_PERSISTENCE,
+        OUTCOME_SUCCESS,
+        Attributes.builder()
+            .put(ATTR_ASCRIPTION_ID, String.valueOf(entity.getId()))
+            .put(ATTR_STATE_FROM, from.name())
+            .put(ATTR_STATE_TO, to.name())
+            .build());
+    return recorded;
   }
 
   // ======================================================================
@@ -491,6 +466,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       } else {
         continue;
       }
+      recordTransition(sibling, siblingStatus, terminalStatus);
       emitLifecycleEvent(
           EVENT_HOOK_APPROVAL_CONVERGENCE,
           OUTCOME_SUCCESS,
@@ -499,7 +475,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               .put(ATTR_STATE_FROM, siblingStatus.name())
               .put(ATTR_STATE_TO, terminalStatus.name())
               .build());
-      recordTransition(sibling, siblingStatus, terminalStatus);
     }
   }
 
@@ -512,6 +487,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
         svc.findAllByDefinitionIdAndStatus(definitionId, List.of(AscriptionStatusType.ACTIVE));
     for (AscriptionEntity prev : activeAscriptions) {
       if (prev.getId().equals(activating.getId())) continue;
+      recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
       emitLifecycleEvent(
           EVENT_HOOK_ACTIVATION_HANDOFF,
           OUTCOME_SUCCESS,
@@ -520,7 +496,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               .put(ATTR_STATE_FROM, AscriptionStatusType.ACTIVE.name())
               .put(ATTR_STATE_TO, AscriptionStatusType.DEPRECATED.name())
               .build());
-      recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
     }
   }
 
