@@ -30,6 +30,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import jakarta.persistence.EntityManager;
@@ -170,6 +171,9 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               .build());
       return recorded;
     } catch (RuntimeException ex) {
+      Span currentSpan = Span.current();
+      currentSpan.recordException(ex);
+      currentSpan.setStatus(StatusCode.ERROR);
       emitLifecycleEvent(
           EVENT_HOOK_PERSISTENCE,
           OUTCOME_FAILURE,

@@ -22,6 +22,7 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.sdk.logs.data.LogRecordData;
@@ -736,6 +737,16 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     SpanData transitionSpan = findTransitionSpanByAscription(sourceId);
     assertThat(transitionSpan.getEvents())
         .noneMatch(event -> event.getName().equals(EVENT_HOOK_ERROR));
+    assertThat(transitionSpan.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+    assertThat(transitionSpan.getEvents())
+        .anyMatch(
+            event ->
+                event.getName().equals("exception")
+                    && "java.lang.IllegalStateException"
+                        .equals(
+                            event
+                                .getAttributes()
+                                .get(AttributeKey.stringKey("exception.type"))));
     assertThat(otel.getLogRecords())
         .noneMatch(
             record ->
@@ -816,14 +827,6 @@ class AscriptionStatusTransitionServiceObservabilityTest {
                         record.getAttributes().get(AttributeKey.stringKey("event.outcome"))))
         .findFirst()
         .orElseThrow();
-  }
-
-  private boolean hasNoBody(LogRecordData record) {
-    if (record.getBodyValue() == null) {
-      return true;
-    }
-    String body = record.getBodyValue().asString();
-    return body == null || body.isBlank();
   }
 
   private void stubRepoSave() {
