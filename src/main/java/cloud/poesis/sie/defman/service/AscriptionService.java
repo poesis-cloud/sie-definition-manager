@@ -76,6 +76,11 @@ public class AscriptionService implements SmartInitializingSingleton {
   private static final String EVENT_PERSIST = "persist";
   private static final String EVENT_AFTER_CREATE = "after-create";
   private static final String EVENT_OUTCOME_SUCCESS = "success";
+  private static final String EVENT_OUTCOME_FAILURE = "failure";
+  private static final String EVENT_OUTCOME_SKIPPED = "skipped";
+  private static final String EVENT_ERROR = "error";
+  private static final String EVENT_PERSIST_FAILURE = "persist-failure";
+  private static final String EVENT_PAYLOAD_SKIPPED = "payload-skipped";
   private static final String MDC_TRACE_ID = "trace_id";
   private static final String MDC_SPAN_ID = "span_id";
   private static final int DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES = 16_384;
@@ -213,6 +218,9 @@ public class AscriptionService implements SmartInitializingSingleton {
     try (Scope ignored = createSpan.makeCurrent()) {
       return doCreate(handler, archetype, statement, null, createSpan, OPERATION_CREATE, null);
     } catch (RuntimeException ex) {
+      addDefinitionEvent(createSpan, OPERATION_CREATE, EVENT_ERROR);
+      emitCorrelatedMilestoneLog(
+          createSpan, OPERATION_CREATE, EVENT_ERROR, EVENT_OUTCOME_FAILURE);
       createSpan.recordException(ex);
       throw ex;
     } finally {
@@ -243,6 +251,9 @@ public class AscriptionService implements SmartInitializingSingleton {
           OPERATION_TRANSFORM,
           priorStatement);
     } catch (RuntimeException ex) {
+      addDefinitionEvent(transformSpan, OPERATION_TRANSFORM, EVENT_ERROR);
+      emitCorrelatedMilestoneLog(
+          transformSpan, OPERATION_TRANSFORM, EVENT_ERROR, EVENT_OUTCOME_FAILURE);
       transformSpan.recordException(ex);
       throw ex;
     } finally {
@@ -314,6 +325,9 @@ public class AscriptionService implements SmartInitializingSingleton {
       Hibernate.initialize(saved.getArchetype());
       emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_PERSIST, EVENT_OUTCOME_SUCCESS);
     } catch (DataIntegrityViolationException ex) {
+      addDefinitionEvent(definitionSpan, operation, EVENT_PERSIST_FAILURE);
+      emitCorrelatedMilestoneLog(
+          definitionSpan, operation, EVENT_PERSIST_FAILURE, EVENT_OUTCOME_FAILURE);
       throw PersistenceExceptionTranslationService.translate(ex);
     }
 
@@ -393,18 +407,44 @@ public class AscriptionService implements SmartInitializingSingleton {
       String traceId,
       String spanId,
       String tenantId) {
-    otelLogger
-        .logRecordBuilder()
-        .setContext(Context.current())
-        .setSeverity(Severity.INFO)
-        .setSeverityText(Severity.INFO.name())
-        .setAttribute("event.name", eventName)
-        .setAttribute("event.outcome", eventOutcome)
-        .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
-        .setAttribute("trace_id", traceId == null ? "" : traceId)
-        .setAttribute("span_id", spanId == null ? "" : spanId)
-        .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
-        .emit();
+    Severity severity = Severity.INFO;
+    if (EVENT_OUTCOME_FAILURE.equals(eventOutcome)) {
+      severity = Severity.ERROR;
+    } else if (EVENT_OUTCOME_SKIPPED.equals(eventOutcome)) {
+      severity = Severity.WARN;
+    }
+
+    var builder =
+        otelLogger
+            .logRecordBuilder()
+            .setContext(Context.current())
+            .setSeverity(severity)
+            .setSeverityText(severity.name())
+            .setAttribute("event.name", eventName)
+            .setAttribute("event.outcome", eventOutcome)
+            .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER);
+
+    if (traceId != null && !traceId.isBlank()) {
+      builder.setAttribute("trace_id", traceId);
+    }
+
+    if (spanId != null && !spanId.isBlank()) {
+      builder.setAttribute("span_id", spanId);
+    }
+
+    if (tenantId != null && !tenantId.isBlank()) {
+      builder.setAttribute("gsm.tenant.id", tenantId);
+    }
+
+    if (severity != Severity.INFO) {
+      builder.setBody(
+          String.format(
+              "Definition milestone %s emitted with outcome %s",
+              eventName,
+              eventOutcome));
+    }
+
+    builder.emit();
   }
 
   private void emitOperationPayloadLog(
@@ -418,15 +458,30 @@ public class AscriptionService implements SmartInitializingSingleton {
     }
 
     if (OPERATION_CREATE.equals(operation)) {
-      emitCreateResultPayloadLog(saved, definitionId);
+      emitCreateResultPayloadLog(definitionSpan, operation, saved, definitionId);
       return;
     }
 
-    emitTransformPayloadContextLog(definitionId, priorStatement, saved.getStatement());
+    emitTransformPayloadContextLog(
+        definitionSpan,
+        operation,
+        definitionId,
+        priorStatement,
+        saved.getStatement());
   }
 
-  private void emitCreateResultPayloadLog(AscriptionEntity saved, UUID definitionId) {
+  private void emitCreateResultPayloadLog(
+      Span definitionSpan,
+      String operation,
+      AscriptionEntity saved,
+      UUID definitionId) {
     if (saved.getStatement() == null) {
+      addDefinitionEvent(definitionSpan, operation, EVENT_PAYLOAD_SKIPPED);
+      emitCorrelatedMilestoneLog(
+          definitionSpan,
+          operation,
+          EVENT_PAYLOAD_SKIPPED,
+          EVENT_OUTCOME_SKIPPED);
       return;
     }
 
@@ -436,6 +491,8 @@ public class AscriptionService implements SmartInitializingSingleton {
   }
 
   private void emitTransformPayloadContextLog(
+      Span definitionSpan,
+      String operation,
       UUID definitionId,
       JsonNode priorStatement,
       JsonNode resultStatement) {
@@ -443,6 +500,12 @@ public class AscriptionService implements SmartInitializingSingleton {
     String resultPayload = resultStatement == null ? null : resultStatement.toString();
 
     if (priorPayload == null && resultPayload == null) {
+      addDefinitionEvent(definitionSpan, operation, EVENT_PAYLOAD_SKIPPED);
+      emitCorrelatedMilestoneLog(
+          definitionSpan,
+          operation,
+          EVENT_PAYLOAD_SKIPPED,
+          EVENT_OUTCOME_SKIPPED);
       return;
     }
 
