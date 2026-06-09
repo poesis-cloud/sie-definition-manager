@@ -200,17 +200,17 @@ public class AscriptionService implements SmartInitializingSingleton {
     ArchetypeService.ArchetypeResolution resolution =
         archetypeService.resolveForCreation(archetypeId);
     if (definitionId == null) {
-      return doCreateWithOperationSpan(
+      return doCreate(
           requireHandler(resolution.subjectType()), resolution.archetype(), statement);
     }
-    return doTransformWithOperationSpan(
+    return doTransform(
         requireHandler(resolution.subjectType()),
         resolution.archetype(),
         statement,
         definitionId);
   }
 
-  private <T extends AscriptionEntity> T doCreateWithOperationSpan(
+  private <T extends AscriptionEntity> T doCreate(
       AscriptionSubtypeService<T> handler, ArchetypeEntity archetype, JsonNode statement) {
     Span createSpan =
         startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
@@ -228,7 +228,7 @@ public class AscriptionService implements SmartInitializingSingleton {
     }
   }
 
-  private <T extends AscriptionEntity> T doTransformWithOperationSpan(
+  private <T extends AscriptionEntity> T doTransform(
       AscriptionSubtypeService<T> handler,
       ArchetypeEntity archetype,
       JsonNode statement,
