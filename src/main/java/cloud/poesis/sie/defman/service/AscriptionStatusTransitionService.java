@@ -456,6 +456,9 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     UUID targetId = Objects.requireNonNull(target.getId(), "cascade.target.id");
     Span cascadeSpan = Span.current();
 
+    recordTransition(target, fromStatus, toStatus);
+    executeCascades(target, targetType, fromStatus, toStatus);
+
     emitLifecycleEvent(
         cascadeSpan,
         EVENT_HOOK_CASCADE,
@@ -465,8 +468,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
             .put(ATTR_CASCADE_TARGET_ID, targetId.toString())
             .put(ATTR_CASCADE_TARGET_TYPE, targetType.name())
             .build());
-    recordTransition(target, fromStatus, toStatus);
-    executeCascades(target, targetType, fromStatus, toStatus);
   }
 
   // ======================================================================
@@ -552,10 +553,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       String eventName,
       String eventOutcome,
       Severity severity) {
+    Context logContext = span.storeInContext(Context.current());
     var builder =
         otelLogger
             .logRecordBuilder()
-            .setContext(Context.current())
+        .setContext(logContext)
             .setSeverity(severity)
             .setSeverityText(severity.name())
             .setAttribute("event.name", eventName)

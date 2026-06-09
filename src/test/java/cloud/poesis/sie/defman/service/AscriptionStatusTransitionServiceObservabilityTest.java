@@ -78,7 +78,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
             action.run();
         } finally {
             transitionSpan.end();
-        }
+    }
     }
 
   @Test
@@ -416,17 +416,24 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype, mechanismSubtype, effectorSubtype));
     stubRepoSave();
 
-        withTransitionSpan(() -> service.transition(sourceId, "PROPOSED"));
+    withTransitionSpan(() -> service.transition(sourceId, "PROPOSED"));
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
 
-        assertThat(
-                        otel.getSpans().stream()
-                                .filter(span -> span.getName().equals(TRANSITION_SPAN_NAME))
-                                .count())
-                .isEqualTo(1L);
+    assertThat(
+            otel.getSpans().stream()
+                .filter(span -> span.getName().equals(TRANSITION_SPAN_NAME))
+                .count())
+        .isEqualTo(1L);
     assertThat(sourceTransition.getEvents())
-        .anyMatch(event -> event.getName().equals(EVENT_HOOK_CASCADE));
+        .anyMatch(
+            event ->
+                event.getName().equals(EVENT_HOOK_CASCADE)
+                    && "GOVERNING"
+                        .equals(
+                            event
+                                .getAttributes()
+                                .get(AttributeKey.stringKey("gsm.ascription.cascade.type"))));
   }
 
   @Test
