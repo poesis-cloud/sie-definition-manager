@@ -1,5 +1,21 @@
 package cloud.poesis.sie.defman.service;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.slf4j.MDC;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
@@ -15,26 +31,12 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import jakarta.persistence.EntityManager;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for {@link AscriptionStatusTransitionEntity}. Owns {@link
@@ -71,6 +73,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private static final String EVENT_HOOK_REJECTED = "gsm.ascription.hook.rejected";
   private static final String EVENT_HOOK_CASCADE = "gsm.ascription.hook.cascade";
   private static final String EVENT_HOOK_CASCADE_SKIP = "gsm.ascription.hook.cascade-skip";
+  private static final String EVENT_HOOK_PERSISTENCE = "gsm.ascription.hook.persistence";
+  private static final String EVENT_HOOK_ACTIVATION_HANDOFF =
+      "gsm.ascription.hook.activation-handoff";
+  private static final String EVENT_HOOK_APPROVAL_CONVERGENCE =
+      "gsm.ascription.hook.approval-convergence";
   private static final String EVENT_HOOK_ERROR = "gsm.ascription.hook.error";
   private static final String OUTCOME_SUCCESS = "success";
   private static final String OUTCOME_SKIPPED = "skipped";
@@ -122,12 +129,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     this.subtypeServices = List.copyOf(subtypeServices);
     this.tracer = tracer;
     this.otelLogger =
-      GlobalOpenTelemetry
-        .get()
-        .getLogsBridge()
-        .loggerBuilder(INSTRUMENTATION_SCOPE)
-        .setInstrumentationVersion("1")
-        .build();
+        GlobalOpenTelemetry.get()
+            .getLogsBridge()
+            .loggerBuilder(INSTRUMENTATION_SCOPE)
+            .setInstrumentationVersion("1")
+            .build();
   }
 
   /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
@@ -158,12 +164,34 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
   private AscriptionStatusTransitionEntity recordTransition(
       AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
-    AscriptionStatusTransitionEntity transition =
-        transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
-    entityManager.flush();
-    entityManager.detach(transition);
-    UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
-    return transitionRepo.findById(transitionId).orElseThrow();
+    try {
+      AscriptionStatusTransitionEntity transition =
+          transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
+      entityManager.flush();
+      entityManager.detach(transition);
+      UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
+      AscriptionStatusTransitionEntity recorded =
+          transitionRepo.findById(transitionId).orElseThrow();
+      emitLifecycleEvent(
+          EVENT_HOOK_PERSISTENCE,
+          OUTCOME_SUCCESS,
+          Attributes.builder()
+              .put(ATTR_ASCRIPTION_ID, String.valueOf(entity.getId()))
+              .put(ATTR_STATE_FROM, from.name())
+              .put(ATTR_STATE_TO, to.name())
+              .build());
+      return recorded;
+    } catch (RuntimeException ex) {
+      emitLifecycleEvent(
+          EVENT_HOOK_PERSISTENCE,
+          OUTCOME_FAILURE,
+          Attributes.builder()
+              .put(ATTR_ASCRIPTION_ID, String.valueOf(entity.getId()))
+              .put(ATTR_STATE_FROM, from.name())
+              .put(ATTR_STATE_TO, to.name())
+              .build());
+      throw ex;
+    }
   }
 
   // ======================================================================
@@ -239,12 +267,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       if (targetStatusType == AscriptionStatusType.ACTIVE) {
         AscriptionSubtypeService<?> svc = subtypeByType.get(type);
         if (svc != null) {
-          transitionSpan.addEvent(
+          emitLifecycleEvent(
+              transitionSpan,
               EVENT_HOOK_ACTIVATION,
-              Attributes.of(
-                  AttributeKey.stringKey(ATTR_SUBJECT_TYPE),
-                  type.name()));
-          emitCorrelatedLifecycleLog(EVENT_HOOK_ACTIVATION, OUTCOME_SUCCESS);
+              OUTCOME_SUCCESS,
+              Attributes.of(AttributeKey.stringKey(ATTR_SUBJECT_TYPE), type.name()));
           svc.onActivation(entity);
         }
       }
@@ -256,12 +283,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               .contains(targetStatusType)) {
         AscriptionSubtypeService<?> svc = subtypeByType.get(type);
         if (svc != null) {
-          transitionSpan.addEvent(
+          emitLifecycleEvent(
+              transitionSpan,
               EVENT_HOOK_DEACTIVATION,
-              Attributes.of(
-                  AttributeKey.stringKey(ATTR_SUBJECT_TYPE),
-                  type.name()));
-          emitCorrelatedLifecycleLog(EVENT_HOOK_DEACTIVATION, OUTCOME_SUCCESS);
+              OUTCOME_SUCCESS,
+              Attributes.of(AttributeKey.stringKey(ATTR_SUBJECT_TYPE), type.name()));
           svc.onDeactivation(entity);
         }
       }
@@ -280,18 +306,16 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
         // 6. Governance convergence (APPROVED → sibling termination)
         if (targetStatusType == AscriptionStatusType.APPROVED) {
-          transitionSpan.addEvent(
+          emitLifecycleEvent(
+              transitionSpan,
               EVENT_HOOK_APPROVAL,
-              Attributes.of(
-                  AttributeKey.stringKey(ATTR_SUBJECT_TYPE),
-                  type.name()));
-          emitCorrelatedLifecycleLog(EVENT_HOOK_APPROVAL, OUTCOME_SUCCESS);
+              OUTCOME_SUCCESS,
+              Attributes.of(AttributeKey.stringKey(ATTR_SUBJECT_TYPE), type.name()));
           handleApproval(type, entity);
         }
 
         if (targetStatusType == AscriptionStatusType.REJECTED) {
-          transitionSpan.addEvent(EVENT_HOOK_REJECTED);
-          emitCorrelatedLifecycleLog(EVENT_HOOK_REJECTED, OUTCOME_SUCCESS);
+          emitLifecycleEvent(transitionSpan, EVENT_HOOK_REJECTED, OUTCOME_SUCCESS);
         }
 
         // 7. Execute cascades
@@ -302,8 +326,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
         throw PersistenceExceptionTranslationService.translate(ex);
       }
     } catch (RuntimeException ex) {
-      transitionSpan.addEvent(EVENT_HOOK_ERROR);
-      emitCorrelatedLifecycleLog(EVENT_HOOK_ERROR, OUTCOME_FAILURE);
+      emitLifecycleEvent(transitionSpan, EVENT_HOOK_ERROR, OUTCOME_FAILURE);
       transitionSpan.recordException(ex);
       throw ex;
     } finally {
@@ -359,15 +382,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     for (CascadeTargetEntry entry : targetEntries) {
       if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT
           && !stateMachine.isDependentCascadeApplicable(fromStatus, toStatus)) {
-        Span.current()
-            .addEvent(
-                EVENT_HOOK_CASCADE_SKIP,
-                Attributes.builder()
-                    .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
-                    .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
-                    .put(ATTR_CASCADE_REASON, "dependent-not-applicable")
-                    .build());
-        emitCorrelatedLifecycleLog(EVENT_HOOK_CASCADE_SKIP, OUTCOME_SKIPPED);
+        emitLifecycleEvent(
+            EVENT_HOOK_CASCADE_SKIP,
+            OUTCOME_SKIPPED,
+            Attributes.builder()
+                .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                .put(ATTR_CASCADE_REASON, "dependent-not-applicable")
+                .build());
         continue;
       }
 
@@ -376,17 +398,25 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
       for (AscriptionEntity target : targets) {
         if (target.getStatus() != fromStatus) {
-          Span.current()
-              .addEvent(
-                  EVENT_HOOK_CASCADE_SKIP,
-                  Attributes.builder()
-                      .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
-                      .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
-                      .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
-                      .put(ATTR_CASCADE_REASON, "status-mismatch")
-                      .build());
-            emitCorrelatedLifecycleLog(EVENT_HOOK_CASCADE_SKIP, OUTCOME_SKIPPED);
+          emitLifecycleEvent(
+            EVENT_HOOK_CASCADE_SKIP,
+            OUTCOME_SKIPPED,
+            Attributes.builder()
+                .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                .put(ATTR_CASCADE_REASON, "status-mismatch")
+                .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
+            emitLifecycleEvent(
+                EVENT_HOOK_ERROR,
+                OUTCOME_FAILURE,
+                Attributes.builder()
+                    .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                    .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                    .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                    .put(ATTR_CASCADE_REASON, "status-mismatch")
+                    .build());
             throw RuleViolationException.of(
                 AscriptionStatusTransitionRuleType
                     .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
@@ -418,17 +448,25 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               entry.targetService().getRefereeReferences(target);
           stateMachine.validateRefereePreconditions(refs, fromStatus, toStatus);
         } catch (RuleViolationException e) {
-          Span.current()
-              .addEvent(
-                  EVENT_HOOK_CASCADE_SKIP,
-                  Attributes.builder()
-                      .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
-                      .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
-                      .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
-                      .put(ATTR_CASCADE_REASON, "referee-precondition")
-                      .build());
-            emitCorrelatedLifecycleLog(EVENT_HOOK_CASCADE_SKIP, OUTCOME_SKIPPED);
+          emitLifecycleEvent(
+            EVENT_HOOK_CASCADE_SKIP,
+            OUTCOME_SKIPPED,
+            Attributes.builder()
+                .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                .put(ATTR_CASCADE_REASON, "referee-precondition")
+                .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
+            emitLifecycleEvent(
+                EVENT_HOOK_ERROR,
+                OUTCOME_FAILURE,
+                Attributes.builder()
+                    .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                    .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                    .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                    .put(ATTR_CASCADE_REASON, "referee-precondition")
+                    .build());
             throw RuleViolationException.of(
                 AscriptionStatusTransitionRuleType
                     .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
@@ -440,15 +478,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
           continue;
         }
 
-        Span.current()
-            .addEvent(
-                EVENT_HOOK_CASCADE,
-                Attributes.builder()
-                    .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
-                    .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
-                    .put(ATTR_CASCADE_TARGET_TYPE, targetType.name())
-                    .build());
-        emitCorrelatedLifecycleLog(EVENT_HOOK_CASCADE, OUTCOME_SUCCESS);
+        emitLifecycleEvent(
+            EVENT_HOOK_CASCADE,
+            OUTCOME_SUCCESS,
+            Attributes.builder()
+                .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                .put(ATTR_CASCADE_TARGET_TYPE, targetType.name())
+                .build());
 
         transitionCascadeTarget(target, targetType, fromStatus, toStatus);
       }
@@ -484,9 +521,18 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     Span cascadeSpan = startTransitionSpan(targetId, fromStatus, toStatus);
 
     try (Scope ignored = cascadeSpan.makeCurrent()) {
+      emitLifecycleEvent(
+          cascadeSpan,
+          EVENT_HOOK_CASCADE,
+          OUTCOME_SUCCESS,
+          Attributes.builder()
+              .put(ATTR_CASCADE_TARGET_ID, targetId.toString())
+              .put(ATTR_CASCADE_TARGET_TYPE, targetType.name())
+              .build());
       recordTransition(target, fromStatus, toStatus);
       executeCascades(target, targetType, fromStatus, toStatus);
     } catch (RuntimeException ex) {
+      emitLifecycleEvent(cascadeSpan, EVENT_HOOK_ERROR, OUTCOME_FAILURE);
       cascadeSpan.recordException(ex);
       throw ex;
     } finally {
@@ -515,6 +561,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       } else {
         continue;
       }
+      emitLifecycleEvent(
+          EVENT_HOOK_APPROVAL_CONVERGENCE,
+          OUTCOME_SUCCESS,
+          Attributes.builder()
+              .put(ATTR_ASCRIPTION_ID, String.valueOf(sibling.getId()))
+              .put(ATTR_STATE_FROM, siblingStatus.name())
+              .put(ATTR_STATE_TO, terminalStatus.name())
+              .build());
       recordTransition(sibling, siblingStatus, terminalStatus);
     }
   }
@@ -528,57 +582,102 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
         svc.findAllByDefinitionIdAndStatus(definitionId, List.of(AscriptionStatusType.ACTIVE));
     for (AscriptionEntity prev : activeAscriptions) {
       if (prev.getId().equals(activating.getId())) continue;
+      emitLifecycleEvent(
+          EVENT_HOOK_ACTIVATION_HANDOFF,
+          OUTCOME_SUCCESS,
+          Attributes.builder()
+              .put(ATTR_ASCRIPTION_ID, String.valueOf(prev.getId()))
+              .put(ATTR_STATE_FROM, AscriptionStatusType.ACTIVE.name())
+              .put(ATTR_STATE_TO, AscriptionStatusType.DEPRECATED.name())
+              .build());
       recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
     }
   }
 
+  private void emitLifecycleEvent(Span span, String eventName, String eventOutcome) {
+    span.addEvent(eventName);
+    emitCorrelatedLifecycleLog(span, eventName, eventOutcome);
+  }
+
+  private void emitLifecycleEvent(String eventName, String eventOutcome, Attributes attributes) {
+    Span.current().addEvent(eventName, attributes);
+    emitCorrelatedLifecycleLog(eventName, eventOutcome);
+  }
+
+  private void emitLifecycleEvent(
+      Span span, String eventName, String eventOutcome, Attributes attributes) {
+    span.addEvent(eventName, attributes);
+    emitCorrelatedLifecycleLog(span, eventName, eventOutcome);
+  }
+
   private void emitCorrelatedLifecycleLog(String eventName, String eventOutcome) {
     Span currentSpan = Span.current();
+    emitCorrelatedLifecycleLog(currentSpan, Context.current(), eventName, eventOutcome);
+  }
+
+  private void emitCorrelatedLifecycleLog(Span span, String eventName, String eventOutcome) {
+    Context context = span.storeInContext(Context.current());
+    emitCorrelatedLifecycleLog(span, context, eventName, eventOutcome);
+  }
+
+  private void emitCorrelatedLifecycleLog(
+      Span currentSpan, Context context, String eventName, String eventOutcome) {
     SpanContext spanContext = currentSpan.getSpanContext();
     String traceId = spanContext.isValid() ? spanContext.getTraceId() : MDC.get(MDC_TRACE_ID);
     String spanId = spanContext.isValid() ? spanContext.getSpanId() : MDC.get(MDC_SPAN_ID);
     String tenantId = MDC.get(ATTR_TENANT_ID);
 
     if (OUTCOME_FAILURE.equals(eventOutcome)) {
-      emitOtelLifecycleLogRecord(eventName, eventOutcome, traceId, spanId, tenantId, Severity.ERROR);
+      emitOtelLifecycleLogRecord(
+          context, eventName, eventOutcome, traceId, spanId, tenantId, Severity.ERROR);
       return;
     }
 
     if (OUTCOME_SKIPPED.equals(eventOutcome)) {
-      emitOtelLifecycleLogRecord(eventName, eventOutcome, traceId, spanId, tenantId, Severity.WARN);
+      emitOtelLifecycleLogRecord(
+          context, eventName, eventOutcome, traceId, spanId, tenantId, Severity.WARN);
       return;
     }
-    emitOtelLifecycleLogRecord(eventName, eventOutcome, traceId, spanId, tenantId, Severity.INFO);
-    }
+    emitOtelLifecycleLogRecord(
+        context, eventName, eventOutcome, traceId, spanId, tenantId, Severity.INFO);
+  }
 
-    private void emitOtelLifecycleLogRecord(
+  private void emitOtelLifecycleLogRecord(
+      Context context,
       String eventName,
       String eventOutcome,
       String traceId,
       String spanId,
       String tenantId,
       Severity severity) {
-      var builder =
+    var builder =
         otelLogger
-          .logRecordBuilder()
-          .setContext(Context.current())
-          .setSeverity(severity)
-          .setSeverityText(severity.name())
-          .setAttribute("event.name", eventName)
-          .setAttribute("event.outcome", eventOutcome)
-          .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
-          .setAttribute("trace_id", traceId == null ? "" : traceId)
-          .setAttribute("span_id", spanId == null ? "" : spanId)
-          .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId);
+            .logRecordBuilder()
+            .setContext(context)
+            .setSeverity(severity)
+            .setSeverityText(severity.name())
+            .setAttribute("event.name", eventName)
+            .setAttribute("event.outcome", eventOutcome)
+            .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER);
 
-      if (severity != Severity.INFO) {
-        builder.setBody(
+    if (traceId != null && !traceId.isBlank()) {
+      builder.setAttribute("trace_id", traceId);
+    }
+
+    if (spanId != null && !spanId.isBlank()) {
+      builder.setAttribute("span_id", spanId);
+    }
+
+    if (tenantId != null && !tenantId.isBlank()) {
+      builder.setAttribute("gsm.tenant.id", tenantId);
+    }
+
+    if (severity != Severity.INFO) {
+      builder.setBody(
           String.format(
-            "Ascription lifecycle milestone %s with outcome %s",
-            eventName,
-            eventOutcome));
-      }
+              "Ascription lifecycle milestone %s with outcome %s", eventName, eventOutcome));
+    }
 
-      builder.emit();
+    builder.emit();
   }
 }
