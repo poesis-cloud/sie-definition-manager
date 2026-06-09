@@ -15,7 +15,9 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import jakarta.persistence.EntityManager;
@@ -61,6 +63,16 @@ class AscriptionServiceObservabilityTest {
     when(structureHandler.getRefereeReferences(any())).thenReturn(List.of());
   }
 
+  private void withOperationSpan(String spanName, Runnable action) {
+    Tracer tracer = otel.getOpenTelemetry().getTracer("test.definition.create", "1");
+    Span operationSpan = tracer.spanBuilder(spanName).startSpan();
+    try (Scope ignored = operationSpan.makeCurrent()) {
+      action.run();
+    } finally {
+      operationSpan.end();
+    }
+  }
+
   @Test
   void createPath_emitsCreateSpanWithRequiredAttributesAndDomainEvents() {
     UUID archetypeId = UUID.randomUUID();
@@ -88,7 +100,7 @@ class AscriptionServiceObservabilityTest {
 
     MDC.put("gsm.tenant.id", "tenant-alpha");
     try {
-      service.create(archetypeId, statement, null);
+      withOperationSpan(CREATE_SPAN_NAME, () -> service.create(archetypeId, statement, null));
     } finally {
       MDC.remove("gsm.tenant.id");
     }
@@ -151,7 +163,7 @@ class AscriptionServiceObservabilityTest {
 
     AscriptionService service = createService(80);
 
-    service.create(archetypeId, statement, null);
+    withOperationSpan(CREATE_SPAN_NAME, () -> service.create(archetypeId, statement, null));
 
     SpanData createSpan =
         otel.getSpans().stream()
@@ -189,7 +201,8 @@ class AscriptionServiceObservabilityTest {
 
     MDC.put("gsm.tenant.id", "tenant-beta");
     try {
-      service.create(archetypeId, statement, definitionId);
+      withOperationSpan(
+          TRANSFORM_SPAN_NAME, () -> service.create(archetypeId, statement, definitionId));
     } finally {
       MDC.remove("gsm.tenant.id");
     }
@@ -253,7 +266,8 @@ class AscriptionServiceObservabilityTest {
 
     AscriptionService service = createService(90);
 
-    service.create(archetypeId, statement, definitionId);
+    withOperationSpan(
+      TRANSFORM_SPAN_NAME, () -> service.create(archetypeId, statement, definitionId));
 
     SpanData transformSpan =
       otel.getSpans().stream()
@@ -277,7 +291,6 @@ class AscriptionServiceObservabilityTest {
       handlers.add(handler);
     }
 
-    Tracer tracer = otel.getOpenTelemetry().getTracer("test.definition.create", "1");
     AscriptionService service =
         new AscriptionService(
             ascriptionRepository,
@@ -290,7 +303,6 @@ class AscriptionServiceObservabilityTest {
             statementProtection,
             entityManager,
             handlers,
-            tracer,
             payloadCapBytes);
     service.afterSingletonsInstantiated();
     return service;

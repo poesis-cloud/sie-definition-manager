@@ -31,11 +31,8 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanContext;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -67,8 +64,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private static final String ATTR_CASCADE_TARGET_ID = "gsm.ascription.cascade.target.id";
   private static final String ATTR_CASCADE_TARGET_TYPE = "gsm.ascription.cascade.target.type";
   private static final String ATTR_CASCADE_REASON = "gsm.ascription.cascade.reason";
-  private static final String EVENT_HOOK_ACTIVATION = "gsm.ascription.hook.activation";
-  private static final String EVENT_HOOK_DEACTIVATION = "gsm.ascription.hook.deactivation";
   private static final String EVENT_HOOK_APPROVAL = "gsm.ascription.hook.approval";
   private static final String EVENT_HOOK_REJECTED = "gsm.ascription.hook.rejected";
   private static final String EVENT_HOOK_CASCADE = "gsm.ascription.hook.cascade";
@@ -82,8 +77,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private static final String OUTCOME_SUCCESS = "success";
   private static final String OUTCOME_SKIPPED = "skipped";
   private static final String OUTCOME_FAILURE = "failure";
-  private static final String MDC_TRACE_ID = "trace_id";
-  private static final String MDC_SPAN_ID = "span_id";
 
   // ======================================================================
   // Cascade graph (built at startup from subtype declarations)
@@ -248,9 +241,10 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     DefinitionSubjectType type = entity.getDefinition().getSubjectType();
     AscriptionStatusType currentStatus = entity.getStatus();
 
-    Span transitionSpan = startTransitionSpan(ascriptionId, currentStatus, targetStatusType);
+    Span transitionSpan = Span.current();
+    enrichTransitionSpan(transitionSpan, ascriptionId, currentStatus, targetStatusType);
 
-    try (Scope ignored = transitionSpan.makeCurrent()) {
+    try {
       // 1. Validate state machine transition
       stateMachine.validateTransition(ascriptionId, currentStatus, targetStatusType);
 
@@ -267,11 +261,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       if (targetStatusType == AscriptionStatusType.ACTIVE) {
         AscriptionSubtypeService<?> svc = subtypeByType.get(type);
         if (svc != null) {
-          emitLifecycleEvent(
-              transitionSpan,
-              EVENT_HOOK_ACTIVATION,
-              OUTCOME_SUCCESS,
-              Attributes.of(AttributeKey.stringKey(ATTR_SUBJECT_TYPE), type.name()));
           svc.onActivation(entity);
         }
       }
@@ -283,11 +272,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
               .contains(targetStatusType)) {
         AscriptionSubtypeService<?> svc = subtypeByType.get(type);
         if (svc != null) {
-          emitLifecycleEvent(
-              transitionSpan,
-              EVENT_HOOK_DEACTIVATION,
-              OUTCOME_SUCCESS,
-              Attributes.of(AttributeKey.stringKey(ATTR_SUBJECT_TYPE), type.name()));
           svc.onDeactivation(entity);
         }
       }
@@ -329,8 +313,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       emitLifecycleEvent(transitionSpan, EVENT_HOOK_ERROR, OUTCOME_FAILURE);
       transitionSpan.recordException(ex);
       throw ex;
-    } finally {
-      transitionSpan.end();
     }
   }
 
@@ -492,24 +474,21 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     }
   }
 
-  private Span startTransitionSpan(
-      UUID ascriptionId, AscriptionStatusType fromStatus, AscriptionStatusType toStatus) {
-    Span transitionSpan =
-        tracer
-            .spanBuilder(TRANSITION_SPAN_NAME)
-            .setSpanKind(SpanKind.INTERNAL)
-            .setAttribute(ATTR_ASCRIPTION_ID, ascriptionId.toString())
-            .setAttribute(ATTR_STATE_FROM, fromStatus.name())
-            .setAttribute(ATTR_STATE_TO, toStatus.name())
-            .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
-            .startSpan();
+  private static void enrichTransitionSpan(
+      Span span, UUID ascriptionId, AscriptionStatusType fromStatus, AscriptionStatusType toStatus) {
+    if (span == null) {
+      return;
+    }
+
+    span.setAttribute(ATTR_ASCRIPTION_ID, ascriptionId.toString());
+    span.setAttribute(ATTR_STATE_FROM, fromStatus.name());
+    span.setAttribute(ATTR_STATE_TO, toStatus.name());
+    span.setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER);
 
     String tenantId = MDC.get(ATTR_TENANT_ID);
     if (tenantId != null && !tenantId.isBlank()) {
-      transitionSpan.setAttribute(ATTR_TENANT_ID, tenantId);
+      span.setAttribute(ATTR_TENANT_ID, tenantId);
     }
-
-    return transitionSpan;
   }
 
   private void transitionCascadeTarget(
@@ -518,9 +497,9 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       AscriptionStatusType fromStatus,
       AscriptionStatusType toStatus) {
     UUID targetId = Objects.requireNonNull(target.getId(), "cascade.target.id");
-    Span cascadeSpan = startTransitionSpan(targetId, fromStatus, toStatus);
+    Span cascadeSpan = Span.current();
 
-    try (Scope ignored = cascadeSpan.makeCurrent()) {
+    try {
       emitLifecycleEvent(
           cascadeSpan,
           EVENT_HOOK_CASCADE,
@@ -535,8 +514,6 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       emitLifecycleEvent(cascadeSpan, EVENT_HOOK_ERROR, OUTCOME_FAILURE);
       cascadeSpan.recordException(ex);
       throw ex;
-    } finally {
-      cascadeSpan.end();
     }
   }
 
@@ -611,63 +588,34 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   }
 
   private void emitCorrelatedLifecycleLog(String eventName, String eventOutcome) {
-    Span currentSpan = Span.current();
-    emitCorrelatedLifecycleLog(currentSpan, Context.current(), eventName, eventOutcome);
+    emitCorrelatedLifecycleLog(Span.current(), eventName, eventOutcome);
   }
 
   private void emitCorrelatedLifecycleLog(Span span, String eventName, String eventOutcome) {
-    Context context = span.storeInContext(Context.current());
-    emitCorrelatedLifecycleLog(span, context, eventName, eventOutcome);
-  }
-
-  private void emitCorrelatedLifecycleLog(
-      Span currentSpan, Context context, String eventName, String eventOutcome) {
-    SpanContext spanContext = currentSpan.getSpanContext();
-    String traceId = spanContext.isValid() ? spanContext.getTraceId() : MDC.get(MDC_TRACE_ID);
-    String spanId = spanContext.isValid() ? spanContext.getSpanId() : MDC.get(MDC_SPAN_ID);
-    String tenantId = MDC.get(ATTR_TENANT_ID);
-
-    if (OUTCOME_FAILURE.equals(eventOutcome)) {
-      emitOtelLifecycleLogRecord(
-          context, eventName, eventOutcome, traceId, spanId, tenantId, Severity.ERROR);
+    if (OUTCOME_SUCCESS.equals(eventOutcome)) {
       return;
     }
 
-    if (OUTCOME_SKIPPED.equals(eventOutcome)) {
-      emitOtelLifecycleLogRecord(
-          context, eventName, eventOutcome, traceId, spanId, tenantId, Severity.WARN);
-      return;
-    }
-    emitOtelLifecycleLogRecord(
-        context, eventName, eventOutcome, traceId, spanId, tenantId, Severity.INFO);
+    Severity severity = OUTCOME_FAILURE.equals(eventOutcome) ? Severity.ERROR : Severity.WARN;
+    emitOtelLifecycleLogRecord(span, eventName, eventOutcome, severity);
   }
 
   private void emitOtelLifecycleLogRecord(
-      Context context,
+      Span span,
       String eventName,
       String eventOutcome,
-      String traceId,
-      String spanId,
-      String tenantId,
       Severity severity) {
     var builder =
         otelLogger
             .logRecordBuilder()
-            .setContext(context)
+            .setContext(Context.current())
             .setSeverity(severity)
             .setSeverityText(severity.name())
             .setAttribute("event.name", eventName)
             .setAttribute("event.outcome", eventOutcome)
             .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER);
 
-    if (traceId != null && !traceId.isBlank()) {
-      builder.setAttribute("trace_id", traceId);
-    }
-
-    if (spanId != null && !spanId.isBlank()) {
-      builder.setAttribute("span_id", spanId);
-    }
-
+    String tenantId = MDC.get(ATTR_TENANT_ID);
     if (tenantId != null && !tenantId.isBlank()) {
       builder.setAttribute("gsm.tenant.id", tenantId);
     }

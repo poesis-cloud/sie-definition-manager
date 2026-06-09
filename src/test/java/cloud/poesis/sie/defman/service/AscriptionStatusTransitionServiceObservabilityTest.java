@@ -45,8 +45,6 @@ import org.slf4j.MDC;
 class AscriptionStatusTransitionServiceObservabilityTest {
 
   private static final String TRANSITION_SPAN_NAME = "gsm.ascription.transition";
-  private static final String EVENT_HOOK_ACTIVATION = "gsm.ascription.hook.activation";
-  private static final String EVENT_HOOK_DEACTIVATION = "gsm.ascription.hook.deactivation";
   private static final String EVENT_HOOK_APPROVAL = "gsm.ascription.hook.approval";
   private static final String EVENT_HOOK_CASCADE = "gsm.ascription.hook.cascade";
   private static final String EVENT_HOOK_CASCADE_SKIP = "gsm.ascription.hook.cascade-skip";
@@ -73,32 +71,32 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of());
   }
 
+    private void withTransitionSpan(Runnable action) {
+        Tracer tracer = otel.getOpenTelemetry().getTracer("test.ascription.transition", "1");
+        Span transitionSpan = tracer.spanBuilder(TRANSITION_SPAN_NAME).startSpan();
+        try (Scope ignored = transitionSpan.makeCurrent()) {
+            action.run();
+        } finally {
+            transitionSpan.end();
+        }
+    }
+
   @Test
-  void acceptedTransition_emitsChildSpanWithLifecycleAttributes() {
+    void acceptedTransition_enrichesActiveSpanWithLifecycleAttributes() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
     when(entityManager.find(AscriptionEntity.class, ascriptionId)).thenReturn(entity);
     stubRepoSave();
 
-    Tracer tracer = otel.getOpenTelemetry().getTracer("test.ascription.transition", "1");
-    Span parent = tracer.spanBuilder("active-flow").startSpan();
     MDC.put("gsm.tenant.id", "tenant-alpha");
-    try (Scope ignored = parent.makeCurrent()) {
-      service.transition(ascriptionId, "PROPOSED");
+        try {
+            withTransitionSpan(() -> service.transition(ascriptionId, "PROPOSED"));
     } finally {
       MDC.remove("gsm.tenant.id");
-      parent.end();
     }
 
-    SpanData parentSpan =
-        otel.getSpans().stream()
-            .filter(s -> s.getName().equals("active-flow"))
-            .findFirst()
-            .orElseThrow();
     SpanData transitionSpan = findTransitionSpanByAscription(ascriptionId);
-
-    assertThat(transitionSpan.getParentSpanId()).isEqualTo(parentSpan.getSpanId());
     assertThat(transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.id")))
         .isEqualTo(ascriptionId.toString());
     assertThat(
@@ -114,14 +112,14 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   }
 
   @Test
-  void acceptedTransition_emitsPersistenceEventAndCorrelatedInfoLog() {
+    void acceptedTransition_emitsPersistenceEventOnly() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
     when(entityManager.find(AscriptionEntity.class, ascriptionId)).thenReturn(entity);
     stubRepoSave();
 
-    service.transition(ascriptionId, "PROPOSED");
+    withTransitionSpan(() -> service.transition(ascriptionId, "PROPOSED"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(ascriptionId);
     assertThat(transitionSpan.getEvents())
@@ -139,15 +137,17 @@ class AscriptionStatusTransitionServiceObservabilityTest {
                                 .getAttributes()
                                 .get(AttributeKey.stringKey("gsm.ascription.state.to"))));
 
-    LogRecordData lifecycleLog = findLifecycleLogRecord(EVENT_HOOK_PERSISTENCE, OUTCOME_SUCCESS);
-    assertThat(lifecycleLog.getSeverity()).isEqualTo(Severity.INFO);
-    assertThat(hasNoBody(lifecycleLog)).isTrue();
-    assertThat(lifecycleLog.getAttributes().get(AttributeKey.stringKey("gsm.tenant.id")))
-        .isNull();
+    assertThat(otel.getLogRecords())
+        .noneMatch(
+            record ->
+                EVENT_HOOK_PERSISTENCE.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.name")))
+                    && OUTCOME_SUCCESS.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
   }
 
   @Test
-  void activationTransition_emitsActivationHookEventOnParentTransitionSpan() {
+    void activationTransition_doesNotEmitDelegatedActivationHookEvent() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.APPROVED);
@@ -163,11 +163,11 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype));
     stubRepoSave();
 
-    service.transition(ascriptionId, "ACTIVE");
+    withTransitionSpan(() -> service.transition(ascriptionId, "ACTIVE"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(ascriptionId);
     assertThat(transitionSpan.getEvents())
-        .anyMatch(event -> event.getName().equals(EVENT_HOOK_ACTIVATION));
+        .noneMatch(event -> event.getName().equals("gsm.ascription.hook.activation"));
     assertThat(
             otel.getSpans().stream()
                 .filter(span -> span.getName().equals(TRANSITION_SPAN_NAME))
@@ -176,7 +176,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   }
 
   @Test
-  void deactivationTransition_emitsDeactivationEventAndInfoLogWithoutBody() {
+  void deactivationTransition_doesNotEmitDelegatedDeactivationHookEvent() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.ACTIVE);
@@ -191,15 +191,19 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype));
     stubRepoSave();
 
-    service.transition(ascriptionId, "SUSPENDED");
+    withTransitionSpan(() -> service.transition(ascriptionId, "SUSPENDED"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(ascriptionId);
     assertThat(transitionSpan.getEvents())
-        .anyMatch(event -> event.getName().equals(EVENT_HOOK_DEACTIVATION));
+        .noneMatch(event -> event.getName().equals("gsm.ascription.hook.deactivation"));
 
-    LogRecordData lifecycleLog = findLifecycleLogRecord(EVENT_HOOK_DEACTIVATION, OUTCOME_SUCCESS);
-    assertThat(lifecycleLog.getSeverity()).isEqualTo(Severity.INFO);
-    assertThat(hasNoBody(lifecycleLog)).isTrue();
+    assertThat(otel.getLogRecords())
+        .noneMatch(
+            record ->
+                "gsm.ascription.hook.deactivation".equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.name")))
+                    && OUTCOME_SUCCESS.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
   }
 
   @Test
@@ -219,7 +223,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype));
     stubRepoSave();
 
-    service.transition(ascriptionId, "APPROVED");
+    withTransitionSpan(() -> service.transition(ascriptionId, "APPROVED"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(ascriptionId);
     assertThat(transitionSpan.getEvents())
@@ -247,7 +251,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype));
     stubRepoSave();
 
-    service.transition(activatingId, "ACTIVE");
+    withTransitionSpan(() -> service.transition(activatingId, "ACTIVE"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(activatingId);
     assertThat(transitionSpan.getEvents())
@@ -269,9 +273,13 @@ class AscriptionStatusTransitionServiceObservabilityTest {
                                 .getAttributes()
                                 .get(AttributeKey.stringKey("gsm.ascription.state.to"))));
 
-    LogRecordData lifecycleLog =
-        findLifecycleLogRecord(EVENT_HOOK_ACTIVATION_HANDOFF, OUTCOME_SUCCESS);
-    assertThat(lifecycleLog.getSeverity()).isEqualTo(Severity.INFO);
+    assertThat(otel.getLogRecords())
+        .noneMatch(
+            record ->
+                EVENT_HOOK_ACTIVATION_HANDOFF.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.name")))
+                    && OUTCOME_SUCCESS.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
   }
 
   @Test
@@ -299,7 +307,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype));
     stubRepoSave();
 
-    service.transition(approvedId, "APPROVED");
+    withTransitionSpan(() -> service.transition(approvedId, "APPROVED"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(approvedId);
     assertThat(transitionSpan.getEvents())
@@ -338,13 +346,17 @@ class AscriptionStatusTransitionServiceObservabilityTest {
                                 .getAttributes()
                                 .get(AttributeKey.stringKey("gsm.ascription.state.to"))));
 
-    LogRecordData lifecycleLog =
-        findLifecycleLogRecord(EVENT_HOOK_APPROVAL_CONVERGENCE, OUTCOME_SUCCESS);
-    assertThat(lifecycleLog.getSeverity()).isEqualTo(Severity.INFO);
+    assertThat(otel.getLogRecords())
+        .noneMatch(
+            record ->
+                EVENT_HOOK_APPROVAL_CONVERGENCE.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.name")))
+                    && OUTCOME_SUCCESS.equals(
+                        record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
   }
 
   @Test
-  void cascadedTransitions_preserveParentChildLineage() {
+  void cascadedTransitions_emitCascadeEventsOnSingleActiveSpan() {
     UUID sourceId = UUID.randomUUID();
     UUID mechanismId = UUID.randomUUID();
     UUID effectorId = UUID.randomUUID();
@@ -395,29 +407,16 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype, mechanismSubtype, effectorSubtype));
     stubRepoSave();
 
-    Tracer tracer = otel.getOpenTelemetry().getTracer("test.ascription.transition", "1");
-    Span parent = tracer.spanBuilder("active-flow").startSpan();
-    try (Scope ignored = parent.makeCurrent()) {
-      service.transition(sourceId, "PROPOSED");
-    } finally {
-      parent.end();
-    }
+        withTransitionSpan(() -> service.transition(sourceId, "PROPOSED"));
 
-    SpanData parentSpan =
-        otel.getSpans().stream()
-            .filter(s -> s.getName().equals("active-flow"))
-            .findFirst()
-            .orElseThrow();
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
-    SpanData mechanismTransition = findTransitionSpanByAscription(mechanismId);
-    SpanData effectorTransition = findTransitionSpanByAscription(effectorId);
 
-    assertThat(sourceTransition.getParentSpanId()).isEqualTo(parentSpan.getSpanId());
-    assertThat(mechanismTransition.getParentSpanId()).isEqualTo(sourceTransition.getSpanId());
-    assertThat(effectorTransition.getParentSpanId()).isEqualTo(mechanismTransition.getSpanId());
+        assertThat(
+                        otel.getSpans().stream()
+                                .filter(span -> span.getName().equals(TRANSITION_SPAN_NAME))
+                                .count())
+                .isEqualTo(1L);
     assertThat(sourceTransition.getEvents())
-        .anyMatch(event -> event.getName().equals(EVENT_HOOK_CASCADE));
-    assertThat(mechanismTransition.getEvents())
         .anyMatch(event -> event.getName().equals(EVENT_HOOK_CASCADE));
   }
 
@@ -449,7 +448,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(mechanismSubtype));
     stubRepoSave();
 
-    service.transition(sourceId, "PROPOSED");
+    withTransitionSpan(() -> service.transition(sourceId, "PROPOSED"));
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
     assertThat(sourceTransition.getEvents())
@@ -487,7 +486,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(mechanismSubtype, effectorSubtype));
     stubRepoSave();
 
-    service.transition(sourceId, "APPROVED");
+    withTransitionSpan(() -> service.transition(sourceId, "APPROVED"));
 
     SpanData transitionSpan = findTransitionSpanByAscription(sourceId);
     assertThat(transitionSpan.getEvents())
@@ -540,7 +539,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype, mechanismSubtype));
     stubRepoSave();
 
-    service.transition(sourceId, "PROPOSED");
+    withTransitionSpan(() -> service.transition(sourceId, "PROPOSED"));
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
     assertThat(sourceTransition.getEvents())
@@ -605,7 +604,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype, mechanismSubtype));
     stubRepoSave();
 
-    service.transition(structureId, "DEPRECATED");
+    withTransitionSpan(() -> service.transition(structureId, "DEPRECATED"));
 
     SpanData sourceTransition = findTransitionSpanByAscription(structureId);
     assertThat(sourceTransition.getEvents())
@@ -659,7 +658,8 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of(structureSubtype, mechanismSubtype));
     stubRepoSave();
 
-    assertThrows(RuleViolationException.class, () -> service.transition(sourceId, "PROPOSED"));
+    withTransitionSpan(
+        () -> assertThrows(RuleViolationException.class, () -> service.transition(sourceId, "PROPOSED")));
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
     assertThat(sourceTransition.getEvents())
@@ -723,10 +723,11 @@ class AscriptionStatusTransitionServiceObservabilityTest {
               return saved;
             });
 
-    assertThrows(IllegalStateException.class, () -> service.transition(sourceId, "PROPOSED"));
+    withTransitionSpan(
+        () -> assertThrows(IllegalStateException.class, () -> service.transition(sourceId, "PROPOSED")));
 
-    SpanData cascadeSpan = findTransitionSpanByAscription(mechanismId);
-    assertThat(cascadeSpan.getEvents())
+    SpanData transitionSpan = findTransitionSpanByAscription(sourceId);
+    assertThat(transitionSpan.getEvents())
         .anyMatch(event -> event.getName().equals(EVENT_HOOK_ERROR));
     assertThat(otel.getLogRecords())
         .anyMatch(
@@ -734,13 +735,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
                 EVENT_HOOK_ERROR.equals(
                         record.getAttributes().get(AttributeKey.stringKey("event.name")))
                     && OUTCOME_FAILURE.equals(
-                        record.getAttributes().get(AttributeKey.stringKey("event.outcome")))
-                    && cascadeSpan
-                        .getTraceId()
-                        .equals(record.getAttributes().get(AttributeKey.stringKey("trace_id")))
-                    && cascadeSpan
-                        .getSpanId()
-                        .equals(record.getAttributes().get(AttributeKey.stringKey("span_id"))));
+                        record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
   }
 
   @Test
@@ -757,7 +752,10 @@ class AscriptionStatusTransitionServiceObservabilityTest {
         .validateTransition(
             ascriptionId, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED);
 
-    assertThrows(RuleViolationException.class, () -> service.transition(ascriptionId, "PROPOSED"));
+    withTransitionSpan(
+        () ->
+            assertThrows(
+                RuleViolationException.class, () -> service.transition(ascriptionId, "PROPOSED")));
 
     SpanData transitionSpan =
         otel.getSpans().stream()
@@ -773,10 +771,6 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     assertThat(lifecycleLog.getSeverity()).isEqualTo(Severity.ERROR);
     assertThat(lifecycleLog.getBodyValue()).isNotNull();
     assertThat(lifecycleLog.getBodyValue().asString()).contains(EVENT_HOOK_ERROR);
-    assertThat(lifecycleLog.getAttributes().get(AttributeKey.stringKey("trace_id")))
-        .isEqualTo(transitionSpan.getTraceId());
-    assertThat(lifecycleLog.getAttributes().get(AttributeKey.stringKey("span_id")))
-        .isEqualTo(transitionSpan.getSpanId());
   }
 
   private AscriptionEntity stubEntity(
