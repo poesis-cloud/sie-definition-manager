@@ -20,15 +20,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.logs.Logger;
-import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.api.trace.SpanContext;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import org.hibernate.Hibernate;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -55,9 +47,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional("transactionManager")
 public class AscriptionService implements SmartInitializingSingleton {
-  private static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability";
-  private static final String CREATE_SPAN_NAME = "gsm.definition.create";
-  private static final String TRANSFORM_SPAN_NAME = "gsm.definition.transform";
   private static final String OPERATION_CREATE = "create";
   private static final String OPERATION_TRANSFORM = "transform";
   private static final String ATTR_OPERATION = "gsm.definition.operation";
@@ -75,9 +64,6 @@ public class AscriptionService implements SmartInitializingSingleton {
   private static final String EVENT_VALIDATE_REFEREES = "validate-referees";
   private static final String EVENT_PERSIST = "persist";
   private static final String EVENT_AFTER_CREATE = "after-create";
-  private static final String EVENT_OUTCOME_SUCCESS = "success";
-  private static final String MDC_TRACE_ID = "trace_id";
-  private static final String MDC_SPAN_ID = "span_id";
   private static final int DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES = 16_384;
 
   private final AscriptionRepository ascriptionRepository;
@@ -90,8 +76,6 @@ public class AscriptionService implements SmartInitializingSingleton {
   private final AscriptionProtectionService statementProtection;
   private final EntityManager entityManager;
   private final List<AscriptionSubtypeService<?>> handlerList;
-  private final Tracer tracer;
-  private final Logger otelLogger;
   private final int createResultPayloadCapBytes;
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> handlers;
@@ -107,7 +91,7 @@ public class AscriptionService implements SmartInitializingSingleton {
       AscriptionProtectionService statementProtection,
       EntityManager entityManager,
       List<AscriptionSubtypeService<?>> handlerList) {
-      this(
+    this(
         ascriptionRepository,
         archetypeService,
         definitionService,
@@ -118,11 +102,10 @@ public class AscriptionService implements SmartInitializingSingleton {
         statementProtection,
         entityManager,
         handlerList,
-        GlobalOpenTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1"),
         DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES);
-      }
+  }
 
-      AscriptionService(
+  AscriptionService(
         AscriptionRepository ascriptionRepository,
         ArchetypeService archetypeService,
         DefinitionService definitionService,
@@ -133,7 +116,6 @@ public class AscriptionService implements SmartInitializingSingleton {
         AscriptionProtectionService statementProtection,
         EntityManager entityManager,
         List<AscriptionSubtypeService<?>> handlerList,
-        Tracer tracer,
         int createResultPayloadCapBytes) {
     this.ascriptionRepository = ascriptionRepository;
     this.archetypeService = archetypeService;
@@ -145,14 +127,6 @@ public class AscriptionService implements SmartInitializingSingleton {
     this.statementProtection = statementProtection;
     this.entityManager = entityManager;
     this.handlerList = List.copyOf(handlerList);
-    this.tracer = tracer;
-    this.otelLogger =
-      GlobalOpenTelemetry
-        .get()
-        .getLogsBridge()
-        .loggerBuilder(INSTRUMENTATION_SCOPE)
-        .setInstrumentationVersion("1")
-        .build();
     this.createResultPayloadCapBytes = createResultPayloadCapBytes;
   }
 
@@ -194,59 +168,38 @@ public class AscriptionService implements SmartInitializingSingleton {
   public AscriptionEntity create(UUID archetypeId, JsonNode statement, UUID definitionId) {
     ArchetypeService.ArchetypeResolution resolution =
         archetypeService.resolveForCreation(archetypeId);
+
+    Span definitionSpan = Span.current();
+    enrichDefinitionSpan(definitionSpan, resolution.subjectType(), definitionId);
+
     if (definitionId == null) {
-      return doCreateWithOperationSpan(
-          requireHandler(resolution.subjectType()), resolution.archetype(), statement);
+      try {
+        return doCreate(
+            requireHandler(resolution.subjectType()),
+            resolution.archetype(),
+            statement,
+            null,
+            definitionSpan,
+            OPERATION_CREATE,
+            null);
+      } catch (RuntimeException ex) {
+        definitionSpan.recordException(ex);
+        throw ex;
+      }
     }
-    return doTransformWithOperationSpan(
-        requireHandler(resolution.subjectType()),
-        resolution.archetype(),
-        statement,
-        definitionId);
-  }
-
-  private <T extends AscriptionEntity> T doCreateWithOperationSpan(
-      AscriptionSubtypeService<T> handler, ArchetypeEntity archetype, JsonNode statement) {
-    Span createSpan =
-        startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
-
-    try (Scope ignored = createSpan.makeCurrent()) {
-      return doCreate(handler, archetype, statement, null, createSpan, OPERATION_CREATE, null);
-    } catch (RuntimeException ex) {
-      createSpan.recordException(ex);
-      throw ex;
-    } finally {
-      createSpan.end();
-    }
-  }
-
-  private <T extends AscriptionEntity> T doTransformWithOperationSpan(
-      AscriptionSubtypeService<T> handler,
-      ArchetypeEntity archetype,
-      JsonNode statement,
-      UUID definitionId) {
-    Span transformSpan =
-        startDefinitionSpan(
-            TRANSFORM_SPAN_NAME,
-            OPERATION_TRANSFORM,
-            handler.getSubjectType(),
-            definitionId);
     JsonNode priorStatement = (statement == null) ? null : statement.deepCopy();
-
-    try (Scope ignored = transformSpan.makeCurrent()) {
+    try {
       return doCreate(
-          handler,
-          archetype,
+          requireHandler(resolution.subjectType()),
+          resolution.archetype(),
           statement,
           definitionId,
-          transformSpan,
+          definitionSpan,
           OPERATION_TRANSFORM,
           priorStatement);
     } catch (RuntimeException ex) {
-      transformSpan.recordException(ex);
+      definitionSpan.recordException(ex);
       throw ex;
-    } finally {
-      transformSpan.end();
     }
   }
 
@@ -274,7 +227,6 @@ public class AscriptionService implements SmartInitializingSingleton {
     // 2. Resolve or create Definition
     DefinitionEntity definition = definitionService.resolve(definitionId, handler.getSubjectType());
     setCreateSpanDefinitionAttributes(definitionSpan, definition.getId(), handler.getSubjectType());
-    emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_RESOLVE_DEFINITION, EVENT_OUTCOME_SUCCESS);
 
     addDefinitionEvent(definitionSpan, operation, EVENT_PROTECT_STATEMENT);
     // 3. Apply $gsm:dataProtection (at-rest) transformations on statement
@@ -312,7 +264,6 @@ public class AscriptionService implements SmartInitializingSingleton {
       // 10b. Ensure archetype is initialized after refresh (entity graph does not
       // apply to refresh)
       Hibernate.initialize(saved.getArchetype());
-      emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_PERSIST, EVENT_OUTCOME_SUCCESS);
     } catch (DataIntegrityViolationException ex) {
       throw PersistenceExceptionTranslationService.translate(ex);
     }
@@ -320,7 +271,6 @@ public class AscriptionService implements SmartInitializingSingleton {
     addDefinitionEvent(definitionSpan, operation, EVENT_AFTER_CREATE);
     // 11. Post-creation hook (e.g., auto-derivation of ports)
     handler.afterCreate(saved);
-    emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_AFTER_CREATE, EVENT_OUTCOME_SUCCESS);
     emitOperationPayloadLog(
         definitionSpan,
         operation,
@@ -331,19 +281,24 @@ public class AscriptionService implements SmartInitializingSingleton {
     return saved;
   }
 
-  private Span startDefinitionSpan(
-      String spanName,
-      String operation,
+  private static void addDefinitionEvent(Span definitionSpan, String operation, String eventSuffix) {
+    if (definitionSpan != null) {
+      definitionSpan.addEvent("gsm.definition." + operation + "." + eventSuffix);
+    }
+  }
+
+  private static void enrichDefinitionSpan(
+      Span definitionSpan,
       DefinitionSubjectType definitionKind,
       UUID definitionId) {
-    Span definitionSpan =
-        tracer
-            .spanBuilder(spanName)
-            .setSpanKind(SpanKind.INTERNAL)
-            .setAttribute(ATTR_OPERATION, operation)
-            .setAttribute(ATTR_DEFINITION_KIND, definitionKind.name())
-            .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
-            .startSpan();
+    if (definitionSpan == null) {
+      return;
+    }
+
+    String operation = (definitionId == null) ? OPERATION_CREATE : OPERATION_TRANSFORM;
+    definitionSpan.setAttribute(ATTR_OPERATION, operation);
+    definitionSpan.setAttribute(ATTR_DEFINITION_KIND, definitionKind.name());
+    definitionSpan.setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER);
 
     if (definitionId != null) {
       definitionSpan.setAttribute(ATTR_DEFINITION_ID, definitionId.toString());
@@ -352,14 +307,6 @@ public class AscriptionService implements SmartInitializingSingleton {
     String tenantId = MDC.get(ATTR_TENANT_ID);
     if (tenantId != null && !tenantId.isBlank()) {
       definitionSpan.setAttribute(ATTR_TENANT_ID, tenantId);
-    }
-
-    return definitionSpan;
-  }
-
-  private static void addDefinitionEvent(Span definitionSpan, String operation, String eventSuffix) {
-    if (definitionSpan != null) {
-      definitionSpan.addEvent("gsm.definition." + operation + "." + eventSuffix);
     }
   }
 
@@ -370,41 +317,6 @@ public class AscriptionService implements SmartInitializingSingleton {
     }
     createSpan.setAttribute(ATTR_DEFINITION_ID, definitionId.toString());
     createSpan.setAttribute(ATTR_DEFINITION_KIND, definitionKind.name());
-  }
-
-  private void emitCorrelatedMilestoneLog(
-      Span definitionSpan, String operation, String eventSuffix, String eventOutcome) {
-    if (definitionSpan == null) {
-      return;
-    }
-
-    String eventName = "gsm.definition." + operation + "." + eventSuffix;
-    SpanContext spanContext = definitionSpan.getSpanContext();
-    String traceId = spanContext.isValid() ? spanContext.getTraceId() : MDC.get(MDC_TRACE_ID);
-    String spanId = spanContext.isValid() ? spanContext.getSpanId() : MDC.get(MDC_SPAN_ID);
-    String tenantId = MDC.get(ATTR_TENANT_ID);
-
-    emitOtelCorrelationLogRecord(eventName, eventOutcome, traceId, spanId, tenantId);
-  }
-
-  private void emitOtelCorrelationLogRecord(
-      String eventName,
-      String eventOutcome,
-      String traceId,
-      String spanId,
-      String tenantId) {
-    otelLogger
-        .logRecordBuilder()
-        .setContext(Context.current())
-        .setSeverity(Severity.INFO)
-        .setSeverityText(Severity.INFO.name())
-        .setAttribute("event.name", eventName)
-        .setAttribute("event.outcome", eventOutcome)
-        .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
-        .setAttribute("trace_id", traceId == null ? "" : traceId)
-        .setAttribute("span_id", spanId == null ? "" : spanId)
-        .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
-        .emit();
   }
 
   private void emitOperationPayloadLog(
