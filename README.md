@@ -112,8 +112,8 @@ resolves them without manual intervention.
 
 Conceptual and user-facing documentation lives on the docs site:
 
-- **SIE Definition** — <https://docs.poesis.cloud/sie-definition/>
-- **GSM, the open standard** — <https://docs.poesis.cloud/gsm/>
+- **SIE Definition** — https://docs.poesis.cloud/sie-definition/
+- **GSM, the open standard** — https://docs.poesis.cloud/gsm/
 
 Design-time models in this repo:
 
