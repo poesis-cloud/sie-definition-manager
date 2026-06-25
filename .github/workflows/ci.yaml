@@ -7,6 +7,87 @@ on:
     branches: [main]
 
 jobs:
+  dco:
+    name: Verify DCO sign-off
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Signed-off-by on every commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+
+          case "${GITHUB_EVENT_NAME}" in
+            pull_request)
+              commits="$(git rev-list --no-merges "${BASE_SHA}..${HEAD_SHA}")"
+              ;;
+            push)
+              if printf '%s' "${BEFORE_SHA}" | grep -qE '^0+$'; then
+                commits="$(git rev-list --no-merges -n 1 "${AFTER_SHA}")"
+              else
+                commits="$(git rev-list --no-merges "${BEFORE_SHA}..${AFTER_SHA}")"
+              fi
+              ;;
+            *)
+              echo "Unsupported event: ${GITHUB_EVENT_NAME}"; exit 0
+              ;;
+          esac
+
+          if [ -z "${commits}" ]; then
+            echo "No non-merge commits to check."
+            exit 0
+          fi
+
+          fail=0
+          while IFS= read -r sha; do
+            [ -z "${sha}" ] && continue
+            author_name="$(git show -s --format='%an' "${sha}")"
+            author_email="$(git show -s --format='%ae' "${sha}")"
+            expected="Signed-off-by: ${author_name} <${author_email}>"
+            if git show -s --format='%B' "${sha}" | grep -qxF "${expected}"; then
+              echo "PASS  ${sha:0:12}  ${expected}"
+            else
+              echo "FAIL  ${sha:0:12}  missing or mismatched Signed-off-by"
+              echo "      expected: ${expected}"
+              found="$(git show -s --format='%B' "${sha}" | grep -i '^Signed-off-by:' || true)"
+              if [ -n "${found}" ]; then
+                echo "      found:"
+                printf '%s\n' "${found}" | sed 's/^/        /'
+              else
+                echo "      found:    (no Signed-off-by trailer)"
+              fi
+              fail=1
+            fi
+          done <<< "${commits}"
+
+          if [ "${fail}" -ne 0 ]; then
+            echo ""
+            echo "DCO check failed: every commit must carry a Signed-off-by trailer"
+            echo "matching its author. Sign off your commits with:"
+            echo ""
+            echo "    git commit -s"
+            echo ""
+            echo "To add sign-off to existing commits:"
+            echo ""
+            echo "    git rebase --signoff <base>"
+            echo "    git push --force-with-lease"
+            echo ""
+            echo "See CONTRIBUTING.md (Developer Certificate of Origin)."
+            exit 1
+          fi
+
+          echo ""
+          echo "All commits carry a valid Signed-off-by trailer."
+
   build-test:
     runs-on: ubuntu-latest
     steps:
