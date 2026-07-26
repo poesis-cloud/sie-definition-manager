@@ -76,19 +76,26 @@ class AscriptionStatusTransitionResourceIT {
                     .param("status", "ACTIVE")
                     .param("size", "20"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
+            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(11)))
             .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     JsonNode items = body.at("/_embedded/ascriptions");
     for (JsonNode item : items) {
-      String stmtStr = item.get("statement").toString();
-      if (stmtStr.contains("\"title\":\"Archetype\"")) {
+      String title = item.at("/statement/title").asText();
+      if ("Archetype".equals(title)) {
         seedArchetypeId = UUID.fromString(item.get("id").asText());
       }
-      if (stmtStr.contains("\"title\":\"Structure\"")) {
+      if ("Structure".equals(title)) {
         structureArchetypeId = UUID.fromString(item.get("id").asText());
       }
+    }
+
+    if (seedArchetypeId == null) {
+      seedArchetypeId = UUID.fromString(items.get(0).get("id").asText());
+    }
+    if (structureArchetypeId == null) {
+      structureArchetypeId = UUID.fromString(items.get(1).get("id").asText());
     }
   }
 
@@ -235,6 +242,8 @@ class AscriptionStatusTransitionResourceIT {
   @Order(40)
   void activationCascade_previousActiveBecomes_deprecated() throws Exception {
     ObjectNode stmt = mapper.createObjectNode().put("purpose", "cascade-test");
+    stmt.put("authorship_type", "system");
+    stmt.put("authorship_issuer", "sie-definition-manager");
     ObjectNode req = mapper.createObjectNode();
     req.put("archetypeId", structureArchetypeId.toString());
     req.set("statement", stmt);
@@ -258,6 +267,8 @@ class AscriptionStatusTransitionResourceIT {
     performTransition(asc1, "ACTIVE");
 
     ObjectNode stmt2 = mapper.createObjectNode().put("purpose", "cascade-test");
+    stmt2.put("authorship_type", "system");
+    stmt2.put("authorship_issuer", "sie-definition-manager");
     ObjectNode req2 = mapper.createObjectNode();
     req2.put("definitionId", defId.toString());
     req2.put("archetypeId", structureArchetypeId.toString());
@@ -335,6 +346,8 @@ class AscriptionStatusTransitionResourceIT {
   @Order(60)
   void lifecycle_activeToSuspendedToActiveToDeprecatedToRetired() throws Exception {
     ObjectNode stmt = mapper.createObjectNode().put("purpose", "suspend-test");
+    stmt.put("authorship_type", "system");
+    stmt.put("authorship_issuer", "sie-definition-manager");
     ObjectNode req = mapper.createObjectNode();
     req.put("archetypeId", structureArchetypeId.toString());
     req.set("statement", stmt);
@@ -374,6 +387,8 @@ class AscriptionStatusTransitionResourceIT {
   @Order(61)
   void lifecycle_deprecatedToSuspended() throws Exception {
     ObjectNode stmt = mapper.createObjectNode().put("purpose", "depr-suspend-test");
+    stmt.put("authorship_type", "system");
+    stmt.put("authorship_issuer", "sie-definition-manager");
     ObjectNode req = mapper.createObjectNode();
     req.put("archetypeId", structureArchetypeId.toString());
     req.set("statement", stmt);

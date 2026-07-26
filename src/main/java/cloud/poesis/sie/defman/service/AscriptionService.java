@@ -16,7 +16,6 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.logs.Logger;
 import io.opentelemetry.api.logs.Severity;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
@@ -77,8 +76,6 @@ public class AscriptionService implements SmartInitializingSingleton {
   private static final String EVENT_PERSIST = "persist";
   private static final String EVENT_AFTER_CREATE = "after-create";
   private static final String EVENT_OUTCOME_SUCCESS = "success";
-  private static final String MDC_TRACE_ID = "trace_id";
-  private static final String MDC_SPAN_ID = "span_id";
   private static final int DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES = 16_384;
 
   private final AscriptionRepository ascriptionRepository;
@@ -249,14 +246,6 @@ public class AscriptionService implements SmartInitializingSingleton {
       AscriptionSubtypeService<T> handler,
       ArchetypeEntity archetype,
       JsonNode statement,
-      UUID definitionId) {
-    return doCreate(handler, archetype, statement, definitionId, null, OPERATION_CREATE, null);
-  }
-
-  private <T extends AscriptionEntity> T doCreate(
-      AscriptionSubtypeService<T> handler,
-      ArchetypeEntity archetype,
-      JsonNode statement,
       UUID definitionId,
       Span definitionSpan,
       String operation,
@@ -369,16 +358,13 @@ public class AscriptionService implements SmartInitializingSingleton {
     }
 
     String eventName = "gsm.definition." + operation + "." + eventSuffix;
-    SpanContext spanContext = definitionSpan.getSpanContext();
-    String traceId = spanContext.isValid() ? spanContext.getTraceId() : MDC.get(MDC_TRACE_ID);
-    String spanId = spanContext.isValid() ? spanContext.getSpanId() : MDC.get(MDC_SPAN_ID);
     String tenantId = MDC.get(ATTR_TENANT_ID);
 
-    emitOtelCorrelationLogRecord(eventName, eventOutcome, traceId, spanId, tenantId);
+    emitOtelCorrelationLogRecord(eventName, eventOutcome, tenantId);
   }
 
   private void emitOtelCorrelationLogRecord(
-      String eventName, String eventOutcome, String traceId, String spanId, String tenantId) {
+      String eventName, String eventOutcome, String tenantId) {
     otelLogger
         .logRecordBuilder()
         .setContext(Context.current())
@@ -387,8 +373,6 @@ public class AscriptionService implements SmartInitializingSingleton {
         .setAttribute("event.name", eventName)
         .setAttribute("event.outcome", eventOutcome)
         .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
-        .setAttribute("trace_id", traceId == null ? "" : traceId)
-        .setAttribute("span_id", spanId == null ? "" : spanId)
         .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
         .emit();
   }
