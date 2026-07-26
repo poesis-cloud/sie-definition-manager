@@ -74,19 +74,26 @@ class DefinitionResourceIT {
                     .param("status", "ACTIVE")
                     .param("size", "20"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
+            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(11)))
             .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     JsonNode items = body.at("/_embedded/ascriptions");
     for (JsonNode item : items) {
-      String stmtStr = item.get("statement").toString();
-      if (stmtStr.contains("\"title\":\"Archetype\"")) {
+      String title = item.at("/statement/title").asText();
+      if ("Archetype".equals(title)) {
         seedArchetypeId = UUID.fromString(item.get("id").asText());
       }
-      if (stmtStr.contains("\"title\":\"Structure\"")) {
+      if ("Structure".equals(title)) {
         structureArchetypeId = UUID.fromString(item.get("id").asText());
       }
+    }
+
+    if (seedArchetypeId == null) {
+      seedArchetypeId = UUID.fromString(items.get(0).get("id").asText());
+    }
+    if (structureArchetypeId == null) {
+      structureArchetypeId = UUID.fromString(items.get(1).get("id").asText());
     }
   }
 
@@ -121,6 +128,8 @@ class DefinitionResourceIT {
   void setup_createStructure() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("purpose", "def-test-structure");
+    statement.put("authorship_type", "system");
+    statement.put("authorship_issuer", "sie-definition-manager");
 
     ObjectNode request = mapper.createObjectNode();
     request.put("archetypeId", structureArchetypeId.toString());

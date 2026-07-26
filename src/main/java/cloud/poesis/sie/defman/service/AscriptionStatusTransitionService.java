@@ -1,21 +1,5 @@
 package cloud.poesis.sie.defman.service;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.slf4j.MDC;
-import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
@@ -33,6 +17,20 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for {@link AscriptionStatusTransitionEntity}. Owns {@link
@@ -100,11 +98,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     this.entityManager = entityManager;
     this.subtypeServices = List.copyOf(subtypeServices);
     this.otelLogger =
-      GlobalOpenTelemetry.get()
-        .getLogsBridge()
-        .loggerBuilder(INSTRUMENTATION_SCOPE)
-        .setInstrumentationVersion("1")
-        .build();
+        GlobalOpenTelemetry.get()
+            .getLogsBridge()
+            .loggerBuilder(INSTRUMENTATION_SCOPE)
+            .setInstrumentationVersion("1")
+            .build();
   }
 
   AscriptionStatusTransitionService(
@@ -339,14 +337,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       for (AscriptionEntity target : targets) {
         if (target.getStatus() != fromStatus) {
           emitLifecycleEvent(
-            EVENT_HOOK_CASCADE_SKIP,
-            OUTCOME_SKIPPED,
-            Attributes.builder()
-                .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
-                .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
-                .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
-                .put(ATTR_CASCADE_REASON, "status-mismatch")
-                .build());
+              EVENT_HOOK_CASCADE_SKIP,
+              OUTCOME_SKIPPED,
+              Attributes.builder()
+                  .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                  .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                  .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                  .put(ATTR_CASCADE_REASON, "status-mismatch")
+                  .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
                 AscriptionStatusTransitionRuleType
@@ -380,14 +378,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
           stateMachine.validateRefereePreconditions(refs, fromStatus, toStatus);
         } catch (RuleViolationException e) {
           emitLifecycleEvent(
-            EVENT_HOOK_CASCADE_SKIP,
-            OUTCOME_SKIPPED,
-            Attributes.builder()
-                .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
-                .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
-                .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
-                .put(ATTR_CASCADE_REASON, "referee-precondition")
-                .build());
+              EVENT_HOOK_CASCADE_SKIP,
+              OUTCOME_SKIPPED,
+              Attributes.builder()
+                  .put(ATTR_CASCADE_TYPE, entry.cascadeType().name())
+                  .put(ATTR_CASCADE_TARGET_ID, String.valueOf(target.getId()))
+                  .put(ATTR_CASCADE_TARGET_TYPE, entry.targetService().getSubjectType().name())
+                  .put(ATTR_CASCADE_REASON, "referee-precondition")
+                  .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
                 AscriptionStatusTransitionRuleType
@@ -406,7 +404,10 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   }
 
   private static void enrichTransitionSpan(
-      Span span, UUID ascriptionId, AscriptionStatusType fromStatus, AscriptionStatusType toStatus) {
+      Span span,
+      UUID ascriptionId,
+      AscriptionStatusType fromStatus,
+      AscriptionStatusType toStatus) {
     if (span == null) {
       return;
     }
@@ -524,15 +525,12 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   }
 
   private void emitOtelLifecycleLogRecord(
-      Span span,
-      String eventName,
-      String eventOutcome,
-      Severity severity) {
+      Span span, String eventName, String eventOutcome, Severity severity) {
     Context logContext = span.storeInContext(Context.current());
     var builder =
         otelLogger
             .logRecordBuilder()
-        .setContext(logContext)
+            .setContext(logContext)
             .setSeverity(severity)
             .setSeverityText(severity.name())
             .setAttribute("event.name", eventName)

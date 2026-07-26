@@ -9,6 +9,9 @@
   }, {
     "purpose": "order-management"
   } ],
+  "allOf": [ {
+    "$ref": "gsmarc://gsm/Attribution/v1"
+  } ],
   "required": [ "purpose" ],
   "properties": {
     "purpose": {

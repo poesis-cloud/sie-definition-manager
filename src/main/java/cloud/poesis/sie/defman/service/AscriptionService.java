@@ -1,17 +1,26 @@
 package cloud.poesis.sie.defman.service;
 
-import cloud.poesis.sie.defman.observability.PayloadLogHelper;
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.observability.PayloadLogHelper;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.logs.Logger;
+import io.opentelemetry.api.logs.Severity;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
@@ -20,18 +29,10 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.logs.Logger;
-import io.opentelemetry.api.logs.Severity;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.api.trace.SpanContext;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import org.hibernate.Hibernate;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -96,6 +97,7 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> handlers;
 
+  @Autowired
   public AscriptionService(
       AscriptionRepository ascriptionRepository,
       ArchetypeService archetypeService,
@@ -107,7 +109,7 @@ public class AscriptionService implements SmartInitializingSingleton {
       AscriptionProtectionService statementProtection,
       EntityManager entityManager,
       List<AscriptionSubtypeService<?>> handlerList) {
-      this(
+    this(
         ascriptionRepository,
         archetypeService,
         definitionService,
@@ -120,21 +122,21 @@ public class AscriptionService implements SmartInitializingSingleton {
         handlerList,
         GlobalOpenTelemetry.getTracer(INSTRUMENTATION_SCOPE, "1"),
         DEFAULT_CREATE_RESULT_PAYLOAD_CAP_BYTES);
-      }
+  }
 
-      AscriptionService(
-        AscriptionRepository ascriptionRepository,
-        ArchetypeService archetypeService,
-        DefinitionService definitionService,
-        AscriptionStateMachineService stateMachine,
-        AscriptionParsingValidationService statementValidation,
-        AscriptionIdentityBoundValidationService identityBoundValidation,
-        AscriptionUniquenessValidationService uniquenessValidation,
-        AscriptionProtectionService statementProtection,
-        EntityManager entityManager,
-        List<AscriptionSubtypeService<?>> handlerList,
-        Tracer tracer,
-        int createResultPayloadCapBytes) {
+  AscriptionService(
+      AscriptionRepository ascriptionRepository,
+      ArchetypeService archetypeService,
+      DefinitionService definitionService,
+      AscriptionStateMachineService stateMachine,
+      AscriptionParsingValidationService statementValidation,
+      AscriptionIdentityBoundValidationService identityBoundValidation,
+      AscriptionUniquenessValidationService uniquenessValidation,
+      AscriptionProtectionService statementProtection,
+      EntityManager entityManager,
+      List<AscriptionSubtypeService<?>> handlerList,
+      Tracer tracer,
+      int createResultPayloadCapBytes) {
     this.ascriptionRepository = ascriptionRepository;
     this.archetypeService = archetypeService;
     this.definitionService = definitionService;
@@ -147,12 +149,11 @@ public class AscriptionService implements SmartInitializingSingleton {
     this.handlerList = List.copyOf(handlerList);
     this.tracer = tracer;
     this.otelLogger =
-      GlobalOpenTelemetry
-        .get()
-        .getLogsBridge()
-        .loggerBuilder(INSTRUMENTATION_SCOPE)
-        .setInstrumentationVersion("1")
-        .build();
+        GlobalOpenTelemetry.get()
+            .getLogsBridge()
+            .loggerBuilder(INSTRUMENTATION_SCOPE)
+            .setInstrumentationVersion("1")
+            .build();
     this.createResultPayloadCapBytes = createResultPayloadCapBytes;
   }
 
@@ -199,10 +200,7 @@ public class AscriptionService implements SmartInitializingSingleton {
           requireHandler(resolution.subjectType()), resolution.archetype(), statement);
     }
     return doTransformWithOperationSpan(
-        requireHandler(resolution.subjectType()),
-        resolution.archetype(),
-        statement,
-        definitionId);
+        requireHandler(resolution.subjectType()), resolution.archetype(), statement, definitionId);
   }
 
   private <T extends AscriptionEntity> T doCreateWithOperationSpan(
@@ -227,10 +225,7 @@ public class AscriptionService implements SmartInitializingSingleton {
       UUID definitionId) {
     Span transformSpan =
         startDefinitionSpan(
-            TRANSFORM_SPAN_NAME,
-            OPERATION_TRANSFORM,
-            handler.getSubjectType(),
-            definitionId);
+            TRANSFORM_SPAN_NAME, OPERATION_TRANSFORM, handler.getSubjectType(), definitionId);
     JsonNode priorStatement = (statement == null) ? null : statement.deepCopy();
 
     try (Scope ignored = transformSpan.makeCurrent()) {
@@ -274,7 +269,8 @@ public class AscriptionService implements SmartInitializingSingleton {
     // 2. Resolve or create Definition
     DefinitionEntity definition = definitionService.resolve(definitionId, handler.getSubjectType());
     setCreateSpanDefinitionAttributes(definitionSpan, definition.getId(), handler.getSubjectType());
-    emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_RESOLVE_DEFINITION, EVENT_OUTCOME_SUCCESS);
+    emitCorrelatedMilestoneLog(
+        definitionSpan, operation, EVENT_RESOLVE_DEFINITION, EVENT_OUTCOME_SUCCESS);
 
     addDefinitionEvent(definitionSpan, operation, EVENT_PROTECT_STATEMENT);
     // 3. Apply $gsm:dataProtection (at-rest) transformations on statement
@@ -320,22 +316,15 @@ public class AscriptionService implements SmartInitializingSingleton {
     addDefinitionEvent(definitionSpan, operation, EVENT_AFTER_CREATE);
     // 11. Post-creation hook (e.g., auto-derivation of ports)
     handler.afterCreate(saved);
-    emitCorrelatedMilestoneLog(definitionSpan, operation, EVENT_AFTER_CREATE, EVENT_OUTCOME_SUCCESS);
-    emitOperationPayloadLog(
-        definitionSpan,
-        operation,
-        saved,
-        definition.getId(),
-        priorStatement);
+    emitCorrelatedMilestoneLog(
+        definitionSpan, operation, EVENT_AFTER_CREATE, EVENT_OUTCOME_SUCCESS);
+    emitOperationPayloadLog(definitionSpan, operation, saved, definition.getId(), priorStatement);
 
     return saved;
   }
 
   private Span startDefinitionSpan(
-      String spanName,
-      String operation,
-      DefinitionSubjectType definitionKind,
-      UUID definitionId) {
+      String spanName, String operation, DefinitionSubjectType definitionKind, UUID definitionId) {
     Span definitionSpan =
         tracer
             .spanBuilder(spanName)
@@ -357,7 +346,8 @@ public class AscriptionService implements SmartInitializingSingleton {
     return definitionSpan;
   }
 
-  private static void addDefinitionEvent(Span definitionSpan, String operation, String eventSuffix) {
+  private static void addDefinitionEvent(
+      Span definitionSpan, String operation, String eventSuffix) {
     if (definitionSpan != null) {
       definitionSpan.addEvent("gsm.definition." + operation + "." + eventSuffix);
     }
@@ -388,11 +378,7 @@ public class AscriptionService implements SmartInitializingSingleton {
   }
 
   private void emitOtelCorrelationLogRecord(
-      String eventName,
-      String eventOutcome,
-      String traceId,
-      String spanId,
-      String tenantId) {
+      String eventName, String eventOutcome, String traceId, String spanId, String tenantId) {
     otelLogger
         .logRecordBuilder()
         .setContext(Context.current())
@@ -432,13 +418,11 @@ public class AscriptionService implements SmartInitializingSingleton {
 
     String payload = saved.getStatement().toString();
     PayloadLogHelper.boundedPayloadWithSpanSummary(
-      "create", definitionId.toString(), payload, createResultPayloadCapBytes);
+        "create", definitionId.toString(), payload, createResultPayloadCapBytes);
   }
 
   private void emitTransformPayloadContextLog(
-      UUID definitionId,
-      JsonNode priorStatement,
-      JsonNode resultStatement) {
+      UUID definitionId, JsonNode priorStatement, JsonNode resultStatement) {
     String priorPayload = priorStatement == null ? null : priorStatement.toString();
     String resultPayload = resultStatement == null ? null : resultStatement.toString();
 
@@ -447,9 +431,9 @@ public class AscriptionService implements SmartInitializingSingleton {
     }
 
     PayloadLogHelper.boundedPayloadWithSpanSummary(
-      "transform.prior", definitionId.toString(), priorPayload, createResultPayloadCapBytes);
+        "transform.prior", definitionId.toString(), priorPayload, createResultPayloadCapBytes);
     PayloadLogHelper.boundedPayloadWithSpanSummary(
-      "transform.result", definitionId.toString(), resultPayload, createResultPayloadCapBytes);
+        "transform.result", definitionId.toString(), resultPayload, createResultPayloadCapBytes);
   }
 
   // ======================================================================

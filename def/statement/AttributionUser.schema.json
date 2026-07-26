@@ -1,0 +1,29 @@
+{
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/AttributionUser/v1",
+  "title": "AttributionUser",
+  "description": "Rootless attribution facet for human authorship.",
+  "type": "object",
+  "required": [ "authorship_type", "authorship_issuer", "authorship_account" ],
+  "properties": {
+    "authorship_type": {
+      "type": "string",
+      "const": "user",
+      "$gsm:queryable": true,
+      "description": "Attribution category discriminator. For this variant, value is always user."
+    },
+    "authorship_issuer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "$gsm:queryable": true,
+      "description": "Trusted system issuer name that launched the operation."
+    },
+    "authorship_account": {
+      "type": "string",
+      "format": "uuid",
+      "$gsm:queryable": true,
+      "description": "Trusted account UUID for human authorship. Mandatory when authorship_type is user."
+    }
+  }
+}

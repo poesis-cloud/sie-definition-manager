@@ -17,7 +17,7 @@
   <description>SIE Definition Manager service</description>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <!-- OTel SDK/API/exporter version. Aligned with Spring Boot 3.5.13's
          transitively-managed opentelemetry-bom (1.49.0). Pinned here as the
@@ -392,6 +392,7 @@
               </includes>
               <excludes>
                 <exclude>target/**</exclude>
+                <exclude>def/archive/**</exclude>
               </excludes>
               <prettier>
                 <prettierVersion>3.3.3</prettierVersion>

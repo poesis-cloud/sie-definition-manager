@@ -1,0 +1,24 @@
+{
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/AttributionSystem/v1",
+  "title": "AttributionSystem",
+  "description": "Rootless attribution facet for system authorship.",
+  "type": "object",
+  "required": [ "authorship_type", "authorship_issuer" ],
+  "properties": {
+    "authorship_type": {
+      "type": "string",
+      "const": "system",
+      "$gsm:queryable": true,
+      "description": "Attribution category discriminator. For this variant, value is always system."
+    },
+    "authorship_issuer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "$gsm:queryable": true,
+      "description": "Trusted system issuer name that launched the operation."
+    },
+    "authorship_account": false
+  }
+}

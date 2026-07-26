@@ -9,6 +9,9 @@
     "function": "UserValidation",
     "rule": "evt = on(\"IdentityEvent\")\nif evt[\"userId\"] != \"\":\n    sys.effect(\"ValidatedIdentity\", {\"userId\": evt[\"userId\"]})"
   } ],
+  "allOf": [ {
+    "$ref": "gsmarc://gsm/Attribution/v1"
+  } ],
   "required": [ "structure", "function", "rule" ],
   "properties": {
     "structure": {

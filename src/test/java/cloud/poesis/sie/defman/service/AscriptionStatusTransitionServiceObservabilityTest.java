@@ -71,18 +71,18 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     service = createService(List.of());
   }
 
-    private void withTransitionSpan(Runnable action) {
-        Tracer tracer = otel.getOpenTelemetry().getTracer("test.ascription.transition", "1");
-        Span transitionSpan = tracer.spanBuilder(TRANSITION_SPAN_NAME).startSpan();
-        try (Scope ignored = transitionSpan.makeCurrent()) {
-            action.run();
-        } finally {
-            transitionSpan.end();
+  private void withTransitionSpan(Runnable action) {
+    Tracer tracer = otel.getOpenTelemetry().getTracer("test.ascription.transition", "1");
+    Span transitionSpan = tracer.spanBuilder(TRANSITION_SPAN_NAME).startSpan();
+    try (Scope ignored = transitionSpan.makeCurrent()) {
+      action.run();
+    } finally {
+      transitionSpan.end();
     }
-    }
+  }
 
   @Test
-    void acceptedTransition_enrichesActiveSpanWithLifecycleAttributes() {
+  void acceptedTransition_enrichesActiveSpanWithLifecycleAttributes() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
@@ -90,8 +90,8 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     stubRepoSave();
 
     MDC.put("gsm.tenant.id", "tenant-alpha");
-        try {
-            withTransitionSpan(() -> service.transition(ascriptionId, "PROPOSED"));
+    try {
+      withTransitionSpan(() -> service.transition(ascriptionId, "PROPOSED"));
     } finally {
       MDC.remove("gsm.tenant.id");
     }
@@ -100,9 +100,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     assertThat(transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.id")))
         .isEqualTo(ascriptionId.toString());
     assertThat(
-            transitionSpan
-                .getAttributes()
-                .get(AttributeKey.stringKey("gsm.ascription.state.from")))
+            transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.state.from")))
         .isEqualTo("DRAFT");
     assertThat(
             transitionSpan.getAttributes().get(AttributeKey.stringKey("gsm.ascription.state.to")))
@@ -114,7 +112,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   }
 
   @Test
-    void acceptedTransition_emitsPersistenceEventOnly() {
+  void acceptedTransition_emitsPersistenceEventOnly() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.DRAFT);
@@ -149,7 +147,7 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   }
 
   @Test
-    void activationTransition_doesNotEmitDelegatedActivationHookEvent() {
+  void activationTransition_doesNotEmitDelegatedActivationHookEvent() {
     UUID ascriptionId = UUID.randomUUID();
     AscriptionEntity entity =
         stubEntity(ascriptionId, DefinitionSubjectType.STRUCTURE, AscriptionStatusType.APPROVED);
@@ -202,8 +200,8 @@ class AscriptionStatusTransitionServiceObservabilityTest {
     assertThat(otel.getLogRecords())
         .noneMatch(
             record ->
-                "gsm.ascription.hook.deactivation".equals(
-                        record.getAttributes().get(AttributeKey.stringKey("event.name")))
+                "gsm.ascription.hook.deactivation"
+                        .equals(record.getAttributes().get(AttributeKey.stringKey("event.name")))
                     && OUTCOME_SUCCESS.equals(
                         record.getAttributes().get(AttributeKey.stringKey("event.outcome"))));
   }
@@ -752,7 +750,8 @@ class AscriptionStatusTransitionServiceObservabilityTest {
 
     withTransitionSpan(
         () ->
-            assertThrows(RuleViolationException.class, () -> service.transition(sourceId, "PROPOSED")));
+            assertThrows(
+                RuleViolationException.class, () -> service.transition(sourceId, "PROPOSED")));
 
     SpanData sourceTransition = findTransitionSpanByAscription(sourceId);
     assertThat(sourceTransition.getEvents())
@@ -876,8 +875,8 @@ class AscriptionStatusTransitionServiceObservabilityTest {
   private AscriptionStatusTransitionService createService(
       List<AscriptionSubtypeService<?>> subtypes) {
     AscriptionStatusTransitionService configuredService =
-                new AscriptionStatusTransitionService(
-                        transitionRepo, stateMachine, entityManager, subtypes);
+        new AscriptionStatusTransitionService(
+            transitionRepo, stateMachine, entityManager, subtypes);
     configuredService.afterSingletonsInstantiated();
     return configuredService;
   }

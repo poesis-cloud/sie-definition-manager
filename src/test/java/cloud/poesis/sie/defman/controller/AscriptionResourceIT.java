@@ -89,25 +89,25 @@ class AscriptionResourceIT {
                     .param("status", "ACTIVE")
                     .param("size", "20"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
+            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(11)))
             .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     JsonNode items = body.at("/_embedded/ascriptions");
     for (JsonNode item : items) {
-      String stmtStr = item.get("statement").toString();
+      String title = item.at("/statement/title").asText();
       String collHref = item.at("/_links/collection/href").asText();
       String[] segs = collHref.split("/");
       UUID defId = UUID.fromString(segs[segs.length - 2]);
-      if (stmtStr.contains("\"title\":\"Archetype\"")) {
+      if ("Archetype".equals(title)) {
         seedArchetypeId = UUID.fromString(item.get("id").asText());
         seedArchetypeDefinitionId = defId;
       }
-      if (stmtStr.contains("\"title\":\"Structure\"")) {
+      if ("Structure".equals(title)) {
         structureArchetypeId = UUID.fromString(item.get("id").asText());
         structureArchetypeDefinitionId = defId;
       }
-      if (stmtStr.contains("\"title\":\"Mechanism\"")) {
+      if ("Mechanism".equals(title)) {
         mechanismArchetypeId = UUID.fromString(item.get("id").asText());
         mechanismArchetypeDefinitionId = defId;
       }
@@ -250,6 +250,8 @@ class AscriptionResourceIT {
   void createStructure_withArchetypeFk() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("purpose", "test-payment-processing");
+    statement.put("authorship_type", "system");
+    statement.put("authorship_issuer", "sie-definition-manager");
 
     ObjectNode request = mapper.createObjectNode();
     request.put("archetypeId", structureArchetypeId.toString());
@@ -293,6 +295,8 @@ class AscriptionResourceIT {
     statement.put(
         "rule", "sys.receive(\"PaymentRequest\")\nsys.effect(\"PaymentResult\", {\"ok\": True})");
     statement.put("structure", createdStructureId.toString());
+    statement.put("authorship_type", "system");
+    statement.put("authorship_issuer", "sie-definition-manager");
 
     ObjectNode request = mapper.createObjectNode();
     request.put("archetypeId", mechanismArchetypeId.toString());
@@ -329,6 +333,8 @@ class AscriptionResourceIT {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
     statement.put("rule", "sys.receive(\"X\")\nsys.effect(\"Y\", {})");
+    statement.put("authorship_type", "system");
+    statement.put("authorship_issuer", "sie-definition-manager");
     // structure intentionally omitted from statement
 
     ObjectNode request = mapper.createObjectNode();
@@ -349,6 +355,8 @@ class AscriptionResourceIT {
     statement.put("function", "Orphan");
     statement.put("rule", "sys.receive(\"X\")\nsys.effect(\"Y\", {})");
     statement.put("structure", UUID.randomUUID().toString());
+    statement.put("authorship_type", "system");
+    statement.put("authorship_issuer", "sie-definition-manager");
 
     ObjectNode request = mapper.createObjectNode();
     request.put("archetypeId", mechanismArchetypeId.toString());
@@ -452,6 +460,8 @@ class AscriptionResourceIT {
     // Create a fresh structure to test with — its typing archetype is
     // Structure archetype
     ObjectNode stmt = mapper.createObjectNode().put("purpose", "schema-endpoint-test");
+    stmt.put("authorship_type", "system");
+    stmt.put("authorship_issuer", "sie-definition-manager");
     ObjectNode req = mapper.createObjectNode();
     req.put("archetypeId", structureArchetypeId.toString());
     req.set("statement", stmt);

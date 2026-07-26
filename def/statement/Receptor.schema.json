@@ -8,6 +8,9 @@
     "mechanism": "019cc49a-dc5a-799b-8f0b-3d951621a86f",
     "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62"
   } ],
+  "allOf": [ {
+    "$ref": "gsmarc://gsm/Attribution/v1"
+  } ],
   "required": [ "mechanism", "archetype" ],
   "properties": {
     "mechanism": {

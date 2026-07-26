@@ -271,7 +271,8 @@ public class BroadInstrumentationAspect {
     String bounded =
         PayloadLogHelper.boundedPayloadWithSpanSummary(operation, id, payload, payloadCapBytes);
     // Non-positive caps are fail-safe mode; they should not enable raw-payload bypass.
-    boolean truncated = payloadCapBytes > 0 && PayloadLogHelper.utf8Bytes(payload) > payloadCapBytes;
+    boolean truncated =
+        payloadCapBytes > 0 && PayloadLogHelper.utf8Bytes(payload) > payloadCapBytes;
     if (!truncated) {
       return new PayloadLogEmission(bounded, null);
     }

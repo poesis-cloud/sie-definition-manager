@@ -20,6 +20,8 @@
   } ],
   "required": [ "structure", "qualifier", "assertion", "toleranceMode" ],
   "allOf": [ {
+    "$ref": "gsmarc://gsm/Attribution/v1"
+  }, {
     "if": {
       "properties": {
         "toleranceMode": {

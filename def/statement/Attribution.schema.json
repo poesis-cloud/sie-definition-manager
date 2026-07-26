@@ -1,0 +1,11 @@
+{
+  "$schema": "gsmarc://gsm/Archetype/v1",
+  "$id": "gsmarc://gsm/Attribution/v1",
+  "title": "Attribution",
+  "description": "Rootless attribution facet composeur. Selects one of two attribution variants: AttributionUser or AttributionSystem.",
+  "oneOf": [ {
+    "$ref": "gsmarc://gsm/AttributionUser/v1"
+  }, {
+    "$ref": "gsmarc://gsm/AttributionSystem/v1"
+  } ]
+}

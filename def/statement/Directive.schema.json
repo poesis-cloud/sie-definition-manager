@@ -11,6 +11,9 @@
     "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
     "purpose": "payment-processing"
   } ],
+  "allOf": [ {
+    "$ref": "gsmarc://gsm/Attribution/v1"
+  } ],
   "required": [ "structure", "modal", "verb", "qualifier", "purpose" ],
   "properties": {
     "structure": {
