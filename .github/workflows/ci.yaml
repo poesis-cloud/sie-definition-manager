@@ -38,8 +38,63 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
+      - name: Get current week (for cache key)
+        id: week
+        run: echo "week=$(date +%Y-%U)" >> "$GITHUB_OUTPUT"
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}-${{ env.WEEK }}
+          restore-keys: |
+            owasp-nvd-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}-
+            owasp-nvd-${{ runner.os }}-
+        env:
+          WEEK: ${{ steps.week.outputs.week }}
       - name: OWASP dependency check
-        run: mvn -B org.owasp:dependency-check-maven:check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          set -uo pipefail
+
+          BASE_ARGS="-DdataDirectory=$HOME/.owasp/dependency-check-data -DnvdApiDelay=2000"
+
+          if [ -n "${NVD_API_KEY:-}" ]; then
+            BASE_ARGS="$BASE_ARGS -DnvdApiKey=$NVD_API_KEY"
+          else
+            echo "::warning::NVD_API_KEY absent — scan plus lent et risque de rate-limit."
+          fi
+
+          run_check() {
+            mvn -B org.owasp:dependency-check-maven:check $BASE_ARGS "$@"
+          }
+
+          max_attempts=3
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "OWASP dependency-check attempt ${attempt}/${max_attempts}"
+            if run_check; then
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              sleep_seconds=$((attempt * 30))
+              echo "Échec, retry dans ${sleep_seconds}s..."
+              sleep "$sleep_seconds"
+            fi
+          done
+
+          echo "::warning::OWASP NVD update impossible après ${max_attempts} tentatives — fallback cache local."
+          if run_check -DautoUpdate=false; then
+            exit 0
+          fi
+
+          echo "::error::OWASP dependency-check failed after online retries and local-cache fallback."
+          exit 1
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: target/dependency-check-report.html
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.35.0
         with:
