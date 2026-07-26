@@ -2,12 +2,13 @@ package cloud.poesis.sie.defman.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -39,13 +40,15 @@ class StructureEntityTest {
   @Test
   void getMechanisms_returnsUnmodifiableMechanismList() throws Exception {
     StructureEntity structure = new StructureEntity();
-    List<MechanismEntity> mechanisms = Collections.emptyList();
+    List<MechanismEntity> mechanisms = new ArrayList<>();
+    mechanisms.add(mock(MechanismEntity.class));
 
     Field mechanismsField = StructureEntity.class.getDeclaredField("mechanisms");
     mechanismsField.setAccessible(true);
     mechanismsField.set(structure, mechanisms);
 
     assertEquals(mechanisms, structure.getMechanisms());
+    assertNotSame(mechanisms, structure.getMechanisms());
     assertThrows(UnsupportedOperationException.class, () -> structure.getMechanisms().add(null));
   }
 }

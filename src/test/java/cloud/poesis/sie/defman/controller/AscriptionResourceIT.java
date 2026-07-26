@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -81,7 +82,7 @@ class AscriptionResourceIT {
 
   @Test
   @Order(1)
-  void listSeedArchetypes_returns8Active() throws Exception {
+  void listSeedArchetypes_returns11Active() throws Exception {
     MvcResult result =
         mvc.perform(
                 get("/api/v1/ascriptions")
@@ -113,24 +114,12 @@ class AscriptionResourceIT {
       }
     }
 
-    if (seedArchetypeId == null) {
-      seedArchetypeId = UUID.fromString(items.get(0).get("id").asText());
-      String collHref = items.get(0).at("/_links/collection/href").asText();
-      String[] segs = collHref.split("/");
-      seedArchetypeDefinitionId = UUID.fromString(segs[segs.length - 2]);
-    }
-    if (structureArchetypeId == null) {
-      structureArchetypeId = UUID.fromString(items.get(1).get("id").asText());
-      String collHref = items.get(1).at("/_links/collection/href").asText();
-      String[] segs = collHref.split("/");
-      structureArchetypeDefinitionId = UUID.fromString(segs[segs.length - 2]);
-    }
-    if (mechanismArchetypeId == null) {
-      mechanismArchetypeId = UUID.fromString(items.get(2).get("id").asText());
-      String collHref = items.get(2).at("/_links/collection/href").asText();
-      String[] segs = collHref.split("/");
-      mechanismArchetypeDefinitionId = UUID.fromString(segs[segs.length - 2]);
-    }
+    assertNotNull(seedArchetypeId, "Seeded 'Archetype' archetype must exist");
+    assertNotNull(seedArchetypeDefinitionId, "Seeded 'Archetype' definition id must exist");
+    assertNotNull(structureArchetypeId, "Seeded 'Structure' archetype must exist");
+    assertNotNull(structureArchetypeDefinitionId, "Seeded 'Structure' definition id must exist");
+    assertNotNull(mechanismArchetypeId, "Seeded 'Mechanism' archetype must exist");
+    assertNotNull(mechanismArchetypeDefinitionId, "Seeded 'Mechanism' definition id must exist");
   }
 
   // ================================================================
