@@ -365,16 +365,21 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   private void emitOtelCorrelationLogRecord(
       String eventName, String eventOutcome, String tenantId) {
-    otelLogger
-        .logRecordBuilder()
-        .setContext(Context.current())
-        .setSeverity(Severity.INFO)
-        .setSeverityText(Severity.INFO.name())
-        .setAttribute("event.name", eventName)
-        .setAttribute("event.outcome", eventOutcome)
-        .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER)
-        .setAttribute("gsm.tenant.id", tenantId == null ? "" : tenantId)
-        .emit();
+    var recordBuilder =
+        otelLogger
+            .logRecordBuilder()
+            .setContext(Context.current())
+            .setSeverity(Severity.INFO)
+            .setSeverityText(Severity.INFO.name())
+            .setAttribute("event.name", eventName)
+            .setAttribute("event.outcome", eventOutcome)
+            .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER);
+
+    if (tenantId != null && !tenantId.isBlank()) {
+      recordBuilder.setAttribute("gsm.tenant.id", tenantId);
+    }
+
+    recordBuilder.emit();
   }
 
   private void emitOperationPayloadLog(

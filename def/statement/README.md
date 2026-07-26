@@ -57,26 +57,26 @@ All Archetype schemas — GSM base and tenant-defined — declare `"$schema": "g
 
 ## Schemas
 
-| Schema                          | GSM Class                | Sealed | Tenant-Extensible | Identity-bound fields                                        |
-| ------------------------------- | ------------------------ | ------ | ----------------- | ------------------------------------------------------------ |
-| `Structure.schema.json`         | Structure                | No     | Yes (`$ref`)      | `purpose`                                                    |
-| `Mechanism.schema.json`         | Mechanism                | No     | Yes (`$ref`)      | `structure`, `function`                                      |
-| `Effector.schema.json`          | Effector                 | No     | Yes (`$ref`)      | `mechanism`, `archetype`                                     |
-| `Receptor.schema.json`          | Receptor                 | No     | Yes (`$ref`)      | `mechanism`, `archetype`                                     |
-| `Interaction.schema.json`       | Interaction              | No     | Yes (`$ref`)      | `effector`, `receptor`                                       |
-| `Attribution.schema.json`       | Rootless facet composeur | No     | Yes (`allOf`)     | none                                                         |
-| `AttributionUser.schema.json`   | Rootless facet variant   | No     | Yes (`oneOf`)     | `authorship_type`, `authorship_issuer`, `authorship_account` |
-| `AttributionSystem.schema.json` | Rootless facet variant   | No     | Yes (`oneOf`)     | `authorship_type`, `authorship_issuer`                       |
-| `Archetype.schema.json`         | Archetype                | Yes    | No                | `title` (DM-enforced)                                        |
-| `Directive.schema.json`         | Directive                | No     | Yes (`$ref`)      | `structure`, `qualifier`, `purpose`                          |
-| `Norm.schema.json`              | Norm                     | No     | Yes (`$ref`)      | `structure`, `qualifier`, `assertion`                        |
+| Schema                          | GSM Class               | Sealed | Tenant-Extensible | Identity-bound fields                                        |
+| ------------------------------- | ----------------------- | ------ | ----------------- | ------------------------------------------------------------ |
+| `Structure.schema.json`         | Structure               | No     | Yes (`$ref`)      | `purpose`                                                    |
+| `Mechanism.schema.json`         | Mechanism               | No     | Yes (`$ref`)      | `structure`, `function`                                      |
+| `Effector.schema.json`          | Effector                | No     | Yes (`$ref`)      | `mechanism`, `archetype`                                     |
+| `Receptor.schema.json`          | Receptor                | No     | Yes (`$ref`)      | `mechanism`, `archetype`                                     |
+| `Interaction.schema.json`       | Interaction             | No     | Yes (`$ref`)      | `effector`, `receptor`                                       |
+| `Attribution.schema.json`       | Rootless facet composer | No     | Yes (`allOf`)     | none                                                         |
+| `AttributionUser.schema.json`   | Rootless facet variant  | No     | Yes (`oneOf`)     | `authorship_type`, `authorship_issuer`, `authorship_account` |
+| `AttributionSystem.schema.json` | Rootless facet variant  | No     | Yes (`oneOf`)     | `authorship_type`, `authorship_issuer`                       |
+| `Archetype.schema.json`         | Archetype               | Yes    | No                | `title` (DM-enforced)                                        |
+| `Directive.schema.json`         | Directive               | No     | Yes (`$ref`)      | `structure`, `qualifier`, `purpose`                          |
+| `Norm.schema.json`              | Norm                    | No     | Yes (`$ref`)      | `structure`, `qualifier`, `assertion`                        |
 
 **Extensible** schemas use `unevaluatedProperties: false` (allows `allOf` facet additions and `$ref` base extension).
 **Sealed** schemas use `additionalProperties: false` and carry `$gsm:sealed: true`.
 
 ### Built-in cross-cutting facet
 
-`Attribution.schema.json` is a rootless facet composeur composed into all extensible GSM base statement schemas (`Structure`, `Mechanism`, `Effector`, `Receptor`, `Interaction`, `Directive`, `Norm`) via `allOf`.
+`Attribution.schema.json` is a rootless facet composer composed into all extensible GSM base statement schemas (`Structure`, `Mechanism`, `Effector`, `Receptor`, `Interaction`, `Directive`, `Norm`) via `allOf`.
 
 It delegates to one of two variants:
 
