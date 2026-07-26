@@ -8,9 +8,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 class SecurityConfigTest {
