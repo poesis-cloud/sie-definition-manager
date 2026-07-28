@@ -141,8 +141,7 @@ class ArgsSummaryTest {
     String out = ArgsSummary.summarize(args);
     assertThat(out.getBytes(java.nio.charset.StandardCharsets.UTF_8).length)
         .isLessThanOrEqualTo(ArgsSummary.MAX_SUMMARY_BYTES);
-    assertThat(out)
-        .matches(Pattern.compile(".*<TRUNCATED:\\d+_bytes>$", Pattern.DOTALL).pattern());
+    assertThat(out).matches(Pattern.compile(".*<TRUNCATED:\\d+_bytes>$", Pattern.DOTALL).pattern());
   }
 
   @Test

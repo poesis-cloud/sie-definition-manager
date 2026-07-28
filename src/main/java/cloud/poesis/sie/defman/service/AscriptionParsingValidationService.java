@@ -28,9 +28,7 @@ import org.springframework.stereotype.Service;
 /**
  * Validates ascription statements against archetype JSON Schemas.
  *
- * <p>
- * Extracted from {@link AscriptionService} to separate statement/schema
- * validation concerns from
+ * <p>Extracted from {@link AscriptionService} to separate statement/schema validation concerns from
  * entity lifecycle management.
  *
  * @author Clément Cazaud
@@ -39,27 +37,28 @@ import org.springframework.stereotype.Service;
 @Service
 public class AscriptionParsingValidationService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(AscriptionParsingValidationService.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AscriptionParsingValidationService.class);
 
   /**
-   * Classpath-only JSON Schema factory for resolving GSM base archetype
-   * {@code gsmarc://gsm/} URIs.
-   * Used when no tenant archetypes need DB resolution. GSM §8 security invariant:
-   * DM MUST NOT
-   * resolve {@code $schema} URIs from incoming tenant schemas via network — all
-   * resolution is
+   * Classpath-only JSON Schema factory for resolving GSM base archetype {@code gsmarc://gsm/} URIs.
+   * Used when no tenant archetypes need DB resolution. GSM §8 security invariant: DM MUST NOT
+   * resolve {@code $schema} URIs from incoming tenant schemas via network — all resolution is
    * local.
    */
-  private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY = JsonSchemaFactory.getInstance(
-      SpecVersion.VersionFlag.V202012,
-      builder -> builder.schemaMappers(
-          mappers -> mappers.mappings(
-              uri -> uri.startsWith("gsmarc://gsm/"),
-              uri -> {
-                String rest = uri.substring("gsmarc://gsm/".length());
-                String name = rest.split("/")[0];
-                return "classpath:statement/" + name + ".schema.json";
-              })));
+  private static final JsonSchemaFactory CLASSPATH_SCHEMA_FACTORY =
+      JsonSchemaFactory.getInstance(
+          SpecVersion.VersionFlag.V202012,
+          builder ->
+              builder.schemaMappers(
+                  mappers ->
+                      mappers.mappings(
+                          uri -> uri.startsWith("gsmarc://gsm/"),
+                          uri -> {
+                            String rest = uri.substring("gsmarc://gsm/".length());
+                            String name = rest.split("/")[0];
+                            return "classpath:statement/" + name + ".schema.json";
+                          })));
 
   // GSM base schema property sets for extensible subject types (sealed — derived
   // from DefinitionSubjectType.statementProperties and never change at runtime).
@@ -90,8 +89,8 @@ public class AscriptionParsingValidationService {
   /**
    * Validates a statement against the archetype's JSON Schema.
    *
-   * @param statement   the JSON statement payload to validate
-   * @param archetype   the archetype whose schema defines the validation surface
+   * @param statement the JSON statement payload to validate
+   * @param archetype the archetype whose schema defines the validation surface
    * @param subjectType the GSM subject type (used for error classification)
    * @throws RuleViolationException if validation fails
    */
@@ -99,9 +98,11 @@ public class AscriptionParsingValidationService {
       JsonNode statement, ArchetypeEntity archetype, DefinitionSubjectType subjectType) {
     JsonNode archetypeStatement = archetype.getStatement();
 
-    SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
+    SchemaValidatorsConfig config =
+        SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
     JsonSchemaFactory factory = buildSchemaFactory(archetypeStatement);
-    JsonSchema schema = factory.getSchema(applyStatementClosure(archetypeStatement, subjectType), config);
+    JsonSchema schema =
+        factory.getSchema(applyStatementClosure(archetypeStatement, subjectType), config);
     Set<ValidationMessage> errors = schema.validate(statement);
 
     if (errors.isEmpty()) {
@@ -168,35 +169,24 @@ public class AscriptionParsingValidationService {
   // ======================================================================
 
   /**
-   * Returns the schema to validate a statement against: the typing archetype
-   * schema with {@code
-   * unevaluatedProperties: false} applied at its root, so that a governed
-   * statement carries only
+   * Returns the schema to validate a statement against: the typing archetype schema with {@code
+   * unevaluatedProperties: false} applied at its root, so that a governed statement carries only
    * properties declared somewhere in the resolved chain.
    *
-   * <p>
-   * Closure is applied here rather than declared in the schemas because it is
-   * only expressible
-   * where the concrete typing archetype is known — see GSM §5 ("Statement
-   * closure") in {@code
+   * <p>Closure is applied here rather than declared in the schemas because it is only expressible
+   * where the concrete typing archetype is known — see GSM §5 ("Statement closure") in {@code
    * def/gsm.puml} for the normative rule and its rationale.
    *
-   * <p>
-   * {@link DefinitionSubjectType#ARCHETYPE} statements are exempt: an Archetype
-   * statement is
-   * itself a JSON Schema, and the sealed Archetype meta-schema is deliberately
-   * open so tenants may
+   * <p>{@link DefinitionSubjectType#ARCHETYPE} statements are exempt: an Archetype statement is
+   * itself a JSON Schema, and the sealed Archetype meta-schema is deliberately open so tenants may
    * declare vocabulary keywords. Their extra keywords are governed by {@code
    * ArchetypeAnnotationValidationService}, not by closure.
    *
-   * <p>
-   * The input node is never mutated and the persisted archetype statement is
-   * unaffected. Schemas
-   * already declaring an at-least-as-strict top-level closure are returned
-   * unchanged.
+   * <p>The input node is never mutated and the persisted archetype statement is unaffected. Schemas
+   * already declaring an at-least-as-strict top-level closure are returned unchanged.
    *
    * @param archetypeSchema the resolved typing archetype schema
-   * @param subjectType     the GSM subject type of the statement being validated
+   * @param subjectType the GSM subject type of the statement being validated
    * @return the schema to validate against
    */
   static JsonNode applyStatementClosure(
@@ -213,8 +203,7 @@ public class AscriptionParsingValidationService {
   }
 
   /**
-   * Reports whether a schema already closes itself at top level. Nested closures
-   * are irrelevant —
+   * Reports whether a schema already closes itself at top level. Nested closures are irrelevant —
    * they constrain sub-objects, not the statement root.
    */
   private static boolean declaresClosure(JsonNode schema) {
@@ -238,7 +227,7 @@ public class AscriptionParsingValidationService {
       DefinitionSubjectType subjectType) {
     return switch (subjectType) {
       case STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, DIRECTIVE, NORM ->
-        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE;
       case ARCHETYPE -> null;
     };
   }
@@ -256,28 +245,32 @@ public class AscriptionParsingValidationService {
 
     return JsonSchemaFactory.getInstance(
         SpecVersion.VersionFlag.V202012,
-        builder -> builder
-            .schemaLoaders(
-                loaders -> loaders.add(
-                    iri -> {
-                      String uri = iri.toString();
-                      String json = tenantSchemaJsonByUri.get(uri);
-                      if (json != null) {
-                        return () -> new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
-                      }
-                      return null;
-                    }))
-            .schemaMappers(
-                mappers -> mappers.mappings(
-                    uri -> uri.startsWith("gsmarc://gsm/"),
-                    uri -> {
-                      if (tenantSchemaJsonByUri.containsKey(uri)) {
-                        return uri;
-                      }
-                      String rest = uri.substring("gsmarc://gsm/".length());
-                      String name = rest.split("/")[0];
-                      return "classpath:statement/" + name + ".schema.json";
-                    })));
+        builder ->
+            builder
+                .schemaLoaders(
+                    loaders ->
+                        loaders.add(
+                            iri -> {
+                              String uri = iri.toString();
+                              String json = tenantSchemaJsonByUri.get(uri);
+                              if (json != null) {
+                                return () ->
+                                    new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+                              }
+                              return null;
+                            }))
+                .schemaMappers(
+                    mappers ->
+                        mappers.mappings(
+                            uri -> uri.startsWith("gsmarc://gsm/"),
+                            uri -> {
+                              if (tenantSchemaJsonByUri.containsKey(uri)) {
+                                return uri;
+                              }
+                              String rest = uri.substring("gsmarc://gsm/".length());
+                              String name = rest.split("/")[0];
+                              return "classpath:statement/" + name + ".schema.json";
+                            })));
   }
 
   // ======================================================================

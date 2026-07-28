@@ -31,7 +31,7 @@ public final class ArgsSummary {
    *
    * @param args method arguments captured by AOP advice; may be {@code null}
    * @return summary string of the form {@code "(<arg1>, <arg2>, ...)"}, capped at {@link
-  *     #MAX_SUMMARY_BYTES} UTF-8 bytes with a deterministic marker when the cap is exceeded
+   *     #MAX_SUMMARY_BYTES} UTF-8 bytes with a deterministic marker when the cap is exceeded
    */
   public static String summarize(Object[] args) {
     if (args == null || args.length == 0) {

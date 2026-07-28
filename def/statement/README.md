@@ -45,7 +45,7 @@ Statement files are the design-time representation of Ascription statements. Eve
 | ITIP     | SourcedDirective archetype    | —                    | `SourcedDirective.schema.json`                   |
 | ITIP     | GDPR directive instance       | `SourcedDirective`   | `ProcessingPrinciplesSourcedDirective.json`      |
 | ITIP     | GDPR norm instance            | `SourcedNorm`        | `LawfulnessFairnessTransparencySourcedNorm.json` |
-| ITIP     | Governance mechanism instance | `Mechanism`          | `DirectiveNormOperationalization.mechanism.json`  |
+| ITIP     | Governance mechanism instance | `Mechanism`          | `DirectiveNormOperationalization.mechanism.json` |
 
 ## `$schema` Convention
 

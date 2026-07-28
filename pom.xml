@@ -392,6 +392,10 @@
               </includes>
               <excludes>
                 <exclude>target/**</exclude>
+                <!-- Archive folders hold superseded content and are read-only:
+                     reformatting them is forbidden, so they must not be gated. -->
+                <exclude>**/archive/**</exclude>
+                <exclude>**/archives/**</exclude>
               </excludes>
               <prettier>
                 <prettierVersion>3.3.3</prettierVersion>

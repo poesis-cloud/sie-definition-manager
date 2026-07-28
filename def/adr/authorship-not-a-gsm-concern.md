@@ -60,10 +60,10 @@ client framework asserts about its own operations.
 
 Two members, both required:
 
-| member           | description                                                                                    |
-| ---------------- | ---------------------------------------------------------------------------------------------- |
-| `identity`       | Author identity — a human account or a system identity. Unique within `identityIssuer`.          |
-| `identityIssuer` | Authority that issued `identity` (OIDC `iss`, client registry). The pair is what is unique.       |
+| member           | description                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `identity`       | Author identity — a human account or a system identity. Unique within `identityIssuer`.     |
+| `identityIssuer` | Authority that issued `identity` (OIDC `iss`, client registry). The pair is what is unique. |
 
 `identityIssuer` is required because an identity is only unique within its issuing
 authority (OIDC: `sub` is unique per `iss`). An optional issuer means unresolvable stored
