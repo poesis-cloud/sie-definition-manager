@@ -225,7 +225,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     held by the referenced Definition. What makes them governance DNA is
     their Archetype: Directive and Norm define the
     governance grammar within the `statement` payload. Tenant-defined
-    archetypes MAY extend Directive and Norm via allOf
+    archetypes MAY extend Directive and Norm via a top-level $ref
     to add domain-specific vocabulary (e.g., Principle, Standard, Measure)
     while inheriting the full governance grammar. A governance Mechanism
     producing a Directive simply creates one via
@@ -598,6 +598,53 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     are governance DNA archetypes; tenants extend them to add
     domain-specific governance vocabulary. The Archetype meta-schema
     itself carries `$gsm:sealed` and MUST NOT be tenant-extended.
+
+    ----
+
+    **Statement closure**
+
+    A governed statement MUST be **fully typed**: every property it
+    carries MUST be declared somewhere in the resolved `$ref`/allOf
+    chain of its typing Archetype. An undeclared property would be
+    invisible to identity-bound materialization, to `$gsm:queryable`
+    indexing, and to the reviewer approving the Ascription — ungoverned
+    payload riding inside a governed statement.
+
+    Closure MUST NOT be declared on the extensible GSM base schemas.
+    In JSON Schema 2020-12, `unevaluatedProperties` sees only the
+    annotations produced by its own schema object and by the in-place
+    applicators that object declares; annotations never propagate from
+    an extending schema down into the schema it extends. A base carrying
+    `unevaluatedProperties: false` therefore rejects every property
+    contributed by its extensions, defeating extensibility. Symmetry
+    with `$gsm:sealed` is misleading: `$gsm:sealed` is walked outside-in
+    by DM and so belongs on the protected base, whereas closure is
+    evaluated inside-out and so belongs where the whole chain is visible.
+
+    Closure MUST NOT be delegated to the typing Archetype either.
+    Whether an Archetype is a chain leaf is a property of **usage**, not
+    of the schema: an Archetype that closes itself silently breaks any
+    Archetype authored later to extend it, retroactively and in a
+    different framework than the one that changed.
+
+    DM therefore applies closure at Ascription authoring time, at the
+    only point where the concrete typing Archetype is known — by
+    validating against the resolved Archetype schema with
+    `unevaluatedProperties: false` applied at its root. The persisted
+    Archetype statement is NOT modified: DM input = DM output (1:1)
+    holds. An Archetype that already declares an at-least-as-strict
+    top-level closure (`unevaluatedProperties: false` or
+    `additionalProperties: false`) is validated unchanged; a permissive
+    declaration does not count as closure and does not exempt the
+    statement from it.
+
+    Closure applies to the seven governed subject types only. An
+    ARCHETYPE statement is itself a JSON Schema, and the sealed
+    Archetype meta-schema is deliberately open — it composes the full
+    JSON Schema 2020-12 meta-schema and adds the `$gsm:*` vocabulary,
+    so tenants MAY declare further vocabulary keywords at the statement
+    root. Those keywords are governed by the `$gsm:*` vocabulary rules
+    (§8), not by closure.
 
     ====
 
@@ -1099,9 +1146,9 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
       GSM primitive the subject is. This is a GSM-sealed enum: tenants
       MUST NOT extend it. Domain-level typing extensibility is expressed
       exclusively through Archetypes (tenant-defined Archetype schemas
-      extending GSM base schemas via allOf).
+      extending GSM base schemas via a top-level $ref).
     - Determines which GSM base Archetype schema the Ascription's
-      typing Archetype (`archetype_id`) allOf chain MUST converge to.
+      typing Archetype (`archetype_id`) $ref chain MUST converge to.
       Rootless archetypes (used as qualifiers or data archetypes) do
       not determine a DefinitionSubjectType.
 

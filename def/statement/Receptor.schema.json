@@ -2,7 +2,7 @@
   "$schema": "gsmarc://gsm/Archetype/v1",
   "$id": "gsmarc://gsm/Receptor/v1",
   "title": "Receptor",
-  "description": "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Receptor via allOf to add domain-specific port vocabulary while inheriting the base port schema.",
+  "description": "Schema for Receptor Ascriptions — input endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the input payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Receptor via a top-level $ref to add domain-specific port vocabulary while inheriting the base port schema.",
   "type": "object",
   "examples": [ {
     "mechanism": "019cc49a-dc5a-799b-8f0b-3d951621a86f",
@@ -24,6 +24,5 @@
       "$gsm:queryable": true,
       "description": "ID reference to the data Archetype that types the Receptor's input payload. To change the data type, author a new Definition."
     }
-  },
-  "unevaluatedProperties": false
+  }
 }

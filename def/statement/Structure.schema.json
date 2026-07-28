@@ -2,7 +2,7 @@
   "$schema": "gsmarc://gsm/Archetype/v1",
   "$id": "gsmarc://gsm/Structure/v1",
   "title": "Structure",
-  "description": "Schema for Structure Ascriptions — the foundational aggregate. Defines the Structure's purpose: its identity discriminator and governance address. DM input = DM output (1:1). Tenant-defined archetypes extending Structure MUST reference this schema via allOf.",
+  "description": "Schema for Structure Ascriptions — the foundational aggregate. Defines the Structure's purpose: its identity discriminator and governance address. DM input = DM output (1:1). Tenant-defined archetypes extending Structure MUST reference this schema via a top-level $ref.",
   "type": "object",
   "examples": [ {
     "purpose": "payment-processing"
@@ -18,6 +18,5 @@
       "$gsm:identityBound": true,
       "description": "The Structure's raison d'être. Globally unique among in-effect Structures — serves as both identity discriminator and governance address. Directives reference the purpose via their purpose field. Kebab-case format enforced for canonicalization."
     }
-  },
-  "unevaluatedProperties": false
+  }
 }
