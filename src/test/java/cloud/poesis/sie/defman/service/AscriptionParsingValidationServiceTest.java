@@ -292,7 +292,7 @@ class AscriptionParsingValidationServiceTest {
     /** Mirrors the ITIP shape: a typing archetype extending a GSM base with domain properties. */
     private ObjectNode sourcedDirectiveSchema() {
       ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("$id", "gsmarc://itip/SourcedDirective/v1");
+      schema.put("$id", "gsmarc://gsm-frameworks/SourcedDirective/v1");
       schema.put("title", "SourcedDirective");
       schema.put("type", "object");
       schema.put("$ref", "gsmarc://gsm/Directive/v1");

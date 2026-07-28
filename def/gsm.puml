@@ -3112,9 +3112,9 @@ note as N_URI_CONVENTION
 
   - `gsmarc://gsm/Structure/v1` — GSM base (classpath)
   - `gsmarc://ops/protocols/governance/GovernanceEvent/v1` — SIE Operator internal protocol
-  - `gsmarc://itip/frameworks/http/HttpRequest/v1` — ITIP-sourced application protocol archetype
-  - `gsmarc://itip/SoftwareTechnology/v1` — ITIP domain archetype
-  - `gsmarc://itip/frameworks/iso25000/iso25010/product-quality/ProductSecurity/v1`
+  - `gsmarc://gsm-frameworks/http/HttpRequest/v1` — ITIP-sourced application protocol archetype
+  - `gsmarc://gsm-frameworks/SoftwareTechnology/v1` — ITIP domain archetype
+  - `gsmarc://gsm-frameworks/iso25000/iso25010/product-quality/ProductSecurity/v1`
     — ITIP sourced framework archetype
 
   **Parsing rule**: title = last path segment before `/v{version}`.

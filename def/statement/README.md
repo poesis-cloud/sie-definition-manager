@@ -33,7 +33,7 @@ Statement files are the design-time representation of Ascription statements. Eve
 
 **Acronym casing**: all names (filenames, `$id` path segments, `title` values, type references) use **strict PascalCase** — including acronyms. Write `Gdpr`, `Nis2`, `Scap`, `Dpia`, `Dpo`, never `GDPR`, `NIS2`, `SCAP`, `DPIA`, `DPO` inside identifiers. Standalone prose references to the standard/regulation itself (e.g., "GDPR Art 33", "NIS2 Annex I") remain uppercase as proper nouns.
 
-**`$id` alignment**: the `$id` path segment before `/v{version}` MUST match the filename stem (minus `.schema.json` or `.json`). Example: filename `ProcessingPrinciplesSourcedDirective.json` → `$id` URI `gsmarc://itip/frameworks/gdpr/principles/ProcessingPrinciplesSourcedDirective/v1`.
+**`$id` alignment**: the `$id` path segment before `/v{version}` MUST match the filename stem (minus `.schema.json` or `.json`). Example: filename `ProcessingPrinciplesSourcedDirective.json` → `$id` URI `gsmarc://gsm-frameworks/gdpr/principles/ProcessingPrinciplesSourcedDirective/v1`.
 
 **Instance examples across layers**:
 
@@ -154,11 +154,11 @@ Vocabulary keywords on a property can be added/changed across Ascription version
 
 Archetype schemas use three orthogonal JSON Schema keywords, each with a distinct semantic role:
 
-| Keyword   | Semantic role                                                                                                    | Example                                                                     |
-| --------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `$schema` | **Who validates me** — declares the meta-schema (always the GSM seed Archetype)                                  | `"$schema": "gsmarc://gsm/Archetype/v1"`                                    |
-| `$ref`    | **What I am / extend** — base extension; determines the GSM subject type via the `$ref` chain                    | `"$ref": "gsmarc://gsm/Structure/v1"`                                       |
-| `allOf`   | **What facets I include** — applicable property sets; additional cross-cutting concerns composed into the schema | `"allOf": [{"$ref": "gsmarc://itip/frameworks/.../SecurityProperties/v1"}]` |
+| Keyword   | Semantic role                                                                                                    | Example                                                                    |
+| --------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `$schema` | **Who validates me** — declares the meta-schema (always the GSM seed Archetype)                                  | `"$schema": "gsmarc://gsm/Archetype/v1"`                                   |
+| `$ref`    | **What I am / extend** — base extension; determines the GSM subject type via the `$ref` chain                    | `"$ref": "gsmarc://gsm/Structure/v1"`                                      |
+| `allOf`   | **What facets I include** — applicable property sets; additional cross-cutting concerns composed into the schema | `"allOf": [{"$ref": "gsmarc://gsm-frameworks/.../SecurityProperties/v1"}]` |
 
 ### Definitions
 

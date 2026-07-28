@@ -144,7 +144,7 @@ class ArchetypeParsingServiceTest {
       assertEquals(
           "ScapPlatformIdentifier",
           ArchetypeParsingService.extractTitleFromRef(
-              "gsmarc://itip/frameworks/scap/cpe/ScapPlatformIdentifier/v1"));
+              "gsmarc://gsm-frameworks/scap/cpe/ScapPlatformIdentifier/v1"));
     }
 
     @Test
@@ -187,7 +187,7 @@ class ArchetypeParsingServiceTest {
     void allowsNonGsmAuthorityUri() {
       assertTrue(
           ArchetypeParsingService.isAllowedRef(
-              "gsmarc://itip/frameworks/scap/cpe/ScapPlatformIdentifier/v1"));
+              "gsmarc://gsm-frameworks/scap/cpe/ScapPlatformIdentifier/v1"));
     }
 
     @Test
