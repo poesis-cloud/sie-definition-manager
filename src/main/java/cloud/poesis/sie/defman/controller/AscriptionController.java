@@ -146,7 +146,9 @@ public class AscriptionController extends AbstractController {
       summary = "List ascriptions (paginated)",
       description =
           "Filter by subject type and optionally by status, archetype, "
-              + "and queryable statement properties (statement.{prop}=value).")
+              + "and queryable statement properties (statement.{prop}=value). "
+              + "Filter keys declared as $gsm:aliases on the archetype resolve "
+              + "to their canonical property.")
   @ApiResponse(responseCode = "200", description = "Paged list of ascriptions")
   @ApiResponse(
       responseCode = "400",

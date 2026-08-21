@@ -53,6 +53,9 @@
     "$gsm:unique": {
       "$ref": "#/$defs/Unique"
     },
+    "$gsm:aliases": {
+      "$ref": "#/$defs/Aliases"
+    },
     "$gsm:dataProtection": {
       "$ref": "#/$defs/DataProtection"
     }
@@ -73,6 +76,16 @@
     "Unique": {
       "const": true,
       "description": "Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. DM provisions a partial unique expression index."
+    },
+    "Aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Property-level. Legacy/alternative names for the canonical property (standards acculturation). Query resolution only: DM resolves alias filter keys (statement.{alias}=value) to the canonical property, gated by $gsm:queryable. Statements and responses are canonical-only; aliases MUST NOT appear in $ref, $id, CEL, or Starlark. Unambiguity is DM-enforced at authoring time: an alias must not equal any canonical property name of the declaring schema nor any alias on another property."
     },
     "DataProtection": {
       "type": "object",

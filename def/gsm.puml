@@ -877,6 +877,7 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     | `$gsm:identityBound` | Cross-version (same Definition) | Rejects Ascription if value differs from first Ascription | Authoring-time validation |
     | `$gsm:queryable` | Query optimization | Auto-provisions JSONB path index for efficient filtering | Expression index or GIN index on JSONB path |
     | `$gsm:unique` | Cross-Definition (same Archetype) | Enforces value uniqueness among in-effect Ascriptions | Partial unique expression index |
+    | `$gsm:aliases` | Query resolution | Resolves legacy filter keys to the canonical property (gated by `$gsm:queryable`) | None (canonical property index) |
     | `$gsm:dataProtection` | Data protection | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time |
 
     **Vocabulary keyword semantics (detailed)**:
@@ -922,6 +923,24 @@ frame "CD - SIE (Systemic Intelligence Engine) - GSM" {
     DM provisions a PostgreSQL partial unique expression index:
     `CREATE UNIQUE INDEX ON ascription ((statement->>'prop'))
     WHERE archetype_id = X AND status IN ('ACTIVE','DEPRECATED')`.
+
+    `$gsm:aliases: [...]` (property-level)
+    Declares legacy/alternative names for the canonical property to
+    ease standards acculturation: organizations keep finding data by
+    their historical terms while authoring only canonical ones.
+    Strict semantics: statements and responses are canonical-only —
+    an aliased key in a statement is rejected by closure like any
+    undeclared property. The sole behavior is query resolution: DM
+    resolves an alias filter key (`statement.{alias}=value`) to its
+    canonical property on the typing Archetype's declared schema,
+    then applies the normal `$gsm:queryable` gate, served by the
+    canonical property's existing index. Aliases MUST NOT appear in
+    `$ref`, `$id`, CEL expressions, or Starlark rules.
+    Unambiguity (authoring-time, DM-enforced): an alias must not
+    equal any canonical property name of the declaring schema, nor
+    any alias declared on another property of the same schema.
+    Not identity-bound: alias changes across Ascription versions go
+    through normal Ascription review.
 
     `$gsm:dataProtection: { ... }` (property-level)
     Phase-first structured protection model. Two lifecycle

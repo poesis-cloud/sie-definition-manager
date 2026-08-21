@@ -4,6 +4,7 @@ import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +36,7 @@ public class ArchetypeAnnotationValidationService {
           "$gsm:identityBound",
           "$gsm:queryable",
           "$gsm:unique",
+          "$gsm:aliases",
           "$gsm:dataProtection");
 
   private static final Set<String> TOP_LEVEL_ANNOTATIONS = Set.of("$gsm:sealed");
@@ -73,7 +75,67 @@ public class ArchetypeAnnotationValidationService {
       }
     }
 
+    validateAliasUnambiguity(properties);
     validateIdentityBoundSetImmutability(existingAscriptions, identityBoundFields);
+  }
+
+  // ========================================================================
+  // $gsm:aliases unambiguity
+  // ========================================================================
+
+  /**
+   * Enforces alias-to-canonical resolution unambiguity within the declaring schema: a {@code
+   * $gsm:aliases} entry must not equal any canonical property name, nor any alias declared on
+   * another property.
+   */
+  private void validateAliasUnambiguity(JsonNode properties) {
+    Set<String> canonicalNames = new HashSet<>();
+    properties.fieldNames().forEachRemaining(canonicalNames::add);
+
+    Map<String, String> seenAliases = new HashMap<>();
+    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
+      String propName = entry.getKey();
+      JsonNode aliases = entry.getValue().path("$gsm:aliases");
+      if (!aliases.isArray()) {
+        continue;
+      }
+      for (JsonNode aliasNode : aliases) {
+        String alias = aliasNode.asText();
+        if (canonicalNames.contains(alias)) {
+          throw RuleViolationException.of(
+              AscriptionConsistencyRuleType.ARCHETYPE_ALIAS_UNAMBIGUITY,
+              "Alias '"
+                  + alias
+                  + "' on property '"
+                  + propName
+                  + "' collides with the canonical property '"
+                  + alias
+                  + "'",
+              "alias",
+              alias,
+              "property",
+              propName);
+        }
+        String previousOwner = seenAliases.putIfAbsent(alias, propName);
+        if (previousOwner != null) {
+          throw RuleViolationException.of(
+              AscriptionConsistencyRuleType.ARCHETYPE_ALIAS_UNAMBIGUITY,
+              "Alias '"
+                  + alias
+                  + "' on property '"
+                  + propName
+                  + "' is already declared on property '"
+                  + previousOwner
+                  + "'",
+              "alias",
+              alias,
+              "property",
+              propName,
+              "conflictingProperty",
+              previousOwner);
+        }
+      }
+    }
   }
 
   private void validateTopLevelAnnotations(JsonNode schema) {

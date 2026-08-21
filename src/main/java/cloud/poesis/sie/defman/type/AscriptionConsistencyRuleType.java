@@ -350,6 +350,14 @@ public enum AscriptionConsistencyRuleType implements RuleType {
           + "the same Archetype Definition — changing the identity-"
           + "bound set requires a new Definition."),
 
+  ARCHETYPE_ALIAS_UNAMBIGUITY(
+      "gsm:rules/archetype/aliases/unambiguity",
+      "Archetype alias unambiguity",
+      "A $gsm:aliases entry must not equal any canonical property name "
+          + "of the declaring Archetype schema, nor any alias declared on "
+          + "another property of the same schema — alias-to-canonical "
+          + "query resolution must be unambiguous."),
+
   // ====================================================================
   // ASCRIPTION — cross-cutting statement validation
   // ====================================================================

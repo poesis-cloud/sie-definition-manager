@@ -161,6 +161,60 @@ class ArchetypeAnnotationValidationServiceTest {
       }
     }
 
+    @Nested
+    class AliasUnambiguity {
+
+      @Test
+      void distinctAliases_valid() {
+        ObjectNode p1 = prop("string");
+        p1.putArray("$gsm:aliases").add("Kostenstelle").add("CC_CODE");
+        ObjectNode p2 = prop("string");
+        p2.putArray("$gsm:aliases").add("Besitzer");
+        ObjectNode schema = MAPPER.createObjectNode();
+        ObjectNode props = schema.putObject("properties");
+        props.set("costCenter", p1);
+        props.set("owner", p2);
+
+        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, List.of()));
+      }
+
+      @Test
+      void aliasCollidingWithCanonicalProperty_rejected() {
+        ObjectNode p1 = prop("string");
+        p1.putArray("$gsm:aliases").add("owner");
+        ObjectNode schema = MAPPER.createObjectNode();
+        ObjectNode props = schema.putObject("properties");
+        props.set("costCenter", p1);
+        props.set("owner", prop("string"));
+
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateArchetypeAnnotations(schema, List.of()));
+        assertTrue(ex.getMessage().contains("canonical property"));
+        assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALIAS_UNAMBIGUITY, ex.getRuleType());
+      }
+
+      @Test
+      void aliasDeclaredOnTwoProperties_rejected() {
+        ObjectNode p1 = prop("string");
+        p1.putArray("$gsm:aliases").add("Kostenstelle");
+        ObjectNode p2 = prop("string");
+        p2.putArray("$gsm:aliases").add("Kostenstelle");
+        ObjectNode schema = MAPPER.createObjectNode();
+        ObjectNode props = schema.putObject("properties");
+        props.set("costCenter", p1);
+        props.set("budgetUnit", p2);
+
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateArchetypeAnnotations(schema, List.of()));
+        assertTrue(ex.getMessage().contains("already declared"));
+        assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALIAS_UNAMBIGUITY, ex.getRuleType());
+      }
+    }
+
     @Test
     void cleanSchema_noAnnotations_valid() {
       ObjectNode schema = schemaWithProperty("env", prop("string"));

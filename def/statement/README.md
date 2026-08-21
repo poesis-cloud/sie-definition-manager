@@ -122,6 +122,7 @@ Vocabulary keyword schemas are defined as `$defs` within the **GSM meta-schema**
 | `$gsm:identityBound`  | Cross-version (same Definition)   | Rejects Ascription if value differs from first                                          | Authoring-time validation       |
 | `$gsm:queryable`      | Query optimization                | Auto-provisions JSONB path index                                                        | Expression index or GIN         |
 | `$gsm:unique`         | Cross-Definition (same Archetype) | Enforces uniqueness among in-effect Ascriptions                                         | Partial unique expression index |
+| `$gsm:aliases`        | Query resolution                  | Resolves legacy filter keys to the canonical property (gated by `$gsm:queryable`)       | None (canonical property index) |
 | `$gsm:dataProtection` | Data protection                   | Phase-first protection model (atRest / inTransit × encryption, hash, mask, suppression) | Authoring + read/write-time     |
 
 ### `$gsm:sealed: true`
@@ -147,6 +148,44 @@ Constraints:
 Property-level. Unique among in-effect (ACTIVE/DEPRECATED) Ascriptions of the same Archetype. Different from `$gsm:identityBound` (same Definition) — `$gsm:unique` constrains across _all_ Definitions of the same Archetype.
 
 DM provisions: `CREATE UNIQUE INDEX ON ascription ((statement->>'prop')) WHERE archetype_id = X AND status IN ('ACTIVE','DEPRECATED')`.
+
+### `$gsm:aliases: [...]`
+
+Property-level. Declares legacy/alternative names for the canonical property,
+easing standards acculturation: organizations keep **finding** data by their
+historical terms while authoring only canonical ones.
+
+```json
+"costCenter": {
+  "type": "string",
+  "$gsm:queryable": true,
+  "$gsm:aliases": ["Kostenstelle", "CC_CODE"]
+}
+```
+
+Strict semantics:
+
+- **Statements are canonical-only.** Aliases never appear in statement
+  payloads — an aliased key in a POST is rejected by statement closure like
+  any undeclared property. Responses served by DM are never aliased.
+- **Query resolution only.** In
+  `GET /ascriptions?archetype=X&statement.{alias}=value`, DM resolves the
+  alias to its canonical property on the typing Archetype's declared schema,
+  then applies the normal `$gsm:queryable` gate — the query succeeds iff the
+  canonical property is queryable, served by the canonical property's
+  existing index. An alias on a non-queryable property is legal but inert
+  (documentation/UI metadata only).
+- **Never resolvable elsewhere.** Aliases MUST NOT appear in `$ref`, `$id`,
+  CEL expressions, or Starlark rules — canonical names only.
+
+Constraints:
+
+- Value MUST be a non-empty array of unique, non-blank strings (meta-schema).
+- **Unambiguity** (DM-enforced at authoring time): an alias must not equal any
+  canonical property name of the declaring schema, nor any alias declared on
+  another property of the same schema.
+- Not identity-bound: adding/removing aliases across Ascription versions goes
+  through normal Ascription review.
 
 ### `$gsm:dataProtection: { ... }`
 
