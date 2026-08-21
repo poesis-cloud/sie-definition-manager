@@ -1,7 +1,7 @@
 SHELL := /bin/bash
-.EXPORT_ALL_VARIABLES:
+.DEFAULT_GOAL := help
 
-.PHONY: dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime helm-template-matrix
+.PHONY: help check-tooling dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime stop-port-forwards helm-template-matrix
 
 -include .env
 -include .env.dev
@@ -17,9 +17,40 @@ DM_ENV_FILE ?= $(DM_CHART)/environments/$(DEPLOY_ENV)/values.yaml
 
 PORT_FORWARD_PID_FILE ?= .dev-port-forwards.pids
 
+# Explicit variable->target contract: each secret is exported only into the
+# environment of the targets that consume it (no .EXPORT_ALL_VARIABLES).
+dev-up: export DB_USER := $(DB_USER)
+dev-up: export DB_PASSWORD := $(DB_PASSWORD)
+dev-up: export DEF_DB_ADMIN_PASSWORD := $(DEF_DB_ADMIN_PASSWORD)
+deploy-check prod-deploy: export DM_DB_PASSWORD := $(DM_DB_PASSWORD)
+deploy-check prod-deploy: export DEF_DB_ADMIN_PASSWORD := $(DEF_DB_ADMIN_PASSWORD)
+deploy-check prod-deploy: export IMAGE_REPOSITORY := $(IMAGE_REPOSITORY)
+deploy-check prod-deploy: export IMAGE_TAG := $(IMAGE_TAG)
+
 define kill_port_listener
 	@ss -ltnp '( sport = :$(1) )' 2>/dev/null | awk -F'pid=' '/kubectl/ {split($$2, parts, /[,)]/); print parts[1]}' | xargs -r kill
 endef
+
+help: ## Show available targets
+	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-22s %s\n", $$1, $$2}'
+
+# Shared cluster/tooling preflight (internal; cluster-facing targets only).
+check-tooling:
+	@command -v kubectl >/dev/null 2>&1 || { echo "Missing required command: kubectl"; exit 1; }
+	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
+	@kubectl config current-context >/dev/null 2>&1 || { echo "No active Kubernetes context. Configure kubeconfig first."; exit 1; }
+	@kubectl get ns >/dev/null 2>&1 || { echo "Cannot reach Kubernetes API with current context."; exit 1; }
+	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
+
+# Kill tracked and orphaned dependency port-forwards (internal).
+stop-port-forwards:
+	@if [[ -f "$(PORT_FORWARD_PID_FILE)" ]]; then \
+		xargs -r kill < "$(PORT_FORWARD_PID_FILE)" 2>/dev/null || true; \
+		rm -f "$(PORT_FORWARD_PID_FILE)"; \
+	fi
+	$(call kill_port_listener,5432)
+	$(call kill_port_listener,9092)
+	$(call kill_port_listener,8081)
 
 ensure-runtime:
 	@if [[ -n "$$XDG_RUNTIME_DIR" ]] && [[ ! -d "$$XDG_RUNTIME_DIR" ]]; then \
@@ -27,21 +58,11 @@ ensure-runtime:
 		sudo mkdir -p "$$XDG_RUNTIME_DIR" && sudo chown $$(id -u):$$(id -g) "$$XDG_RUNTIME_DIR" && chmod 700 "$$XDG_RUNTIME_DIR"; \
 	fi
 
-dev-check:
-	@command -v kubectl >/dev/null 2>&1 || { echo "Missing required command: kubectl"; exit 1; }
-	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
-	@kubectl config current-context >/dev/null 2>&1 || { echo "No active Kubernetes context. Configure kubeconfig first."; exit 1; }
-	@kubectl get ns >/dev/null 2>&1 || { echo "Cannot reach Kubernetes API with current context."; exit 1; }
-	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
+dev-check: check-tooling ## Preflight the dev flow (tooling, cluster, chart, dev values)
 	@test -f "$(DM_CHART)/environments/dev/values.yaml" || { echo "Missing dev values file: $(DM_CHART)/environments/dev/values.yaml"; exit 1; }
 	@echo "dev-check passed"
 
-deploy-check:
-	@command -v kubectl >/dev/null 2>&1 || { echo "Missing required command: kubectl"; exit 1; }
-	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
-	@kubectl config current-context >/dev/null 2>&1 || { echo "No active Kubernetes context. Configure kubeconfig first."; exit 1; }
-	@kubectl get ns >/dev/null 2>&1 || { echo "Cannot reach Kubernetes API with current context."; exit 1; }
-	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
+deploy-check: check-tooling ## Preflight prod-deploy (env values file + required secrets)
 	@test -f "$(DM_ENV_FILE)" || { echo "Missing environment values file: $(DM_ENV_FILE)"; exit 1; }
 	@: "$${DM_DB_PASSWORD:?Missing DM_DB_PASSWORD in environment}"
 	@: "$${DEF_DB_ADMIN_PASSWORD:?Missing DEF_DB_ADMIN_PASSWORD in environment}"
@@ -49,8 +70,7 @@ deploy-check:
 	@: "$${IMAGE_TAG:?Missing IMAGE_TAG in environment}"
 	@echo "deploy-check passed"
 
-dev-up:
-	@$(MAKE) ensure-runtime
+dev-up: dev-check ensure-runtime ## Deploy dev dependencies (Postgres, Kafka, Schema Registry) + port-forwards
 	@: "$${DB_USER:?Missing DB_USER in .env.dev}"
 	@: "$${DB_PASSWORD:?Missing DB_PASSWORD in .env.dev}"
 	@: "$${DEF_DB_ADMIN_PASSWORD:?Missing DEF_DB_ADMIN_PASSWORD in .env.dev}"
@@ -61,46 +81,41 @@ dev-up:
 		--set-string dbBootstrap.adminPassword="$${DEF_DB_ADMIN_PASSWORD}" \
 		--set-string dbBootstrap.dbUser="$${DB_USER}" \
 		--set-string dbBootstrap.dbPassword="$${DB_PASSWORD}"
-	@if [[ -f "$(PORT_FORWARD_PID_FILE)" ]]; then \
-		xargs -r kill < "$(PORT_FORWARD_PID_FILE)" 2>/dev/null || true; \
-		rm -f "$(PORT_FORWARD_PID_FILE)"; \
-	fi
-	$(call kill_port_listener,5432)
-	$(call kill_port_listener,9092)
-	$(call kill_port_listener,8081)
+	@$(MAKE) stop-port-forwards
 	nohup kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE_DEF_DB) 5432:5432 >/tmp/sie-dm-pf-db.log 2>&1 & echo $$! >> "$(PORT_FORWARD_PID_FILE)"
 	nohup kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE_EVENT_BUS) 9092:9092 >/tmp/sie-dm-pf-kafka.log 2>&1 & echo $$! >> "$(PORT_FORWARD_PID_FILE)"
 	nohup kubectl -n $(NAMESPACE) port-forward svc/$(RELEASE_SCHEMA_REG) 8081:8081 >/tmp/sie-dm-pf-schema.log 2>&1 & echo $$! >> "$(PORT_FORWARD_PID_FILE)"
-	@sleep 2
+	@for i in $$(seq 1 30); do \
+		grep -q "Forwarding from 127.0.0.1:5432" /tmp/sie-dm-pf-db.log 2>/dev/null \
+		&& grep -q "Forwarding from 127.0.0.1:9092" /tmp/sie-dm-pf-kafka.log 2>/dev/null \
+		&& grep -q "Forwarding from 127.0.0.1:8081" /tmp/sie-dm-pf-schema.log 2>/dev/null && break; \
+		sleep 1; \
+	done
 	@grep -q "Forwarding from 127.0.0.1:5432" /tmp/sie-dm-pf-db.log || { echo "Database port-forward failed. See /tmp/sie-dm-pf-db.log"; exit 1; }
 	@grep -q "Forwarding from 127.0.0.1:9092" /tmp/sie-dm-pf-kafka.log || { echo "Kafka port-forward failed. See /tmp/sie-dm-pf-kafka.log"; exit 1; }
 	@grep -q "Forwarding from 127.0.0.1:8081" /tmp/sie-dm-pf-schema.log || { echo "Schema Registry port-forward failed. See /tmp/sie-dm-pf-schema.log"; exit 1; }
 	@echo "Dependencies are ready and port-forwards started."
 	@echo "Now run: make run-api"
 
-dev-down:
-	@PID=$$(lsof -ti :8080 2>/dev/null); \
+dev-down: stop-port-forwards ## Stop the API + port-forwards, uninstall the dev release, drop dev PVCs
+	@PID=$$(lsof -a -t -c java -i :8080 -sTCP:LISTEN 2>/dev/null); \
 	if [[ -n "$$PID" ]]; then \
 		kill $$PID 2>/dev/null || true; \
-		echo "Stopped process on port 8080 (PID $$PID)"; \
-	fi
-	@if [[ -f "$(PORT_FORWARD_PID_FILE)" ]]; then \
-		xargs -r kill < "$(PORT_FORWARD_PID_FILE)" 2>/dev/null || true; \
-		rm -f "$(PORT_FORWARD_PID_FILE)"; \
+		echo "Stopped API process on port 8080 (PID $$PID)"; \
 	fi
 	helm uninstall sie-definition-manager -n $(NAMESPACE) || true
 	kubectl -n $(NAMESPACE) delete secret/$(RELEASE_EVENT_BUS)-kraft --ignore-not-found=true
 	kubectl -n $(NAMESPACE) delete pvc/data-$(RELEASE_EVENT_BUS)-0 --ignore-not-found=true
 	kubectl -n $(NAMESPACE) delete pvc/data-$(RELEASE_DEF_DB)-0 --ignore-not-found=true
 
-run-api:
-	DB_URL="$(DB_URL)" \
-	DB_USER="$(DB_USER)" \
-	DB_PASSWORD="$(DB_PASSWORD)" \
-	mvn spring-boot:run
+run-api: ## Run the Spring Boot API locally against the port-forwarded dependencies
+	@set -a; \
+	[ -f .env ] && . ./.env; \
+	[ -f .env.dev ] && . ./.env.dev; \
+	set +a; \
+	exec mvn spring-boot:run
 
-prod-deploy:
-	@$(MAKE) deploy-check
+prod-deploy: deploy-check ## Deploy to the DEPLOY_ENV cluster via Helm (CD entrypoint)
 	helm upgrade --install sie-definition-manager $(DM_CHART) -n $(NAMESPACE) --create-namespace --wait --timeout 10m0s \
 		-f $(DM_ENV_FILE) \
 		--set image.repository="$${IMAGE_REPOSITORY}" \
@@ -110,7 +125,9 @@ prod-deploy:
 		--set-string dbBootstrap.adminPassword="$${DEF_DB_ADMIN_PASSWORD}" \
 		--set-string dbBootstrap.dbPassword="$${DM_DB_PASSWORD}"
 
-package-helm:
+# package-helm and helm-template-matrix keep self-contained checks: they run
+# in CI runners with no kubectl context, so check-tooling would wrongly fail.
+package-helm: ## Package the Helm chart into a .tgz
 	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
 	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
 	helm package $(DM_CHART)
@@ -144,7 +161,7 @@ HELM_TEMPLATE_DUMMY_ARGS := \
 	--set definitiondatabase.secrets.DB_PASSWORD=ci-template-validation-not-a-real-secret \
 	--set definitiondatabase.postgres.dbPassword=ci-template-validation-not-a-real-secret
 
-helm-template-matrix:
+helm-template-matrix: ## Lint + render-matrix validation of the observability sink switch
 	@command -v helm >/dev/null 2>&1 || { echo "Missing required command: helm"; exit 1; }
 	@test -d "$(DM_CHART)" || { echo "Missing chart directory: $(DM_CHART)"; exit 1; }
 	@echo "==> helm lint (dev / preprod / prod)"
@@ -181,8 +198,8 @@ helm-template-matrix:
 	@echo
 	@echo "helm-template-matrix: all matrix cells + negative case PASS"
 
-test:
+test: ## Run unit tests (mvn test)
 	mvn test
 
-verify:
+verify: ## Full build gate (mvn verify)
 	mvn verify

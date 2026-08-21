@@ -20,14 +20,23 @@ on:
 
 permissions:
   contents: read
-  packages: write
-  id-token: write
+
+# One deploy at a time per environment; never cancel an in-flight deploy.
+concurrency:
+  group: dm-cd-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
 
 jobs:
   package:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # cosign keyless signing
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
+      image_digest: ${{ steps.meta.outputs.image_digest }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -35,8 +44,9 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Build jar
-        run: mvn -B -DskipTests package
+      - name: Build and test
+        # Full verify: never ship an image whose tests did not run in this pipeline.
+        run: mvn -B verify
       - name: Generate SBOM
         run: mvn -B cyclonedx:makeAggregateBom
       - name: Build image
@@ -49,18 +59,29 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
         run: docker push ghcr.io/${{ github.repository_owner }}/sie-definition-manager:${{ github.sha }}
-      - name: Sign image (keyless)
+      - name: Install cosign
         uses: sigstore/cosign-installer@v3
-      - name: Cosign sign
-        run: cosign sign --yes ghcr.io/${{ github.repository_owner }}/sie-definition-manager:${{ github.sha }}
-      - name: Set output
+      - name: Resolve pushed digest
         id: meta
-        run: echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${{ github.repository_owner }}/sie-definition-manager:${GITHUB_SHA}"
+          digest="$(docker inspect --format='{{index .RepoDigests 0}}' "${image}" | cut -d'@' -f2)"
+          test -n "${digest}" || { echo "Could not resolve pushed image digest" >&2; exit 1; }
+          echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image_digest=${digest}" >> "$GITHUB_OUTPUT"
+      - name: Cosign sign (by digest)
+        # Signing the digest, not the tag: tags are mutable, digests are not.
+        run: cosign sign --yes "ghcr.io/${{ github.repository_owner }}/sie-definition-manager@${{ steps.meta.outputs.image_digest }}"
 
   prod-deploy:
     if: ${{ github.event.inputs.target == 'aks' }}
     needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # Azure OIDC login
     environment: ${{ github.event.inputs.environment }}
     steps:
       - uses: actions/checkout@v4
@@ -75,29 +96,39 @@ jobs:
         with:
           resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
-      - name: Validate required deploy secret
+      - name: Validate required deploy secrets
+        env:
+          DM_DB_PASSWORD: ${{ secrets.DM_DB_PASSWORD }}
+          DEF_DB_ADMIN_PASSWORD: ${{ secrets.DEF_DB_ADMIN_PASSWORD }}
         run: |
-          test -n "${{ secrets.DM_DB_PASSWORD }}" || {
-            echo "Missing required environment secret: DM_DB_PASSWORD" >&2
-            exit 1
-          }
-          test -n "${{ secrets.DEF_DB_ADMIN_PASSWORD }}" || {
-            echo "Missing required environment secret: DEF_DB_ADMIN_PASSWORD" >&2
-            exit 1
-          }
+          set -euo pipefail
+          test -n "${DM_DB_PASSWORD}" || { echo "Missing required environment secret: DM_DB_PASSWORD" >&2; exit 1; }
+          test -n "${DEF_DB_ADMIN_PASSWORD}" || { echo "Missing required environment secret: DEF_DB_ADMIN_PASSWORD" >&2; exit 1; }
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        # Deploy only what the package job provably signed.
+        run: |
+          set -euo pipefail
+          cosign verify \
+            --certificate-identity-regexp "^https://github.com/${{ github.repository }}/" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "ghcr.io/${{ github.repository_owner }}/sie-definition-manager@${{ needs.package.outputs.image_digest }}"
       - name: Deploy with Makefile
-        run: |
-          make prod-deploy \
-            DEPLOY_ENV=${{ github.event.inputs.environment }} \
-            IMAGE_REPOSITORY=ghcr.io/${{ github.repository_owner }}/sie-definition-manager \
-            IMAGE_TAG=${{ needs.package.outputs.image_tag }} \
-            DM_DB_PASSWORD=${{ secrets.DM_DB_PASSWORD }} \
-            DEF_DB_ADMIN_PASSWORD=${{ secrets.DEF_DB_ADMIN_PASSWORD }}
+        env:
+          DM_DB_PASSWORD: ${{ secrets.DM_DB_PASSWORD }}
+          DEF_DB_ADMIN_PASSWORD: ${{ secrets.DEF_DB_ADMIN_PASSWORD }}
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/sie-definition-manager
+          IMAGE_TAG: ${{ needs.package.outputs.image_tag }}
+        run: make prod-deploy DEPLOY_ENV=${{ github.event.inputs.environment }}
 
   deploy-onprem:
     if: ${{ github.event.inputs.target == 'onprem' }}
     needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Package helm chart

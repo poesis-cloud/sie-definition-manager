@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: dm-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dco:
     name: Verify DCO sign-off
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 10
     steps:
       - name: Check out history
         uses: actions/checkout@v4
@@ -90,6 +96,7 @@ jobs:
 
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -112,17 +119,16 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-      - name: OWASP dependency check
-        run: mvn -B org.owasp:dependency-check-maven:check
-      - name: Trivy filesystem scan
+      # Trivy is the single dependency/vuln gate (OWASP dependency-check was
+      # redundant with it and NVD-rate-limited without an API key).
+      - name: Trivy filesystem scan (gating)
         uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true

@@ -2,21 +2,13 @@
 
 This folder contains ops/runtime assets for the DM service.
 
-- `ops/helm/`: Helm chart for Kubernetes deployments (dev/stage/prod depending cluster/context)
+- `ops/helm/`: Helm chart for Kubernetes deployments (dev/preprod/prod depending cluster/context)
 
 ## Helm
 
 Chart path:
 
 - `ops/helm`
-
-Install with defaults:
-
-```bash
-helm upgrade --install sie-definition-manager \
-  sie/sie-definition-manager/ops/helm \
-  -n sie --create-namespace
-```
 
 Environment values:
 
@@ -27,7 +19,14 @@ Environment values:
 Each environment file is self-contained and carries the chart defaults for that
 target environment.
 
-Recommended deploy command:
+Recommended deploy command (the Makefile contract used by CD; runs `deploy-check`
+preflight first):
+
+```bash
+cd sie/sie-definition-manager && make prod-deploy DEPLOY_ENV=preprod
+```
+
+Escape hatch — direct Helm (only when bypassing the Makefile deliberately):
 
 ```bash
 helm upgrade --install sie-definition-manager \
@@ -117,7 +116,7 @@ Local DB credentials for dependency bootstrap:
 
 - Put `DB_USER`, `DB_PASSWORD`, and `DEF_DB_ADMIN_PASSWORD` in
 
-  `sie-definition-manager/.env.dev`.
+  `sie-definition-manager/.env.dev` (copy `.env.dev.template` to get started).
 
 - `make dev-up` injects those values into the Helm install.
 - The dev environment overlay enables a local-only post-install/post-upgrade

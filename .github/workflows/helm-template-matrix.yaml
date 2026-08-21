@@ -23,9 +23,17 @@ on:
       - "Makefile"
       - ".github/workflows/helm-template-matrix.yaml"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: dm-helm-template-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   helm-template-matrix:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
