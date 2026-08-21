@@ -1,0 +1,82 @@
+# Local environment values
+
+replicaCount: 1
+
+image:
+  repository: confluentinc/cp-schema-registry
+  tag: "7.6.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8081
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: schema-registry.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+kafka:
+  bootstrapServers:
+    - PLAINTEXT://sie-event-bus-kafka:9092
+
+configuration:
+  listeners: "http://localhost:8081"
+  hostName: "sie-schema-registry.sie.svc.cluster.local"
+  extraEnv:
+    SCHEMA_REGISTRY_DISABLE_PREFLIGHT_CHECKS: "true"
+    SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: "1"
+    SCHEMA_REGISTRY_MASTER_ELIGIBILITY: "true"
+    SCHEMA_REGISTRY_MODE: "READWRITE"
+    SCHEMA_REGISTRY_GROUP_ID: "schema-registry-sie"
+
+probes:
+  enabled: false
+  readinessPath: /subjects
+  livenessPath: /subjects
+  initialDelaySeconds: 120
+  timeoutSeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+persistence:
+  enabled: false
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClass: ""
+  mountPath: /var/lib/schema-registry
+
+extraVolumes: []
+extraVolumeMounts: []

@@ -41,11 +41,11 @@ Statement files are the design-time representation of Ascription statements. Eve
 
 **Rule** (examples illustrative):
 
-| File kind                                   | Pattern                              | Example                                                                                                                 |
-| ------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Archetype schema** (rootless — no `$ref`) | `{Title}.schema.json`                | `SecurityProperties.schema.json`                                                                                        |
-| **Archetype schema** (based — has `$ref`)   | `{Title}.schema.json`                | `CostCenterProperties.schema.json`, `HttpRequestEffector.schema.json`                                                   |
-| **Statement instance** (non-schema)         | `{ConceptName}{ArchetypeTitle}.json` | `OperatorStructure.json`, `OperatorMechanism.json` |
+| File kind                                   | Pattern                              | Example                                                               |
+| ------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| **Archetype schema** (rootless — no `$ref`) | `{Title}.schema.json`                | `SecurityProperties.schema.json`                                      |
+| **Archetype schema** (based — has `$ref`)   | `{Title}.schema.json`                | `CostCenterProperties.schema.json`, `HttpRequestEffector.schema.json` |
+| **Statement instance** (non-schema)         | `{ConceptName}{ArchetypeTitle}.json` | `OperatorStructure.json`, `OperatorMechanism.json`                    |
 
 **Extension rationale**: `.schema.json` is the [conventional extension for JSON Schema files](https://json-schema.org/learn/file-system#json-schema-in-files). It structurally distinguishes schemas from instances — two files in a directory can never be ambiguous even if a concept name happens to match an archetype title. `.schema.json` also enables IDE/toolchain schema-aware features (validation, autocomplete, navigation).
 
@@ -58,10 +58,10 @@ Statement files are the design-time representation of Ascription statements. Eve
 **Instance examples (this repository's layer)**:
 
 | Layer    | Statement                   | Validating archetype | Filename                 |
-| -------- | ---------------------------- | -------------------- | ------------------------- |
-| GSM base | Structure schema             | —                    | `Structure.schema.json`   |
-| GSM base | Operator structure instance  | `Structure`          | `OperatorStructure.json`  |
-| GSM base | Operator mechanism instance  | `Mechanism`          | `OperatorMechanism.json`  |
+| -------- | --------------------------- | -------------------- | ------------------------ |
+| GSM base | Structure schema            | —                    | `Structure.schema.json`  |
+| GSM base | Operator structure instance | `Structure`          | `OperatorStructure.json` |
+| GSM base | Operator mechanism instance | `Mechanism`          | `OperatorMechanism.json` |
 
 For sourced-framework layers (GDPR, NIS2, TOGAF, ITIP…), see the
 `gsm-frameworks` repository — its files follow its own naming convention noted

@@ -23,7 +23,6 @@ import io.opentelemetry.context.Scope;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +30,7 @@ import java.util.UUID;
 import org.hibernate.Hibernate;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,12 +41,18 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Facade for all GSM ascription operations.
  *
- * <p>Owns the 10-step create template, generic CRUD delegation, cross-subtype lookups on the union
- * ascription table, and shared validation utilities consumed by {@link AscriptionSubtypeService}
+ * <p>
+ * Owns the 10-step create template, generic CRUD delegation, cross-subtype
+ * lookups on the union
+ * ascription table, and shared validation utilities consumed by
+ * {@link AscriptionSubtypeService}
  * implementations.
  *
- * <p>Type-specific logic (entity construction, identity-bound values, lifecycle cascades) is
- * dispatched to the appropriate {@link AscriptionSubtypeService} — one per GSM subject type.
+ * <p>
+ * Type-specific logic (entity construction, identity-bound values, lifecycle
+ * cascades) is
+ * dispatched to the appropriate {@link AscriptionSubtypeService} — one per GSM
+ * subject type.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -93,6 +99,9 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   private Map<DefinitionSubjectType, AscriptionSubtypeService<?>> handlers;
 
+  // Two constructors (test-facing package-private below): Spring needs the pick
+  // made explicit.
+  @Autowired
   public AscriptionService(
       AscriptionRepository ascriptionRepository,
       ArchetypeService archetypeService,
@@ -143,19 +152,17 @@ public class AscriptionService implements SmartInitializingSingleton {
     this.entityManager = entityManager;
     this.handlerList = List.copyOf(handlerList);
     this.tracer = tracer;
-    this.otelLogger =
-        GlobalOpenTelemetry.get()
-            .getLogsBridge()
-            .loggerBuilder(INSTRUMENTATION_SCOPE)
-            .setInstrumentationVersion("1")
-            .build();
+    this.otelLogger = GlobalOpenTelemetry.get()
+        .getLogsBridge()
+        .loggerBuilder(INSTRUMENTATION_SCOPE)
+        .setInstrumentationVersion("1")
+        .build();
     this.createResultPayloadCapBytes = createResultPayloadCapBytes;
   }
 
   @Override
   public void afterSingletonsInstantiated() {
-    Map<DefinitionSubjectType, AscriptionSubtypeService<?>> map =
-        new EnumMap<>(DefinitionSubjectType.class);
+    Map<DefinitionSubjectType, AscriptionSubtypeService<?>> map = new EnumMap<>(DefinitionSubjectType.class);
     for (AscriptionSubtypeService<?> handler : handlerList) {
       if (map.put(handler.getSubjectType(), handler) != null) {
         throw new IllegalStateException("Duplicate handler for " + handler.getSubjectType());
@@ -176,20 +183,22 @@ public class AscriptionService implements SmartInitializingSingleton {
   /**
    * Creates a new ascription through the GSM template method.
    *
-   * <p>Resolves the archetype from the given ID, derives the subject type, and dispatches to the
+   * <p>
+   * Resolves the archetype from the given ID, derives the subject type, and
+   * dispatches to the
    * appropriate handler via the 10-step create template.
    *
-   * @param archetypeId the UUID of the typing archetype
-   * @param statement the JSON statement payload
-   * @param definitionId optional definition UUID (may be {@code null} for new definitions)
+   * @param archetypeId  the UUID of the typing archetype
+   * @param statement    the JSON statement payload
+   * @param definitionId optional definition UUID (may be {@code null} for new
+   *                     definitions)
    * @return the persisted ascription entity in DRAFT status
    * @throws ResourceNotFoundException if no archetype exists with the given id
-   * @throws RuleViolationException if validation fails
+   * @throws RuleViolationException    if validation fails
    */
   @Transactional("transactionManager")
   public AscriptionEntity create(UUID archetypeId, JsonNode statement, UUID definitionId) {
-    ArchetypeService.ArchetypeResolution resolution =
-        archetypeService.resolveForCreation(archetypeId);
+    ArchetypeService.ArchetypeResolution resolution = archetypeService.resolveForCreation(archetypeId);
     if (definitionId == null) {
       return doCreateWithOperationSpan(
           requireHandler(resolution.subjectType()), resolution.archetype(), statement);
@@ -200,8 +209,7 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   private <T extends AscriptionEntity> T doCreateWithOperationSpan(
       AscriptionSubtypeService<T> handler, ArchetypeEntity archetype, JsonNode statement) {
-    Span createSpan =
-        startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
+    Span createSpan = startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
 
     try (Scope ignored = createSpan.makeCurrent()) {
       return doCreate(handler, archetype, statement, null, createSpan, OPERATION_CREATE, null);
@@ -218,9 +226,8 @@ public class AscriptionService implements SmartInitializingSingleton {
       ArchetypeEntity archetype,
       JsonNode statement,
       UUID definitionId) {
-    Span transformSpan =
-        startDefinitionSpan(
-            TRANSFORM_SPAN_NAME, OPERATION_TRANSFORM, handler.getSubjectType(), definitionId);
+    Span transformSpan = startDefinitionSpan(
+        TRANSFORM_SPAN_NAME, OPERATION_TRANSFORM, handler.getSubjectType(), definitionId);
     JsonNode priorStatement = (statement == null) ? null : statement.deepCopy();
 
     try (Scope ignored = transformSpan.makeCurrent()) {
@@ -238,14 +245,6 @@ public class AscriptionService implements SmartInitializingSingleton {
     } finally {
       transformSpan.end();
     }
-  }
-
-  private <T extends AscriptionEntity> T doCreate(
-      AscriptionSubtypeService<T> handler,
-      ArchetypeEntity archetype,
-      JsonNode statement,
-      UUID definitionId) {
-    return doCreate(handler, archetype, statement, definitionId, null, OPERATION_CREATE, null);
   }
 
   private <T extends AscriptionEntity> T doCreate(
@@ -320,14 +319,13 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   private Span startDefinitionSpan(
       String spanName, String operation, DefinitionSubjectType definitionKind, UUID definitionId) {
-    Span definitionSpan =
-        tracer
-            .spanBuilder(spanName)
-            .setSpanKind(SpanKind.INTERNAL)
-            .setAttribute(ATTR_OPERATION, operation)
-            .setAttribute(ATTR_DEFINITION_KIND, definitionKind.name())
-            .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
-            .startSpan();
+    Span definitionSpan = tracer
+        .spanBuilder(spanName)
+        .setSpanKind(SpanKind.INTERNAL)
+        .setAttribute(ATTR_OPERATION, operation)
+        .setAttribute(ATTR_DEFINITION_KIND, definitionKind.name())
+        .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
+        .startSpan();
 
     if (definitionId != null) {
       definitionSpan.setAttribute(ATTR_DEFINITION_ID, definitionId.toString());
@@ -446,18 +444,24 @@ public class AscriptionService implements SmartInitializingSingleton {
   }
 
   /**
-   * Queries ascriptions with optional archetype, status, and statement-property filters.
+   * Queries ascriptions with optional archetype, status, and statement-property
+   * filters.
    *
-   * <p>When {@code archetype} and {@code statementFilters} are both absent, falls back to a simple
-   * status-only or unfiltered query. When statement filters are present, the archetype parameter is
-   * required (throws {@link IllegalArgumentException} if missing) and each filter key must be
+   * <p>
+   * When {@code archetype} and {@code statementFilters} are both absent, falls
+   * back to a simple
+   * status-only or unfiltered query. When statement filters are present, the
+   * archetype parameter is
+   * required (throws {@link IllegalArgumentException} if missing) and each filter
+   * key must be
    * annotated {@code $gsm:queryable} in the archetype schema.
    *
-   * @param type the GSM subject type
-   * @param archetype optional archetype UUID or title (required when statementFilters is non-empty)
+   * @param type             the GSM subject type
+   * @param archetype        optional archetype UUID or title (required when
+   *                         statementFilters is non-empty)
    * @param statementFilters statement property key-value filters (may be empty)
-   * @param status optional lifecycle status filter
-   * @param pageable pagination parameters
+   * @param status           optional lifecycle status filter
+   * @param pageable         pagination parameters
    * @return page of matching ascriptions
    */
   public Page<? extends AscriptionEntity> findAllFiltered(
@@ -474,18 +478,19 @@ public class AscriptionService implements SmartInitializingSingleton {
       validatePropertiesQueryability(archetypeEntity, statementFilters);
     }
     UUID archetypeDefId = archetypeEntity.getDefinition().getId();
-    Specification<AscriptionEntity> spec =
-        buildFilterSpec(archetypeDefId, statementFilters, status);
+    Specification<AscriptionEntity> spec = buildFilterSpec(archetypeDefId, statementFilters, status);
     return requireHandler(type).findAll(spec, pageable);
   }
 
   /**
    * Finds an in-effect archetype by title.
    *
-   * @param title the archetype title, may be {@code null}
-   * @param statementFilters statement filters (used only to contextualize the error message)
+   * @param title            the archetype title, may be {@code null}
+   * @param statementFilters statement filters (used only to contextualize the
+   *                         error message)
    * @return the in-effect archetype entity
-   * @throws IllegalArgumentException if {@code title} is null or no in-effect archetype matches
+   * @throws IllegalArgumentException if {@code title} is null or no in-effect
+   *                                  archetype matches
    */
   private ArchetypeEntity findInEffectArchetypeByTitle(
       String title, Map<String, String> statementFilters) {
@@ -517,23 +522,6 @@ public class AscriptionService implements SmartInitializingSingleton {
         .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ASCRIPTION, ascriptionId));
   }
 
-  /**
-   * Returns all ascriptions for a given archetype filtered by statuses, excluding a specific
-   * definition. Used by activation-uniqueness checks to find in-effect siblings from other
-   * definitions.
-   *
-   * @param archetypeId the archetype UUID
-   * @param statuses the allowed lifecycle statuses
-   * @param excludeDefinitionId the definition UUID to exclude from results
-   * @return list of matching ascription entities
-   */
-  @Transactional(value = "transactionManager", readOnly = true)
-  public List<AscriptionEntity> findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-      UUID archetypeId, Collection<AscriptionStatusType> statuses, UUID excludeDefinitionId) {
-    return ascriptionRepository.findAllByArchetypeIdAndStatusInAndDefinitionIdNot(
-        archetypeId, statuses, excludeDefinitionId);
-  }
-
   @SuppressWarnings("unchecked")
   private <T extends AscriptionEntity> AscriptionSubtypeService<T> requireHandler(
       DefinitionSubjectType type) {
@@ -549,7 +537,8 @@ public class AscriptionService implements SmartInitializingSingleton {
   // ======================================================================
 
   /**
-   * Validates that every statement filter key is annotated {@code $gsm:queryable} in the archetype
+   * Validates that every statement filter key is annotated {@code $gsm:queryable}
+   * in the archetype
    * schema.
    */
   private static void validatePropertiesQueryability(
@@ -575,8 +564,10 @@ public class AscriptionService implements SmartInitializingSingleton {
   // ======================================================================
 
   /**
-   * Walks archetype schema properties and applies {@code $gsm:dataProtection} at-rest
-   * transformations to the statement before entity creation. Mutates the statement in place.
+   * Walks archetype schema properties and applies {@code $gsm:dataProtection}
+   * at-rest
+   * transformations to the statement before entity creation. Mutates the
+   * statement in place.
    */
   private void applyDataProtection(JsonNode statement, ArchetypeEntity archetype) {
     JsonNode archetypeStmt = archetype.getStatement();

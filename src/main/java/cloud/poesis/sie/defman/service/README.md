@@ -1,6 +1,6 @@
 # Service Package — Reader's Guide
 
-> **Package**: `cloud.poesis.sie.defman.service` > **29 files** (1 interface + 27 `@Service` beans + 1 static utility)
+> **Package**: `cloud.poesis.sie.defman.service` > **28 files** (1 interface + 26 `@Service` beans + 1 static utility)
 > managing the GSM ascription lifecycle, statement validation, schema
 > governance, and cross-entity orchestration for the 8 GSM subject types.
 
@@ -78,9 +78,6 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ║  AscriptionIdentityBoundValidationService  (no service deps)            ║
 ║  AscriptionUniquenessValidationService     (no service deps)            ║
 ║  AscriptionProtectionService               (no service deps)            ║
-║  AscriptionArchetypeSchemaAnnotationEnforcementService                  ║
-║       │──→ AscriptionService  @L                                        ║
-║       └──→ AscriptionProtectionService                                  ║
 ║  AscriptionParsingService                  (static utilities)           ║
 ║  ArchetypeParsingService                   (no service deps)            ║
 ║  DefinitionService                         (no service deps)            ║
@@ -92,12 +89,11 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ╚════════════════════════════════════════════════════════════════════════════╝
 ```
 
-### `@Lazy` annotations (2 total)
+### `@Lazy` annotations (1 total)
 
-| Service                                             | `@Lazy` parameter | Reason                                                                                |
-| ---------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------- |
-| MechanismService                                     | AscriptionService | Breaks AscriptionService → handler list → MechanismService → AscriptionService cycle |
-| AscriptionArchetypeSchemaAnnotationEnforcementService | AscriptionService | Breaks the cycle back into the AscriptionService facade                               |
+| Service          | `@Lazy` parameter | Reason                                                                               |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| MechanismService | AscriptionService | Breaks AscriptionService → handler list → MechanismService → AscriptionService cycle |
 
 ---
 
@@ -156,7 +152,6 @@ for lifecycle hooks.
 | `AscriptionIdentityBoundValidationService` | Validates identity-bound field immutability across ascriptions of the same definition                                                                          |
 | `AscriptionUniquenessValidationService`    | Validates handler-defined activation uniqueness constraints                                                                                                    |
 | `AscriptionProtectionService`              | Applies `$gsm:dataProtection` measures (hash, mask, suppression) at write-time                                                                                 |
-| `AscriptionArchetypeSchemaAnnotationEnforcementService` | Enforces `$gsm:*` vocabulary keywords on statements at authoring time (identity-bound, uniqueness, data protection). Extracted from the facade; not yet wired into `AscriptionService`, which still calls the individual validators directly |
 | `AscriptionParsingService`                 | Static utilities for statement field extraction (UUID parsing, required-field validation)                                                                      |
 | `ArchetypeParsingService`                  | Schema inspection utilities: annotation detection, title extraction, `$ref` resolution, base-type checking                                                     |
 | `DefinitionService`                        | Stable identity resolution/creation for `DefinitionEntity`                                                                                                     |

@@ -6,13 +6,15 @@ version: 0.1.0
 appVersion: "0.1.0"
 
 dependencies:
+  # sie-event-bus and sie-schema-registry source repos are retired; their chart
+  # sources are vendored in-repo under ops/helm-deps/.
   - name: sie-event-bus-kafka
     version: "0.1.0"
-    repository: "file://../../../sie-event-bus/ops/helm"
+    repository: "file://../helm-deps/sie-event-bus-kafka"
     alias: eventbus
   - name: sie-schema-registry
     version: "0.1.0"
-    repository: "file://../../../sie-schema-registry/ops/helm"
+    repository: "file://../helm-deps/sie-schema-registry"
     alias: schemaregistry
   - name: sie-definition-database
     version: "0.1.0"

@@ -379,6 +379,9 @@
             <excludes>
               <exclude>target/**</exclude>
               <exclude>ops/helm/templates/**</exclude>
+              <!-- Vendored subchart sources (retired repos) — Go-templated YAML,
+                   not authored here; formatting them would break helm rendering. -->
+              <exclude>ops/helm-deps/**</exclude>
             </excludes>
             <prettier>
               <prettierVersion>3.3.3</prettierVersion>

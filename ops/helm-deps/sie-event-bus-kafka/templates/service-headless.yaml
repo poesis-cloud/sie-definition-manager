@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sie-event-bus-kafka.fullname" . }}-headless
+  labels:
+{{ include "sie-event-bus-kafka.labels" . | indent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: client
+      port: {{ .Values.service.port }}
+      targetPort: client
+    - name: controller
+      port: 9093
+      targetPort: controller
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "sie-event-bus-kafka.name" . }}

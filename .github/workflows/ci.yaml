@@ -106,6 +106,17 @@ jobs:
           cache: maven
       - name: Build and test
         run: mvn -B verify
+      - name: Report measured coverage
+        if: always()
+        run: |
+          csv=target/site/jacoco/jacoco.csv
+          if [[ -f "$csv" ]]; then
+            # Sum instruction columns across all classes (CSV: ...,INSTRUCTION_MISSED,INSTRUCTION_COVERED,...)
+            pct=$(awk -F, 'NR>1 {m+=$4; c+=$5} END {if (m+c>0) printf "%.2f", 100*c/(m+c); else print "n/a"}' "$csv")
+            echo "JaCoCo instruction coverage: ${pct}% (gate: >= 95%)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "JaCoCo report not produced (build failed before coverage)" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4

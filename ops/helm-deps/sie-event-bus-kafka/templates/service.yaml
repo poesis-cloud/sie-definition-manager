@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sie-event-bus-kafka.fullname" . }}
+  labels:
+{{ include "sie-event-bus-kafka.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: client
+      port: {{ .Values.service.port }}
+      targetPort: client
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "sie-event-bus-kafka.name" . }}

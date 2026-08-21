@@ -38,16 +38,16 @@ The **Definition Manager (DM)** is SIE's core service. It hosts the **GSM (Gener
 
 ## Repository map
 
-| Path                                                                                             | Contents                                                                          |
-| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| [def/](def/README.md)                                                                             | Design-time artifacts index (models, schemas, ADRs, telemetry catalogs)            |
-| [def/gsm.puml](def/gsm.puml)                                                                      | The GSM specification model (authoritative)                                        |
-| [def/gsm-ascription-lifecycle.puml](def/gsm-ascription-lifecycle.puml)                            | Ascription lifecycle state machine                                                 |
-| [def/statement/](def/statement/README.md)                                                         | The 8 GSM base Archetype schemas + `$gsm:*` vocabulary reference                   |
-| [def/adr/](def/README.md#architecture-decision-records)                                           | Local architecture decision records                                                |
-| [src/main/java/.../service/](src/main/java/cloud/poesis/sie/defman/service/README.md)             | Service layer reader's guide (dependency graph, subsidiary pattern, reading order) |
-| [ops/](ops/README.md)                                                                             | Helm chart, deployment flows, observability modes                                  |
-| [.github/workflows/](.github/workflows)                                                           | CI (`ci.yaml`), CD (`cd.yaml`), Helm sink-switch matrix (`helm-template-matrix.yaml`) |
+| Path                                                                                  | Contents                                                                              |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [def/](def/README.md)                                                                 | Design-time artifacts index (models, schemas, ADRs, telemetry catalogs)               |
+| [def/gsm.puml](def/gsm.puml)                                                          | The GSM specification model (authoritative)                                           |
+| [def/gsm-ascription-lifecycle.puml](def/gsm-ascription-lifecycle.puml)                | Ascription lifecycle state machine                                                    |
+| [def/statement/](def/statement/README.md)                                             | The 8 GSM base Archetype schemas + `$gsm:*` vocabulary reference                      |
+| [def/adr/](def/README.md#architecture-decision-records)                               | Local architecture decision records                                                   |
+| [src/main/java/.../service/](src/main/java/cloud/poesis/sie/defman/service/README.md) | Service layer reader's guide (dependency graph, subsidiary pattern, reading order)    |
+| [ops/](ops/README.md)                                                                 | Helm chart, deployment flows, observability modes                                     |
+| [.github/workflows/](.github/workflows)                                               | CI (`ci.yaml`), CD (`cd.yaml`), Helm sink-switch matrix (`helm-template-matrix.yaml`) |
 
 ## Quickstart
 

@@ -22,6 +22,13 @@ dependency subcharts under `ops/helm/charts/`:
 | `sie-event-bus-kafka`     | `eventbus`           | Kafka (KRaft)   |
 | `sie-schema-registry`     | `schemaregistry`     | Schema Registry |
 
+Subchart sources: `sie-definition-database` resolves from its sibling repo
+(`file://../../../sie-definition-database/ops/helm`); the event-bus and
+schema-registry source repos are retired, so their chart sources are vendored
+in-repo under `ops/helm-deps/` and referenced from `Chart.yaml` via `file://`.
+`helm dependency update ops/helm` rebuilds `Chart.lock` and `charts/*.tgz`
+from these sources.
+
 Environment values (no chart-root `values.yaml` — values live only under
 `environments/`):
 
