@@ -4,6 +4,18 @@ JSON Schema (draft 2020-12) definitions for the 8 GSM base Archetypes.
 
 These are the **governance contract** between DM and tenants. Each schema types the `statement` payload of Ascriptions for one GSM class. Tenants extend base schemas via top-level `$ref`; sealed schemas cannot be extended. Rootless archetypes (no `$ref` base) are valid for qualifier, facet, and data archetype roles.
 
+## Table of contents
+
+- [URI Convention](#uri-convention)
+- [Statement File Naming Convention](#statement-file-naming-convention)
+- [`$schema` Convention](#schema-convention)
+- [Schemas](#schemas)
+- [Archetype's Triple Relational Role](#archetypes-triple-relational-role)
+- [`$gsm:*` Schema Vocabulary](#gsm-schema-vocabulary)
+- [Schema Composition Terminology](#schema-composition-terminology)
+- [Extension Pattern](#extension-pattern)
+- [Data Protection](#data-protection)
+
 ## URI Convention
 
 All base schemas use the URI convention:
@@ -19,13 +31,21 @@ Statement files are the design-time representation of Ascription statements. Eve
 - **Archetype schemas** (JSON Schema documents): `.schema.json` extension
 - **Statement instances** (plain JSON): `.json` extension
 
-**Rule**:
+> **Scope**: this convention governs statement files **in this repository**
+> (the GSM base layer). The `gsm-frameworks` repository declares its **own**
+> convention, authoritative there: archetype statements are
+> `{Title}.archetype.json` and other ascription statements are
+> `{StatementIdentity}.{gsmSubjectType}.json` (e.g.
+> `ProcessingPrinciples.directive.json`, `Accountability.norm.json`). See the
+> gsm-frameworks README for that rule.
+
+**Rule** (examples illustrative):
 
 | File kind                                   | Pattern                              | Example                                                                                                                 |
 | ------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| **Archetype schema** (rootless — no `$ref`) | `{Title}.schema.json`                | `GdprProcessingPrinciple.schema.json`                                                                                   |
-| **Archetype schema** (based — has `$ref`)   | `{Title}.schema.json`                | `SourcedDirective.schema.json`, `HttpRequestEffector.schema.json`                                                       |
-| **Statement instance** (non-schema)         | `{ConceptName}{ArchetypeTitle}.json` | `ProcessingPrinciplesSourcedDirective.json`, `LawfulnessFairnessTransparencySourcedNorm.json`, `OperatorMechanism.json` |
+| **Archetype schema** (rootless — no `$ref`) | `{Title}.schema.json`                | `SecurityProperties.schema.json`                                                                                        |
+| **Archetype schema** (based — has `$ref`)   | `{Title}.schema.json`                | `CostCenterProperties.schema.json`, `HttpRequestEffector.schema.json`                                                   |
+| **Statement instance** (non-schema)         | `{ConceptName}{ArchetypeTitle}.json` | `OperatorStructure.json`, `OperatorMechanism.json` |
 
 **Extension rationale**: `.schema.json` is the [conventional extension for JSON Schema files](https://json-schema.org/learn/file-system#json-schema-in-files). It structurally distinguishes schemas from instances — two files in a directory can never be ambiguous even if a concept name happens to match an archetype title. `.schema.json` also enables IDE/toolchain schema-aware features (validation, autocomplete, navigation).
 
@@ -33,19 +53,20 @@ Statement files are the design-time representation of Ascription statements. Eve
 
 **Acronym casing**: all names (filenames, `$id` path segments, `title` values, type references) use **strict PascalCase** — including acronyms. Write `Gdpr`, `Nis2`, `Scap`, `Dpia`, `Dpo`, never `GDPR`, `NIS2`, `SCAP`, `DPIA`, `DPO` inside identifiers. Standalone prose references to the standard/regulation itself (e.g., "GDPR Art 33", "NIS2 Annex I") remain uppercase as proper nouns.
 
-**`$id` alignment**: the `$id` path segment before `/v{version}` MUST match the filename stem (minus `.schema.json` or `.json`). Example: filename `ProcessingPrinciplesSourcedDirective.json` → `$id` URI `gsmarc://gsm-frameworks/gdpr/principles/ProcessingPrinciplesSourcedDirective/v1`.
+**`$id` alignment**: the `$id` path segment before `/v{version}` MUST match the filename stem (minus `.schema.json` or `.json`). Example: filename `Structure.schema.json` → `$id` URI `gsmarc://gsm/Structure/v1`.
 
-**Instance examples across layers**:
+**Instance examples (this repository's layer)**:
 
-| Layer    | Statement                     | Validating archetype | Filename                                         |
-| -------- | ----------------------------- | -------------------- | ------------------------------------------------ |
-| GSM base | Structure schema              | —                    | `Structure.schema.json`                          |
-| GSM base | Operator structure instance   | `Structure`          | `OperatorStructure.json`                         |
-| GSM base | Operator mechanism instance   | `Mechanism`          | `OperatorMechanism.json`                         |
-| ITIP     | SourcedDirective archetype    | —                    | `SourcedDirective.schema.json`                   |
-| ITIP     | GDPR directive instance       | `SourcedDirective`   | `ProcessingPrinciplesSourcedDirective.json`      |
-| ITIP     | GDPR norm instance            | `SourcedNorm`        | `LawfulnessFairnessTransparencySourcedNorm.json` |
-| ITIP     | Governance mechanism instance | `Mechanism`          | `DirectiveNormOperationalization.mechanism.json` |
+| Layer    | Statement                   | Validating archetype | Filename                 |
+| -------- | ---------------------------- | -------------------- | ------------------------- |
+| GSM base | Structure schema             | —                    | `Structure.schema.json`   |
+| GSM base | Operator structure instance  | `Structure`          | `OperatorStructure.json`  |
+| GSM base | Operator mechanism instance  | `Mechanism`          | `OperatorMechanism.json`  |
+
+For sourced-framework layers (GDPR, NIS2, TOGAF, ITIP…), see the
+`gsm-frameworks` repository — its files follow its own naming convention noted
+above (e.g. `GdprProcessingPrinciple.archetype.json`,
+`ProcessingPrinciples.directive.json`, `Accountability.norm.json`).
 
 ## `$schema` Convention
 
