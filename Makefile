@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help check-tooling dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime stop-port-forwards helm-template-matrix
+.PHONY: help check-tooling dev-check dev-up dev-down deploy-check prod-deploy package-helm run-api test verify ensure-runtime stop-port-forwards helm-template-matrix sync-gsm-schemas
 
 -include .env
 -include .env.dev
@@ -203,3 +203,12 @@ test: ## Run unit tests (mvn test)
 
 verify: ## Full build gate (mvn verify)
 	mvn verify
+
+GSM_SPEC_SCHEMAS ?= ../../gsm/gsm-specifications/schemas
+GSM_VENDORED_SCHEMAS ?= src/main/resources/gsm/schemas
+
+sync-gsm-schemas: ## Refresh the pinned GSM schema snapshot from the gsm-specifications sibling repo
+	@test -d "$(GSM_SPEC_SCHEMAS)" || { echo "Missing spec repo schemas at $(GSM_SPEC_SCHEMAS)"; exit 1; }
+	rm -f $(GSM_VENDORED_SCHEMAS)/*.schema.json
+	cp $(GSM_SPEC_SCHEMAS)/*.schema.json $(GSM_VENDORED_SCHEMAS)/
+	@echo "$(GSM_VENDORED_SCHEMAS) synced from $(GSM_SPEC_SCHEMAS)"

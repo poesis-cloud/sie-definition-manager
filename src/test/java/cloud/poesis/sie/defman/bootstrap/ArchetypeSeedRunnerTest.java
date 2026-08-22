@@ -37,7 +37,7 @@ class ArchetypeSeedRunnerTest {
   @Mock private ResourcePatternResolver resolver;
   @Mock private ApplicationArguments args;
 
-  private static final String SCHEMA_PATTERN = "classpath:statement/*.schema.json";
+  private static final String SCHEMA_PATTERN = "classpath:gsm/schemas/*.schema.json";
   private ArchetypeSeedRunner runner;
 
   @BeforeEach

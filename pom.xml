@@ -193,10 +193,6 @@
       <resource>
         <directory>src/main/resources</directory>
       </resource>
-      <resource>
-        <directory>def/statement</directory>
-        <targetPath>statement</targetPath>
-      </resource>
     </resources>
     <plugins>
       <plugin>
@@ -363,6 +359,10 @@
               <include>src/**/*.json</include>
               <include>def/**/*.json</include>
             </includes>
+            <excludes>
+              <!-- Pinned gsm-specifications snapshot — must stay byte-identical upstream. -->
+              <exclude>src/main/resources/gsm/**</exclude>
+            </excludes>
             <jackson/>
           </json>
           <sql>

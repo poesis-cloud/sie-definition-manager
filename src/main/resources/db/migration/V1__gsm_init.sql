@@ -582,7 +582,7 @@ WHERE
 -- §5  Seed data — GSM base archetypes
 --     Now loaded at application startup by ArchetypeSeedRunner
 --     from classpath:statement/*.json.
---     Single source of truth: def/statement/
+--     Single source of truth: gsm-specifications/schemas/ (vendored at vendor/gsm/schemas/)
 -- ============================================================
 -- ============================================================
 -- §6  Trigger functions

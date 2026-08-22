@@ -1,27 +1,14 @@
 # DM Design-Time Artifacts
 
-Index of the design-time models, schemas, and decision records for the
-Definition Manager. These artifacts are authoritative: when prose (README,
-docs site) and a model here disagree, the model wins.
+Index of the Definition Manager's own design-time artifacts (decision records
+and telemetry catalogs).
 
-## Models
-
-| Artifact                                                       | Contents                                                                                                         |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [gsm.puml](gsm.puml)                                           | **The GSM specification model** — the 8 primitives, governance grammar (DNA), statement closure, class relations |
-| [gsm-ascription-lifecycle.puml](gsm-ascription-lifecycle.puml) | Ascription lifecycle state machine — statuses, transitions, referee preconditions, cascade rules                 |
-
-## Schemas
-
-| Artifact                          | Contents                                                                                            |
-| --------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [statement/](statement/README.md) | The 8 GSM base Archetype schemas (JSON Schema 2020-12) + `$gsm:*` vocabulary and naming conventions |
-
-## Rule API
-
-| Artifact                                             | Contents                                                        |
-| ---------------------------------------------------- | --------------------------------------------------------------- |
-| [sie-rule-api-starlark.py](sie-rule-api-starlark.py) | Starlark Rule API surface consumed by Mechanism rule validation |
+> **The normative GSM artifacts moved to the `gsm-specifications` sibling
+> repo**: the model (`model/gsm.puml`, `model/gsm-ascription-lifecycle.puml`),
+> the Starlark Rule API (`model/rule-api-starlark.py`), and the 8 base
+> Archetype schemas (`schemas/`). DM consumes a pinned snapshot of the schemas
+> at [../src/main/resources/gsm/schemas/](../src/main/resources/gsm/README.md) — refresh with
+> `make sync-gsm-schemas`; drift is build-gated by `GsmSchemaVendorSyncTest`.
 
 ## Architecture decision records
 

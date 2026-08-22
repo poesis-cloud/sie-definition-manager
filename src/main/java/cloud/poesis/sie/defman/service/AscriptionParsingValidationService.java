@@ -57,7 +57,7 @@ public class AscriptionParsingValidationService {
                           uri -> {
                             String rest = uri.substring("gsmarc://gsm/".length());
                             String name = rest.split("/")[0];
-                            return "classpath:statement/" + name + ".schema.json";
+                            return "classpath:gsm/schemas/" + name + ".schema.json";
                           })));
 
   // GSM base schema property sets for extensible subject types (sealed — derived
@@ -175,7 +175,7 @@ public class AscriptionParsingValidationService {
    *
    * <p>Closure is applied here rather than declared in the schemas because it is only expressible
    * where the concrete typing archetype is known — see GSM §5 ("Statement closure") in {@code
-   * def/gsm.puml} for the normative rule and its rationale.
+   * gsm-specifications/model/gsm.puml} for the normative rule and its rationale.
    *
    * <p>{@link DefinitionSubjectType#ARCHETYPE} statements are exempt: an Archetype statement is
    * itself a JSON Schema, and the sealed Archetype meta-schema is deliberately open so tenants may
@@ -269,7 +269,7 @@ public class AscriptionParsingValidationService {
                               }
                               String rest = uri.substring("gsmarc://gsm/".length());
                               String name = rest.split("/")[0];
-                              return "classpath:statement/" + name + ".schema.json";
+                              return "classpath:gsm/schemas/" + name + ".schema.json";
                             })));
   }
 
