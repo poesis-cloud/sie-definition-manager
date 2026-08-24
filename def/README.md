@@ -21,6 +21,12 @@ Product-level ADRs (observability collector topology, log sink switch) live in
 the Poesis workspace at `portfolio/sie-definition/architecture/`, outside this
 repository.
 
+## Design studies
+
+Vendor-neutral investigations live in the
+[GSM Research Lab](https://github.com/poesis-cloud/gsm-research-lab).
+They are non-normative until accepted through the GSM Change Proposal process.
+
 ## Telemetry coverage catalogs
 
 | Artifact                                                   | Contents                                            |
