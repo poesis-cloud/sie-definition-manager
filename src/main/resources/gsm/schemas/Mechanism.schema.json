@@ -4,18 +4,12 @@
   "title": "Mechanism",
   "description": "Schema for Mechanism Ascriptions — the logical causal unit. Defines the owning Structure, function label, and the Starlark rule. DM auto-derives Effectors and Receptors from the rule's AST. DM input = DM output (1:1). Tenant-defined archetypes extending Mechanism MUST reference this schema via a top-level $ref.",
   "type": "object",
-  "examples": [
-    {
-      "structure": "019cc49a-dc5a-7003-98e1-c214032f0420",
-      "function": "UserValidation",
-      "rule": "evt = sys.receive(\"gsmarc://tenant/IdentityEvent/v1\")\nif evt[\"userId\"] != \"\":\n    sys.effect(\"gsmarc://tenant/ValidatedIdentity/v1\", {\"userId\": evt[\"userId\"]})"
-    }
-  ],
-  "required": [
-    "structure",
-    "function",
-    "rule"
-  ],
+  "examples": [ {
+    "structure": "019cc49a-dc5a-7003-98e1-c214032f0420",
+    "function": "UserValidation",
+    "rule": "evt = sys.receive(\"gsmarc://tenant/IdentityEvent/v1\")\nif evt[\"userId\"] != \"\":\n    sys.effect(\"gsmarc://tenant/ValidatedIdentity/v1\", {\"userId\": evt[\"userId\"]})"
+  } ],
+  "required": [ "structure", "function", "rule" ],
   "properties": {
     "structure": {
       "type": "string",

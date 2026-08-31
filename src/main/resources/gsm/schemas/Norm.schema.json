@@ -4,81 +4,62 @@
   "title": "Norm",
   "description": "Schema for Norm Ascriptions — measurable governance assertions (DNA 'N'). A Norm operates within the governance scope opened by a Directive — it constrains only the internal Elements (Mechanisms, Effectors, Receptors, Interactions) of the governed Structure along the qualifier Archetype's viability dimension. Natural grammar: {structure} ON {qualifier}: WHEN {applicability} ASSERT {assertion} ({toleranceMode}). DM validates CEL expressions against their profiles. Extensible — tenant-defined archetypes MAY extend Norm via a top-level $ref to add domain-specific measurement vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type": "object",
-  "examples": [
-    {
-      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-      "qualifier": "gsmarc://tenant/SecurityProperties/v1",
-      "applicability": "ref(\"gsmarc://tenant/DeploymentProperties/v1\").environment == \"production\"",
-      "assertion": "p99Latency < 500",
-      "toleranceMode": "AGGREGATED",
-      "temporalWindow": "PT5M",
-      "temporalAggregation": "P99"
-    },
-    {
-      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-      "qualifier": "gsmarc://tenant/SecurityProperties/v1",
-      "assertion": "tlsEnabled == true",
-      "toleranceMode": "INSTANTANEOUS"
-    }
-  ],
-  "required": [
-    "structure",
-    "qualifier",
-    "assertion",
-    "toleranceMode"
-  ],
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "toleranceMode": {
-            "const": "INSTANTANEOUS"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "temporalWindow": false,
-          "temporalAggregation": false,
-          "sustainedThreshold": false
+  "examples": [ {
+    "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+    "qualifier": "gsmarc://tenant/SecurityProperties/v1",
+    "applicability": "ref(\"gsmarc://tenant/DeploymentProperties/v1\").environment == \"production\"",
+    "assertion": "p99Latency < 500",
+    "toleranceMode": "AGGREGATED",
+    "temporalWindow": "PT5M",
+    "temporalAggregation": "P99"
+  }, {
+    "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+    "qualifier": "gsmarc://tenant/SecurityProperties/v1",
+    "assertion": "tlsEnabled == true",
+    "toleranceMode": "INSTANTANEOUS"
+  } ],
+  "required": [ "structure", "qualifier", "assertion", "toleranceMode" ],
+  "allOf": [ {
+    "if": {
+      "properties": {
+        "toleranceMode": {
+          "const": "INSTANTANEOUS"
         }
       }
     },
-    {
-      "if": {
-        "properties": {
-          "toleranceMode": {
-            "const": "AGGREGATED"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "temporalWindow",
-          "temporalAggregation"
-        ],
-        "properties": {
-          "sustainedThreshold": false
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "toleranceMode": {
-            "const": "SUSTAINED"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "temporalWindow",
-          "temporalAggregation",
-          "sustainedThreshold"
-        ]
+    "then": {
+      "properties": {
+        "temporalWindow": false,
+        "temporalAggregation": false,
+        "sustainedThreshold": false
       }
     }
-  ],
+  }, {
+    "if": {
+      "properties": {
+        "toleranceMode": {
+          "const": "AGGREGATED"
+        }
+      }
+    },
+    "then": {
+      "required": [ "temporalWindow", "temporalAggregation" ],
+      "properties": {
+        "sustainedThreshold": false
+      }
+    }
+  }, {
+    "if": {
+      "properties": {
+        "toleranceMode": {
+          "const": "SUSTAINED"
+        }
+      }
+    },
+    "then": {
+      "required": [ "temporalWindow", "temporalAggregation", "sustainedThreshold" ]
+    }
+  } ],
   "properties": {
     "structure": {
       "type": "string",
@@ -107,11 +88,7 @@
     },
     "toleranceMode": {
       "type": "string",
-      "enum": [
-        "INSTANTANEOUS",
-        "AGGREGATED",
-        "SUSTAINED"
-      ],
+      "enum": [ "INSTANTANEOUS", "AGGREGATED", "SUSTAINED" ],
       "description": "How violations are measured over time. Discriminates which temporal fields are required."
     },
     "temporalWindow": {
@@ -121,17 +98,7 @@
     },
     "temporalAggregation": {
       "type": "string",
-      "enum": [
-        "SUM",
-        "AVG",
-        "MIN",
-        "MAX",
-        "COUNT",
-        "P50",
-        "P90",
-        "P95",
-        "P99"
-      ],
+      "enum": [ "SUM", "AVG", "MIN", "MAX", "COUNT", "P50", "P90", "P95", "P99" ],
       "description": "Aggregation function applied within the temporalWindow. Required when toleranceMode is AGGREGATED or SUSTAINED."
     },
     "sustainedThreshold": {

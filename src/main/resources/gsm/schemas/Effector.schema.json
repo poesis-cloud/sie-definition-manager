@@ -4,16 +4,11 @@
   "title": "Effector",
   "description": "Schema for Effector Ascriptions — output endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the output payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Effector via a top-level $ref to add domain-specific port vocabulary while inheriting the base port schema.",
   "type": "object",
-  "examples": [
-    {
-      "mechanism": "019cc49a-dc5a-76fd-94c7-8099ff821b3b",
-      "archetype": "gsmarc://tenant/OutputData/v1"
-    }
-  ],
-  "required": [
-    "mechanism",
-    "archetype"
-  ],
+  "examples": [ {
+    "mechanism": "019cc49a-dc5a-76fd-94c7-8099ff821b3b",
+    "archetype": "gsmarc://tenant/OutputData/v1"
+  } ],
+  "required": [ "mechanism", "archetype" ],
   "properties": {
     "mechanism": {
       "type": "string",

@@ -306,32 +306,37 @@ public enum AscriptionConsistencyRuleType implements RuleType {
                     + "INSTANTANEOUS forbids temporalWindow/temporalAggregation/"
                     + "sustainedThreshold; AGGREGATED requires temporalWindow and "
                     + "temporalAggregation; SUSTAINED requires all three including "
-                    + "sustainedThreshold in [0,1]."),
+                    + "sustainedThreshold in [0,1]. Enforced structurally by the GSM "
+                    + "base Norm schema's conditional branches — violations surface as "
+                    + "ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE."),
 
     // ====================================================================
-    // ARCHETYPE — allOf chain constraints
+    // ARCHETYPE — composition constraints ($ref chain + allOf facets)
     // ====================================================================
 
     ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE(
             "gsm:rules/archetype/allof/exclusive-base-convergence",
-            "Archetype allOf exclusive base convergence",
-            "A structural Archetype's allOf chain must converge to exactly one "
-                    + "GSM base Archetype (no divergence). Every $ref must use the "
-                    + "gsmarc://{authority}/{segments}/{title}/v{version} URI convention and "
-                    + "resolve to a declared Archetype; at activation time, all "
-                    + "intermediary Archetypes must be in-effect."),
+            "Archetype exclusive base convergence",
+            "A based Archetype's top-level $ref chain must converge to exactly "
+                    + "one GSM base Archetype (no divergence); allOf entries are "
+                    + "facets and never contribute to base convergence. Every $ref "
+                    + "(chain or facet) must use the "
+                    + "gsmarc://{authority}/{segments}/{title}/v{version} URI "
+                    + "convention and resolve to a declared Archetype."),
 
     ARCHETYPE_ALLOF_ACYCLICITY(
             "gsm:rules/archetype/allof/acyclicity",
-            "Archetype allOf acyclicity",
-            "The Archetype's allOf chain must be acyclic — no Archetype may "
-                    + "transitively reference itself through $ref entries."),
+            "Archetype composition acyclicity",
+            "The Archetype's $ref graph — the top-level $ref chain and allOf "
+                    + "facet references — must be acyclic: no Archetype may "
+                    + "transitively reference itself."),
 
     ARCHETYPE_ALLOF_NON_SEALED(
             "gsm:rules/archetype/allof/non-sealed",
-            "Archetype allOf non-sealed",
+            "Archetype composition non-sealed",
             "A tenant-defined Archetype must not extend a sealed ($gsm:sealed) "
-                    + "Archetype via allOf — sealed Archetypes are non-extensible."),
+                    + "Archetype — neither through its top-level $ref chain nor "
+                    + "through allOf facets. Sealed Archetypes are non-extensible."),
 
     ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS(
             "gsm:rules/archetype/allof/property-disjointness",
@@ -419,7 +424,7 @@ public enum AscriptionConsistencyRuleType implements RuleType {
                     + "$gsm:* vocabulary keyword constraints."),
 
     // ====================================================================
-    // ASCRIPTION — cross-cutting lifecycle constraints
+    // ASCRIPTION / ARCHETYPE — cross-cutting lifecycle constraints
     // ====================================================================
 
     ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE(
