@@ -4,14 +4,22 @@
   "title": "Directive",
   "description": "Schema for Directive Ascriptions — identity-level normative constraints (DNA 'D'). A Directive is a constitutive act that opens a governance relationship between a governing Structure (structure) and a governed purpose (purpose string) along a viability dimension (qualifier Archetype). The purpose MAY name a Structure that does not yet exist, enabling anticipatory governance — the Directive becomes a generative specification for a required Structure. Without a Directive, there is no governance scope — no Norms can constrain the governed Structure's internal Elements along that dimension. Natural grammar: {structure} {modal} {verb} {qualifier} FOR {purpose}. Extensible — tenant-defined archetypes MAY extend Directive via a top-level $ref to add domain-specific vocabulary while inheriting the governance grammar. DM input = DM output (1:1).",
   "type": "object",
-  "examples": [ {
-    "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
-    "modal": "MUST",
-    "verb": "ENSURE",
-    "qualifier": "019cc49a-dc5a-7670-9ccb-5e161985340b",
-    "purpose": "payment-processing"
-  } ],
-  "required": [ "structure", "modal", "verb", "qualifier", "purpose" ],
+  "examples": [
+    {
+      "structure": "019cc49a-dc59-7fef-9b0c-b3f100044603",
+      "modal": "MUST",
+      "verb": "ENSURE",
+      "qualifier": "gsmarc://tenant/SecurityProperties/v1",
+      "purpose": "payment-processing"
+    }
+  ],
+  "required": [
+    "structure",
+    "modal",
+    "verb",
+    "qualifier",
+    "purpose"
+  ],
   "properties": {
     "structure": {
       "type": "string",
@@ -22,20 +30,35 @@
     },
     "modal": {
       "type": "string",
-      "enum": [ "MUST", "MUST_NOT", "SHOULD", "SHOULD_NOT", "MAY" ],
+      "enum": [
+        "MUST",
+        "MUST_NOT",
+        "SHOULD",
+        "SHOULD_NOT",
+        "MAY"
+      ],
       "description": "Deontic obligation strength. MUST/MUST_NOT = hard constraint (violations = errors). SHOULD/SHOULD_NOT = soft constraint (violations = warnings). MAY = permitted (informational)."
     },
     "verb": {
       "type": "string",
-      "enum": [ "ENSURE", "PREVENT", "MAINTAIN", "OPTIMIZE", "MINIMIZE", "MAXIMIZE", "MONITOR", "ENABLE" ],
+      "enum": [
+        "ENSURE",
+        "PREVENT",
+        "MAINTAIN",
+        "OPTIMIZE",
+        "MINIMIZE",
+        "MAXIMIZE",
+        "MONITOR",
+        "ENABLE"
+      ],
       "description": "Governance action expressing the governance direction on the qualifier Archetype's viability dimension."
     },
     "qualifier": {
       "type": "string",
-      "format": "uuid",
+      "pattern": "^gsmarc://[a-z0-9]+(?:-[a-z0-9]+)*/(?:[a-z0-9]+(?:-[a-z0-9]+)*/)*[A-Z][A-Za-z0-9]*/v[1-9][0-9]*$",
       "$gsm:identityBound": true,
       "$gsm:queryable": true,
-      "description": "ID reference to the Archetype that defines the viability dimension being governed. Norms operationalizing this Directive MUST reference this same Archetype (or a descendant) in their applicability/assertion CEL expressions."
+      "description": "Archetype URI of the exact Archetype version that defines the viability dimension being governed. The processor resolves it to the exact Archetype Ascription FK. Norms operationalizing this Directive MUST use this Archetype family (or a descendant): applicability roots use exact version-pinned $ids through ref(), while assertions use bare properties bound through the qualifier FK."
     },
     "purpose": {
       "type": "string",

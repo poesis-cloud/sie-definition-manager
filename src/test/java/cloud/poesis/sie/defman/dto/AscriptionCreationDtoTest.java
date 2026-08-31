@@ -14,23 +14,23 @@ class AscriptionCreationDtoTest {
 
   @Test
   void constructorAndGetters() {
-    UUID archetypeId = UUID.randomUUID();
+    String archetypeUri = "gsmarc://gsm/Structure/v1";
     UUID definitionId = UUID.randomUUID();
     ObjectNode stmt = MAPPER.createObjectNode().put("purpose", "test");
-    AscriptionCreationDto dto = new AscriptionCreationDto(archetypeId, stmt, definitionId);
+    AscriptionCreationDto dto = new AscriptionCreationDto(archetypeUri, stmt, definitionId);
 
-    assertEquals(archetypeId, dto.getArchetypeId());
+    assertEquals(archetypeUri, dto.getArchetypeUri());
     assertEquals("test", dto.getStatement().get("purpose").asText());
     assertEquals(definitionId, dto.getDefinitionId());
   }
 
   @Test
   void nullDefinitionId() {
-    UUID archetypeId = UUID.randomUUID();
+    String archetypeUri = "gsmarc://gsm/Structure/v1";
     ObjectNode stmt = MAPPER.createObjectNode();
-    AscriptionCreationDto dto = new AscriptionCreationDto(archetypeId, stmt, null);
+    AscriptionCreationDto dto = new AscriptionCreationDto(archetypeUri, stmt, null);
 
     assertNull(dto.getDefinitionId());
-    assertEquals(archetypeId, dto.getArchetypeId());
+    assertEquals(archetypeUri, dto.getArchetypeUri());
   }
 }

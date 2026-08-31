@@ -13,6 +13,7 @@ import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,11 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Norm ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link NormEntity} ascriptions including CEL
- * applicability/assertion profile validation (applicability and assertion profiles) and governing
+ * <p>
+ * Manages lifecycle and persistence of {@link NormEntity} ascriptions including
+ * CEL
+ * applicability/assertion profile validation (applicability and assertion
+ * profiles) and governing
  * cascade from owning Structure.
  *
  * @author Clément Cazaud
@@ -76,19 +80,14 @@ public class NormService implements AscriptionSubtypeService<NormEntity> {
       assertionValidation.validateAssertion(statement.get("assertion").asText());
     }
 
-    UUID structureId =
-        extractRequiredUuid(
-            statement,
-            "structure",
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
+    UUID structureId = extractRequiredUuid(
+        statement,
+        "structure",
+        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
-    UUID qualifierId =
-        extractRequiredUuid(
-            statement,
-            "qualifier",
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
-    ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
+    String qualifierUri = statement.path("qualifier").asText(null);
+    ArchetypeEntity qualifier = archetypeService.resolveArchetypeUri(qualifierUri, "qualifier");
 
     // Semantic validations (after references are resolved)
     if (statement.has("applicability")) {
@@ -115,8 +114,15 @@ public class NormService implements AscriptionSubtypeService<NormEntity> {
       throw new IllegalArgumentException(
           "Expected NormEntity, got " + entity.getClass().getSimpleName());
     }
-    return List.of(
-        Map.entry(n.getStructure(), "structure"), Map.entry(n.getQualifier(), "qualifier"));
+    var references = new ArrayList<Map.Entry<AscriptionEntity, String>>();
+    references.add(Map.entry(n.getStructure(), "structure"));
+    references.add(Map.entry(n.getQualifier(), "qualifier"));
+    String applicability = n.getStatement().path("applicability").asText("true");
+    for (String archetypeUri : applicabilityValidation.extractApplicabilityReferences(applicability)) {
+      ArchetypeEntity archetype = archetypeService.resolveArchetypeUri(archetypeUri, "applicability ref()");
+      references.add(Map.entry(archetype, "applicability ref(" + archetypeUri + ")"));
+    }
+    return List.copyOf(references);
   }
 
   @Override

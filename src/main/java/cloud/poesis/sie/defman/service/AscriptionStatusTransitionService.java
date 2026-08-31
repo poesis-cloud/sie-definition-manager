@@ -20,10 +20,12 @@ import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -34,12 +36,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for {@link AscriptionStatusTransitionEntity}. Owns {@link
- * AscriptionStatusTransitionRepository} exclusively — all transition persistence, queries, and
+ * AscriptionStatusTransitionRepository} exclusively — all transition
+ * persistence, queries, and
  * lifecycle orchestration go through this service.
  *
- * <p>Persistence operations (recording and querying transitions) are handled directly. Lifecycle
- * orchestration (state machine validation, referee preconditions, activation hooks, governance
- * convergence, and cascade dispatch) is coordinated here, with pure state machine rules delegated
+ * <p>
+ * Persistence operations (recording and querying transitions) are handled
+ * directly. Lifecycle
+ * orchestration (state machine validation, referee preconditions, activation
+ * hooks, governance
+ * convergence, and cascade dispatch) is coordinated here, with pure state
+ * machine rules delegated
  * to {@link AscriptionStateMachineService}.
  *
  * @author Clément Cazaud
@@ -62,10 +69,8 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private static final String EVENT_HOOK_CASCADE = "gsm.ascription.hook.cascade";
   private static final String EVENT_HOOK_CASCADE_SKIP = "gsm.ascription.hook.cascade-skip";
   private static final String EVENT_HOOK_PERSISTENCE = "gsm.ascription.hook.persistence";
-  private static final String EVENT_HOOK_ACTIVATION_HANDOFF =
-      "gsm.ascription.hook.activation-handoff";
-  private static final String EVENT_HOOK_APPROVAL_CONVERGENCE =
-      "gsm.ascription.hook.approval-convergence";
+  private static final String EVENT_HOOK_ACTIVATION_HANDOFF = "gsm.ascription.hook.activation-handoff";
+  private static final String EVENT_HOOK_APPROVAL_CONVERGENCE = "gsm.ascription.hook.approval-convergence";
   private static final String OUTCOME_SUCCESS = "success";
   private static final String OUTCOME_SKIPPED = "skipped";
   private static final String OUTCOME_FAILURE = "failure";
@@ -76,7 +81,8 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
   private record CascadeTargetEntry(
       AscriptionSubtypeService<?> targetService,
-      AscriptionStatusTransitionCascadeType cascadeType) {}
+      AscriptionStatusTransitionCascadeType cascadeType) {
+  }
 
   private final AscriptionStatusTransitionRepository transitionRepo;
   private final AscriptionStateMachineService stateMachine;
@@ -97,12 +103,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     this.stateMachine = stateMachine;
     this.entityManager = entityManager;
     this.subtypeServices = List.copyOf(subtypeServices);
-    this.otelLogger =
-        GlobalOpenTelemetry.get()
-            .getLogsBridge()
-            .loggerBuilder(INSTRUMENTATION_SCOPE)
-            .setInstrumentationVersion("1")
-            .build();
+    this.otelLogger = GlobalOpenTelemetry.get()
+        .getLogsBridge()
+        .loggerBuilder(INSTRUMENTATION_SCOPE)
+        .setInstrumentationVersion("1")
+        .build();
   }
 
   AscriptionStatusTransitionService(
@@ -114,18 +119,19 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     this(transitionRepo, stateMachine, entityManager, subtypeServices);
   }
 
-  /** Builds the subtype lookup map and cascade graph after all singleton beans are constructed. */
+  /**
+   * Builds the subtype lookup map and cascade graph after all singleton beans are
+   * constructed.
+   */
   @Override
   public void afterSingletonsInstantiated() {
-    Map<DefinitionSubjectType, AscriptionSubtypeService<?>> byType =
-        new EnumMap<>(DefinitionSubjectType.class);
+    Map<DefinitionSubjectType, AscriptionSubtypeService<?>> byType = new EnumMap<>(DefinitionSubjectType.class);
     for (AscriptionSubtypeService<?> svc : subtypeServices) {
       byType.put(svc.getSubjectType(), svc);
     }
     this.subtypeByType = Map.copyOf(byType);
 
-    Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeMap =
-        new EnumMap<>(DefinitionSubjectType.class);
+    Map<DefinitionSubjectType, List<CascadeTargetEntry>> cascadeMap = new EnumMap<>(DefinitionSubjectType.class);
     for (AscriptionSubtypeService<?> svc : subtypeServices) {
       for (var entry : svc.getCascadeTargetRoles().entrySet()) {
         cascadeMap
@@ -142,8 +148,8 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
   private AscriptionStatusTransitionEntity recordTransition(
       AscriptionEntity entity, AscriptionStatusType from, AscriptionStatusType to) {
-    AscriptionStatusTransitionEntity transition =
-        transitionRepo.save(new AscriptionStatusTransitionEntity(entity, from, to));
+    AscriptionStatusTransitionEntity transition = transitionRepo
+        .save(new AscriptionStatusTransitionEntity(entity, from, to));
     entityManager.flush();
     entityManager.detach(transition);
     UUID transitionId = Objects.requireNonNull(transition.getId(), "transition.id");
@@ -192,15 +198,18 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   // ======================================================================
 
   /**
-   * Executes a lifecycle transition with full lifecycle governance: state machine validation,
-   * referee preconditions, activation hooks, governance convergence, and cascade dispatch.
+   * Executes a lifecycle transition with full lifecycle governance: state machine
+   * validation,
+   * referee preconditions, activation hooks, governance convergence, and cascade
+   * dispatch.
    *
    * @param ascriptionId the ascription to transition
    * @param targetStatus the requested target status name
    * @return the persisted transition record
    * @throws ResourceNotFoundException if the ascription does not exist
-   * @throws RuleViolationException if the transition violates state machine, referee, or cascade
-   *     constraints
+   * @throws RuleViolationException    if the transition violates state machine,
+   *                                   referee, or cascade
+   *                                   constraints
    */
   public AscriptionStatusTransitionEntity transition(UUID ascriptionId, String targetStatus) {
     AscriptionStatusType targetStatusType = AscriptionStatusType.valueOf(targetStatus);
@@ -211,6 +220,10 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     }
 
     DefinitionSubjectType type = entity.getDefinition().getSubjectType();
+    Set<UUID> lockedDefinitionIds = discoverCascadeDefinitionIds(entity, type);
+    lockDefinitions(lockedDefinitionIds);
+    entityManager.refresh(entity);
+
     AscriptionStatusType currentStatus = entity.getStatus();
 
     enrichTransitionSpan(Span.current(), ascriptionId, currentStatus, targetStatusType);
@@ -218,31 +231,34 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
     // 1. Validate state machine transition
     stateMachine.validateTransition(ascriptionId, currentStatus, targetStatusType);
 
+    AscriptionSubtypeService<?> subtypeService = subtypeByType.get(type);
+    if (subtypeService != null) {
+      subtypeService.validateStatusTransition(entity, currentStatus, targetStatusType);
+    }
+
     // 2. Check referee preconditions
     validateRefereePreconditions(entity, type, currentStatus, targetStatusType);
 
-    // 3. Activation uniqueness (Structure purpose, Mechanism function, Archetype
-    // title)
+    // 3. Activation uniqueness (Structure purpose, Mechanism function, and
+    // $gsm:unique properties)
     if (targetStatusType == AscriptionStatusType.ACTIVE) {
       validateActivationUniqueness(entity, type);
     }
 
     // 3b. Subtype-specific activation hook
     if (targetStatusType == AscriptionStatusType.ACTIVE) {
-      AscriptionSubtypeService<?> svc = subtypeByType.get(type);
-      if (svc != null) {
-        svc.onActivation(entity);
+      if (subtypeService != null) {
+        subtypeService.onActivation(entity);
       }
     }
 
     // 3c. Subtype-specific deactivation hook (leaving in-effect)
     if (EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
-            .contains(currentStatus)
+        .contains(currentStatus)
         && !EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)
             .contains(targetStatusType)) {
-      AscriptionSubtypeService<?> svc = subtypeByType.get(type);
-      if (svc != null) {
-        svc.onDeactivation(entity);
+      if (subtypeService != null) {
+        subtypeService.onDeactivation(entity);
       }
     }
 
@@ -255,8 +271,11 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       }
 
       // 5. Record transition (DB trigger updates entity status/version)
-      AscriptionStatusTransitionEntity saved =
-          recordTransition(entity, currentStatus, targetStatusType);
+      AscriptionStatusTransitionEntity saved = recordTransition(entity, currentStatus, targetStatusType);
+      entityManager.refresh(entity);
+      if (subtypeService != null) {
+        subtypeService.validatePersistedStatusTransition(entity, currentStatus, targetStatusType);
+      }
 
       // 6. Governance convergence (APPROVED → sibling termination)
       if (targetStatusType == AscriptionStatusType.APPROVED) {
@@ -264,12 +283,67 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       }
 
       // 7. Execute cascades
-      executeCascades(entity, type, currentStatus, targetStatusType);
+      executeCascades(entity, type, currentStatus, targetStatusType, lockedDefinitionIds);
 
       return saved;
     } catch (DataIntegrityViolationException ex) {
       throw PersistenceExceptionTranslationService.translate(ex);
+    } catch (org.hibernate.exception.ConstraintViolationException ex) {
+      throw PersistenceExceptionTranslationService.translate(ex);
     }
+  }
+
+  private Set<UUID> discoverCascadeDefinitionIds(
+      AscriptionEntity source, DefinitionSubjectType sourceType) {
+    Set<UUID> definitionIds = new HashSet<>();
+    collectCascadeDefinitionIds(source, sourceType, definitionIds, new HashSet<>());
+    return definitionIds;
+  }
+
+  private void collectCascadeDefinitionIds(
+      AscriptionEntity source,
+      DefinitionSubjectType sourceType,
+      Set<UUID> definitionIds,
+      Set<UUID> visitedAscriptions) {
+    UUID sourceId = Objects.requireNonNull(source.getId(), "cascade.source.id");
+    if (!visitedAscriptions.add(sourceId)) {
+      return;
+    }
+    definitionIds.add(source.getDefinition().getId());
+
+    List<CascadeTargetEntry> targetEntries = cascadeTargetsBySourceType.get(sourceType);
+    if (targetEntries == null) {
+      return;
+    }
+    for (CascadeTargetEntry entry : targetEntries) {
+      List<? extends AscriptionEntity> targets = entry.targetService().findCascadeTargetsFrom(sourceType, sourceId);
+      if (targets == null) {
+        continue;
+      }
+      DefinitionSubjectType targetType = entry.targetService().getSubjectType();
+      for (AscriptionEntity target : targets) {
+        collectCascadeDefinitionIds(target, targetType, definitionIds, visitedAscriptions);
+      }
+    }
+  }
+
+  private void lockDefinitions(Set<UUID> definitionIds) {
+    definitionIds.stream()
+        .sorted(AscriptionStatusTransitionService::compareUuidUnsigned)
+        .forEach(
+            definitionId -> entityManager
+                .createNativeQuery(
+                    "SELECT pg_advisory_xact_lock("
+                        + "hashtextextended(CAST(:lockKey AS text), 0))")
+                .setParameter("lockKey", "definition:" + definitionId)
+                .getSingleResult());
+  }
+
+  private static int compareUuidUnsigned(UUID left, UUID right) {
+    int mostSignificant = Long.compareUnsigned(left.getMostSignificantBits(), right.getMostSignificantBits());
+    return mostSignificant != 0
+        ? mostSignificant
+        : Long.compareUnsigned(left.getLeastSignificantBits(), right.getLeastSignificantBits());
   }
 
   // ======================================================================
@@ -310,13 +384,15 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       AscriptionEntity source,
       DefinitionSubjectType sourceType,
       AscriptionStatusType fromStatus,
-      AscriptionStatusType toStatus) {
+      AscriptionStatusType toStatus,
+      Set<UUID> lockedDefinitionIds) {
 
     List<CascadeTargetEntry> targetEntries = cascadeTargetsBySourceType.get(sourceType);
     if (targetEntries == null) {
       return;
     }
 
+    Set<UUID> approvedDefinitionIds = new HashSet<>();
     for (CascadeTargetEntry entry : targetEntries) {
       if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.DEPENDENT
           && !stateMachine.isDependentCascadeApplicable(fromStatus, toStatus)) {
@@ -331,10 +407,36 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
         continue;
       }
 
-      List<? extends AscriptionEntity> targets =
-          entry.targetService().findCascadeTargetsFrom(sourceType, source.getId());
+      List<? extends AscriptionEntity> targets = entry.targetService()
+          .findCascadeTargetsFrom(sourceType, source.getId()).stream()
+          .sorted(
+              (left, right) -> compareUuidUnsigned(
+                  Objects.requireNonNull(left.getId(), "cascade.target.id"),
+                  Objects.requireNonNull(right.getId(), "cascade.target.id")))
+          .toList();
 
       for (AscriptionEntity target : targets) {
+        UUID targetDefinitionId = target.getDefinition().getId();
+        if (!lockedDefinitionIds.contains(targetDefinitionId)) {
+          throw RuleViolationException.of(
+              AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+              "Cascade target "
+                  + target.getId()
+                  + " belongs to Definition "
+                  + targetDefinitionId
+                  + " that was not present when lifecycle locks were acquired",
+              "targetId",
+              target.getId(),
+              "targetDefinitionId",
+              targetDefinitionId,
+              "cascadeType",
+              entry.cascadeType().name());
+        }
+        if (toStatus == AscriptionStatusType.APPROVED
+            && !approvedDefinitionIds.add(targetDefinitionId)) {
+          continue;
+        }
+        entityManager.refresh(target);
         if (target.getStatus() != fromStatus) {
           emitLifecycleEvent(
               EVENT_HOOK_CASCADE_SKIP,
@@ -347,8 +449,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
                   .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
-                AscriptionStatusTransitionRuleType
-                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                 "Constitutive cascade failed: target "
                     + target.getId()
                     + " ("
@@ -373,8 +474,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
 
         DefinitionSubjectType targetType = entry.targetService().getSubjectType();
         try {
-          List<Map.Entry<AscriptionEntity, String>> refs =
-              entry.targetService().getRefereeReferences(target);
+          List<Map.Entry<AscriptionEntity, String>> refs = entry.targetService().getRefereeReferences(target);
           stateMachine.validateRefereePreconditions(refs, fromStatus, toStatus);
         } catch (RuleViolationException e) {
           emitLifecycleEvent(
@@ -388,8 +488,7 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
                   .build());
           if (entry.cascadeType() == AscriptionStatusTransitionCascadeType.CONSTITUTIVE) {
             throw RuleViolationException.of(
-                AscriptionStatusTransitionRuleType
-                    .ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
+                AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_CASCADE_TO_CONSTITUENTS,
                 "Constitutive cascade blocked: " + e.getMessage(),
                 e,
                 "cascadeType",
@@ -398,7 +497,8 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
           continue;
         }
 
-        transitionCascadeTarget(target, targetType, entry.cascadeType(), fromStatus, toStatus);
+        transitionCascadeTarget(
+            target, targetType, entry.cascadeType(), fromStatus, toStatus, lockedDefinitionIds);
       }
     }
   }
@@ -428,12 +528,17 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
       DefinitionSubjectType targetType,
       AscriptionStatusTransitionCascadeType cascadeType,
       AscriptionStatusType fromStatus,
-      AscriptionStatusType toStatus) {
+      AscriptionStatusType toStatus,
+      Set<UUID> lockedDefinitionIds) {
     UUID targetId = Objects.requireNonNull(target.getId(), "cascade.target.id");
     Span cascadeSpan = Span.current();
 
     recordTransition(target, fromStatus, toStatus);
-    executeCascades(target, targetType, fromStatus, toStatus);
+    entityManager.refresh(target);
+    if (toStatus == AscriptionStatusType.APPROVED) {
+      handleApproval(targetType, target);
+    }
+    executeCascades(target, targetType, fromStatus, toStatus, lockedDefinitionIds);
 
     emitLifecycleEvent(
         cascadeSpan,
@@ -453,11 +558,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private void handleApproval(DefinitionSubjectType type, AscriptionEntity approved) {
     UUID definitionId = approved.getDefinition().getId();
     AscriptionSubtypeService<?> svc = subtypeByType.get(type);
-    if (svc == null) return;
+    if (svc == null)
+      return;
 
     List<? extends AscriptionEntity> allAscriptions = svc.findAllByDefinitionId(definitionId);
     for (AscriptionEntity sibling : allAscriptions) {
-      if (sibling.getId().equals(approved.getId())) continue;
+      if (sibling.getId().equals(approved.getId()))
+        continue;
+      entityManager.refresh(sibling);
       AscriptionStatusType siblingStatus = sibling.getStatus();
       AscriptionStatusType terminalStatus;
       if (siblingStatus == AscriptionStatusType.DRAFT) {
@@ -482,12 +590,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private void handleActivation(DefinitionSubjectType type, AscriptionEntity activating) {
     UUID definitionId = activating.getDefinition().getId();
     AscriptionSubtypeService<?> svc = subtypeByType.get(type);
-    if (svc == null) return;
+    if (svc == null)
+      return;
 
-    List<? extends AscriptionEntity> activeAscriptions =
-        svc.findAllByDefinitionIdAndStatus(definitionId, List.of(AscriptionStatusType.ACTIVE));
+    List<? extends AscriptionEntity> activeAscriptions = svc.findAllByDefinitionIdAndStatus(definitionId,
+        List.of(AscriptionStatusType.ACTIVE));
     for (AscriptionEntity prev : activeAscriptions) {
-      if (prev.getId().equals(activating.getId())) continue;
+      if (prev.getId().equals(activating.getId()))
+        continue;
       recordTransition(prev, AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED);
       emitLifecycleEvent(
           EVENT_HOOK_ACTIVATION_HANDOFF,
@@ -527,15 +637,14 @@ public class AscriptionStatusTransitionService implements SmartInitializingSingl
   private void emitOtelLifecycleLogRecord(
       Span span, String eventName, String eventOutcome, Severity severity) {
     Context logContext = span.storeInContext(Context.current());
-    var builder =
-        otelLogger
-            .logRecordBuilder()
-            .setContext(logContext)
-            .setSeverity(severity)
-            .setSeverityText(severity.name())
-            .setAttribute("event.name", eventName)
-            .setAttribute("event.outcome", eventOutcome)
-            .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER);
+    var builder = otelLogger
+        .logRecordBuilder()
+        .setContext(logContext)
+        .setSeverity(severity)
+        .setSeverityText(severity.name())
+        .setAttribute("event.name", eventName)
+        .setAttribute("event.outcome", eventOutcome)
+        .setAttribute("sie.component", COMPONENT_DEFINITION_MANAGER);
 
     String tenantId = MDC.get(ATTR_TENANT_ID);
     if (tenantId != null && !tenantId.isBlank()) {

@@ -1,6 +1,6 @@
 # Service Package — Reader's Guide
 
-> **Package**: `cloud.poesis.sie.defman.service` > **28 files** (1 interface + 26 `@Service` beans + 1 static utility)
+> **Package**: `cloud.poesis.sie.defman.service` > **30 files** (1 interface + 26 `@Service` beans + 1 shared `@Component` + 2 static utilities)
 > managing the GSM ascription lifecycle, statement validation, schema
 > governance, and cross-entity orchestration for the 8 GSM subject types.
 
@@ -19,9 +19,14 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ║ 8 Subject Type Services (implement AscriptionSubtypeService<T>)          ║
 ║                                                                          ║
 ║  ┌─ Archetype ──────────────────────────────────────────────────────┐    ║
-║  │ ArchetypeService ──→ ArchetypeAnnotationValidationService       │    ║
+║  │ ArchetypeService ──→ ArchetypeIdentityValidationService         │    ║
+║  │                  ──→ ArchetypeAnnotationValidationService       │    ║
 ║  │                  ──→ ArchetypeCompositionValidationService      │    ║
 ║  │                  ──→ ArchetypePropertyIndexationService         │    ║
+║  │                  ──→ JsonSchemaPositionWalker                   │    ║
+║  │                                                                  │    ║
+║  │  ArchetypeIdentityValidationService ──→ JsonSchemaPositionWalker│    ║
+║  │  ArchetypeAnnotationValidationService ──→ JsonSchemaPositionWalker   ║
 ║  └──────────────────────────────────────────────────────────────────┘    ║
 ║                                                                          ║
 ║  ┌─ Mechanism ──────────────────────────────────────────────────────┐    ║
@@ -73,7 +78,8 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ║  AscriptionStateMachineService     (zero-dependency pure validation)    ║
 ║                                                                          ║
 ║  AscriptionParsingValidationService                                     ║
-║       └──→ ArchetypeParsingService                                      ║
+║       │──→ ArchetypeParsingService                                      ║
+║       └──→ JsonSchemaPositionWalker                                     ║
 ║                                                                          ║
 ║  AscriptionIdentityBoundValidationService  (no service deps)            ║
 ║  AscriptionUniquenessValidationService     (no service deps)            ║
@@ -83,8 +89,10 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ║  DefinitionService                         (no service deps)            ║
 ║                                                                          ║
 ╠════════════════════════════════════════════════════════════════════════════╣
-║ Utility                                                                  ║
+║ Shared component and utilities                                           ║
 ║                                                                          ║
+║  JsonSchemaPositionWalker  (shared schema-position traversal component)  ║
+║  AscriptionParsingService  (static, not a Spring bean)                   ║
 ║  PersistenceExceptionTranslationService  (static, not a Spring bean)    ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -121,6 +129,7 @@ for lifecycle hooks.
 
 | Service                                 | Consumed by        | Role                                                                                                                                         |
 | --------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ArchetypeIdentityValidationService`    | `ArchetypeService` | Validates Archetype URI `$id` grammar, `$id`/`title` coherence, and root-only `$id` placement                                                |
 | `ArchetypeAnnotationValidationService`  | `ArchetypeService` | Validates `$gsm:*` annotation vocabulary and `$ref` URI policy on Archetype schemas; collects identity-bound fields                          |
 | `ArchetypeCompositionValidationService` | `ArchetypeService` | Validates `$ref` chain convergence to GSM base archetypes, `allOf` facet acyclicity, `$gsm:sealed` enforcement                               |
 | `ArchetypePropertyIndexationService`    | `ArchetypeService` | Provisions/deprovisions PostgreSQL JSONB indexes driven by `$gsm:queryable` and `$gsm:unique` annotations; idempotent DDL via `JdbcTemplate` |
@@ -156,7 +165,18 @@ for lifecycle hooks.
 | `ArchetypeParsingService`                  | Schema inspection utilities: annotation detection, title extraction, `$ref` resolution, base-type checking                                                     |
 | `DefinitionService`                        | Stable identity resolution/creation for `DefinitionEntity`                                                                                                     |
 
-### 2.6 Utility
+### 2.6 Shared component and utilities
+
+`JsonSchemaPositionWalker` is a package-private Spring component shared by
+`ArchetypeService`, `ArchetypeIdentityValidationService`,
+`ArchetypeAnnotationValidationService`, and
+`AscriptionParsingValidationService`. It visits only Draft 2020-12
+schema-valued positions and reports each location as a JSON Pointer. It is a
+traversal utility rather than a domain service, so its `Walker` name is
+intentional.
+
+`AscriptionParsingService` is a static utility class (not a Spring bean) for
+typed statement-field extraction and required-field validation.
 
 `PersistenceExceptionTranslationService` is a static utility class (not a
 Spring bean) — maps PostgreSQL constraint names to domain exception types.
@@ -192,7 +212,7 @@ therefore no subsidiaries.
    cross-entity references). Good baseline for the pattern.
 3. **`AscriptionService`** — the facade: 10-step create template, handler
    dispatch via `SmartInitializingSingleton`, generic CRUD, static utilities.
-4. **`ArchetypeService`** + its 3 subsidiaries — richest service group;
+4. **`ArchetypeService`** + its 4 subsidiaries — richest service group;
    demonstrates schema validation pipeline and index provisioning.
 5. **`AscriptionStatusTransitionService`** — how transitions are
    coordinated across subtypes (cascades, referee checks, activation).

@@ -22,7 +22,7 @@ class ArchetypeAnnotationValidationServiceTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final ArchetypeAnnotationValidationService service =
-      new ArchetypeAnnotationValidationService();
+      new ArchetypeAnnotationValidationService(new JsonSchemaPositionWalker());
 
   // ========================================================================
   // Annotation validation
@@ -241,6 +241,15 @@ class ArchetypeAnnotationValidationServiceTest {
     }
 
     @Test
+    void localAnchorAndDocumentFragment_areAccepted() {
+      ObjectNode anchorSchema = MAPPER.createObjectNode().put("$ref", "#namedAnchor");
+      ObjectNode documentSchema = MAPPER.createObjectNode().put("$ref", "#");
+
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(anchorSchema));
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(documentSchema));
+    }
+
+    @Test
     void gsmUri_accepted() {
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "MyArchetype");
@@ -285,6 +294,59 @@ class ArchetypeAnnotationValidationServiceTest {
           assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, ex.getRuleType());
       assertTrue(ex.getMessage().contains("ftp://bad-host/schema"));
+      assertEquals("/allOf/0/properties/nested/$ref", ex.getSite().get("path"));
+    }
+
+    @Test
+    void authoredDynamicRef_isRejectedAtSchemaPosition() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.putObject("properties").putObject("nested").put("$dynamicRef", "#meta");
+
+      RuleViolationException exception =
+          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
+
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, exception.getRuleType());
+      assertEquals("/properties/nested/$dynamicRef", exception.getSite().get("path"));
+      assertEquals("#meta", exception.getSite().get("ref"));
+    }
+
+    @Test
+    void rootDynamicRefAndNonTextualRef_haveStableSites() {
+      ObjectNode dynamicRefSchema = MAPPER.createObjectNode().put("$dynamicRef", "#meta");
+      ObjectNode nonTextualRefSchema = MAPPER.createObjectNode().put("$ref", 1);
+
+      RuleViolationException dynamicRefException =
+          assertThrows(
+              RuleViolationException.class, () -> service.validateRefUriPolicy(dynamicRefSchema));
+      RuleViolationException nonTextualRefException =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateRefUriPolicy(nonTextualRefSchema));
+
+      assertEquals("/$dynamicRef", dynamicRefException.getSite().get("path"));
+      assertEquals("#meta", dynamicRefException.getSite().get("ref"));
+      assertEquals("/$ref", nonTextualRefException.getSite().get("path"));
+      assertTrue(!nonTextualRefException.getSite().containsKey("ref"));
+    }
+
+    @Test
+    void externalIdentityWithFragment_isRejected() {
+      ObjectNode schema =
+          MAPPER.createObjectNode().put("$ref", "gsmarc://gsm/Structure/v1#/$defs/part");
+
+      RuleViolationException exception =
+          assertThrows(RuleViolationException.class, () -> service.validateRefUriPolicy(schema));
+
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, exception.getRuleType());
+      assertEquals("/$ref", exception.getSite().get("path"));
+    }
+
+    @Test
+    void referenceLookalikeInsideDataValue_isIgnored() {
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.putArray("examples").addObject().put("$ref", "https://application.example/data");
+
+      assertDoesNotThrow(() -> service.validateRefUriPolicy(schema));
     }
 
     @Test

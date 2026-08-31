@@ -1,5 +1,6 @@
 package cloud.poesis.sie.defman.bootstrap;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -14,6 +15,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -32,213 +35,296 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ArchetypeSeedRunnerTest {
 
-  @Mock private JdbcTemplate jdbc;
-  @Mock private ObjectMapper mapper;
-  @Mock private ResourcePatternResolver resolver;
-  @Mock private ApplicationArguments args;
+    @Mock
+    private JdbcTemplate jdbc;
+    @Mock
+    private ObjectMapper mapper;
+    @Mock
+    private ResourcePatternResolver resolver;
+    @Mock
+    private ApplicationArguments args;
 
-  private static final String SCHEMA_PATTERN = "classpath:gsm/schemas/*.schema.json";
-  private ArchetypeSeedRunner runner;
+    private static final String SCHEMA_PATTERN = "classpath:gsm/schemas/*.schema.json";
+    private ArchetypeSeedRunner runner;
 
-  @BeforeEach
-  void setUp() {
-    runner = new ArchetypeSeedRunner(jdbc, mapper, resolver, SCHEMA_PATTERN);
-  }
-
-  // ========================================================================
-  // run() — skip when already seeded
-  // ========================================================================
-
-  @Nested
-  class RunSkip {
-
-    @Test
-    void skipsWhenArchetypesExist() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(8L);
-
-      runner.run(args);
-
-      // No trigger disable/enable; no inserts
-      verify(jdbc, never()).execute(anyString());
+    @BeforeEach
+    void setUp() {
+        runner = new ArchetypeSeedRunner(jdbc, mapper, resolver, SCHEMA_PATTERN);
     }
 
-    @Test
-    void skipsWhenCountIsNull() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(null);
-      // count == null → doSeed() called; need schemas
-      stubSchemasAndInserts();
+    // ========================================================================
+    // run() — skip when already seeded
+    // ========================================================================
 
-      runner.run(args);
+    @Nested
+    class RunSkip {
 
-      verify(jdbc, times(2)).execute(anyString()); // 1 disable + 1 enable sync trigger
-    }
-  }
+        @Test
+        void skipsWhenArchetypesExist() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(8L);
 
-  // ========================================================================
-  // doSeed() — trigger management
-  // ========================================================================
+            runner.run(args);
 
-  @Nested
-  class TriggerManagement {
+            // No trigger disable/enable; no inserts
+            verify(jdbc, never()).execute(anyString());
+        }
 
-    @Test
-    void disablesAndReenablesTriggers() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
-      stubSchemasAndInserts();
+        @Test
+        void reconcilesStemOwnersWhenArchetypesExist() throws Exception {
+            UUID definitionId = UUID.randomUUID();
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(8L);
+            when(jdbc.queryForList(
+                    "SELECT statement->>'$id' AS statement_id, definition_id FROM archetype"))
+                    .thenReturn(
+                            List.of(
+                                    Map.of(
+                                            "statement_id", "gsmarc://gsm/Structure/v1", "definition_id",
+                                            definitionId)));
+            when(jdbc.queryForObject(
+                    eq("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)"),
+                    eq(UUID.class),
+                    eq("gsmarc://gsm/Structure"),
+                    eq(definitionId.toString())))
+                    .thenReturn(definitionId);
 
-      runner.run(args);
+            runner.run(args);
 
-      verify(jdbc)
-          .execute(
-              "ALTER TABLE ascription_status_transition DISABLE TRIGGER trg_ast_sync_ascription_status");
-      verify(jdbc)
-          .execute(
-              "ALTER TABLE ascription_status_transition ENABLE TRIGGER trg_ast_sync_ascription_status");
-    }
-  }
+            verify(jdbc)
+                    .queryForObject(
+                            "SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)",
+                            UUID.class,
+                            "gsmarc://gsm/Structure",
+                            definitionId.toString());
+        }
 
-  // ========================================================================
-  // doSeedInternal() — seeding logic
-  // ========================================================================
+        @Test
+        void reportsClaimantAndOwnerWhenExistingStemOwnershipConflicts() {
+            UUID claimantDefinitionId = UUID.randomUUID();
+            UUID ownerDefinitionId = UUID.randomUUID();
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(1L);
+            when(jdbc.queryForList(
+                    "SELECT statement->>'$id' AS statement_id, definition_id FROM archetype"))
+                    .thenReturn(
+                            List.of(
+                                    Map.of(
+                                            "statement_id",
+                                            "gsmarc://gsm/Structure/v1",
+                                            "definition_id",
+                                            claimantDefinitionId)));
+            when(jdbc.queryForObject(
+                    eq("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)"),
+                    eq(UUID.class),
+                    eq("gsmarc://gsm/Structure"),
+                    eq(claimantDefinitionId.toString())))
+                    .thenReturn(ownerDefinitionId);
 
-  @Nested
-  class SeedInternal {
+            IllegalStateException exception = assertThrows(IllegalStateException.class, () -> runner.run(args));
 
-    @Test
-    void seedsMetaArchetypeAndOthers() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+            assertEquals(
+                    "Seed Archetype stem 'gsmarc://gsm/Structure' claimed by Definition "
+                            + claimantDefinitionId
+                            + " is owned by Definition "
+                            + ownerDefinitionId,
+                    exception.getMessage());
+        }
 
-      // 2 schemas: Archetype (meta) + Structure
-      ObjectMapper realMapper = new ObjectMapper();
-      JsonNode metaNode = realMapper.readTree("{\"title\":\"Archetype\"}");
-      JsonNode structNode = realMapper.readTree("{\"title\":\"Structure\"}");
+        @Test
+        void skipsWhenCountIsNull() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(null);
+            // count == null → doSeed() called; need schemas
+            stubSchemasAndInserts();
 
-      Resource metaResource = mockResource("Archetype.schema.json");
-      Resource structResource = mockResource("Structure.schema.json");
-      when(resolver.getResources(SCHEMA_PATTERN))
-          .thenReturn(new Resource[] {metaResource, structResource});
-      when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(metaNode, structNode);
+            runner.run(args);
 
-      UUID metaDefId = UUID.randomUUID();
-      UUID metaArchId = UUID.randomUUID();
-      UUID structDefId = UUID.randomUUID();
-      UUID structArchId = UUID.randomUUID();
-
-      // insertDefinition calls
-      when(jdbc.queryForObject(
-              eq(
-                  "INSERT INTO definition (subject_type)"
-                      + " VALUES ('ARCHETYPE'::definition_subject_type) RETURNING id"),
-              eq(UUID.class)))
-          .thenReturn(metaDefId, structDefId);
-
-      // Meta archetype INSERT (self-referential CTE)
-      when(jdbc.queryForObject(
-              any(String.class), eq(UUID.class), eq(metaDefId.toString()), anyString()))
-          .thenReturn(metaArchId);
-
-      // Regular archetype INSERT
-      when(jdbc.queryForObject(
-              any(String.class),
-              eq(UUID.class),
-              eq(structDefId.toString()),
-              eq(metaArchId.toString()),
-              anyString()))
-          .thenReturn(structArchId);
-
-      runner.run(args);
-
-      // 3 lifecycle transitions per archetype * 2 archetypes = 6 updates
-      verify(jdbc, times(6)).update(anyString(), anyString());
+            verify(jdbc, times(2)).execute(anyString()); // 1 disable + 1 enable sync trigger
+        }
     }
 
-    @Test
-    void throwsWhenMetaArchetypeNotFound() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+    // ========================================================================
+    // doSeed() — trigger management
+    // ========================================================================
 
-      // Only one schema, title != "Archetype"
-      Resource resource = stubSchemaResource("{\"title\":\"SomethingElse\"}");
-      when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] {resource});
+    @Nested
+    class TriggerManagement {
 
-      assertThrows(IllegalStateException.class, () -> runner.run(args));
-    }
-  }
+        @Test
+        void disablesAndReenablesTriggers() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+            stubSchemasAndInserts();
 
-  // ========================================================================
-  // loadSchemas()
-  // ========================================================================
+            runner.run(args);
 
-  @Nested
-  class LoadSchemas {
-
-    @Test
-    void throwsOnEmptySchemas() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
-      when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] {});
-
-      assertThrows(IllegalStateException.class, () -> runner.run(args));
+            verify(jdbc)
+                    .execute(
+                            "ALTER TABLE ascription_status_transition DISABLE TRIGGER trg_ast_sync_ascription_status");
+            verify(jdbc)
+                    .execute(
+                            "ALTER TABLE ascription_status_transition ENABLE TRIGGER trg_ast_sync_ascription_status");
+        }
     }
 
-    @Test
-    void throwsOnMissingTitle() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+    // ========================================================================
+    // doSeedInternal() — seeding logic
+    // ========================================================================
 
-      Resource resource = stubSchemaResource("{\"description\":\"no title\"}");
-      when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] {resource});
+    @Nested
+    class SeedInternal {
 
-      assertThrows(IllegalStateException.class, () -> runner.run(args));
+        @Test
+        void seedsMetaArchetypeAndOthers() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+
+            // 2 schemas: Archetype (meta) + Structure
+            ObjectMapper realMapper = new ObjectMapper();
+            JsonNode metaNode = realMapper.readTree("{\"$id\":\"gsmarc://gsm/Archetype/v1\",\"title\":\"Archetype\"}");
+            JsonNode structNode = realMapper
+                    .readTree("{\"$id\":\"gsmarc://gsm/Structure/v1\",\"title\":\"Structure\"}");
+
+            Resource metaResource = mockResource("Archetype.schema.json");
+            Resource structResource = mockResource("Structure.schema.json");
+            when(resolver.getResources(SCHEMA_PATTERN))
+                    .thenReturn(new Resource[] { metaResource, structResource });
+            when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(metaNode, structNode);
+
+            UUID metaDefId = UUID.randomUUID();
+            UUID metaArchId = UUID.randomUUID();
+            UUID structDefId = UUID.randomUUID();
+            UUID structArchId = UUID.randomUUID();
+
+            // insertDefinition calls
+            when(jdbc.queryForObject(
+                    eq(
+                            "INSERT INTO definition (subject_type)"
+                                    + " VALUES ('ARCHETYPE'::definition_subject_type) RETURNING id"),
+                    eq(UUID.class)))
+                    .thenReturn(metaDefId, structDefId);
+
+            // Meta archetype INSERT (self-referential CTE)
+            when(jdbc.queryForObject(
+                    any(String.class), eq(UUID.class), eq(metaDefId.toString()), anyString()))
+                    .thenReturn(metaArchId);
+
+            when(jdbc.queryForObject(
+                    eq("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)"),
+                    eq(UUID.class),
+                    eq("gsmarc://gsm/Archetype"),
+                    eq(metaDefId.toString())))
+                    .thenReturn(metaDefId);
+
+            // Regular archetype INSERT
+            when(jdbc.queryForObject(
+                    any(String.class),
+                    eq(UUID.class),
+                    eq(structDefId.toString()),
+                    eq(metaArchId.toString()),
+                    anyString()))
+                    .thenReturn(structArchId);
+            when(jdbc.queryForObject(
+                    eq("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)"),
+                    eq(UUID.class),
+                    eq("gsmarc://gsm/Structure"),
+                    eq(structDefId.toString())))
+                    .thenReturn(structDefId);
+
+            runner.run(args);
+
+            // 3 lifecycle transitions per archetype * 2 archetypes = 6 updates
+            verify(jdbc, times(6)).update(anyString(), anyString());
+        }
+
+        @Test
+        void throwsWhenMetaArchetypeNotFound() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+
+            // Only one schema, title != "Archetype"
+            Resource resource = stubSchemaResource("{\"title\":\"SomethingElse\"}");
+            when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] { resource });
+
+            assertThrows(IllegalStateException.class, () -> runner.run(args));
+        }
     }
 
-    @Test
-    void throwsOnBlankTitle() throws Exception {
-      when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+    // ========================================================================
+    // loadSchemas()
+    // ========================================================================
 
-      Resource resource = stubSchemaResource("{\"title\":\"  \"}");
-      when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] {resource});
+    @Nested
+    class LoadSchemas {
 
-      assertThrows(IllegalStateException.class, () -> runner.run(args));
+        @Test
+        void throwsOnEmptySchemas() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+            when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] {});
+
+            assertThrows(IllegalStateException.class, () -> runner.run(args));
+        }
+
+        @Test
+        void throwsOnMissingTitle() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+
+            Resource resource = stubSchemaResource("{\"description\":\"no title\"}");
+            when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] { resource });
+
+            assertThrows(IllegalStateException.class, () -> runner.run(args));
+        }
+
+        @Test
+        void throwsOnBlankTitle() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(0L);
+
+            Resource resource = stubSchemaResource("{\"title\":\"  \"}");
+            when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] { resource });
+
+            assertThrows(IllegalStateException.class, () -> runner.run(args));
+        }
     }
-  }
 
-  // ========================================================================
-  // Helpers
-  // ========================================================================
+    // ========================================================================
+    // Helpers
+    // ========================================================================
 
-  private void stubSchemasAndInserts() throws Exception {
-    Resource metaResource = stubSchemaResource("{\"title\":\"Archetype\"}");
-    when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] {metaResource});
+    private void stubSchemasAndInserts() throws Exception {
+        Resource metaResource = stubSchemaResource("{\"$id\":\"gsmarc://gsm/Archetype/v1\",\"title\":\"Archetype\"}");
+        when(resolver.getResources(SCHEMA_PATTERN)).thenReturn(new Resource[] { metaResource });
 
-    UUID defId = UUID.randomUUID();
-    UUID archId = UUID.randomUUID();
-    when(jdbc.queryForObject(
-            eq(
-                "INSERT INTO definition (subject_type)"
-                    + " VALUES ('ARCHETYPE'::definition_subject_type) RETURNING id"),
-            eq(UUID.class)))
-        .thenReturn(defId);
-    when(jdbc.queryForObject(any(String.class), eq(UUID.class), eq(defId.toString()), anyString()))
-        .thenReturn(archId);
-  }
+        UUID defId = UUID.randomUUID();
+        UUID archId = UUID.randomUUID();
+        when(jdbc.queryForObject(
+                eq(
+                        "INSERT INTO definition (subject_type)"
+                                + " VALUES ('ARCHETYPE'::definition_subject_type) RETURNING id"),
+                eq(UUID.class)))
+                .thenReturn(defId);
+        when(jdbc.queryForObject(any(String.class), eq(UUID.class), eq(defId.toString()), anyString()))
+                .thenReturn(archId);
+        when(jdbc.queryForObject(
+                eq("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)"),
+                eq(UUID.class),
+                eq("gsmarc://gsm/Archetype"),
+                eq(defId.toString())))
+                .thenReturn(defId);
+    }
 
-  private Resource stubSchemaResource(String json) throws Exception {
-    Resource resource = mock(Resource.class);
-    when(resource.getInputStream())
-        .thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
-    when(resource.getFilename()).thenReturn("test.json");
+    private Resource stubSchemaResource(String json) throws Exception {
+        Resource resource = mock(Resource.class);
+        when(resource.getInputStream())
+                .thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+        when(resource.getFilename()).thenReturn("test.json");
 
-    // Parse the JSON into a real JsonNode so ObjectMapper.readTree works
-    ObjectMapper realMapper = new ObjectMapper();
-    JsonNode node = realMapper.readTree(json);
-    when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(node);
+        // Parse the JSON into a real JsonNode so ObjectMapper.readTree works
+        ObjectMapper realMapper = new ObjectMapper();
+        JsonNode node = realMapper.readTree(json);
+        when(mapper.readTree(any(java.io.InputStream.class))).thenReturn(node);
 
-    return resource;
-  }
+        return resource;
+    }
 
-  private Resource mockResource(String filename) throws Exception {
-    Resource resource = mock(Resource.class);
-    when(resource.getInputStream())
-        .thenReturn(new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8)));
-    when(resource.getFilename()).thenReturn(filename);
-    return resource;
-  }
+    private Resource mockResource(String filename) throws Exception {
+        Resource resource = mock(Resource.class);
+        when(resource.getInputStream())
+                .thenReturn(new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8)));
+        when(resource.getFilename()).thenReturn(filename);
+        return resource;
+    }
 }

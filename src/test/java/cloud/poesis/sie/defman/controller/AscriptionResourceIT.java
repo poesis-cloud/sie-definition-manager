@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -34,7 +36,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Integration tests for the Ascription REST API (CRUD, pagination, query filters, schema, OpenAPI)
+ * Integration tests for the Ascription REST API (CRUD, pagination, query
+ * filters, schema, OpenAPI)
  * against a real PostgreSQL instance (Testcontainers).
  */
 @SpringBootTest
@@ -44,7 +47,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AscriptionResourceIT {
 
-  @Container static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
+  private static final String ARCHETYPE_ID = "gsmarc://gsm/Archetype/v1";
+  private static final String STRUCTURE_ID = "gsmarc://gsm/Structure/v1";
+  private static final String MECHANISM_ID = "gsmarc://gsm/Mechanism/v1";
+
+  @Container
+  static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
 
   @DynamicPropertySource
   static void pgProperties(DynamicPropertyRegistry registry) {
@@ -53,8 +61,12 @@ class AscriptionResourceIT {
     registry.add("spring.datasource.password", pg::getPassword);
   }
 
-  @Autowired MockMvc mvc;
-  @Autowired ObjectMapper mapper;
+  @Autowired
+  MockMvc mvc;
+  @Autowired
+  ObjectMapper mapper;
+  @Autowired
+  JdbcTemplate jdbc;
 
   // ================================================================
   // Shared state across ordered tests
@@ -82,15 +94,14 @@ class AscriptionResourceIT {
   @Test
   @Order(1)
   void listSeedArchetypes_returns8Active() throws Exception {
-    MvcResult result =
-        mvc.perform(
-                get("/api/v1/ascriptions")
-                    .param("type", "archetype")
-                    .param("status", "ACTIVE")
-                    .param("size", "20"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
-            .andReturn();
+    MvcResult result = mvc.perform(
+        get("/api/v1/ascriptions")
+            .param("type", "archetype")
+            .param("status", "ACTIVE")
+            .param("size", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     JsonNode items = body.at("/_embedded/ascriptions");
@@ -138,39 +149,66 @@ class AscriptionResourceIT {
   // ================================================================
 
   @Test
+  @Order(9)
+  void createWithAuthoredApplicabilityReferences_rejected() throws Exception {
+    ObjectNode statement = mapper.createObjectNode();
+    statement.put("type", "object");
+    statement.put("$id", "gsmarc://test/MetadataInjection/v1");
+    statement.put("title", "MetadataInjection");
+    statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
+
+    ObjectNode request = mapper.createObjectNode();
+    request.put("archetypeUri", ARCHETYPE_ID);
+    request.set("statement", statement);
+    request.putArray("applicabilityReferences").add("gsmarc://tenant/Injected/v1");
+
+    mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   @Order(10)
   void createArchetype_returnsDraftWithHalLinks() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("type", "object");
+    statement.put("$id", "gsmarc://test/TestArchetype/v1");
     statement.put("title", "TestArchetype");
     statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
 
     ObjectNode request = mapper.createObjectNode();
-    request.put("archetypeId", seedArchetypeId.toString());
+    request.put("archetypeUri", ARCHETYPE_ID);
     request.set("statement", statement);
 
-    MvcResult result =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(header().exists("Location"))
-            .andExpect(jsonPath("$.status", is("DRAFT")))
-            .andExpect(jsonPath("$.id").exists())
-            .andExpect(jsonPath("$.statement.title", is("TestArchetype")))
-            .andExpect(jsonPath("$._links.self.href").exists())
-            .andExpect(jsonPath("$._links.collection.href").exists())
-            .andExpect(jsonPath("$._links.type.href").exists())
-            .andExpect(jsonPath("$._links.describedby.href").exists())
-            .andExpect(jsonPath("$._links.create-form.href").exists())
-            .andReturn();
+    MvcResult result = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(header().exists("Location"))
+        .andExpect(jsonPath("$.status", is("DRAFT")))
+        .andExpect(jsonPath("$.id").exists())
+        .andExpect(jsonPath("$.statement.title", is("TestArchetype")))
+        .andExpect(jsonPath("$._links.self.href").exists())
+        .andExpect(jsonPath("$._links.collection.href").exists())
+        .andExpect(jsonPath("$._links.type.href").exists())
+        .andExpect(jsonPath("$._links.describedby.href").exists())
+        .andExpect(jsonPath("$._links.create-form.href").exists())
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     createdArchetypeId = UUID.fromString(body.get("id").asText());
     String collectionHref = body.at("/_links/collection/href").asText();
     String[] segments = collectionHref.split("/");
     createdArchetypeDefinitionId = UUID.fromString(segments[segments.length - 2]);
+    assertEquals(
+        createdArchetypeDefinitionId,
+        jdbc.queryForObject(
+            "SELECT definition_id FROM archetype_stem_owner WHERE stem = ?",
+            UUID.class,
+            "gsmarc://test/TestArchetype"));
 
     // Verify HAL link hrefs point to the correct resources
     mvc.perform(get("/api/v1/ascriptions/{id}", createdArchetypeId))
@@ -192,30 +230,51 @@ class AscriptionResourceIT {
   void createSiblingAscription_sameDefinitionDifferentAscription() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("type", "object");
+    statement.put("$id", "gsmarc://test/TestArchetype/v2");
     statement.put("title", "TestArchetype"); // same title — identity-bound
     statement.put("description", "Revised schema"); // differ on non-identity field
     statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
 
     ObjectNode request = mapper.createObjectNode();
     request.put("definitionId", createdArchetypeDefinitionId.toString());
-    request.put("archetypeId", seedArchetypeId.toString());
+    request.put("archetypeUri", ARCHETYPE_ID);
     request.set("statement", statement);
 
-    MvcResult result =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(
-                jsonPath(
-                    "$._links.collection.href",
-                    endsWith("/definitions/" + createdArchetypeDefinitionId + "/ascriptions")))
-            .andExpect(jsonPath("$.id", not(is(createdArchetypeId.toString()))))
-            .andReturn();
+    MvcResult result = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(
+            jsonPath(
+                "$._links.collection.href",
+                endsWith("/definitions/" + createdArchetypeDefinitionId + "/ascriptions")))
+        .andExpect(jsonPath("$.id", not(is(createdArchetypeId.toString()))))
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     siblingArchetypeId = UUID.fromString(body.get("id").asText());
+  }
+
+  @Test
+  @Order(12)
+  void createArchetype_sameStemDifferentDefinition_returnsConflict() throws Exception {
+    ObjectNode statement = mapper.createObjectNode();
+    statement.put("type", "object");
+    statement.put("$id", "gsmarc://test/TestArchetype/v2");
+    statement.put("title", "TestArchetype");
+    statement.put("$schema", "https://json-schema.org/draft/2020-12/schema");
+
+    ObjectNode request = mapper.createObjectNode();
+    request.put("archetypeUri", ARCHETYPE_ID);
+    request.set("statement", statement);
+
+    mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.rule", is("ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS")));
   }
 
   // ================================================================
@@ -252,21 +311,20 @@ class AscriptionResourceIT {
     statement.put("purpose", "test-payment-processing");
 
     ObjectNode request = mapper.createObjectNode();
-    request.put("archetypeId", structureArchetypeId.toString());
+    request.put("archetypeUri", STRUCTURE_ID);
     request.set("statement", statement);
 
-    MvcResult result =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$._links.collection.href").exists())
-            .andExpect(jsonPath("$._links.type.href").exists())
-            .andExpect(jsonPath("$._links.describedby.href").exists())
-            .andExpect(jsonPath("$.status", is("DRAFT")))
-            .andExpect(jsonPath("$.statement.purpose", is("test-payment-processing")))
-            .andReturn();
+    MvcResult result = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$._links.collection.href").exists())
+        .andExpect(jsonPath("$._links.type.href").exists())
+        .andExpect(jsonPath("$._links.describedby.href").exists())
+        .andExpect(jsonPath("$.status", is("DRAFT")))
+        .andExpect(jsonPath("$.statement.purpose", is("test-payment-processing")))
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     createdStructureId = UUID.fromString(body.get("id").asText());
@@ -291,24 +349,28 @@ class AscriptionResourceIT {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "PaymentValidation");
     statement.put(
-        "rule", "sys.receive(\"PaymentRequest\")\nsys.effect(\"PaymentResult\", {\"ok\": True})");
+        "rule",
+        "sys.receive(\""
+            + STRUCTURE_ID
+            + "\")\nsys.effect(\""
+            + MECHANISM_ID
+            + "\", {\"ok\": True})");
     statement.put("structure", createdStructureId.toString());
 
     ObjectNode request = mapper.createObjectNode();
-    request.put("archetypeId", mechanismArchetypeId.toString());
+    request.put("archetypeUri", MECHANISM_ID);
     request.set("statement", statement);
 
-    MvcResult result =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$._links.collection.href").exists())
-            .andExpect(jsonPath("$._links.type.href").exists())
-            .andExpect(jsonPath("$._links.describedby.href").exists())
-            .andExpect(jsonPath("$.statement.function", is("PaymentValidation")))
-            .andReturn();
+    MvcResult result = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$._links.collection.href").exists())
+        .andExpect(jsonPath("$._links.type.href").exists())
+        .andExpect(jsonPath("$._links.describedby.href").exists())
+        .andExpect(jsonPath("$.statement.function", is("PaymentValidation")))
+        .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     createdMechanismId = UUID.fromString(body.get("id").asText());
@@ -328,17 +390,18 @@ class AscriptionResourceIT {
   void createMechanism_missingStructureInStatement_returns400() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
-    statement.put("rule", "sys.receive(\"X\")\nsys.effect(\"Y\", {})");
+    statement.put(
+        "rule", "sys.receive(\"" + STRUCTURE_ID + "\")\nsys.effect(\"" + MECHANISM_ID + "\", {})");
     // structure intentionally omitted from statement
 
     ObjectNode request = mapper.createObjectNode();
-    request.put("archetypeId", mechanismArchetypeId.toString());
+    request.put("archetypeUri", MECHANISM_ID);
     request.set("statement", statement);
 
     mvc.perform(
-            post("/api/v1/ascriptions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(request)))
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
   }
 
@@ -347,17 +410,18 @@ class AscriptionResourceIT {
   void createMechanism_bogusStructureInStatement_returns400() throws Exception {
     ObjectNode statement = mapper.createObjectNode();
     statement.put("function", "Orphan");
-    statement.put("rule", "sys.receive(\"X\")\nsys.effect(\"Y\", {})");
+    statement.put(
+        "rule", "sys.receive(\"" + STRUCTURE_ID + "\")\nsys.effect(\"" + MECHANISM_ID + "\", {})");
     statement.put("structure", UUID.randomUUID().toString());
 
     ObjectNode request = mapper.createObjectNode();
-    request.put("archetypeId", mechanismArchetypeId.toString());
+    request.put("archetypeUri", MECHANISM_ID);
     request.set("statement", statement);
 
     mvc.perform(
-            post("/api/v1/ascriptions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(request)))
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
         .andExpect(status().isNotFound());
   }
 
@@ -369,10 +433,10 @@ class AscriptionResourceIT {
   @Order(60)
   void listWithPagination_returnsPageMetadata() throws Exception {
     mvc.perform(
-            get("/api/v1/ascriptions")
-                .param("type", "archetype")
-                .param("page", "0")
-                .param("size", "5"))
+        get("/api/v1/ascriptions")
+            .param("type", "archetype")
+            .param("page", "0")
+            .param("size", "5"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.page.size", is(5)))
         .andExpect(jsonPath("$.page.number", is(0)))
@@ -402,18 +466,18 @@ class AscriptionResourceIT {
   @Order(100)
   void queryFilter_statementFilterWithoutArchetype_returns400() throws Exception {
     mvc.perform(
-            get("/api/v1/ascriptions").param("type", "structure").param("statement.purpose", "foo"))
+        get("/api/v1/ascriptions").param("type", "structure").param("statement.purpose", "foo"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.detail", containsString("archetype")));
   }
 
   @Test
   @Order(101)
-  void queryFilter_unknownArchetypeTitle_returns400() throws Exception {
+  void queryFilter_unknownArchetypeUri_returns400() throws Exception {
     mvc.perform(
-            get("/api/v1/ascriptions")
-                .param("type", "structure")
-                .param("archetype", "NonExistentArchetype"))
+        get("/api/v1/ascriptions")
+            .param("type", "structure")
+            .param("archetype", "gsmarc://tenant/NonExistentArchetype/v1"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.detail", containsString("NonExistentArchetype")));
   }
@@ -422,24 +486,38 @@ class AscriptionResourceIT {
   @Order(102)
   void queryFilter_nonQueryableProperty_returns400() throws Exception {
     mvc.perform(
-            get("/api/v1/ascriptions")
-                .param("type", "mechanism")
-                .param("archetype", "Mechanism")
-                .param("statement.rule", "foo"))
+        get("/api/v1/ascriptions")
+            .param("type", "mechanism")
+            .param("archetype", MECHANISM_ID)
+            .param("statement.rule", "foo"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.detail", containsString("$gsm:queryable")));
   }
 
   @Test
   @Order(103)
-  void queryFilter_archetypeByTitle_returnsFiltered() throws Exception {
+  void queryFilter_archetypeByTypingUri_returnsFiltered() throws Exception {
     mvc.perform(
-            get("/api/v1/ascriptions")
-                .param("type", "archetype")
-                .param("archetype", "Archetype")
-                .param("size", "20"))
+        get("/api/v1/ascriptions")
+            .param("type", "archetype")
+            .param("archetype", ARCHETYPE_ID)
+            .param("size", "20"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$._embedded.ascriptions", hasSize(greaterThanOrEqualTo(8))));
+  }
+
+  @Test
+  @Order(104)
+  void queryFilter_archetypeByStatementIdAndTitle_returnsExactMatch() throws Exception {
+    mvc.perform(
+        get("/api/v1/ascriptions")
+            .param("type", "archetype")
+            .param("statement.$id", ARCHETYPE_ID)
+            .param("statement.title", "Archetype"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page.totalElements", is(1)))
+        .andExpect(jsonPath("$._embedded.ascriptions[0].statement.$id", is(ARCHETYPE_ID)))
+        .andExpect(jsonPath("$._embedded.ascriptions[0].statement.title", is("Archetype")));
   }
 
   // ================================================================
@@ -453,18 +531,16 @@ class AscriptionResourceIT {
     // Structure archetype
     ObjectNode stmt = mapper.createObjectNode().put("purpose", "schema-endpoint-test");
     ObjectNode req = mapper.createObjectNode();
-    req.put("archetypeId", structureArchetypeId.toString());
+    req.put("archetypeUri", STRUCTURE_ID);
     req.set("statement", stmt);
 
-    MvcResult r =
-        mvc.perform(
-                post("/api/v1/ascriptions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(req)))
-            .andExpect(status().isCreated())
-            .andReturn();
-    UUID ascId =
-        UUID.fromString(mapper.readTree(r.getResponse().getContentAsString()).get("id").asText());
+    MvcResult r = mvc.perform(
+        post("/api/v1/ascriptions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(req)))
+        .andExpect(status().isCreated())
+        .andReturn();
+    UUID ascId = UUID.fromString(mapper.readTree(r.getResponse().getContentAsString()).get("id").asText());
 
     // The composed schema inlines the typing archetype's schema as the statement
     // property.

@@ -19,8 +19,11 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Directive ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link DirectiveEntity} ascriptions including Directive
- * consistency validation (verb/modal contradiction detection) and governing cascade from owning
+ * <p>
+ * Manages lifecycle and persistence of {@link DirectiveEntity} ascriptions
+ * including Directive
+ * consistency validation (verb/modal contradiction detection) and governing
+ * cascade from owning
  * Structure.
  *
  * @author Clément Cazaud
@@ -55,19 +58,14 @@ public class DirectiveService implements AscriptionSubtypeService<DirectiveEntit
   @Override
   public DirectiveEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID structureId =
-        AscriptionParsingService.extractRequiredUuid(
-            statement,
-            "structure",
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
+    UUID structureId = AscriptionParsingService.extractRequiredUuid(
+        statement,
+        "structure",
+        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
-    UUID qualifierId =
-        AscriptionParsingService.extractRequiredUuid(
-            statement,
-            "qualifier",
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
-    ArchetypeEntity qualifier = archetypeService.findEntityById(qualifierId);
+    String qualifierUri = statement.path("qualifier").asText(null);
+    ArchetypeEntity qualifier = archetypeService.resolveArchetypeUri(qualifierUri, "qualifier");
 
     return new DirectiveEntity(definition, archetypeRef, statement, structure, qualifier);
   }

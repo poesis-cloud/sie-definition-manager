@@ -30,8 +30,7 @@ class AscriptionIdentityBoundValidationServiceTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @SuppressWarnings("unchecked")
-  private final AscriptionSubtypeService<AscriptionEntity> handler =
-      mock(AscriptionSubtypeService.class);
+  private final AscriptionSubtypeService<AscriptionEntity> handler = mock(AscriptionSubtypeService.class);
 
   private AscriptionIdentityBoundValidationService service;
 
@@ -108,9 +107,8 @@ class AscriptionIdentityBoundValidationServiceTest {
       when(handler.getIdentityBoundValues(existing)).thenReturn(Map.of("purpose", "old-val"));
       when(handler.findAllByDefinitionId(defId)).thenReturn(List.of(existing));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validate(handler, entity, archetype));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class, () -> service.validate(handler, entity, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());
@@ -124,6 +122,36 @@ class AscriptionIdentityBoundValidationServiceTest {
 
   @Nested
   class AnnotationDeclared {
+
+    @Test
+    void handlerNormalizedField_skipsRawCrossVersionComparison() {
+      UUID defId = UUID.randomUUID();
+      UUID archetypeDefId = UUID.randomUUID();
+      DefinitionEntity definition = mock(DefinitionEntity.class);
+      when(definition.getId()).thenReturn(defId);
+
+      ObjectNode archetypeSchema = MAPPER.createObjectNode();
+      archetypeSchema
+          .putObject("properties")
+          .putObject("archetype")
+          .put("type", "string")
+          .put("$gsm:identityBound", true);
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(archetypeSchema);
+
+      AscriptionEntity entity = mock(AscriptionEntity.class);
+      when(entity.getDefinition()).thenReturn(definition);
+      when(entity.getStatement())
+          .thenReturn(MAPPER.createObjectNode().put("archetype", "gsmarc://tenant/Data/v2"));
+
+      AscriptionEntity existing = mock(AscriptionEntity.class);
+      when(handler.getIdentityBoundValues(entity)).thenReturn(Map.of("archetype", archetypeDefId));
+      when(handler.getIdentityBoundValues(existing))
+          .thenReturn(Map.of("archetype", archetypeDefId));
+      when(handler.findAllByDefinitionId(defId)).thenReturn(List.of(existing));
+
+      assertDoesNotThrow(() -> service.validate(handler, entity, archetype));
+    }
 
     @Test
     void changed_annotatedProperty_throws() {
@@ -149,9 +177,8 @@ class AscriptionIdentityBoundValidationServiceTest {
       when(existing.getStatement()).thenReturn(existingStmt);
       when(handler.findAllByDefinitionId(defId)).thenReturn(List.of(existing));
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class, () -> service.validate(handler, entity, archetype));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class, () -> service.validate(handler, entity, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());

@@ -2,6 +2,7 @@ package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -33,7 +34,8 @@ class ArchetypePropertyIndexationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private JdbcTemplate jdbcTemplate;
+  @Mock
+  private JdbcTemplate jdbcTemplate;
 
   private ArchetypePropertyIndexationService service;
 
@@ -62,6 +64,7 @@ class ArchetypePropertyIndexationServiceTest {
       assertTrue(ddl.contains("idx_gsm_q_"), ddl);
       assertTrue(ddl.contains("statement->>'env'"), ddl);
       assertTrue(ddl.contains("ON structure"), ddl);
+      assertTrue(ddl.contains("archetype_id = '" + entity.getId() + "'"), ddl);
     }
 
     @Test
@@ -84,7 +87,10 @@ class ArchetypePropertyIndexationServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       when(def.getId()).thenReturn(defId);
 
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "TestArch");
+      ObjectNode stmt = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/TestArch/v1")
+          .put("title", "TestArch");
       ObjectNode props = stmt.putObject("properties");
       ObjectNode envProp = props.putObject("env");
       envProp.put("type", "string");
@@ -92,6 +98,7 @@ class ArchetypePropertyIndexationServiceTest {
       envProp.put("$gsm:unique", true);
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getId()).thenReturn(UUID.randomUUID());
       when(entity.getStatement()).thenReturn(stmt);
       when(entity.getDefinition()).thenReturn(def);
 
@@ -106,7 +113,10 @@ class ArchetypePropertyIndexationServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       when(def.getId()).thenReturn(defId);
 
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "TestArch");
+      ObjectNode stmt = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/TestArch/v1")
+          .put("title", "TestArch");
       ObjectNode props = stmt.putObject("properties");
       ObjectNode tagsProp = props.putObject("tags");
       tagsProp.put("type", "array");
@@ -114,6 +124,7 @@ class ArchetypePropertyIndexationServiceTest {
       tagsProp.put("$gsm:queryable", true);
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getId()).thenReturn(UUID.randomUUID());
       when(entity.getStatement()).thenReturn(stmt);
       when(entity.getDefinition()).thenReturn(def);
 
@@ -155,24 +166,38 @@ class ArchetypePropertyIndexationServiceTest {
     }
 
     @Test
-    void usesSchemaTitle_notId() {
-      UUID defId = UUID.randomUUID();
-      DefinitionEntity def = mock(DefinitionEntity.class);
-      when(def.getId()).thenReturn(defId);
+    void sameTitleAcrossNamespaceStems_producesDistinctIndexNames() {
+      ArchetypeEntity first = archetypeWithQueryableProps(
+          "SharedTitle", "gsmarc://tenant-a/domain/SharedTitle/v1", "x", "string");
+      ArchetypeEntity second = archetypeWithQueryableProps(
+          "SharedTitle", "gsmarc://tenant-b/domain/SharedTitle/v1", "x", "string");
 
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", "MyCustomArchetype");
-      ObjectNode props = stmt.putObject("properties");
-      props.putObject("x").put("type", "string").put("$gsm:queryable", true);
-
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(stmt);
-      when(entity.getDefinition()).thenReturn(def);
-
-      service.provisionIndexes(entity, () -> "structure");
+      service.provisionIndexes(first, () -> "structure");
+      service.provisionIndexes(second, () -> "structure");
 
       ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(jdbcTemplate).execute(captor.capture());
-      assertTrue(captor.getValue().contains("mycustomarchetype"), captor.getValue());
+      verify(jdbcTemplate, times(2)).execute(captor.capture());
+      String firstName = captor.getAllValues().get(0).split(" ")[5];
+      String secondName = captor.getAllValues().get(1).split(" ")[5];
+      assertNotEquals(firstName, secondName);
+      assertTrue(firstName.length() <= 63, firstName);
+      assertTrue(secondName.length() <= 63, secondName);
+    }
+
+    @Test
+    void sameStemAcrossVersions_producesDistinctIndexNames() {
+      ArchetypeEntity first = archetypeWithQueryableProps(
+          "Versioned", "gsmarc://tenant/domain/Versioned/v1", "x", "string");
+      ArchetypeEntity second = archetypeWithQueryableProps(
+          "Versioned", "gsmarc://tenant/domain/Versioned/v2", "x", "string");
+
+      service.provisionIndexes(first, () -> "structure");
+      service.provisionIndexes(second, () -> "structure");
+
+      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+      verify(jdbcTemplate, times(2)).execute(captor.capture());
+      assertNotEquals(
+          captor.getAllValues().get(0).split(" ")[5], captor.getAllValues().get(1).split(" ")[5]);
     }
   }
 
@@ -261,17 +286,24 @@ class ArchetypePropertyIndexationServiceTest {
 
   private ArchetypeEntity archetypeWithQueryableProps(
       String title, String propName, String propType) {
+    return archetypeWithQueryableProps(
+        title, "gsmarc://tenant/" + title + "/v1", propName, propType);
+  }
+
+  private ArchetypeEntity archetypeWithQueryableProps(
+      String title, String id, String propName, String propType) {
     UUID defId = UUID.randomUUID();
     DefinitionEntity def = mock(DefinitionEntity.class);
     when(def.getId()).thenReturn(defId);
 
-    ObjectNode stmt = MAPPER.createObjectNode().put("title", title);
+    ObjectNode stmt = MAPPER.createObjectNode().put("$id", id).put("title", title);
     ObjectNode props = stmt.putObject("properties");
     ObjectNode propNode = props.putObject(propName);
     propNode.put("type", propType);
     propNode.put("$gsm:queryable", true);
 
     ArchetypeEntity entity = mock(ArchetypeEntity.class);
+    when(entity.getId()).thenReturn(UUID.randomUUID());
     when(entity.getStatement()).thenReturn(stmt);
     when(entity.getDefinition()).thenReturn(def);
 
@@ -283,13 +315,17 @@ class ArchetypePropertyIndexationServiceTest {
     DefinitionEntity def = mock(DefinitionEntity.class);
     when(def.getId()).thenReturn(defId);
 
-    ObjectNode stmt = MAPPER.createObjectNode().put("title", title);
+    ObjectNode stmt = MAPPER
+        .createObjectNode()
+        .put("$id", "gsmarc://tenant/" + title + "/v1")
+        .put("title", title);
     ObjectNode props = stmt.putObject("properties");
     ObjectNode propNode = props.putObject(propName);
     propNode.put("type", propType);
     propNode.put("$gsm:unique", true);
 
     ArchetypeEntity entity = mock(ArchetypeEntity.class);
+    when(entity.getId()).thenReturn(UUID.randomUUID());
     when(entity.getStatement()).thenReturn(stmt);
     when(entity.getDefinition()).thenReturn(def);
 

@@ -14,11 +14,15 @@ import org.springframework.stereotype.Service;
 /**
  * Validates identity-bound invariants for ascription entities.
  *
- * <p>Enforces that identity-bound fields (both handler-declared entity-level fields and {@code
- * $gsm:identityBound}-annotated statement properties) remain constant across all ascriptions within
+ * <p>
+ * Enforces that identity-bound fields (both handler-declared entity-level
+ * fields and {@code
+ * $gsm:identityBound}-annotated statement properties) remain constant across
+ * all ascriptions within
  * the same definition.
  *
- * <p>Consumed by {@link AscriptionService}.
+ * <p>
+ * Consumed by {@link AscriptionService}.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -29,23 +33,33 @@ class AscriptionIdentityBoundValidationService {
   /**
    * Validates identity-bound invariant for a new ascription entity.
    *
-   * <p>Checks both handler-declared (entity-level) and annotation-declared ({@code
-   * $gsm:identityBound}) fields against existing ascriptions in the same definition.
+   * <p>
+   * Checks both handler-declared (entity-level) and annotation-declared ({@code
+   * $gsm:identityBound}) fields against existing ascriptions in the same
+   * definition.
    *
-   * @param handler the subtype handler providing identity-bound field declarations
-   * @param entity the new ascription entity being created
-   * @param archetype the typing archetype (schema source for annotation discovery)
-   * @param <T> the concrete ascription entity type
+   * @param handler   the subtype handler providing identity-bound field
+   *                  declarations
+   * @param entity    the new ascription entity being created
+   * @param archetype the typing archetype (schema source for annotation
+   *                  discovery)
+   * @param <T>       the concrete ascription entity type
    * @throws RuleViolationException with {@link
-   *     AscriptionConsistencyRuleType#ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION} if any
-   *     identity-bound field changed
+   *                                AscriptionConsistencyRuleType#ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION}
+   *                                if any
+   *                                identity-bound field changed
    */
   <T extends AscriptionEntity> void validate(
       AscriptionSubtypeService<T> handler, T entity, ArchetypeEntity archetype) {
     UUID definitionId = entity.getDefinition().getId();
-    validateHandlerDeclared(handler, entity, definitionId);
+    Map<String, Object> normalizedValues = handler.getIdentityBoundValues(entity);
+    validateHandlerDeclared(handler, normalizedValues, definitionId);
     validateAnnotationDeclared(
-        entity.getStatement(), archetype, definitionId, handler::findAllByDefinitionId);
+        entity.getStatement(),
+        archetype,
+        definitionId,
+        normalizedValues.keySet(),
+        handler::findAllByDefinitionId);
   }
 
   // ======================================================================
@@ -53,8 +67,7 @@ class AscriptionIdentityBoundValidationService {
   // ======================================================================
 
   private <T extends AscriptionEntity> void validateHandlerDeclared(
-      AscriptionSubtypeService<T> handler, T entity, UUID definitionId) {
-    Map<String, Object> newValues = handler.getIdentityBoundValues(entity);
+      AscriptionSubtypeService<T> handler, Map<String, Object> newValues, UUID definitionId) {
     if (newValues.isEmpty()) {
       return;
     }
@@ -99,6 +112,7 @@ class AscriptionIdentityBoundValidationService {
       JsonNode statement,
       ArchetypeEntity archetype,
       UUID definitionId,
+      java.util.Set<String> normalizedFields,
       java.util.function.Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
     JsonNode archetypeStmt = archetype.getStatement();
     if (archetypeStmt == null) {
@@ -116,6 +130,9 @@ class AscriptionIdentityBoundValidationService {
       JsonNode propSchema = entry.getValue();
 
       if (!ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:identityBound")) {
+        continue;
+      }
+      if (normalizedFields.contains(propName)) {
         continue;
       }
       if (!statement.has(propName)) {

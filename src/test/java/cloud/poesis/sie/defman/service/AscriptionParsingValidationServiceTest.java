@@ -2,9 +2,9 @@ package cloud.poesis.sie.defman.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,13 +35,35 @@ class AscriptionParsingValidationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ArchetypeParsingService archetypeSchemaService;
+  @Test
+  void gsmBaseSchemaMapping_requiresExactSeedIdentity() {
+    for (String title : DefinitionSubjectType.archetypeTitles()) {
+      String id = "gsmarc://gsm/" + title + "/v1";
+      assertEquals(
+          "classpath:gsm/schemas/" + title + ".schema.json",
+          AscriptionParsingValidationService.gsmBaseSchemaLocation(id));
+      assertTrue(ArchetypeParsingService.isGsmBaseId(id));
+    }
+    assertNull(
+        AscriptionParsingValidationService.gsmBaseSchemaLocation("gsmarc://gsm/Structure/v99"));
+    assertNull(
+        AscriptionParsingValidationService.gsmBaseSchemaLocation("gsmarc://gsm/x/Structure/v1"));
+    assertNull(
+        AscriptionParsingValidationService.gsmBaseSchemaLocation("gsmarc://tenant/Structure/v1"));
+    assertTrue(!ArchetypeParsingService.isGsmBaseId("gsmarc://gsm/Structure/v99"));
+    assertTrue(!ArchetypeParsingService.isGsmBaseId("gsmarc://gsm/x/Structure/v1"));
+    assertTrue(!ArchetypeParsingService.isGsmBaseId("gsmarc://tenant/Structure/v1"));
+  }
+
+  @Mock
+  private ArchetypeParsingService archetypeSchemaService;
 
   private AscriptionParsingValidationService svc;
 
   @BeforeEach
   void setUp() {
-    svc = new AscriptionParsingValidationService(archetypeSchemaService);
+    svc = new AscriptionParsingValidationService(
+        archetypeSchemaService, new JsonSchemaPositionWalker());
   }
 
   // ========================================================================
@@ -78,10 +100,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -99,10 +120,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("count", "not-a-number");
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -111,7 +131,9 @@ class AscriptionParsingValidationServiceTest {
 
     @Test
     void tenantArchetypeRef_resolvedFromDb() {
+      String tenantId = "gsmarc://gsm/CustomTenantArchetype/v1";
       ObjectNode tenantSchema = MAPPER.createObjectNode();
+      tenantSchema.put("$id", tenantId);
       tenantSchema.put("title", "CustomTenantArchetype");
       tenantSchema.put("type", "object");
       tenantSchema.putObject("properties").putObject("label").put("type", "string");
@@ -120,14 +142,14 @@ class AscriptionParsingValidationServiceTest {
       when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
       when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
 
-      when(archetypeSchemaService.findResolvableByTitle("CustomTenantArchetype"))
+      when(archetypeSchemaService.findResolvableByUri(tenantId))
           .thenReturn(Optional.of(tenantArchetype));
 
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "CompositeTenant");
       schema.put("type", "object");
       var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsmarc://gsm/CustomTenantArchetype/v1");
+      allOf.addObject().put("$ref", tenantId);
       var local = allOf.addObject();
       local.put("type", "object");
       local.putObject("properties").putObject("extra").put("type", "integer");
@@ -137,11 +159,14 @@ class AscriptionParsingValidationServiceTest {
 
       assertDoesNotThrow(
           () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      verify(archetypeSchemaService).findResolvableByUri(tenantId);
     }
 
     @Test
-    void draftTenantArchetypeRef_resolvedFromDb() {
+    void draftTenantArchetypeRef_isNotResolvable() {
+      String candidateId = "gsmarc://gsm/DraftTenantArchetype/v1";
       ObjectNode tenantSchema = MAPPER.createObjectNode();
+      tenantSchema.put("$id", candidateId);
       tenantSchema.put("title", "DraftTenantArchetype");
       tenantSchema.put("type", "object");
       tenantSchema.putObject("properties").putObject("name").put("type", "string");
@@ -151,14 +176,13 @@ class AscriptionParsingValidationServiceTest {
       when(tenantArchetype.getStatement()).thenReturn(tenantSchema);
       when(tenantArchetype.getStatus()).thenReturn(AscriptionStatusType.DRAFT);
 
-      when(archetypeSchemaService.findResolvableByTitle("DraftTenantArchetype"))
-          .thenReturn(Optional.of(tenantArchetype));
+      when(archetypeSchemaService.findResolvableByUri(candidateId)).thenReturn(Optional.empty());
 
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("title", "CompositeWithDraft");
       schema.put("type", "object");
       var allOf = schema.putArray("allOf");
-      allOf.addObject().put("$ref", "gsmarc://gsm/DraftTenantArchetype/v1");
+      allOf.addObject().put("$ref", candidateId);
       var local = allOf.addObject();
       local.put("type", "object");
       local.putObject("properties").putObject("extra").put("type", "integer");
@@ -166,8 +190,37 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("name", "test").put("extra", 7);
 
-      assertDoesNotThrow(
+      RuleViolationException exception = assertThrows(
+          RuleViolationException.class,
           () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
+      verify(archetypeSchemaService).findResolvableByUri(candidateId);
+    }
+
+    @Test
+    void refsInsideDataValuedKeywords_areNotResolvedAsSchemaReferences() {
+      String defaultValue = "gsmarc://tenant/MissingDefaultValue/v1";
+      String constValue = "gsmarc://tenant/MissingConstValue/v1";
+      String enumValue = "gsmarc://tenant/MissingEnumValue/v1";
+      String exampleValue = "gsmarc://tenant/MissingExampleValue/v1";
+      ObjectNode schema = MAPPER.createObjectNode();
+      schema.put("type", "object");
+      ObjectNode payload = schema.putObject("properties").putObject("payload");
+      payload.put("type", "object");
+      payload.putObject("default").put("$ref", defaultValue);
+      payload.set("const", MAPPER.createObjectNode().put("$ref", constValue));
+      payload.putArray("enum").addObject().put("$ref", enumValue);
+      payload.putArray("examples").addObject().put("$ref", exampleValue);
+
+      ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
+
+      assertDoesNotThrow(
+          () -> svc.validateStatement(
+              MAPPER.createObjectNode(), archetype, DefinitionSubjectType.STRUCTURE));
+      verify(archetypeSchemaService, never()).findResolvableByUri(defaultValue);
+      verify(archetypeSchemaService, never()).findResolvableByUri(constValue);
+      verify(archetypeSchemaService, never()).findResolvableByUri(enumValue);
+      verify(archetypeSchemaService, never()).findResolvableByUri(exampleValue);
     }
 
     @Test
@@ -182,7 +235,6 @@ class AscriptionParsingValidationServiceTest {
 
       assertDoesNotThrow(
           () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
-      verify(archetypeSchemaService, never()).findInEffectByTitle(any());
     }
   }
 
@@ -204,10 +256,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -226,10 +277,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("purpose", "demo");
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -247,10 +297,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.ARCHETYPE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.ARCHETYPE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -273,7 +322,6 @@ class AscriptionParsingValidationServiceTest {
       // No tenant $ref → should return without hitting DB
       var factory = svc.buildSchemaFactory(schema);
       assertTrue(factory != null);
-      verify(archetypeSchemaService, never()).findInEffectByTitle(any());
     }
   }
 
@@ -282,17 +330,22 @@ class AscriptionParsingValidationServiceTest {
   // ========================================================================
 
   /**
-   * Closure is applied by DM at validation time, on a schema object that applies the whole resolved
-   * chain. These tests pin the behaviour a base-level {@code unevaluatedProperties} could not
+   * Closure is applied by DM at validation time, on a schema object that applies
+   * the whole resolved
+   * chain. These tests pin the behaviour a base-level
+   * {@code unevaluatedProperties} could not
    * provide: extension properties are accepted, undeclared properties are not.
    */
   @Nested
   class StatementClosure {
 
-    /** Mirrors the ITIP shape: a typing archetype extending a GSM base with domain properties. */
+    /**
+     * Mirrors the ITIP shape: a typing archetype extending a GSM base with domain
+     * properties.
+     */
     private ObjectNode sourcedDirectiveSchema() {
       ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("$id", "gsmarc://gsm-frameworks/SourcedDirective/v1");
+      schema.put("$id", "gsmarc://gsm-ontology/SourcedDirective/v1");
       schema.put("title", "SourcedDirective");
       schema.put("type", "object");
       schema.put("$ref", "gsmarc://gsm/Directive/v1");
@@ -308,7 +361,7 @@ class AscriptionParsingValidationServiceTest {
       statement.put("structure", "019cc49a-dc59-7fef-9b0c-b3f100044603");
       statement.put("modal", "MUST");
       statement.put("verb", "ENSURE");
-      statement.put("qualifier", "019cc49a-dc5a-7670-9ccb-5e161985340b");
+      statement.put("qualifier", "gsmarc://tenant/SecurityProperties/v1");
       statement.put("purpose", "payment-processing");
       statement.put("source", "GDPR Article 5");
       return statement;
@@ -319,9 +372,8 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(sourcedDirectiveSchema());
 
       assertDoesNotThrow(
-          () ->
-              svc.validateStatement(
-                  sourcedDirectiveStatement(), archetype, DefinitionSubjectType.DIRECTIVE));
+          () -> svc.validateStatement(
+              sourcedDirectiveStatement(), archetype, DefinitionSubjectType.DIRECTIVE));
     }
 
     @Test
@@ -329,10 +381,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(sourcedDirectiveSchema());
       ObjectNode statement = sourcedDirectiveStatement().put("bogus", "x");
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
       assertTrue(ex.getMessage().contains("bogus"));
     }
 
@@ -341,10 +392,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(sourcedDirectiveSchema());
       ObjectNode statement = sourcedDirectiveStatement().put("$comment", "leaked");
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
       assertTrue(ex.getMessage().contains("$comment"));
     }
 
@@ -363,18 +413,16 @@ class AscriptionParsingValidationServiceTest {
 
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       assertDoesNotThrow(
-          () ->
-              svc.validateStatement(
-                  MAPPER.createObjectNode().put("name", "ok"),
-                  archetype,
-                  DefinitionSubjectType.STRUCTURE));
+          () -> svc.validateStatement(
+              MAPPER.createObjectNode().put("name", "ok"),
+              archetype,
+              DefinitionSubjectType.STRUCTURE));
       assertThrows(
           RuleViolationException.class,
-          () ->
-              svc.validateStatement(
-                  MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
-                  archetype,
-                  DefinitionSubjectType.STRUCTURE));
+          () -> svc.validateStatement(
+              MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
+              archetype,
+              DefinitionSubjectType.STRUCTURE));
     }
 
     @Test
@@ -403,11 +451,10 @@ class AscriptionParsingValidationServiceTest {
 
       assertThrows(
           RuleViolationException.class,
-          () ->
-              svc.validateStatement(
-                  MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
-                  archetype,
-                  DefinitionSubjectType.STRUCTURE));
+          () -> svc.validateStatement(
+              MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
+              archetype,
+              DefinitionSubjectType.STRUCTURE));
     }
 
     @Test
@@ -417,9 +464,8 @@ class AscriptionParsingValidationServiceTest {
       schema.put("type", "object");
       ObjectNode original = schema.deepCopy();
 
-      var closed =
-          AscriptionParsingValidationService.applyStatementClosure(
-              schema, DefinitionSubjectType.STRUCTURE);
+      var closed = AscriptionParsingValidationService.applyStatementClosure(
+          schema, DefinitionSubjectType.STRUCTURE);
 
       assertEquals(false, closed.get("unevaluatedProperties").booleanValue());
       assertEquals("Open", closed.get("title").asText());
@@ -427,8 +473,10 @@ class AscriptionParsingValidationServiceTest {
     }
 
     /**
-     * An Archetype statement is itself a JSON Schema, and the sealed Archetype meta-schema is
-     * deliberately open so tenants may declare vocabulary keywords (e.g. ITIP's {@code framework}).
+     * An Archetype statement is itself a JSON Schema, and the sealed Archetype
+     * meta-schema is
+     * deliberately open so tenants may declare vocabulary keywords (e.g. ITIP's
+     * {@code framework}).
      * Closing it would reject every framework archetype.
      */
     @Test
@@ -463,18 +511,6 @@ class AscriptionParsingValidationServiceTest {
   // ========================================================================
   // Helpers
   // ========================================================================
-
-  private ObjectNode prop(String type) {
-    return MAPPER.createObjectNode().put("type", type);
-  }
-
-  private ObjectNode schemaWithProperty(String propName, ObjectNode propNode) {
-    ObjectNode schema = MAPPER.createObjectNode();
-    schema.put("title", "TestSchema");
-    ObjectNode props = schema.putObject("properties");
-    props.set(propName, propNode);
-    return schema;
-  }
 
   private ArchetypeEntity stubArchetypeWithSchema(ObjectNode schema) {
     ArchetypeEntity archetype = mock(ArchetypeEntity.class);

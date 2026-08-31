@@ -4,7 +4,7 @@
   "$dynamicAnchor": "meta",
   "$gsm:sealed": true,
   "title": "Archetype",
-  "description": "Unified Archetype schema and GSM meta-schema. As the seed Archetype's statement, this schema defines the structure and semantics of ALL Archetype Ascription statements (including itself — autopoietic closure). As a meta-schema, it extends JSON Schema 2020-12 to validate $gsm:* vocabulary keywords at every schema node. DM validates incoming Archetype schemas against this meta-schema at authoring time (first-pass structural gate); semantic checks ($ref chain resolution, allOf facet composition, cross-Definition uniqueness, type-compatibility, mutual exclusion) are DM application-level. The Archetype's identity is carried by title (DM-enforced identity-bound rule: MUST be non-empty, globally unique among in-effect Archetypes, and MUST NOT change across Ascriptions of the same Definition). title is used as the root identifier in Norm CEL applicability expressions. DM assigns $id inside the schema using the convention gsmarc://gsm/{title}/v{version}. Bootstrap: this schema's $schema references JSON Schema 2020-12 (the bootstrap exception, mirroring archetype_id = self at the instance level). Sealed — tenant-defined archetypes MUST NOT extend Archetype.",
+  "description": "Unified Archetype schema and GSM meta-schema. As the seed Archetype's statement, this schema defines the structure and semantics of ALL Archetype Ascription statements (including itself — autopoietic closure). As a meta-schema, it extends JSON Schema 2020-12 to validate $gsm:* vocabulary keywords at every schema node. DM validates incoming Archetype schemas against this meta-schema at authoring time (first-pass structural gate); semantic checks ($id grammar and root exclusivity, $ref chain resolution, allOf facet composition, cross-Definition uniqueness, type-compatibility, mutual exclusion) are DM application-level. The producer authors the Archetype's root $id; DM governs its identity-bound stem, permanent ownership, and lifecycle version claim without rewriting the statement. title is required, identity-bound, namespace-local human-readable metadata and is not a global lookup key. Bootstrap: this schema's $schema references JSON Schema 2020-12 (the bootstrap exception, mirroring archetype_id = self at the instance level). Sealed — tenant-defined archetypes MUST NOT extend Archetype.",
   "$vocabulary": {
     "https://json-schema.org/draft/2020-12/vocab/core": true,
     "https://json-schema.org/draft/2020-12/vocab/applicator": true,
@@ -63,7 +63,7 @@
   "$defs": {
     "Sealed": {
       "const": true,
-      "description": "Top-level schema keyword. Marks an Archetype schema as non-extensible. Tenant-defined Archetypes MUST NOT declare allOf referencing a sealed schema."
+      "description": "Top-level schema keyword. Marks an Archetype schema as non-extensible. Tenant-defined Archetypes MUST NOT reference a sealed schema through either a top-level $ref or allOf facet composition."
     },
     "IdentityBound": {
       "const": true,

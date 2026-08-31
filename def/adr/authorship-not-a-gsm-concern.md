@@ -42,7 +42,7 @@ degradation was the signal, not an inconvenience to design around.
 
 ### It would write a deployment-specific identity architecture into a vendor-neutral standard
 
-GSM is a vendor-neutral standard for defining and governing software-intensive systems.
+GSM is the vendor-neutral standard for defining systems.
 The converged model is OIDC-shaped, IdP-dependent and GDPR-inflected — all deployment
 concerns. Placing it in the eight base archetypes would impose one identity architecture
 on every GSM adopter, including those with different or absent OIDC semantics.

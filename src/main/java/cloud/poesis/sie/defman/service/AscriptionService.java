@@ -7,6 +7,7 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.observability.PayloadLogHelper;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
+import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
@@ -27,6 +28,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.Hibernate;
 import org.slf4j.MDC;
@@ -42,12 +44,18 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Facade for all GSM ascription operations.
  *
- * <p>Owns the 10-step create template, generic CRUD delegation, cross-subtype lookups on the union
- * ascription table, and shared validation utilities consumed by {@link AscriptionSubtypeService}
+ * <p>
+ * Owns the 10-step create template, generic CRUD delegation, cross-subtype
+ * lookups on the union
+ * ascription table, and shared validation utilities consumed by
+ * {@link AscriptionSubtypeService}
  * implementations.
  *
- * <p>Type-specific logic (entity construction, identity-bound values, lifecycle cascades) is
- * dispatched to the appropriate {@link AscriptionSubtypeService} — one per GSM subject type.
+ * <p>
+ * Type-specific logic (entity construction, identity-bound values, lifecycle
+ * cascades) is
+ * dispatched to the appropriate {@link AscriptionSubtypeService} — one per GSM
+ * subject type.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -55,6 +63,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional("transactionManager")
 public class AscriptionService implements SmartInitializingSingleton {
+  private static final Set<String> ARCHETYPE_SYSTEM_QUERY_PROPERTIES = Set.of("$id", "title");
   private static final String INSTRUMENTATION_SCOPE = "cloud.poesis.sie.defman.observability";
   private static final String CREATE_SPAN_NAME = "gsm.definition.create";
   private static final String TRANSFORM_SPAN_NAME = "gsm.definition.transform";
@@ -147,19 +156,17 @@ public class AscriptionService implements SmartInitializingSingleton {
     this.entityManager = entityManager;
     this.handlerList = List.copyOf(handlerList);
     this.tracer = tracer;
-    this.otelLogger =
-        GlobalOpenTelemetry.get()
-            .getLogsBridge()
-            .loggerBuilder(INSTRUMENTATION_SCOPE)
-            .setInstrumentationVersion("1")
-            .build();
+    this.otelLogger = GlobalOpenTelemetry.get()
+        .getLogsBridge()
+        .loggerBuilder(INSTRUMENTATION_SCOPE)
+        .setInstrumentationVersion("1")
+        .build();
     this.createResultPayloadCapBytes = createResultPayloadCapBytes;
   }
 
   @Override
   public void afterSingletonsInstantiated() {
-    Map<DefinitionSubjectType, AscriptionSubtypeService<?>> map =
-        new EnumMap<>(DefinitionSubjectType.class);
+    Map<DefinitionSubjectType, AscriptionSubtypeService<?>> map = new EnumMap<>(DefinitionSubjectType.class);
     for (AscriptionSubtypeService<?> handler : handlerList) {
       if (map.put(handler.getSubjectType(), handler) != null) {
         throw new IllegalStateException("Duplicate handler for " + handler.getSubjectType());
@@ -180,20 +187,27 @@ public class AscriptionService implements SmartInitializingSingleton {
   /**
    * Creates a new ascription through the GSM template method.
    *
-   * <p>Resolves the archetype from the given ID, derives the subject type, and dispatches to the
+   * <p>
+   * Resolves the archetype from the given ID, derives the subject type, and
+   * dispatches to the
    * appropriate handler via the 10-step create template.
    *
-   * @param archetypeId the UUID of the typing archetype
-   * @param statement the JSON statement payload
-   * @param definitionId optional definition UUID (may be {@code null} for new definitions)
+   * @param archetypeUri the Archetype URI of the typing Archetype
+   * @param statement    the JSON statement payload
+   * @param definitionId optional definition UUID (may be {@code null} for new
+   *                     definitions)
    * @return the persisted ascription entity in DRAFT status
    * @throws ResourceNotFoundException if no archetype exists with the given id
-   * @throws RuleViolationException if validation fails
+   * @throws RuleViolationException    if validation fails
    */
   @Transactional("transactionManager")
-  public AscriptionEntity create(UUID archetypeId, JsonNode statement, UUID definitionId) {
-    ArchetypeService.ArchetypeResolution resolution =
-        archetypeService.resolveForCreation(archetypeId);
+  public AscriptionEntity create(String archetypeUri, JsonNode statement, UUID definitionId) {
+    return createResolved(
+        archetypeService.resolveForCreation(archetypeUri), statement, definitionId);
+  }
+
+  private AscriptionEntity createResolved(
+      ArchetypeService.ArchetypeResolution resolution, JsonNode statement, UUID definitionId) {
     if (definitionId == null) {
       return doCreateWithOperationSpan(
           requireHandler(resolution.subjectType()), resolution.archetype(), statement);
@@ -204,8 +218,7 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   private <T extends AscriptionEntity> T doCreateWithOperationSpan(
       AscriptionSubtypeService<T> handler, ArchetypeEntity archetype, JsonNode statement) {
-    Span createSpan =
-        startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
+    Span createSpan = startDefinitionSpan(CREATE_SPAN_NAME, OPERATION_CREATE, handler.getSubjectType(), null);
 
     try (Scope ignored = createSpan.makeCurrent()) {
       return doCreate(handler, archetype, statement, null, createSpan, OPERATION_CREATE, null);
@@ -222,9 +235,8 @@ public class AscriptionService implements SmartInitializingSingleton {
       ArchetypeEntity archetype,
       JsonNode statement,
       UUID definitionId) {
-    Span transformSpan =
-        startDefinitionSpan(
-            TRANSFORM_SPAN_NAME, OPERATION_TRANSFORM, handler.getSubjectType(), definitionId);
+    Span transformSpan = startDefinitionSpan(
+        TRANSFORM_SPAN_NAME, OPERATION_TRANSFORM, handler.getSubjectType(), definitionId);
     JsonNode priorStatement = (statement == null) ? null : statement.deepCopy();
 
     try (Scope ignored = transformSpan.makeCurrent()) {
@@ -262,6 +274,7 @@ public class AscriptionService implements SmartInitializingSingleton {
     setCreateSpanDefinitionAttributes(definitionSpan, definition.getId(), handler.getSubjectType());
     emitCorrelatedMilestoneLog(
         definitionSpan, operation, EVENT_RESOLVE_DEFINITION, EVENT_OUTCOME_SUCCESS);
+    validateTypingArchetypeIdentity(handler, archetype, definitionId);
 
     addDefinitionEvent(definitionSpan, operation, EVENT_PROTECT_STATEMENT);
     // 3. Apply $gsm:dataProtection (at-rest) transformations on statement
@@ -274,6 +287,9 @@ public class AscriptionService implements SmartInitializingSingleton {
     addDefinitionEvent(definitionSpan, operation, EVENT_VALIDATE_IDENTITY);
     // 5. Validate identity-bound invariant (handler-declared + annotation-declared)
     identityBoundValidation.validate(handler, entity, archetype);
+
+    // 5b. Validate subtype-specific permanent uniqueness constraints.
+    handler.validateCreationUniqueness(entity);
 
     addDefinitionEvent(definitionSpan, operation, EVENT_VALIDATE_UNIQUENESS);
     // 6. Validate $gsm:unique annotation-driven uniqueness
@@ -314,16 +330,42 @@ public class AscriptionService implements SmartInitializingSingleton {
     return saved;
   }
 
+  private <T extends AscriptionEntity> void validateTypingArchetypeIdentity(
+      AscriptionSubtypeService<T> handler, ArchetypeEntity archetype, UUID definitionId) {
+    if (definitionId == null) {
+      return;
+    }
+    List<T> existing = handler.findAllByDefinitionId(definitionId);
+    if (existing.isEmpty()) {
+      return;
+    }
+
+    UUID expectedDefinitionId = existing.getLast().getArchetype().getDefinition().getId();
+    UUID requestedDefinitionId = archetype.getDefinition().getId();
+    if (!expectedDefinitionId.equals(requestedDefinitionId)) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          "Typing Archetype changed to a different Definition",
+          "field",
+          "archetype",
+          "definitionId",
+          definitionId,
+          "expectedValue",
+          expectedDefinitionId,
+          "actualValue",
+          requestedDefinitionId);
+    }
+  }
+
   private Span startDefinitionSpan(
       String spanName, String operation, DefinitionSubjectType definitionKind, UUID definitionId) {
-    Span definitionSpan =
-        tracer
-            .spanBuilder(spanName)
-            .setSpanKind(SpanKind.INTERNAL)
-            .setAttribute(ATTR_OPERATION, operation)
-            .setAttribute(ATTR_DEFINITION_KIND, definitionKind.name())
-            .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
-            .startSpan();
+    Span definitionSpan = tracer
+        .spanBuilder(spanName)
+        .setSpanKind(SpanKind.INTERNAL)
+        .setAttribute(ATTR_OPERATION, operation)
+        .setAttribute(ATTR_DEFINITION_KIND, definitionKind.name())
+        .setAttribute(ATTR_COMPONENT, COMPONENT_DEFINITION_MANAGER)
+        .startSpan();
 
     if (definitionId != null) {
       definitionSpan.setAttribute(ATTR_DEFINITION_ID, definitionId.toString());
@@ -442,19 +484,25 @@ public class AscriptionService implements SmartInitializingSingleton {
   }
 
   /**
-   * Queries ascriptions with optional archetype, status, and statement-property filters.
+   * Queries ascriptions with optional archetype, status, and statement-property
+   * filters.
    *
-   * <p>When {@code archetype} and {@code statementFilters} are both absent, falls back to a simple
-   * status-only or unfiltered query. When statement filters are present, the archetype parameter is
-   * required (throws {@link IllegalArgumentException} if missing); filter keys declared as {@code
-   * $gsm:aliases} resolve to their canonical property, and each resolved key must be annotated
-   * {@code $gsm:queryable} in the archetype schema.
+   * <p>
+   * When {@code archetype} and {@code statementFilters} are both absent, falls
+   * back to a simple
+   * status-only or unfiltered query. Archetype statements may be filtered by
+   * their system-owned
+   * {@code $id} and {@code title} properties without a typing selector. All other
+   * statement filters
+   * require the exact typing Archetype URI; aliases resolve to their canonical
+   * property, and each
+   * resolved key must be annotated {@code $gsm:queryable}.
    *
-   * @param type the GSM subject type
-   * @param archetype optional archetype UUID or title (required when statementFilters is non-empty)
+   * @param type             the GSM subject type
+   * @param archetype        optional exact URI of the typing Archetype
    * @param statementFilters statement property key-value filters (may be empty)
-   * @param status optional lifecycle status filter
-   * @param pageable pagination parameters
+   * @param status           optional lifecycle status filter
+   * @param pageable         pagination parameters
    * @return page of matching ascriptions
    */
   public Page<? extends AscriptionEntity> findAllFiltered(
@@ -466,35 +514,27 @@ public class AscriptionService implements SmartInitializingSingleton {
     if (statementFilters.isEmpty() && archetype == null) {
       return (status != null) ? findAllByStatus(type, status, pageable) : findAll(type, pageable);
     }
-    ArchetypeEntity archetypeEntity = findInEffectArchetypeByTitle(archetype, statementFilters);
-    if (!statementFilters.isEmpty()) {
-      statementFilters = resolveAliasFilters(archetypeEntity, statementFilters);
-      validatePropertiesQueryability(archetypeEntity, statementFilters);
+    if (archetype == null
+        && type == DefinitionSubjectType.ARCHETYPE
+        && ARCHETYPE_SYSTEM_QUERY_PROPERTIES.containsAll(statementFilters.keySet())) {
+      Specification<AscriptionEntity> spec = buildStatementFilterSpec(statementFilters, status);
+      return requireHandler(type).findAll(spec, pageable);
     }
-    UUID archetypeDefId = archetypeEntity.getDefinition().getId();
-    Specification<AscriptionEntity> spec =
-        buildFilterSpec(archetypeDefId, statementFilters, status);
-    return requireHandler(type).findAll(spec, pageable);
-  }
-
-  /**
-   * Finds an in-effect archetype by title.
-   *
-   * @param title the archetype title, may be {@code null}
-   * @param statementFilters statement filters (used only to contextualize the error message)
-   * @return the in-effect archetype entity
-   * @throws IllegalArgumentException if {@code title} is null or no in-effect archetype matches
-   */
-  private ArchetypeEntity findInEffectArchetypeByTitle(
-      String title, Map<String, String> statementFilters) {
-    if (title == null) {
+    if (archetype == null) {
       throw new IllegalArgumentException(
           "Statement attribute filtering requires the 'archetype' parameter.");
     }
-    return archetypeService
-        .findInEffectByTitle(title)
-        .orElseThrow(
-            () -> new IllegalArgumentException("No in-effect Archetype found for: " + title));
+    ArchetypeService.ArchetypeResolution resolution = archetypeService.resolveForQuery(archetype);
+    if (resolution.subjectType() != type) {
+      throw new IllegalArgumentException(
+          "Typing Archetype '" + archetype + "' does not describe subject type " + type + ".");
+    }
+    ArchetypeEntity archetypeEntity = resolution.archetype();
+    Map<String, String> targetFilters = resolveAliasFilters(archetypeEntity, statementFilters);
+    validatePropertiesQueryability(type, archetypeEntity, targetFilters);
+    List<FilterTarget> targets = List.of(new FilterTarget(archetypeEntity.getDefinition().getId(), targetFilters));
+    Specification<AscriptionEntity> spec = buildFilterSpec(targets, status);
+    return requireHandler(type).findAll(spec, pageable);
   }
 
   // ======================================================================
@@ -530,9 +570,12 @@ public class AscriptionService implements SmartInitializingSingleton {
   // ======================================================================
 
   /**
-   * Resolves {@code $gsm:aliases} filter keys to their canonical property name on the typing
-   * archetype's declared schema. Keys matching a canonical property are kept as-is; unknown keys
-   * are kept unchanged so the queryability validation rejects them under their submitted name.
+   * Resolves {@code $gsm:aliases} filter keys to their canonical property name on
+   * the typing
+   * archetype's declared schema. Keys matching a canonical property are kept
+   * as-is; unknown keys
+   * are kept unchanged so the queryability validation rejects them under their
+   * submitted name.
    */
   private static Map<String, String> resolveAliasFilters(
       ArchetypeEntity archetypeEntity, Map<String, String> statementFilters) {
@@ -562,14 +605,21 @@ public class AscriptionService implements SmartInitializingSingleton {
   }
 
   /**
-   * Validates that every statement filter key is annotated {@code $gsm:queryable} in the archetype
+   * Validates that every statement filter key is annotated {@code $gsm:queryable}
+   * in the archetype
    * schema.
    */
   private static void validatePropertiesQueryability(
-      ArchetypeEntity archetypeEntity, Map<String, String> statementFilters) {
+      DefinitionSubjectType type,
+      ArchetypeEntity archetypeEntity,
+      Map<String, String> statementFilters) {
     JsonNode schema = archetypeEntity.getStatement();
     JsonNode properties = schema.path("properties");
     for (String propName : statementFilters.keySet()) {
+      if (type == DefinitionSubjectType.ARCHETYPE
+          && ARCHETYPE_SYSTEM_QUERY_PROPERTIES.contains(propName)) {
+        continue;
+      }
       JsonNode propSchema = properties.path(propName);
       if (propSchema.isMissingNode() || !propSchema.path("$gsm:queryable").asBoolean(false)) {
         throw new IllegalArgumentException(
@@ -588,8 +638,10 @@ public class AscriptionService implements SmartInitializingSingleton {
   // ======================================================================
 
   /**
-   * Walks archetype schema properties and applies {@code $gsm:dataProtection} at-rest
-   * transformations to the statement before entity creation. Mutates the statement in place.
+   * Walks archetype schema properties and applies {@code $gsm:dataProtection}
+   * at-rest
+   * transformations to the statement before entity creation. Mutates the
+   * statement in place.
    */
   private void applyDataProtection(JsonNode statement, ArchetypeEntity archetype) {
     JsonNode archetypeStmt = archetype.getStatement();
@@ -617,18 +669,14 @@ public class AscriptionService implements SmartInitializingSingleton {
     }
   }
 
-  /** Builds a JPA {@link Specification} for filtered ascription queries. */
-  private static <T extends AscriptionEntity> Specification<T> buildFilterSpec(
-      UUID archetypeDefinitionId,
-      Map<String, String> statementFilters,
-      AscriptionStatusType status) {
+  private record FilterTarget(UUID archetypeDefinitionId, Map<String, String> statementFilters) {
+  }
+
+  /** Builds a specification for system-owned root statement properties. */
+  private static <T extends AscriptionEntity> Specification<T> buildStatementFilterSpec(
+      Map<String, String> statementFilters, AscriptionStatusType status) {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
-      predicates.add(
-          cb.equal(root.get("archetype").get("definition").get("id"), archetypeDefinitionId));
-      if (status != null) {
-        predicates.add(cb.equal(root.get("status"), status));
-      }
       for (var entry : statementFilters.entrySet()) {
         predicates.add(
             cb.equal(
@@ -639,7 +687,43 @@ public class AscriptionService implements SmartInitializingSingleton {
                     cb.literal(entry.getKey())),
                 entry.getValue()));
       }
-      return cb.and(predicates.toArray(new Predicate[0]));
+      Predicate statementPredicate = cb.and(predicates.toArray(new Predicate[0]));
+      if (status != null) {
+        return cb.and(statementPredicate, cb.equal(root.get("status"), status));
+      }
+      return statementPredicate;
+    };
+  }
+
+  /** Builds a JPA {@link Specification} for filtered ascription queries. */
+  private static <T extends AscriptionEntity> Specification<T> buildFilterSpec(
+      List<FilterTarget> targets, AscriptionStatusType status) {
+    return (root, query, cb) -> {
+      List<Predicate> targetPredicates = new ArrayList<>();
+      for (FilterTarget target : targets) {
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(
+            cb.equal(
+                root.get("archetype").get("definition").get("id"), target.archetypeDefinitionId()));
+        for (var entry : target.statementFilters().entrySet()) {
+          predicates.add(
+              cb.equal(
+                  cb.function(
+                      "jsonb_extract_path_text",
+                      String.class,
+                      root.get("statement"),
+                      cb.literal(entry.getKey())),
+                  entry.getValue()));
+        }
+        targetPredicates.add(cb.and(predicates.toArray(new Predicate[0])));
+      }
+      Predicate identityPredicate = targetPredicates.size() == 1
+          ? targetPredicates.getFirst()
+          : cb.or(targetPredicates.toArray(new Predicate[0]));
+      if (status != null) {
+        return cb.and(identityPredicate, cb.equal(root.get("status"), status));
+      }
+      return identityPredicate;
     };
   }
 }

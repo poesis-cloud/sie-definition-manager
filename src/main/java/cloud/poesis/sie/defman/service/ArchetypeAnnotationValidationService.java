@@ -16,15 +16,20 @@ import org.springframework.stereotype.Service;
  * Validates {@code $gsm:*} annotation vocabulary and {@code $ref} URI policy on Archetype JSON
  * Schemas.
  *
- * <p>Extracted from {@link ArchetypeService} to separate annotation validation from schema
- * composition and lifecycle logic. This service is stateless — it receives the pre-fetched existing
- * ascriptions when identity-bound immutability checks are needed.
+ * <p>This service is stateless — it receives the pre-fetched existing ascriptions when
+ * identity-bound immutability checks are needed.
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
 @Service
 public class ArchetypeAnnotationValidationService {
+
+  private final JsonSchemaPositionWalker schemaPositionWalker;
+
+  ArchetypeAnnotationValidationService(JsonSchemaPositionWalker schemaPositionWalker) {
+    this.schemaPositionWalker = schemaPositionWalker;
+  }
 
   // ========================================================================
   // $gsm:* annotation constants
@@ -235,54 +240,62 @@ public class ArchetypeAnnotationValidationService {
     return result;
   }
 
-  // ========================================================================
-  // Deep $ref URI policy scan (R2/R3 from E1 gap register)
-  // ========================================================================
-
   /**
-   * Recursively scans the entire schema tree for {@code $ref} values and enforces the URI policy:
-   * only local JSON Pointers ({@code #/...}) and {@code
-   * gsmarc://{authority}/{segments}/{title}/v{version}} URIs are allowed. Rejects external URIs
-   * (http, https, file, etc.) to prevent SSRF and ensure all schema resolution is local.
+   * Visits Draft 2020-12 schema-valued positions and enforces the authored reference policy. Local
+   * URI fragments ({@code #...}) and normative {@code gsmarc://} identities are allowed as {@code
+   * $ref} values; authored {@code $dynamicRef} and every other external URI are rejected.
    *
    * @param schema the archetype JSON Schema to scan
    * @throws RuleViolationException if any {@code $ref} violates the URI policy
    */
   void validateRefUriPolicy(JsonNode schema) {
-    scanRefsRecursively(schema, "$");
+    schemaPositionWalker.walk(schema, this::validateSchemaNodeReferences);
   }
 
-  private void scanRefsRecursively(JsonNode node, String path) {
-    if (node == null) {
+  private void validateSchemaNodeReferences(JsonNode schema, String pointer) {
+    if (!schema.isObject()) {
       return;
     }
 
-    if (node.isObject()) {
-      if (node.has("$ref")) {
-        String ref = node.get("$ref").asText();
-        if (!ArchetypeParsingService.isAllowedRef(ref)) {
-          throw RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
-              "Prohibited $ref URI at "
-                  + path
-                  + ": '"
-                  + ref
-                  + "'. "
-                  + "Only local JSON Pointers (#/...) and gsmarc://{authority}/{segments}/{title}/v{version} "
-                  + "URIs are allowed",
-              "path",
-              path,
-              "ref",
-              ref);
-        }
-      }
-      for (Map.Entry<String, JsonNode> field : node.properties()) {
-        scanRefsRecursively(field.getValue(), path + "." + field.getKey());
-      }
-    } else if (node.isArray()) {
-      for (int i = 0; i < node.size(); i++) {
-        scanRefsRecursively(node.get(i), path + "[" + i + "]");
-      }
+    if (schema.has("$dynamicRef")) {
+      String dynamicRefPointer = pointer + "/$dynamicRef";
+      JsonNode dynamicRef = schema.get("$dynamicRef");
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
+          "Authored $dynamicRef is prohibited at " + dynamicRefPointer,
+          "path",
+          dynamicRefPointer,
+          "ref",
+          dynamicRef.isTextual() ? dynamicRef.asText() : null);
+    }
+
+    if (!schema.has("$ref")) {
+      return;
+    }
+
+    JsonNode refNode = schema.get("$ref");
+    String refPointer = pointer + "/$ref";
+    if (!refNode.isTextual()) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
+          "Authored $ref must be textual at " + refPointer,
+          "path",
+          refPointer);
+    }
+
+    String ref = refNode.asText();
+    if (!ArchetypeParsingService.isAllowedRef(ref)) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
+          "Prohibited $ref URI at "
+              + refPointer
+              + ": '"
+              + ref
+              + "'. Only local URI fragments (#...) and normative gsmarc:// identities are allowed",
+          "path",
+          refPointer,
+          "ref",
+          ref);
     }
   }
 }

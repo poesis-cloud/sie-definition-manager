@@ -23,8 +23,11 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Effector ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link EffectorEntity} ascriptions with constitutive
- * cascade from owning Mechanism and dependent cascade to downstream Interactions.
+ * <p>
+ * Manages lifecycle and persistence of {@link EffectorEntity} ascriptions with
+ * constitutive
+ * cascade from owning Mechanism and dependent cascade to downstream
+ * Interactions.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -58,19 +61,14 @@ public class EffectorService implements AscriptionSubtypeService<EffectorEntity>
   @Override
   public EffectorEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID mechanismId =
-        extractRequiredUuid(
-            statement,
-            "mechanism",
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
+    UUID mechanismId = extractRequiredUuid(
+        statement,
+        "mechanism",
+        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     MechanismEntity mechanism = mechanismService.findEntityById(mechanismId);
 
-    UUID dataArchetypeId =
-        extractRequiredUuid(
-            statement,
-            "archetype",
-            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
-    ArchetypeEntity dataArchetype = archetypeService.findEntityById(dataArchetypeId);
+    String dataArchetypeUri = statement.path("archetype").asText(null);
+    ArchetypeEntity dataArchetype = archetypeService.resolveArchetypeUri(dataArchetypeUri, "archetype");
 
     return new EffectorEntity(definition, archetypeRef, statement, mechanism, dataArchetype);
   }
@@ -114,6 +112,8 @@ public class EffectorService implements AscriptionSubtypeService<EffectorEntity>
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     var e = (EffectorEntity) entity;
-    return Map.of("mechanism", e.getMechanism().getDefinition().getId());
+    return Map.of(
+        "mechanism", e.getMechanism().getDefinition().getId(),
+        "archetype", e.getOutputArchetype().getDefinition().getId());
   }
 }

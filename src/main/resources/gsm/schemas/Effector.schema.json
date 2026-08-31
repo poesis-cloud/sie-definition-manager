@@ -4,11 +4,16 @@
   "title": "Effector",
   "description": "Schema for Effector Ascriptions — output endpoint of a Mechanism. Defines the owning Mechanism and the data Archetype that types the output payload. DM input = DM output (1:1). Extensible — tenant-defined archetypes MAY extend Effector via a top-level $ref to add domain-specific port vocabulary while inheriting the base port schema.",
   "type": "object",
-  "examples": [ {
-    "mechanism": "019cc49a-dc5a-76fd-94c7-8099ff821b3b",
-    "archetype": "019cc49a-dc5a-7a45-a4d5-15b6033b2a62"
-  } ],
-  "required": [ "mechanism", "archetype" ],
+  "examples": [
+    {
+      "mechanism": "019cc49a-dc5a-76fd-94c7-8099ff821b3b",
+      "archetype": "gsmarc://tenant/OutputData/v1"
+    }
+  ],
+  "required": [
+    "mechanism",
+    "archetype"
+  ],
   "properties": {
     "mechanism": {
       "type": "string",
@@ -19,10 +24,10 @@
     },
     "archetype": {
       "type": "string",
-      "format": "uuid",
+      "pattern": "^gsmarc://[a-z0-9]+(?:-[a-z0-9]+)*/(?:[a-z0-9]+(?:-[a-z0-9]+)*/)*[A-Z][A-Za-z0-9]*/v[1-9][0-9]*$",
       "$gsm:identityBound": true,
       "$gsm:queryable": true,
-      "description": "ID reference to the data Archetype that types the Effector's output payload. To change the data type, author a new Definition."
+      "description": "Archetype URI of the exact data Archetype version that types the Effector's output payload. The processor resolves it to the exact Archetype Ascription FK. To change the data Archetype family, author a new Definition."
     }
   }
 }

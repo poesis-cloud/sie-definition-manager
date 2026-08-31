@@ -25,6 +25,7 @@ import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +35,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 
 /**
- * Tests for {@link AbstractController#mapEntityToAscriptionDto} — specifically the
+ * Tests for {@link AbstractController#mapEntityToAscriptionDto} — specifically
+ * the
  * $gsm:dataProtection inTransit logic (GSM §8).
  */
 class AbstractControllerTest {
@@ -45,7 +47,8 @@ class AbstractControllerTest {
   private final AbstractController controller;
 
   AbstractControllerTest() {
-    controller = new AbstractController(new AscriptionProtectionService()) {};
+    controller = new AbstractController(new AscriptionProtectionService()) {
+    };
   }
 
   // ========================================================================
@@ -54,6 +57,15 @@ class AbstractControllerTest {
 
   @Nested
   class DataProtectionInTransit {
+
+    @Test
+    void missingTypingArchetypeIdentity_doesNotAffectResponseMapping() {
+      ObjectNode archetypeStatement = MAPPER.createObjectNode().put("title", "TestSchema");
+      AscriptionEntity entity = stubEntityWithCustomArchetypeStatement(
+          archetypeStatement, MAPPER.createObjectNode().put("purpose", "test"));
+
+      assertDoesNotThrow(() -> controller.mapEntityToAscriptionDto(entity, entity.getArchetype()));
+    }
 
     @Test
     void hashInTransit_replacesValueWithHash() {
@@ -67,8 +79,7 @@ class AbstractControllerTest {
       ObjectNode nameProp = props.putObject("name");
       nameProp.put("type", "string");
 
-      ObjectNode statement =
-          MAPPER.createObjectNode().put("password", "s3cret").put("name", "test-service");
+      ObjectNode statement = MAPPER.createObjectNode().put("password", "s3cret").put("name", "test-service");
 
       AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
@@ -117,8 +128,7 @@ class AbstractControllerTest {
       ObjectNode envProp = props.putObject("env");
       envProp.put("type", "string");
 
-      ObjectNode statement =
-          MAPPER.createObjectNode().put("secret", "top-secret").put("env", "prod");
+      ObjectNode statement = MAPPER.createObjectNode().put("secret", "top-secret").put("env", "prod");
 
       AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
@@ -185,12 +195,12 @@ class AbstractControllerTest {
     @Test
     void noPropertiesInArchetype_passThrough() {
       ObjectNode archetypeStatement = MAPPER.createObjectNode();
+      archetypeStatement.put("$id", "gsmarc://tenant/TestSchema/v1");
       // no "properties" key
 
       ObjectNode statement = MAPPER.createObjectNode().put("password", "s3cret");
 
-      AscriptionEntity entity =
-          stubEntityWithCustomArchetypeStatement(archetypeStatement, statement);
+      AscriptionEntity entity = stubEntityWithCustomArchetypeStatement(archetypeStatement, statement);
 
       AscriptionDto dto = controller.mapEntityToAscriptionDto(entity, entity.getArchetype());
 
@@ -242,8 +252,7 @@ class AbstractControllerTest {
       when(transition.getPostStatus()).thenReturn(AscriptionStatusType.PROPOSED);
       when(transition.getTimestamp()).thenReturn(ts);
 
-      AscriptionStatusTransitionDto dto =
-          controller.mapEntityToAscriptionStatusTransitionDto(transition);
+      AscriptionStatusTransitionDto dto = controller.mapEntityToAscriptionStatusTransitionDto(transition);
 
       assertEquals(transitionId, dto.getTransitionId());
       assertEquals(ascriptionId, dto.getAscriptionId());
@@ -264,8 +273,7 @@ class AbstractControllerTest {
       when(transition.getPostStatus()).thenReturn(AscriptionStatusType.DRAFT);
       when(transition.getTimestamp()).thenReturn(Instant.now());
 
-      AscriptionStatusTransitionDto dto =
-          controller.mapEntityToAscriptionStatusTransitionDto(transition);
+      AscriptionStatusTransitionDto dto = controller.mapEntityToAscriptionStatusTransitionDto(transition);
 
       assertNull(dto.getPreStatus());
       assertEquals(AscriptionStatusType.DRAFT, dto.getPostStatus());
@@ -314,10 +322,9 @@ class AbstractControllerTest {
 
     @Test
     void ruleViolation_badRequest() {
-      RuleViolationException ex =
-          new RuleViolationException(
-              AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-              "Statement does not match schema");
+      RuleViolationException ex = new RuleViolationException(
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          "Statement does not match schema");
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(400, pd.getStatus());
@@ -326,11 +333,33 @@ class AbstractControllerTest {
     }
 
     @Test
+    void archetypeIdentityRules_exposeStableBadRequestContract() {
+      AscriptionConsistencyRuleType[] identityRules = {
+          AscriptionConsistencyRuleType.ARCHETYPE_ID_GRAMMAR,
+          AscriptionConsistencyRuleType.ARCHETYPE_ID_TITLE_COHERENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ID_ROOT_EXCLUSIVITY,
+      };
+
+      for (AscriptionConsistencyRuleType rule : identityRules) {
+        RuleViolationException exception = RuleViolationException.of(rule, "identity violation", "path",
+            "/properties/nested/$id");
+
+        ProblemDetail problem = controller.mapRuleViolationExceptionToProblemDetail(exception);
+
+        assertEquals(400, problem.getStatus());
+        assertEquals(URI.create(rule.getType()), problem.getType());
+        assertEquals(rule.getTitle(), problem.getTitle());
+        assertEquals(rule.name(), problem.getProperties().get("rule"));
+        assertEquals(rule.getDescription(), problem.getProperties().get("ruleDescription"));
+        assertEquals("/properties/nested/$id", problem.getProperties().get("path"));
+      }
+    }
+
+    @Test
     void ruleViolation_conflict() {
-      RuleViolationException ex =
-          new RuleViolationException(
-              AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
-              "Invalid transition path");
+      RuleViolationException ex = new RuleViolationException(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_PATH,
+          "Invalid transition path");
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(409, pd.getStatus());
@@ -340,11 +369,10 @@ class AbstractControllerTest {
     @Test
     void ruleViolation_withSite_includesExtensions() {
       Map<String, Object> site = Map.of("definitionId", UUID.randomUUID().toString());
-      RuleViolationException ex =
-          new RuleViolationException(
-              AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
-              "CEL parse error",
-              site);
+      RuleViolationException ex = new RuleViolationException(
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
+          "CEL parse error",
+          site);
       ProblemDetail pd = controller.mapRuleViolationExceptionToProblemDetail(ex);
 
       assertEquals(400, pd.getStatus());
@@ -357,8 +385,7 @@ class AbstractControllerTest {
 
     @Test
     void resourceNotFound_returns404() {
-      ResourceNotFoundException ex =
-          new ResourceNotFoundException(PrimitiveType.DEFINITION, UUID.randomUUID());
+      ResourceNotFoundException ex = new ResourceNotFoundException(PrimitiveType.DEFINITION, UUID.randomUUID());
       ProblemDetail pd = controller.mapResourceNotFoundExceptionToProblemDetail(ex);
 
       assertEquals(404, pd.getStatus());
@@ -381,8 +408,7 @@ class AbstractControllerTest {
 
     @Test
     void missingRequestParam_returns400() {
-      MissingServletRequestParameterException ex =
-          new MissingServletRequestParameterException("type", "String");
+      MissingServletRequestParameterException ex = new MissingServletRequestParameterException("type", "String");
       ProblemDetail pd = controller.mapMissingServletRequestParameterExceptionToProblemDetail(ex);
 
       assertEquals(400, pd.getStatus());
@@ -403,20 +429,20 @@ class AbstractControllerTest {
     @Test
     void allBadRequestRuleTypes_mapToBadRequest() {
       AscriptionConsistencyRuleType[] badRequestTypes = {
-        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
-        AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING,
-        AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
-        AscriptionConsistencyRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
-        AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
-        AscriptionConsistencyRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,
-        AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
-        AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
-        AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-        AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
-        AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
-        AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
-        AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
-        AscriptionConsistencyRuleType.ARCHETYPE_ALIAS_UNAMBIGUITY,
+          AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
+          AscriptionConsistencyRuleType.MECHANISM_RULE_STARLARK_PARSING,
+          AscriptionConsistencyRuleType.MECHANISM_STRUCTURE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.EFFECTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.RECEPTOR_MECHANISM_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.RECEPTOR_ARCHETYPE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          AscriptionConsistencyRuleType.DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_CEL_PARSING,
+          AscriptionConsistencyRuleType.NORM_ASSERTION_CEL_PARSING,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
+          AscriptionConsistencyRuleType.ARCHETYPE_ALIAS_UNAMBIGUITY,
       };
       for (AscriptionConsistencyRuleType rt : badRequestTypes) {
         RuleViolationException ex = new RuleViolationException(rt, "test");
@@ -428,8 +454,10 @@ class AbstractControllerTest {
     @Test
     void allConflictRuleTypes_mapToConflict() {
       AscriptionConsistencyRuleType[] conflictTypes = {
-        AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-        AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+          AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
+          AscriptionConsistencyRuleType.ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS,
+          AscriptionConsistencyRuleType.ARCHETYPE_URI_RESOLUTION_UNIQUENESS,
       };
       for (AscriptionConsistencyRuleType rt : conflictTypes) {
         RuleViolationException ex = new RuleViolationException(rt, "test");
@@ -453,6 +481,9 @@ class AbstractControllerTest {
   // ========================================================================
 
   private AscriptionEntity stubEntity(ObjectNode archetypeSchema, ObjectNode statement) {
+    if (!archetypeSchema.has("$id")) {
+      archetypeSchema.put("$id", "gsmarc://tenant/TestSchema/v1");
+    }
     return stubEntityWithCustomArchetypeStatement(archetypeSchema, statement);
   }
 

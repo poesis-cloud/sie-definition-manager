@@ -9,9 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
@@ -21,12 +24,12 @@ import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,99 +50,48 @@ class ArchetypeServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ArchetypeRepository archetypeRepo;
+  @Mock
+  private ArchetypeRepository archetypeRepo;
 
-  @Mock private ArchetypePropertyIndexationService indexProvisioning;
+  @Mock
+  private ArchetypePropertyIndexationService indexProvisioning;
 
-  @Mock private ArchetypeAnnotationValidationService annotationValidation;
+  @Mock
+  private ArchetypeIdentityValidationService identityValidation;
 
-  @Mock private ArchetypeCompositionValidationService compositionValidation;
+  @Mock
+  private ArchetypeAnnotationValidationService annotationValidation;
+
+  @Mock
+  private ArchetypeCompositionValidationService compositionValidation;
 
   private ArchetypeService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new ArchetypeService(
-            archetypeRepo, indexProvisioning, annotationValidation, compositionValidation);
-    // Default: findFirstByStatementTitleAndStatusIn returns empty for any title
-    // not explicitly mocked.
-    when(archetypeRepo.findFirstByStatementTitleAndStatusIn(anyString(), any()))
-        .thenReturn(Optional.empty());
+    service = new ArchetypeService(
+        archetypeRepo,
+        indexProvisioning,
+        identityValidation,
+        annotationValidation,
+        compositionValidation,
+        new JsonSchemaPositionWalker());
   }
 
   // ========================================================================
-  // Activation (title uniqueness, identity-bound)
+  // Activation and identity-bound properties
   // ========================================================================
 
   @Nested
   class Activation {
 
-    @Nested
-    class ActivationUniqueness {
+    @Test
+    void duplicateTitleAcrossDefinitions_isAcceptedWithoutLookup() {
+      ArchetypeEntity entity = stubArchetype("SecurityProperties", UUID.randomUUID());
 
-      @Test
-      void uniqueTitle_valid() {
-        UUID thisDefId = UUID.randomUUID();
-        ArchetypeEntity entity = stubArchetype("SecurityProperties", thisDefId);
+      assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
 
-        when(archetypeRepo.findAllByStatusIn(
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
-
-      @Test
-      void duplicateTitle_differentDefinition_rejected() {
-        UUID thisDefId = UUID.randomUUID();
-        UUID otherDefId = UUID.randomUUID();
-
-        ArchetypeEntity entity = stubArchetype("SecurityProperties", thisDefId);
-        ArchetypeEntity existing = stubArchetype("SecurityProperties", otherDefId);
-
-        when(archetypeRepo.findAllByStatusIn(
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of(existing));
-
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
-        assertTrue(ex.getMessage().contains("SecurityProperties"));
-        assertTrue(ex.getMessage().contains("already in"));
-        assertEquals(
-            AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
-            ex.getRuleType());
-      }
-
-      @Test
-      void sameTitle_sameDefinition_valid() {
-        UUID defId = UUID.randomUUID();
-
-        ArchetypeEntity entity = stubArchetype("SecurityProperties", defId);
-        ArchetypeEntity existing = stubArchetype("SecurityProperties", defId);
-
-        when(archetypeRepo.findAllByStatusIn(
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of(existing));
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
-
-      @Test
-      void differentTitle_valid() {
-        UUID thisDefId = UUID.randomUUID();
-        UUID otherDefId = UUID.randomUUID();
-
-        ArchetypeEntity entity = stubArchetype("SecurityProperties", thisDefId);
-        ArchetypeEntity existing = stubArchetype("PerformanceProperties", otherDefId);
-
-        when(archetypeRepo.findAllByStatusIn(
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
-            .thenReturn(List.of(existing));
-
-        assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
-      }
+      verifyNoInteractions(archetypeRepo);
     }
 
     @Nested
@@ -148,10 +100,26 @@ class ArchetypeServiceTest {
       @Test
       void titleExtracted() {
         ArchetypeEntity entity = stubArchetype("SecurityProperties", UUID.randomUUID());
+        ((ObjectNode) entity.getStatement()).put("$id", "gsmarc://tenant/SecurityProperties/v1");
         var values = service.getIdentityBoundValues(entity);
 
         assertTrue(values.containsKey("title"));
         assertTrue(values.get("title").equals("SecurityProperties"));
+      }
+
+      @Test
+      void identityStemExtractedWithoutVersion() {
+        ArchetypeEntity entity = stubArchetype("SecurityProperties", UUID.randomUUID());
+        ((ObjectNode) entity.getStatement())
+            .put("$id", "gsmarc://tenant/security/SecurityProperties/v2");
+
+        assertEquals(
+            Map.of(
+                "stem",
+                "gsmarc://tenant/security/SecurityProperties",
+                "title",
+                "SecurityProperties"),
+            service.getIdentityBoundValues(entity));
       }
 
       @Test
@@ -160,6 +128,111 @@ class ArchetypeServiceTest {
         var values = service.getIdentityBoundValues(entity);
 
         assertTrue(values.isEmpty());
+      }
+    }
+
+    @Nested
+    class CreationUniqueness {
+
+      @Test
+      void sameDefinitionOwner_passesAndFlushesPendingDefinition() {
+        UUID definitionId = UUID.randomUUID();
+        ArchetypeEntity entity = stubArchetype("SecurityProperties", definitionId);
+        ((ObjectNode) entity.getStatement())
+            .put("$id", "gsmarc://tenant/security/SecurityProperties/v1");
+        when(archetypeRepo.acquireDefinitionIdByStem(
+            "gsmarc://tenant/security/SecurityProperties", definitionId))
+            .thenReturn(definitionId);
+
+        assertDoesNotThrow(() -> service.validateCreationUniqueness(entity));
+
+        verify(archetypeRepo).flush();
+        verify(archetypeRepo)
+            .acquireDefinitionIdByStem("gsmarc://tenant/security/SecurityProperties", definitionId);
+      }
+
+      @Test
+      void otherDefinitionOwner_rejectedPermanently() {
+        UUID definitionId = UUID.randomUUID();
+        UUID ownerDefinitionId = UUID.randomUUID();
+        ArchetypeEntity entity = stubArchetype("SecurityProperties", definitionId);
+        ((ObjectNode) entity.getStatement())
+            .put("$id", "gsmarc://tenant/security/SecurityProperties/v2");
+        when(archetypeRepo.acquireDefinitionIdByStem(
+            "gsmarc://tenant/security/SecurityProperties", definitionId))
+            .thenReturn(ownerDefinitionId);
+
+        RuleViolationException exception = assertThrows(
+            RuleViolationException.class, () -> service.validateCreationUniqueness(entity));
+
+        assertEquals(
+            AscriptionConsistencyRuleType.ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS,
+            exception.getRuleType());
+      }
+    }
+
+    @Nested
+    class CandidateVersion {
+
+      @Test
+      void staleCandidateSuffix_rejected() {
+        UUID definitionId = UUID.randomUUID();
+        ArchetypeEntity candidate = stubArchetype("SecurityProperties", definitionId);
+        ArchetypeEntity resolvable = stubArchetype("SecurityProperties", definitionId);
+        when(resolvable.getVersion()).thenReturn(1);
+        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId))
+            .thenReturn(List.of(candidate, resolvable));
+
+        RuleViolationException exception = assertThrows(
+            RuleViolationException.class,
+            () -> service.validateStatusTransition(
+                candidate, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED));
+
+        assertEquals(
+            AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ARCHETYPE_CANDIDATE_VERSION,
+            exception.getRuleType());
+      }
+
+      @Test
+      void nextCandidateSuffix_accepted() {
+        UUID definitionId = UUID.randomUUID();
+        ArchetypeEntity candidate = stubArchetype("SecurityProperties", definitionId);
+        ((ObjectNode) candidate.getStatement()).put("$id", "gsmarc://gsm/SecurityProperties/v2");
+        ArchetypeEntity resolvable = stubArchetype("SecurityProperties", definitionId);
+        when(resolvable.getVersion()).thenReturn(1);
+        when(archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId))
+            .thenReturn(List.of(candidate, resolvable));
+
+        assertDoesNotThrow(
+            () -> service.validateStatusTransition(
+                candidate, AscriptionStatusType.DRAFT, AscriptionStatusType.PROPOSED));
+      }
+
+      @Test
+      void materializedVersionMismatch_rejectedAfterApproval() {
+        ArchetypeEntity approved = stubArchetype("SecurityProperties", UUID.randomUUID());
+        ((ObjectNode) approved.getStatement()).put("$id", "gsmarc://gsm/SecurityProperties/v2");
+        when(approved.getVersion()).thenReturn(1);
+
+        RuleViolationException exception = assertThrows(
+            RuleViolationException.class,
+            () -> service.validatePersistedStatusTransition(
+                approved, AscriptionStatusType.PROPOSED, AscriptionStatusType.APPROVED));
+
+        assertEquals(
+            AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ARCHETYPE_VERSION_RECONCILIATION,
+            exception.getRuleType());
+      }
+
+      @Test
+      void materializedVersionMatchingSuffix_acceptedAfterApproval() {
+        ArchetypeEntity approved = stubArchetype("SecurityProperties", UUID.randomUUID());
+        ((ObjectNode) approved.getStatement()).put("$id", "gsmarc://gsm/SecurityProperties/v2");
+        when(approved.getVersion()).thenReturn(2);
+
+        assertDoesNotThrow(
+            () -> service.validatePersistedStatusTransition(
+                approved, AscriptionStatusType.PROPOSED, AscriptionStatusType.APPROVED));
       }
     }
   }
@@ -199,86 +272,136 @@ class ArchetypeServiceTest {
   class ResolveForCreation {
 
     @Test
-    void baseArchetype_resolvesDirectly() {
-      UUID id = UUID.randomUUID();
+    void resolvableUri_resolvesExactVersion() {
+      String id = "gsmarc://gsm/Structure/v1";
       ArchetypeEntity base = mockArchetype(schemaNode("Structure", false));
-      when(base.getId()).thenReturn(id);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(base));
+      when(base.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(base));
 
       var resolution = service.resolveForCreation(id);
+
+      assertEquals(base, resolution.archetype());
       assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
     }
 
     @Test
-    void resolveForCreation_tenantStructuralArchetype_walksRefChain() {
-      UUID tenantId = UUID.randomUUID();
-      ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "MyServiceArchetype");
-      tenantSchema.put("$ref", "gsmarc://gsm/Structure/v1");
-      ArchetypeEntity tenant = mockArchetype(tenantSchema);
-      when(tenant.getId()).thenReturn(tenantId);
-      when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
-      when(compositionValidation.resolveGsmBases(
-              eq("gsmarc://gsm/Structure/v1"), eq("MyServiceArchetype"), any()))
-          .thenReturn(Set.of("Structure"));
+    void deprecatedUri_remainsEligibleForTyping() {
+      String id = "gsmarc://gsm/Structure/v1";
+      ArchetypeEntity deprecated = mockArchetype(schemaNode("Structure", false));
+      when(deprecated.getStatus()).thenReturn(AscriptionStatusType.DEPRECATED);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(deprecated));
 
-      var resolution = service.resolveForCreation(tenantId);
+      assertEquals(deprecated, service.resolveForCreation(id).archetype());
+    }
+
+    @Test
+    void approvedUri_isNotYetEligibleForTyping() {
+      String id = "gsmarc://tenant/StructuralType/v1";
+      ArchetypeEntity approved = mockArchetype(schemaNode("Structure", false));
+      when(approved.getStatus()).thenReturn(AscriptionStatusType.APPROVED);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(approved));
+
+      RuleViolationException exception = assertThrows(RuleViolationException.class,
+          () -> service.resolveForCreation(id));
+
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_IN_EFFECT, exception.getRuleType());
+    }
+
+    @Test
+    void candidateOrMissingId_isNotResolvableForCreation() {
+      String id = "gsmarc://tenant/CandidateStructure/v1";
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.empty());
+
+      RuleViolationException exception = assertThrows(RuleViolationException.class,
+          () -> service.resolveForCreation(id));
+
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
+    }
+
+    @Test
+    void malformedArchetypeUri_reportsNormViolation() {
+      RuleViolationException exception = assertThrows(
+          RuleViolationException.class,
+          () -> service.resolveArchetypeUri("not-an-archetype-id", "qualifier"));
+
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, exception.getRuleType());
+      assertTrue(exception.getMessage().contains("qualifier"));
+    }
+
+    @Test
+    void archetypeUri_defersLifecycleEligibilityToRefereeValidation() {
+      String id = "gsmarc://tenant/SecurityProperties/v2";
+      ArchetypeEntity suspended = mock(ArchetypeEntity.class);
+      when(suspended.getStatus()).thenReturn(AscriptionStatusType.SUSPENDED);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(suspended));
+
+      assertEquals(suspended, service.resolveArchetypeUri(id, "qualifier"));
+    }
+
+    @Test
+    void refereeEligibility_acceptsApprovedAndActive() {
+      ArchetypeEntity approved = mock(ArchetypeEntity.class);
+      when(approved.getStatus()).thenReturn(AscriptionStatusType.APPROVED);
+      ArchetypeEntity active = mock(ArchetypeEntity.class);
+      when(active.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+
+      assertDoesNotThrow(
+          () -> service.validateRefereeEligibility(approved, "mechanism rule reference"));
+      assertDoesNotThrow(
+          () -> service.validateRefereeEligibility(active, "mechanism rule reference"));
+    }
+
+    @Test
+    void refereeEligibility_rejectsDeprecated() {
+      ArchetypeEntity deprecated = mock(ArchetypeEntity.class);
+      when(deprecated.getId()).thenReturn(UUID.randomUUID());
+      when(deprecated.getStatus()).thenReturn(AscriptionStatusType.DEPRECATED);
+
+      assertThrows(
+          RuleViolationException.class,
+          () -> service.validateRefereeEligibility(deprecated, "mechanism rule reference"));
+    }
+  }
+
+  // ========================================================================
+  // ResolveForQuery (typing-filter resolution — resolvable, not in-effect)
+  // ========================================================================
+
+  @Nested
+  class ResolveForQuery {
+
+    @Test
+    void activeUri_resolvesExactVersion() {
+      String id = "gsmarc://gsm/Structure/v1";
+      ArchetypeEntity base = mockArchetype(schemaNode("Structure", false));
+      when(base.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(base));
+
+      var resolution = service.resolveForQuery(id);
+
+      assertEquals(base, resolution.archetype());
       assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
     }
 
     @Test
-    void resolveForCreation_tenantViaIntermediary_walksRefChain() {
-      UUID tenantId = UUID.randomUUID();
-      ObjectNode tenantSchema = MAPPER.createObjectNode().put("title", "SpecificMechanism");
-      tenantSchema.put("$ref", "gsmarc://gsm/BaseMechanismTemplate/v1");
-      ArchetypeEntity tenant = mockArchetype(tenantSchema);
-      when(tenant.getId()).thenReturn(tenantId);
-      when(archetypeRepo.findById(tenantId)).thenReturn(Optional.of(tenant));
-      when(compositionValidation.resolveGsmBases(
-              eq("gsmarc://gsm/BaseMechanismTemplate/v1"), eq("SpecificMechanism"), any()))
-          .thenReturn(Set.of("Mechanism"));
+    void suspendedOrRetiredUri_remainsQueryable() {
+      String id = "gsmarc://tenant/StructuralType/v1";
+      ArchetypeEntity retired = mockArchetype(schemaNode("Structure", false));
+      when(retired.getStatus()).thenReturn(AscriptionStatusType.RETIRED);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(retired));
 
-      var resolution = service.resolveForCreation(tenantId);
-      assertEquals(DefinitionSubjectType.MECHANISM, resolution.subjectType());
+      assertEquals(retired, service.resolveForQuery(id).archetype());
     }
 
     @Test
-    void resolveForCreation_rootlessNoRef_rejected() {
-      UUID id = UUID.randomUUID();
-      ObjectNode rootless = MAPPER.createObjectNode().put("title", "SecurityProperties");
-      ArchetypeEntity entity = mockArchetype(rootless);
-      when(entity.getId()).thenReturn(id);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+    void candidateOrMissingId_isNotResolvableForQuery() {
+      String id = "gsmarc://tenant/CandidateStructure/v1";
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.empty());
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
-      assertTrue(ex.getMessage().contains("Rootless"));
-      assertTrue(ex.getMessage().contains("archetype_id"));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-          ex.getRuleType());
-    }
+      RuleViolationException exception = assertThrows(RuleViolationException.class, () -> service.resolveForQuery(id));
 
-    @Test
-    void resolveForCreation_rootlessWithAllOfOnly_rejected() {
-      ObjectNode baseFacet = schemaNode("BaseFacet", false);
-      ArchetypeEntity baseFacetEntity = mockArchetype(baseFacet);
-      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("BaseFacet"), any()))
-          .thenReturn(Optional.of(baseFacetEntity));
-
-      UUID id = UUID.randomUUID();
-      ObjectNode rootless = MAPPER.createObjectNode().put("title", "DetailedFacet");
-      rootless.putArray("allOf").addObject().put("$ref", "gsmarc://gsm/BaseFacet/v1");
-      ArchetypeEntity entity = mockArchetype(rootless);
-      when(entity.getId()).thenReturn(id);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
-
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
-      assertTrue(ex.getMessage().contains("Rootless"));
-      assertTrue(ex.getMessage().contains("archetype_id"));
-      assertEquals(
-          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-          ex.getRuleType());
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
     }
   }
 
@@ -313,8 +436,8 @@ class ArchetypeServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.create(def, archetypeRef, null));
+      RuleViolationException ex = assertThrows(RuleViolationException.class,
+          () -> service.create(def, archetypeRef, null));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -325,17 +448,16 @@ class ArchetypeServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
 
-      RuleViolationException ex =
-          assertThrows(
-              RuleViolationException.class,
-              () -> service.create(def, archetypeRef, MAPPER.createArrayNode()));
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.create(def, archetypeRef, MAPPER.createArrayNode()));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
     }
 
     @Test
-    void delegatesToAnnotationValidation_validateRefUriPolicy() {
+    void validatesIdentityAndRefPolicyBeforeComposition() {
       ObjectNode stmt = MAPPER.createObjectNode().put("title", "Archetype");
       DefinitionEntity def = mock(DefinitionEntity.class);
       UUID defId = UUID.randomUUID();
@@ -345,7 +467,31 @@ class ArchetypeServiceTest {
 
       service.create(def, archetypeRef, stmt);
 
-      verify(annotationValidation).validateRefUriPolicy(stmt);
+      var validationOrder = inOrder(identityValidation, annotationValidation, compositionValidation);
+      validationOrder.verify(identityValidation).validate(stmt);
+      validationOrder.verify(annotationValidation).validateRefUriPolicy(stmt);
+      validationOrder.verify(compositionValidation).validateSchemaComposition(eq(stmt), any());
+    }
+
+    @Test
+    void identityFailure_skipsCompositionAndPersistence() {
+      ObjectNode stmt = MAPPER.createObjectNode().put("title", "Archetype");
+      DefinitionEntity def = mock(DefinitionEntity.class);
+      ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
+      RuleViolationException identityFailure = RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_ID_GRAMMAR,
+          "Missing identity",
+          "field",
+          "$id");
+      doThrow(identityFailure).when(identityValidation).validate(stmt);
+
+      RuleViolationException actual = assertThrows(RuleViolationException.class,
+          () -> service.create(def, archetypeRef, stmt));
+
+      assertEquals(identityFailure, actual);
+      verify(compositionValidation, never()).validateSchemaComposition(eq(stmt), any());
+      verify(annotationValidation, never()).validateRefUriPolicy(stmt);
+      verify(archetypeRepo, never()).save(any());
     }
 
     @Test
@@ -390,31 +536,6 @@ class ArchetypeServiceTest {
   }
 
   // ========================================================================
-  // FindInEffectByTitle
-  // ========================================================================
-
-  @Nested
-  class FindInEffectByTitleTests {
-
-    @Test
-    void found_returnsOptional() {
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("Test"), any()))
-          .thenReturn(Optional.of(entity));
-
-      assertTrue(service.findInEffectByTitle("Test").isPresent());
-    }
-
-    @Test
-    void notFound_returnsEmpty() {
-      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("X"), any()))
-          .thenReturn(Optional.empty());
-
-      assertTrue(service.findInEffectByTitle("X").isEmpty());
-    }
-  }
-
-  // ========================================================================
   // GetRepository / GetSubjectType
   // ========================================================================
 
@@ -432,13 +553,11 @@ class ArchetypeServiceTest {
 
     @Test
     void noTitleInStatement_rejected() {
-      UUID id = UUID.randomUUID();
-      ArchetypeEntity entity = mockArchetype(MAPPER.createObjectNode());
-      when(entity.getId()).thenReturn(id);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+      String id = "gsmarc://tenant/MissingTitle/v1";
+      ArchetypeEntity entity = mockArchetype(MAPPER.createObjectNode().put("$id", id));
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(entity));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
+      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -447,14 +566,14 @@ class ArchetypeServiceTest {
 
     @Test
     void nullStatement_rejected() {
-      UUID id = UUID.randomUUID();
+      String id = "gsmarc://tenant/NullStatement/v1";
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getId()).thenReturn(id);
       when(entity.getStatement()).thenReturn(null);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+      when(entity.getVersion()).thenReturn(1);
+      when(entity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(entity));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
+      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -462,23 +581,20 @@ class ArchetypeServiceTest {
 
     @Test
     void allBaseArchetypes_resolveCorrectly() {
-      Map<String, DefinitionSubjectType> expected =
-          Map.of(
-              "Archetype", DefinitionSubjectType.ARCHETYPE,
-              "Structure", DefinitionSubjectType.STRUCTURE,
-              "Mechanism", DefinitionSubjectType.MECHANISM,
-              "Effector", DefinitionSubjectType.EFFECTOR,
-              "Receptor", DefinitionSubjectType.RECEPTOR,
-              "Interaction", DefinitionSubjectType.INTERACTION,
-              "Directive", DefinitionSubjectType.DIRECTIVE,
-              "Norm", DefinitionSubjectType.NORM);
+      Map<String, DefinitionSubjectType> expected = Map.of(
+          "Archetype", DefinitionSubjectType.ARCHETYPE,
+          "Structure", DefinitionSubjectType.STRUCTURE,
+          "Mechanism", DefinitionSubjectType.MECHANISM,
+          "Effector", DefinitionSubjectType.EFFECTOR,
+          "Receptor", DefinitionSubjectType.RECEPTOR,
+          "Interaction", DefinitionSubjectType.INTERACTION,
+          "Directive", DefinitionSubjectType.DIRECTIVE,
+          "Norm", DefinitionSubjectType.NORM);
 
       for (var entry : expected.entrySet()) {
-        UUID id = UUID.randomUUID();
-        ArchetypeEntity entity =
-            mockArchetype(MAPPER.createObjectNode().put("title", entry.getKey()));
-        when(entity.getId()).thenReturn(id);
-        when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+        String id = "gsmarc://gsm/" + entry.getKey() + "/v1";
+        ArchetypeEntity entity = mockArchetype(MAPPER.createObjectNode().put("$id", id).put("title", entry.getKey()));
+        when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(entity));
 
         var resolution = service.resolveForCreation(id);
         assertEquals(
@@ -537,7 +653,7 @@ class ArchetypeServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       when(def.getId()).thenReturn(defId);
 
-      ObjectNode stmt = MAPPER.createObjectNode().put("title", title);
+      ObjectNode stmt = MAPPER.createObjectNode().put("$id", "gsmarc://gsm/" + title + "/v1").put("title", title);
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(stmt);
@@ -581,8 +697,7 @@ class ArchetypeServiceTest {
     DefinitionEntity def = mock(DefinitionEntity.class);
     when(def.getId()).thenReturn(defId);
 
-    ObjectNode stmt = MAPPER.createObjectNode();
-    stmt.put("title", title);
+    ObjectNode stmt = MAPPER.createObjectNode().put("$id", "gsmarc://gsm/" + title + "/v1").put("title", title);
 
     ArchetypeEntity entity = mock(ArchetypeEntity.class);
     when(entity.getId()).thenReturn(UUID.randomUUID());
@@ -607,7 +722,7 @@ class ArchetypeServiceTest {
   }
 
   private static ObjectNode schemaNode(String title, boolean sealed) {
-    ObjectNode schema = MAPPER.createObjectNode().put("title", title);
+    ObjectNode schema = MAPPER.createObjectNode().put("$id", "gsmarc://gsm/" + title + "/v1").put("title", title);
     if (sealed) {
       schema.put("$gsm:sealed", true);
     }
@@ -618,6 +733,8 @@ class ArchetypeServiceTest {
     ArchetypeEntity entity = mock(ArchetypeEntity.class);
     when(entity.getStatement()).thenReturn(schema);
     when(entity.getId()).thenReturn(UUID.randomUUID());
+    when(entity.getVersion()).thenReturn(1);
+    when(entity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
     return entity;
   }
 
@@ -629,43 +746,75 @@ class ArchetypeServiceTest {
   class DescendantResolution {
 
     @Test
-    void getAncestorTitles_rootlessArchetype_returnsOwnTitleOnly() {
+    void getAncestorStems_preservesSameTitleAcrossAuthorities() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "SecurityProperties");
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(entity.getStatement()).thenReturn(schema);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/Composite/v1")
+          .put("title", "Composite");
+      schema.putArray("allOf").addObject().put("$ref", "gsmarc://authority-a/SharedFacet/v1");
+      schema.withArray("allOf").addObject().put("$ref", "gsmarc://authority-b/SharedFacet/v1");
+      ArchetypeEntity root = mockArchetype(schema);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(root));
+      ArchetypeEntity resolvedFacet = mockArchetype(MAPPER.createObjectNode());
+      when(archetypeRepo.findResolvableByUri(anyString())).thenReturn(Optional.of(resolvedFacet));
 
-      Set<String> ancestors = service.getAncestorTitles(id);
+      Set<String> ancestors = service.getAncestorStems(id);
 
-      assertEquals(Set.of("SecurityProperties"), ancestors);
+      assertEquals(
+          Set.of(
+              "gsmarc://tenant/Composite",
+              "gsmarc://authority-a/SharedFacet",
+              "gsmarc://authority-b/SharedFacet"),
+          ancestors);
     }
 
     @Test
-    void getAncestorTitles_singleRefToBase_returnsOwnPlusBase() {
+    void getAncestorStems_rootlessArchetype_returnsOwnStemOnly() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "SecurityProperties");
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/SecurityProperties/v2")
+          .put("title", "SecurityProperties");
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(schema);
+      when(entity.getVersion()).thenReturn(1);
+      when(entity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+
+      Set<String> ancestors = service.getAncestorStems(id);
+
+      assertEquals(Set.of("gsmarc://tenant/SecurityProperties"), ancestors);
+    }
+
+    @Test
+    void getAncestorStems_singleRefToBase_returnsOwnPlusBase() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/SecurityProperties/v1")
+          .put("title", "SecurityProperties");
       schema.put("$ref", "gsmarc://gsm/Structure/v1");
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      Set<String> ancestors = service.getAncestorTitles(id);
+      Set<String> ancestors = service.getAncestorStems(id);
 
-      assertTrue(ancestors.contains("SecurityProperties"));
-      assertTrue(ancestors.contains("Structure"));
+      assertTrue(ancestors.contains("gsmarc://tenant/SecurityProperties"));
+      assertTrue(ancestors.contains("gsmarc://gsm/Structure"));
       assertEquals(2, ancestors.size());
     }
 
     @Test
-    void getAncestorTitles_chainThroughIntermediary_resolvesAll() {
+    void getAncestorStems_chainThroughIntermediary_resolvesAll() {
       UUID id = UUID.randomUUID();
       // Child → ($ref) → SecurityProperties → ($ref) → Structure (base)
-      ObjectNode childSchema = MAPPER.createObjectNode();
-      childSchema.put("title", "DetailedSecurity");
+      ObjectNode childSchema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/DetailedSecurity/v1")
+          .put("title", "DetailedSecurity");
       childSchema.put("$ref", "gsmarc://gsm/SecurityProperties/v1");
 
       ArchetypeEntity childEntity = mock(ArchetypeEntity.class);
@@ -673,53 +822,59 @@ class ArchetypeServiceTest {
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(childEntity));
 
       // Intermediary schema in DB
-      ObjectNode intermediarySchema = MAPPER.createObjectNode();
-      intermediarySchema.put("title", "SecurityProperties");
+      ObjectNode intermediarySchema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://gsm/SecurityProperties/v1")
+          .put("title", "SecurityProperties");
       intermediarySchema.put("$ref", "gsmarc://gsm/Structure/v1");
 
       ArchetypeEntity intermediaryEntity = mock(ArchetypeEntity.class);
       when(intermediaryEntity.getStatement()).thenReturn(intermediarySchema);
       when(intermediaryEntity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
 
-      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("SecurityProperties"), any()))
+      when(archetypeRepo.findResolvableByUri("gsmarc://gsm/SecurityProperties/v1"))
           .thenReturn(Optional.of(intermediaryEntity));
 
-      Set<String> ancestors = service.getAncestorTitles(id);
+      Set<String> ancestors = service.getAncestorStems(id);
 
-      assertTrue(ancestors.contains("DetailedSecurity"));
-      assertTrue(ancestors.contains("SecurityProperties"));
-      assertTrue(ancestors.contains("Structure"));
+      assertTrue(ancestors.contains("gsmarc://tenant/DetailedSecurity"));
+      assertTrue(ancestors.contains("gsmarc://gsm/SecurityProperties"));
+      assertTrue(ancestors.contains("gsmarc://gsm/Structure"));
       assertEquals(3, ancestors.size());
     }
 
     @Test
     void isDescendantOf_exactMatch_returnsTrue() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "SecurityProperties");
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/SecurityProperties/v3")
+          .put("title", "SecurityProperties");
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      assertTrue(service.isDescendantOf(id, "SecurityProperties"));
+      assertTrue(service.isDescendantOf(id, "gsmarc://tenant/SecurityProperties"));
     }
 
     @Test
     void isDescendantOf_viaRefChain_returnsTrue() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "DetailedSecurity");
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/DetailedSecurity/v1")
+          .put("title", "DetailedSecurity");
       schema.put("$ref", "gsmarc://gsm/Structure/v1");
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      assertTrue(service.isDescendantOf(id, "Structure"));
+      assertTrue(service.isDescendantOf(id, "gsmarc://gsm/Structure"));
     }
 
     @Test
-    void getAncestorTitles_noTitle_returnsEmpty() {
+    void getAncestorStems_noIdentity_returnsEmpty() {
       UUID id = UUID.randomUUID();
       ObjectNode schema = MAPPER.createObjectNode();
       // No title, no allOf
@@ -727,29 +882,23 @@ class ArchetypeServiceTest {
       when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      Set<String> ancestors = service.getAncestorTitles(id);
+      Set<String> ancestors = service.getAncestorStems(id);
       assertTrue(ancestors.isEmpty());
     }
 
     @Test
-    void getAncestorTitles_unresolvableIntermediary_skipsGracefully() {
+    void getAncestorStems_unresolvableIntermediary_isNotAnAncestor() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode();
-      schema.put("title", "Child");
+      ObjectNode schema = MAPPER.createObjectNode().put("$id", "gsmarc://tenant/Child/v1").put("title", "Child");
       schema.put("$ref", "gsmarc://gsm/UnknownParent/v1");
 
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
-      // No in-effect archetypes in DB → intermediary not resolvable
-      // Default findFirstByStatementTitleAndStatusIn returns Optional.empty()
+      Set<String> ancestors = service.getAncestorStems(id);
 
-      Set<String> ancestors = service.getAncestorTitles(id);
-
-      assertTrue(ancestors.contains("Child"));
-      assertTrue(ancestors.contains("UnknownParent"));
-      assertEquals(2, ancestors.size());
+      assertEquals(Set.of("gsmarc://tenant/Child"), ancestors);
     }
   }
 
@@ -760,23 +909,37 @@ class ArchetypeServiceTest {
   @Nested
   class SubjectTypeResolutionDefensiveBranches {
 
-    private UUID mockTenantArchetype(String title, String ref) {
-      UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode().put("title", title).put("$ref", ref);
+    private String mockTenantArchetype(String title, String ref) {
+      String id = "gsmarc://tenant/" + title + "/v1";
+      ObjectNode schema = MAPPER.createObjectNode().put("$id", id).put("title", title).put("$ref", ref);
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
       when(entity.getStatement()).thenReturn(schema);
-      when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
+      when(entity.getVersion()).thenReturn(1);
+      when(entity.getStatus()).thenReturn(AscriptionStatusType.ACTIVE);
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(entity));
       return id;
     }
 
     @Test
+    void resolveForCreation_tenantIdentityWithBaseTitle_usesReferencedBase() {
+      String id = mockTenantArchetype("Structure", "gsmarc://tenant/BaseMechanism/v1");
+      when(compositionValidation.resolveGsmBases(
+          eq("gsmarc://tenant/BaseMechanism/v1"), eq("gsmarc://tenant/Structure/v1"), any()))
+          .thenReturn(Set.of("gsmarc://gsm/Mechanism/v1"));
+
+      ArchetypeService.ArchetypeResolution resolution = service.resolveForCreation(id);
+
+      assertEquals(DefinitionSubjectType.MECHANISM, resolution.subjectType());
+    }
+
+    @Test
     void resolveForCreation_refChainConvergesToNoBase_throws() {
-      UUID id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
-      when(compositionValidation.resolveGsmBases(eq("gsmarc://t/x/Parent/v1"), eq("Tenant"), any()))
+      String id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
+      when(compositionValidation.resolveGsmBases(
+          eq("gsmarc://t/x/Parent/v1"), eq("gsmarc://tenant/Tenant/v1"), any()))
           .thenReturn(Set.of());
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
+      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -784,12 +947,12 @@ class ArchetypeServiceTest {
 
     @Test
     void resolveForCreation_refChainConvergesToMultipleBases_throws() {
-      UUID id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
-      when(compositionValidation.resolveGsmBases(eq("gsmarc://t/x/Parent/v1"), eq("Tenant"), any()))
-          .thenReturn(Set.of("Structure", "Mechanism"));
+      String id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
+      when(compositionValidation.resolveGsmBases(
+          eq("gsmarc://t/x/Parent/v1"), eq("gsmarc://tenant/Tenant/v1"), any()))
+          .thenReturn(Set.of("gsmarc://gsm/Structure/v1", "gsmarc://gsm/Mechanism/v1"));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
+      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           ex.getRuleType());
@@ -797,12 +960,12 @@ class ArchetypeServiceTest {
 
     @Test
     void resolveForCreation_unmappableBaseName_throws() {
-      UUID id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
-      when(compositionValidation.resolveGsmBases(eq("gsmarc://t/x/Parent/v1"), eq("Tenant"), any()))
-          .thenReturn(Set.of("NotABase"));
+      String id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
+      when(compositionValidation.resolveGsmBases(
+          eq("gsmarc://t/x/Parent/v1"), eq("gsmarc://tenant/Tenant/v1"), any()))
+          .thenReturn(Set.of("gsmarc://tenant/NotABase/v1"));
 
-      RuleViolationException ex =
-          assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
+      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -810,13 +973,28 @@ class ArchetypeServiceTest {
 
     @Test
     void resolveForCreation_singleBase_resolvesSubjectType() {
-      UUID id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
-      when(compositionValidation.resolveGsmBases(eq("gsmarc://t/x/Parent/v1"), eq("Tenant"), any()))
-          .thenReturn(Set.of("Structure"));
+      String id = mockTenantArchetype("Tenant", "gsmarc://t/x/Parent/v1");
+      when(compositionValidation.resolveGsmBases(
+          eq("gsmarc://t/x/Parent/v1"), eq("gsmarc://tenant/Tenant/v1"), any()))
+          .thenReturn(Set.of("gsmarc://gsm/Structure/v1"));
 
       ArchetypeService.ArchetypeResolution resolution = service.resolveForCreation(id);
 
       assertEquals(DefinitionSubjectType.STRUCTURE, resolution.subjectType());
+    }
+
+    @Test
+    void resolveArchetypeSchema_usesExactUri() {
+      String archetypeUri = "gsmarc://tenant/layers/Parent/v3";
+      ArchetypeEntity parent = mock(ArchetypeEntity.class);
+      ObjectNode parentSchema = MAPPER.createObjectNode().put("$id", archetypeUri);
+      when(parent.getStatement()).thenReturn(parentSchema);
+      when(archetypeRepo.findResolvableByUri(archetypeUri)).thenReturn(Optional.of(parent));
+
+      JsonNode resolved = service.resolveArchetypeSchema(archetypeUri);
+
+      assertEquals(parentSchema, resolved);
+      verify(archetypeRepo).findResolvableByUri(archetypeUri);
     }
   }
 
@@ -833,8 +1011,84 @@ class ArchetypeServiceTest {
     }
 
     @Test
-    void getRefereeReferences_isEmpty() {
-      assertTrue(service.getRefereeReferences(mock(AscriptionEntity.class)).isEmpty());
+    void getRefereeReferences_discoversExternalSchemaRefsOnly() {
+      String rootRef = "gsmarc://tenant/Base/v2";
+      String nestedRef = "gsmarc://tenant/facets/AuditFacet/v1";
+      ArchetypeEntity rootTarget = mock(ArchetypeEntity.class);
+      ArchetypeEntity nestedTarget = mock(ArchetypeEntity.class);
+      when(archetypeRepo.findResolvableByUri(rootRef)).thenReturn(Optional.of(rootTarget));
+      when(archetypeRepo.findResolvableByUri(nestedRef)).thenReturn(Optional.of(nestedTarget));
+
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/Composite/v1")
+          .put("title", "Composite")
+          .put("$ref", rootRef);
+      schema.putObject("properties").putObject("local").put("$ref", "#/$defs/Local");
+      schema.withObject("properties").putObject("audit").put("$ref", nestedRef);
+      schema.putObject("default").put("$ref", "gsmarc://tenant/DataLookalike/v1");
+
+      ArchetypeEntity entity = mockArchetype(schema);
+
+      List<Map.Entry<AscriptionEntity, String>> refs = service.getRefereeReferences(entity);
+
+      assertEquals(
+          List.of(
+              Map.entry(rootTarget, "/$ref"), Map.entry(nestedTarget, "/properties/audit/$ref")),
+          refs);
+      verify(archetypeRepo, never()).findResolvableByUri("gsmarc://tenant/DataLookalike/v1");
+    }
+
+    @Test
+    void getRefereeReferences_unresolvedRef_failsClosed() {
+      String ref = "gsmarc://tenant/facets/MissingFacet/v1";
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/Composite/v1")
+          .put("title", "Composite");
+      schema.putObject("properties").putObject("facet").put("$ref", ref);
+      when(archetypeRepo.findResolvableByUri(ref)).thenReturn(Optional.empty());
+
+      RuleViolationException ex = assertThrows(
+          RuleViolationException.class,
+          () -> service.getRefereeReferences(mockArchetype(schema)));
+
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, ex.getRuleType());
+      assertEquals(ref, ex.getSite().get("ref"));
+      assertEquals("/properties/facet/$ref", ex.getSite().get("site"));
+    }
+
+    @Test
+    void getRefereeReferences_invalidEntityOrStatement_rejectedExplicitly() {
+      assertThrows(IllegalArgumentException.class, () -> service.getRefereeReferences(null));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> service.getRefereeReferences(mock(AscriptionEntity.class)));
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      when(archetype.getStatement()).thenReturn(null);
+      assertThrows(IllegalArgumentException.class, () -> service.getRefereeReferences(archetype));
+    }
+
+    @Test
+    void getRefereeReferences_preservesDuplicateTargetSitesAcrossWalkerKeywords() {
+      String ref = "gsmarc://tenant/SharedFacet/v1";
+      ArchetypeEntity target = mock(ArchetypeEntity.class);
+      when(archetypeRepo.findResolvableByUri(ref)).thenReturn(Optional.of(target));
+
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/Composite/v1")
+          .put("title", "Composite");
+      schema.putObject("$defs").putObject("shared").put("$ref", ref);
+      schema.putArray("prefixItems").addObject().put("$ref", ref);
+
+      List<Map.Entry<AscriptionEntity, String>> refs = service.getRefereeReferences(mockArchetype(schema));
+
+      assertEquals(
+          List.of(
+              Map.entry(target, "/prefixItems/0/$ref"), Map.entry(target, "/$defs/shared/$ref")),
+          refs);
     }
 
     @Test
@@ -859,9 +1113,12 @@ class ArchetypeServiceTest {
   class AncestorAllOfWalk {
 
     @Test
-    void getAncestorTitles_allOfWalk_coversSkipDedupBaseAndRecursionBranches() {
+    void getAncestorStems_allOfWalk_coversSkipDedupBaseAndRecursionBranches() {
       UUID id = UUID.randomUUID();
-      ObjectNode schema = MAPPER.createObjectNode().put("title", "Composite");
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/Composite/v1")
+          .put("title", "Composite");
       var allOf = schema.putArray("allOf");
       allOf.add(MAPPER.createObjectNode()); // no $ref → skipped
       allOf.add(MAPPER.createObjectNode().put("$ref", "#/local/ptr")); // non-gsmarc → null title
@@ -875,16 +1132,44 @@ class ArchetypeServiceTest {
       when(archetypeRepo.findById(id)).thenReturn(Optional.of(entity));
 
       // Facet resolves to an intermediary whose own $ref reaches Mechanism.
-      ObjectNode facetSchema =
-          MAPPER.createObjectNode().put("title", "Facet").put("$ref", "gsmarc://gsm/Mechanism/v1");
+      ObjectNode facetSchema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://t/x/Facet/v1")
+          .put("title", "Facet")
+          .put("$ref", "gsmarc://gsm/Mechanism/v1");
       ArchetypeEntity facetEntity = mock(ArchetypeEntity.class);
       when(facetEntity.getStatement()).thenReturn(facetSchema);
-      when(archetypeRepo.findFirstByStatementTitleAndStatusIn(eq("Facet"), any()))
+      when(archetypeRepo.findResolvableByUri("gsmarc://t/x/Facet/v1"))
           .thenReturn(Optional.of(facetEntity));
 
-      Set<String> ancestors = service.getAncestorTitles(id);
+      Set<String> ancestors = service.getAncestorStems(id);
 
-      assertEquals(Set.of("Composite", "Structure", "Unknown", "Facet", "Mechanism"), ancestors);
+      assertEquals(
+          Set.of(
+              "gsmarc://tenant/Composite",
+              "gsmarc://gsm/Structure",
+              "gsmarc://t/x/Facet",
+              "gsmarc://gsm/Mechanism"),
+          ancestors);
+    }
+
+    @Test
+    void getAncestorStems_collapsesVersionsOfSameFamily() {
+      UUID id = UUID.randomUUID();
+      ObjectNode schema = MAPPER
+          .createObjectNode()
+          .put("$id", "gsmarc://tenant/Composite/v1")
+          .put("title", "Composite");
+      schema.putArray("allOf").addObject().put("$ref", "gsmarc://tenant/Facet/v1");
+      schema.withArray("allOf").addObject().put("$ref", "gsmarc://tenant/Facet/v2");
+      ArchetypeEntity root = mockArchetype(schema);
+      ArchetypeEntity resolved = mockArchetype(MAPPER.createObjectNode());
+      when(archetypeRepo.findById(id)).thenReturn(Optional.of(root));
+      when(archetypeRepo.findResolvableByUri(anyString())).thenReturn(Optional.of(resolved));
+
+      assertEquals(
+          Set.of("gsmarc://tenant/Composite", "gsmarc://tenant/Facet"),
+          service.getAncestorStems(id));
     }
   }
 

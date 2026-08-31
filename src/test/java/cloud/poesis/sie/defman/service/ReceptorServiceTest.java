@@ -32,7 +32,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * Tests Receptor lifecycle descriptors: identity-bound values, referee references, cascade target
+ * Tests Receptor lifecycle descriptors: identity-bound values, referee
+ * references, cascade target
  * roles, create, findEntityById, and findCascadeTargetsFrom.
  */
 @ExtendWith(MockitoExtension.class)
@@ -41,9 +42,12 @@ class ReceptorServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ReceptorRepository receptorRepo;
-  @Mock private MechanismService mechanismService;
-  @Mock private ArchetypeService archetypeService;
+  @Mock
+  private ReceptorRepository receptorRepo;
+  @Mock
+  private MechanismService mechanismService;
+  @Mock
+  private ArchetypeService archetypeService;
 
   private ReceptorService service;
 
@@ -60,7 +64,7 @@ class ReceptorServiceTest {
   class IdentityBound {
 
     @Test
-    void mechanismExtracted() {
+    void mechanismAndDataArchetypeDefinitionsExtracted() {
       UUID mechDefId = UUID.randomUUID();
       UUID archDefId = UUID.randomUUID();
 
@@ -68,8 +72,9 @@ class ReceptorServiceTest {
 
       Map<String, Object> values = service.getIdentityBoundValues(entity);
 
-      assertEquals(1, values.size());
+      assertEquals(2, values.size());
       assertEquals(mechDefId, values.get("mechanism"));
+      assertEquals(archDefId, values.get("archetype"));
     }
   }
 
@@ -123,17 +128,18 @@ class ReceptorServiceTest {
     @Test
     void validStatement_buildsEntity() {
       UUID mechId = UUID.randomUUID();
-      UUID dataArchId = UUID.randomUUID();
+      String dataArchetypeId = "gsmarc://tenant/InputData/v1";
 
       MechanismEntity mechanism = mock(MechanismEntity.class);
       when(mechanismService.findEntityById(mechId)).thenReturn(mechanism);
 
       ArchetypeEntity dataArchetype = mock(ArchetypeEntity.class);
-      when(archetypeService.findEntityById(dataArchId)).thenReturn(dataArchetype);
+      when(archetypeService.resolveArchetypeUri(dataArchetypeId, "archetype"))
+          .thenReturn(dataArchetype);
 
       ObjectNode statement = MAPPER.createObjectNode();
       statement.put("mechanism", mechId.toString());
-      statement.put("archetype", dataArchId.toString());
+      statement.put("archetype", dataArchetypeId);
 
       DefinitionEntity definition = mock(DefinitionEntity.class);
       ArchetypeEntity archetypeRef = mock(ArchetypeEntity.class);
@@ -189,8 +195,7 @@ class ReceptorServiceTest {
 
     @Test
     void otherType_returnsEmpty() {
-      var result =
-          service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
+      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
 
       assertTrue(result.isEmpty());
     }

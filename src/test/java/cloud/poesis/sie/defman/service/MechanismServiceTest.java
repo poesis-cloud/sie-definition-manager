@@ -44,23 +44,27 @@ class MechanismServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private MechanismRepository mechanismRepo;
+  @Mock
+  private MechanismRepository mechanismRepo;
 
-  @Mock private StructureService structureService;
+  @Mock
+  private StructureService structureService;
 
-  @Mock private MechanismRuleValidationService ruleValidation;
+  @Mock
+  private MechanismRuleValidationService ruleValidation;
 
-  @Mock private MechanismPortDerivationService portDerivation;
+  @Mock
+  private MechanismPortDerivationService portDerivation;
 
-  @Mock private AscriptionService ascriptionService;
+  @Mock
+  private AscriptionService ascriptionService;
 
   private MechanismService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new MechanismService(
-            mechanismRepo, structureService, ruleValidation, portDerivation, ascriptionService);
+    service = new MechanismService(
+        mechanismRepo, structureService, ruleValidation, portDerivation, ascriptionService);
   }
 
   // ========================================================================
@@ -107,8 +111,8 @@ class MechanismServiceTest {
         MechanismEntity entity = stubMechanism("UserValidation", structureDefId, thisDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
             .thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -124,13 +128,12 @@ class MechanismServiceTest {
         MechanismEntity existing = stubMechanism("UserValidation", structureDefId, otherDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
             .thenReturn(List.of(existing));
 
-        RuleViolationException ex =
-            assertThrows(
-                RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
+        RuleViolationException ex = assertThrows(
+            RuleViolationException.class, () -> service.validateActivationUniqueness(entity));
         assertEquals(
             AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
             ex.getRuleType());
@@ -147,8 +150,8 @@ class MechanismServiceTest {
         MechanismEntity existing = stubMechanism("UserValidation", structureDefId, defId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
             .thenReturn(List.of(existing));
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -164,8 +167,8 @@ class MechanismServiceTest {
         MechanismEntity existing = stubMechanism("PaymentRouting", structureDefId, otherDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId,
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
             .thenReturn(List.of(existing));
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -179,8 +182,8 @@ class MechanismServiceTest {
         MechanismEntity entity = stubMechanism("UserValidation", structureDefId1, thisDefId);
 
         when(mechanismRepo.findAllByStructureDefinitionIdAndStatusIn(
-                structureDefId1,
-                EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
+            structureDefId1,
+            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)))
             .thenReturn(List.of());
 
         assertDoesNotThrow(() -> service.validateActivationUniqueness(entity));
@@ -354,8 +357,8 @@ class MechanismServiceTest {
     void derivesSpecsThenCreatesViaAscriptionService() {
       MechanismEntity mechanism = mock(MechanismEntity.class);
 
-      UUID arch1 = UUID.randomUUID();
-      UUID arch2 = UUID.randomUUID();
+      String arch1 = "gsmarc://tenant/FirstPort/v1";
+      String arch2 = "gsmarc://tenant/SecondPort/v1";
       ObjectNode stmt1 = MAPPER.createObjectNode().put("mechanism", "m1");
       ObjectNode stmt2 = MAPPER.createObjectNode().put("mechanism", "m2");
 

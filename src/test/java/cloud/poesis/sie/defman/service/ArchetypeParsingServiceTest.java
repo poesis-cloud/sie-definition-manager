@@ -4,9 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,7 +27,8 @@ class ArchetypeParsingServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private ArchetypeRepository archetypeRepository;
+  @Mock
+  private ArchetypeRepository archetypeRepository;
 
   private ArchetypeParsingService service;
 
@@ -38,65 +38,33 @@ class ArchetypeParsingServiceTest {
   }
 
   // ======================================================================
-  // findInEffectByTitle
+  // findResolvableByUri
   // ======================================================================
 
   @Nested
-  class FindInEffectByTitle {
+  class FindResolvableByUri {
 
     @Test
-    void delegatesToRepository() {
+    void delegatesExactFullIdentityToRepository() {
+      String id = "gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier/v1";
       ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("Structure"), any()))
-          .thenReturn(Optional.of(entity));
+      when(archetypeRepository.findResolvableByUri(id)).thenReturn(Optional.of(entity));
 
-      Optional<ArchetypeEntity> result = service.findInEffectByTitle("Structure");
+      Optional<ArchetypeEntity> result = service.findResolvableByUri(id);
 
       assertTrue(result.isPresent());
       assertSame(entity, result.get());
-      verify(archetypeRepository).findFirstByStatementTitleAndStatusIn(eq("Structure"), any());
+      verify(archetypeRepository).findResolvableByUri(id);
     }
 
     @Test
-    void returnsEmptyWhenNotFound() {
-      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("Unknown"), any()))
-          .thenReturn(Optional.empty());
+    void returnsEmptyWithoutTitleOrLifecycleFallback() {
+      String id = "gsmarc://gsm/Structure/v99";
+      when(archetypeRepository.findResolvableByUri(id)).thenReturn(Optional.empty());
 
-      Optional<ArchetypeEntity> result = service.findInEffectByTitle("Unknown");
+      assertTrue(service.findResolvableByUri(id).isEmpty());
 
-      assertTrue(result.isEmpty());
-    }
-  }
-
-  // ======================================================================
-  // findResolvableByTitle
-  // ======================================================================
-
-  @Nested
-  class FindResolvableByTitle {
-
-    @Test
-    void delegatesToRepository() {
-      ArchetypeEntity entity = mock(ArchetypeEntity.class);
-      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("CustomArchetype"), any()))
-          .thenReturn(Optional.of(entity));
-
-      Optional<ArchetypeEntity> result = service.findResolvableByTitle("CustomArchetype");
-
-      assertTrue(result.isPresent());
-      assertSame(entity, result.get());
-      verify(archetypeRepository)
-          .findFirstByStatementTitleAndStatusIn(eq("CustomArchetype"), any());
-    }
-
-    @Test
-    void returnsEmptyWhenNotFound() {
-      when(archetypeRepository.findFirstByStatementTitleAndStatusIn(eq("Unknown"), any()))
-          .thenReturn(Optional.empty());
-
-      Optional<ArchetypeEntity> result = service.findResolvableByTitle("Unknown");
-
-      assertTrue(result.isEmpty());
+      verify(archetypeRepository).findResolvableByUri(id);
     }
   }
 
@@ -144,7 +112,7 @@ class ArchetypeParsingServiceTest {
       assertEquals(
           "ScapPlatformIdentifier",
           ArchetypeParsingService.extractTitleFromRef(
-              "gsmarc://gsm-frameworks/scap/cpe/ScapPlatformIdentifier/v1"));
+              "gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier/v1"));
     }
 
     @Test
@@ -163,6 +131,55 @@ class ArchetypeParsingServiceTest {
     @Test
     void returnsNullForLocalPointer() {
       assertNull(ArchetypeParsingService.extractTitleFromRef("#/definitions/Foo"));
+    }
+  }
+
+  // ======================================================================
+  // parseIdentity (static)
+  // ======================================================================
+
+  @Nested
+  class ParseIdentity {
+
+    @Test
+    void parsesNormativeIdentityComponents() {
+      ArchetypeParsingService.ArchetypeIdentity identity = ArchetypeParsingService.parseIdentity(
+          "gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier/v12");
+
+      assertEquals("gsm-ontology", identity.authority());
+      assertEquals("scap/cpe/", identity.namespacePath());
+      assertEquals("ScapPlatformIdentifier", identity.title());
+      assertEquals(12, identity.version());
+      assertEquals("gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier", identity.stem());
+    }
+
+    @Test
+    void rejectsNonNormativeIdentityForms() {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> ArchetypeParsingService.parseIdentity("gsmarc://GSM/Structure/v1"));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> ArchetypeParsingService.parseIdentity("gsmarc://gsm/foo_bar/Structure/v1"));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> ArchetypeParsingService.parseIdentity("gsmarc://gsm/structure/v1"));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> ArchetypeParsingService.parseIdentity("gsmarc://gsm/Structure/v0"));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> ArchetypeParsingService.parseIdentity("gsmarc://gsm/Structure/v01"));
+    }
+
+    @Test
+    void requiresExactTitleCoherence() {
+      assertTrue(
+          ArchetypeParsingService.hasCoherentIdentityTitle(
+              "gsmarc://gsm/Structure/v1", "Structure"));
+      assertFalse(
+          ArchetypeParsingService.hasCoherentIdentityTitle(
+              "gsmarc://gsm/Structure/v1", "structure"));
     }
   }
 
@@ -187,31 +204,12 @@ class ArchetypeParsingServiceTest {
     void allowsNonGsmAuthorityUri() {
       assertTrue(
           ArchetypeParsingService.isAllowedRef(
-              "gsmarc://gsm-frameworks/scap/cpe/ScapPlatformIdentifier/v1"));
+              "gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier/v1"));
     }
 
     @Test
     void rejectsExternalUri() {
       assertFalse(ArchetypeParsingService.isAllowedRef("https://example.com/schema"));
-    }
-  }
-
-  // ======================================================================
-  // isGsmBaseTitle (static)
-  // ======================================================================
-
-  @Nested
-  class IsGsmBaseTitle {
-
-    @Test
-    void returnsTrueForBaseTitle() {
-      assertTrue(ArchetypeParsingService.isGsmBaseTitle("Structure"));
-      assertTrue(ArchetypeParsingService.isGsmBaseTitle("Archetype"));
-    }
-
-    @Test
-    void returnsFalseForNonBaseTitle() {
-      assertFalse(ArchetypeParsingService.isGsmBaseTitle("CustomArchetype"));
     }
   }
 }

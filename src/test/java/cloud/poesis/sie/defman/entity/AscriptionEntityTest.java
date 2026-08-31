@@ -8,11 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.lang.reflect.Field;
 import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 class AscriptionEntityTest {
 
@@ -51,10 +53,11 @@ class AscriptionEntityTest {
     assertEquals(def, entity.getDefinition());
     assertEquals(arch, entity.getArchetype());
     assertEquals("Test", entity.getStatement().get("title").asText());
-    // Id, status, timestamp are DB-generated → null/default
+    // Id, status, timestamp, and positive version are DB-generated.
     assertNull(entity.getId());
     assertNull(entity.getStatus());
     assertNull(entity.getTimestamp());
+    assertEquals(0, entity.getVersion());
   }
 
   @Test

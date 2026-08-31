@@ -35,13 +35,19 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class DefinitionControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+  private static final String TYPING_ARCHETYPE_ID = "gsmarc://test/TestArchetype/v1";
 
-  @Autowired private ObjectMapper objectMapper;
+  @Autowired
+  private MockMvc mockMvc;
 
-  @MockitoBean private DefinitionService definitionService;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-  @MockitoBean private AscriptionProtectionService statementProtection;
+  @MockitoBean
+  private DefinitionService definitionService;
+
+  @MockitoBean
+  private AscriptionProtectionService statementProtection;
 
   private UUID defId;
   private DefinitionEntity definitionEntity;
@@ -60,6 +66,7 @@ class DefinitionControllerTest {
     when(archetypeDefEntity.getId()).thenReturn(UUID.randomUUID());
 
     ObjectNode archetypeStatement = objectMapper.createObjectNode();
+    archetypeStatement.put("$id", TYPING_ARCHETYPE_ID);
     archetypeStatement.put("title", "TestArchetype");
 
     archetypeEntity = mock(ArchetypeEntity.class);

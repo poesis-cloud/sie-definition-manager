@@ -20,13 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Base controller providing entity-to-DTO mapping and RFC 9457 Problem Detail exception handling
+ * Base controller providing entity-to-DTO mapping and RFC 9457 Problem Detail
+ * exception handling
  * for all GSM REST endpoints.
  *
  * @author Clément Cazaud
@@ -41,8 +43,9 @@ public abstract class AbstractController {
   /**
    * Constructs the abstract controller with shared services.
    *
-   * @param statementProtection the ascription statement protection service for in-transit
-   *     protection
+   * @param statementProtection the ascription statement protection service for
+   *                            in-transit
+   *                            protection
    */
   protected AbstractController(AscriptionProtectionService statementProtection) {
     this.statementProtection = statementProtection;
@@ -55,21 +58,28 @@ public abstract class AbstractController {
   /**
    * Maps an ascription entity to its DTO, applying in-transit data protection.
    *
-   * <p>Explicit-fetch design — see README.md § "Explicit-fetch design for lazy associations". The
-   * archetype is passed explicitly (already fetched by the caller) rather than navigated via {@code
-   * ascription.getArchetype()}, which would trigger a lazy-loading proxy exception.
+   * <p>
+   * Explicit-fetch design — see README.md § "Explicit-fetch design for lazy
+   * associations". The
+   * archetype is passed explicitly (already fetched by the caller) rather than
+   * navigated via {@code
+   * ascription.getArchetype()}, which would trigger a lazy-loading proxy
+   * exception.
    *
    * @param ascription the ascription entity
-   * @param archetype the resolved archetype entity
+   * @param archetype  the resolved archetype entity
    * @return the DTO with in-transit data protection applied
    */
   protected AscriptionDto mapEntityToAscriptionDto(
       AscriptionEntity ascription, ArchetypeEntity archetype) {
-    JsonNode statement =
-        statementProtection.applyInTransitProtection(
-            ascription.getStatement(), archetype.getStatement());
+    JsonNode statement = statementProtection.applyInTransitProtection(
+        ascription.getStatement(), archetype.getStatement());
     return new AscriptionDto(
-        ascription.getId(), statement, ascription.getTimestamp(), ascription.getStatus());
+        ascription.getId(),
+        statement,
+        ascription.getTimestamp(),
+        ascription.getStatus(),
+        ascription.getVersion());
   }
 
   /**
@@ -128,17 +138,24 @@ public abstract class AbstractController {
 
   @ExceptionHandler(IllegalArgumentException.class)
   ProblemDetail mapIllegalArgumentExceptionToProblemDetail(IllegalArgumentException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     problemDetail.setTitle("Invalid request parameter");
+    return problemDetail;
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  ProblemDetail mapHttpMessageNotReadableExceptionToProblemDetail(
+      HttpMessageNotReadableException exception) {
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST, "Request body could not be read or contains forbidden fields");
+    problemDetail.setTitle("Invalid request body");
     return problemDetail;
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ProblemDetail mapMethodArgumentNotValidExceptionToProblemDetail(
       MethodArgumentNotValidException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     problemDetail.setTitle("Validation failed");
     return problemDetail;
   }
@@ -146,17 +163,15 @@ public abstract class AbstractController {
   @ExceptionHandler(MissingServletRequestParameterException.class)
   ProblemDetail mapMissingServletRequestParameterExceptionToProblemDetail(
       MissingServletRequestParameterException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     problemDetail.setTitle("Missing required parameter");
     return problemDetail;
   }
 
   @ExceptionHandler(ResponseStatusException.class)
   ProblemDetail mapResponseStatusExceptionToProblemDetail(ResponseStatusException exception) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.valueOf(exception.getStatusCode().value()), exception.getReason());
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.valueOf(exception.getStatusCode().value()), exception.getReason());
     problemDetail.setTitle(exception.getStatusCode().toString());
     return problemDetail;
   }
@@ -164,9 +179,8 @@ public abstract class AbstractController {
   @ExceptionHandler(Exception.class)
   ProblemDetail mapExceptionToProblemDetail(Exception exception) {
     log.error("Unexpected error", exception);
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
     problemDetail.setTitle("Internal server error");
     return problemDetail;
   }
@@ -207,7 +221,7 @@ public abstract class AbstractController {
           MECHANISM_RULE_STARLARK_GLOBAL_WHITELIST,
           MECHANISM_RULE_TRIGGER_AS_FIRST_STATEMENT,
           MECHANISM_RULE_TRIGGER_AS_UNIQUE_STATEMENT,
-          MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_TITLE,
+          MECHANISM_RULE_TRIGGER_ARGUMENT_AS_ARCHETYPE_ID,
           MECHANISM_RULE_SYS_FLUENT_API_ARITY,
           MECHANISM_RULE_SYS_FLUENT_API,
           EFFECTOR_MECHANISM_REFERENCE_INTEGRITY,
@@ -220,6 +234,7 @@ public abstract class AbstractController {
           INTERACTION_EFFECTOR_RECEPTOR_COMPATIBILITY,
           ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
           ASCRIPTION_ARCHETYPE_REFERENCE_INTEGRITY,
+          ASCRIPTION_ARCHETYPE_IN_EFFECT,
           DIRECTIVE_STRUCTURE_REFERENCE_INTEGRITY,
           DIRECTIVE_QUALIFIER_REFERENCE_INTEGRITY,
           NORM_STRUCTURE_REFERENCE_INTEGRITY,
@@ -238,13 +253,21 @@ public abstract class AbstractController {
           ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
           ARCHETYPE_ALLOF_ACYCLICITY,
           ARCHETYPE_ALLOF_NON_SEALED,
+          ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS,
+          ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY,
           ARCHETYPE_REF_NORM,
+          ARCHETYPE_REF_INTEGRITY,
+          ARCHETYPE_ID_GRAMMAR,
+          ARCHETYPE_ID_TITLE_COHERENCE,
+          ARCHETYPE_ID_ROOT_EXCLUSIVITY,
           ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY,
           ARCHETYPE_ALIAS_UNAMBIGUITY ->
-          HttpStatus.BAD_REQUEST;
+        HttpStatus.BAD_REQUEST;
       case ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
+          ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS,
+          ARCHETYPE_URI_RESOLUTION_UNIQUENESS,
           ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION ->
-          HttpStatus.CONFLICT;
+        HttpStatus.CONFLICT;
     };
   }
 }

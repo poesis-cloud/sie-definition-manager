@@ -9,11 +9,14 @@ import cloud.poesis.sie.defman.repository.AbstractAscriptionRepository;
 import cloud.poesis.sie.defman.repository.ArchetypeRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.EnumSet;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.Span;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,9 +28,13 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Archetype ascription service.
  *
- * <p>Manages lifecycle and persistence of {@link ArchetypeEntity} ascriptions including schema
- * composition validation ({@code $ref} chain + {@code allOf} facets), {@code $gsm:*} annotation
- * well-formedness, subject type resolution, and vocabulary-driven index provisioning.
+ * <p>
+ * Manages lifecycle and persistence of {@link ArchetypeEntity} ascriptions
+ * including schema
+ * composition validation ({@code $ref} chain + {@code allOf} facets),
+ * {@code $gsm:*} annotation
+ * well-formedness, subject type resolution, and vocabulary-driven index
+ * provisioning.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -35,22 +42,29 @@ import org.springframework.stereotype.Service;
 @Service
 public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntity> {
 
-  public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {}
+  public record ArchetypeResolution(ArchetypeEntity archetype, DefinitionSubjectType subjectType) {
+  }
 
   private final ArchetypeRepository archetypeRepo;
   private final ArchetypePropertyIndexationService indexProvisioning;
+  private final ArchetypeIdentityValidationService identityValidation;
   private final ArchetypeAnnotationValidationService annotationValidation;
   private final ArchetypeCompositionValidationService compositionValidation;
+  private final JsonSchemaPositionWalker schemaPositionWalker;
 
   public ArchetypeService(
       ArchetypeRepository archetypeRepo,
       ArchetypePropertyIndexationService indexProvisioning,
+      ArchetypeIdentityValidationService identityValidation,
       ArchetypeAnnotationValidationService annotationValidation,
-      ArchetypeCompositionValidationService compositionValidation) {
+      ArchetypeCompositionValidationService compositionValidation,
+      JsonSchemaPositionWalker schemaPositionWalker) {
     this.archetypeRepo = archetypeRepo;
     this.indexProvisioning = indexProvisioning;
+    this.identityValidation = identityValidation;
     this.annotationValidation = annotationValidation;
     this.compositionValidation = compositionValidation;
+    this.schemaPositionWalker = schemaPositionWalker;
   }
 
   @Override
@@ -74,11 +88,13 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
           "statement");
     }
 
+    identityValidation.validate(statement);
+
+    // GSM §8: schema-position $ref URI policy and authored $dynamicRef prohibition
+    annotationValidation.validateRefUriPolicy(statement);
+
     // GSM §5: $ref chain convergence + §8: $gsm:sealed enforcement
     compositionValidation.validateSchemaComposition(statement, this::resolveArchetypeSchema);
-
-    // GSM §8: deep $ref URI policy — reject external URIs everywhere
-    annotationValidation.validateRefUriPolicy(statement);
 
     // GSM §8: $gsm:* annotation well-formedness
     annotationValidation.validateArchetypeAnnotations(
@@ -92,18 +108,131 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   // ======================================================================
 
   /**
-   * Resolves an Archetype by id and derives the DefinitionSubjectType from its schema title. Used
-   * by the controller to dispatch creation requests.
+   * Resolves an Archetype URI for the typing role at creation time.
    *
-   * @param archetypeId the archetype UUID
+   * @param archetypeUri the complete version-pinned {@code gsmarc://} Archetype
+   *                     URI
    * @return the resolved archetype with its derived subject type
-   * @throws ResourceNotFoundException if no archetype exists with the given id
-   * @throws RuleViolationException if the archetype has no title or is rootless
+   * @throws RuleViolationException if the URI does not resolve or is not eligible
+   *                                for CREATE
    */
-  public ArchetypeResolution resolveForCreation(UUID archetypeId) {
-    ArchetypeEntity archetype = findEntityById(archetypeId);
-    DefinitionSubjectType type = resolveSubjectType(archetype);
-    return new ArchetypeResolution(archetype, type);
+  public ArchetypeResolution resolveForCreation(String archetypeUri) {
+    return resolveInEffectArchetypeUri(archetypeUri);
+  }
+
+  /**
+   * Resolves one Archetype URI and asserts the resolved Ascription is in effect
+   * for typing.
+   */
+  public ArchetypeResolution resolveInEffectArchetypeUri(String archetypeUri) {
+    ArchetypeEntity archetype = resolveArchetypeUri(archetypeUri, "archetype");
+    validateTypingEligibility(archetype, archetypeUri);
+    return new ArchetypeResolution(archetype, resolveSubjectType(archetype));
+  }
+
+  /**
+   * Resolves one Archetype URI for the typing-filter role in read queries.
+   *
+   * <p>
+   * Unlike {@link #resolveInEffectArchetypeUri}, no in-effect eligibility is
+   * enforced: any
+   * resolvable (post-approval) status is queryable, since existing ascriptions
+   * typed by an
+   * Archetype remain valid and findable regardless of that Archetype's later
+   * status.
+   *
+   * @param archetypeUri the complete version-pinned {@code gsmarc://} Archetype
+   *                     URI
+   * @return the resolved archetype with its derived subject type
+   * @throws RuleViolationException if the URI does not resolve
+   */
+  public ArchetypeResolution resolveForQuery(String archetypeUri) {
+    ArchetypeEntity archetype = resolveArchetypeUri(archetypeUri, "archetype");
+    return new ArchetypeResolution(archetype, resolveSubjectType(archetype));
+  }
+
+  private void validateTypingEligibility(ArchetypeEntity archetype, Object requestedIdentity) {
+    if (archetype.getStatus() != AscriptionStatusType.ACTIVE
+        && archetype.getStatus() != AscriptionStatusType.DEPRECATED) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_IN_EFFECT,
+          "Typing Archetype is not eligible for CREATE: "
+              + requestedIdentity
+              + " has status "
+              + archetype.getStatus(),
+          "archetype",
+          requestedIdentity,
+          "status",
+          archetype.getStatus());
+    }
+  }
+
+  /**
+   * Resolves an authored Archetype URI to the single Ascription it dereferences
+   * to.
+   *
+   * <p>
+   * This method owns URI grammar and resolution only — the returned Ascription
+   * may be in any
+   * post-approval status, including {@code RETIRED}, because statements are
+   * immutable and existing
+   * references must keep resolving. Lifecycle eligibility remains with the
+   * generic Referee
+   * state-machine validation performed after subtype creation.
+   *
+   * @param archetypeUri the complete version-pinned {@code gsmarc://} Archetype
+   *                     URI
+   * @param surface      the authored field name used in diagnostics
+   * @return the Archetype Ascription the URI resolves to
+   * @throws RuleViolationException if the URI is malformed or does not resolve
+   */
+  public ArchetypeEntity resolveArchetypeUri(String archetypeUri, String surface) {
+    try {
+      ArchetypeParsingService.parseIdentity(archetypeUri);
+    } catch (IllegalArgumentException exception) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM,
+          "Malformed Archetype $id for '" + surface + "': " + archetypeUri,
+          "surface",
+          surface,
+          "value",
+          archetypeUri);
+    }
+    return archetypeRepo
+        .findResolvableByUri(archetypeUri)
+        .orElseThrow(
+            () -> RuleViolationException.of(
+                AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY,
+                "Archetype reference '"
+                    + surface
+                    + "' does not resolve to a governed Archetype URI: "
+                    + archetypeUri,
+                "surface",
+                surface,
+                "value",
+                archetypeUri));
+  }
+
+  /** Enforces the Archetype-valued Referee policy for CREATE and SUBMIT. */
+  public void validateRefereeEligibility(ArchetypeEntity archetype, String surface) {
+    if (archetype.getStatus() != AscriptionStatusType.APPROVED
+        && archetype.getStatus() != AscriptionStatusType.ACTIVE) {
+      throw RuleViolationException.of(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_COMPATIBILITY_WITH_REFERENCE_STATUS,
+          "Archetype Referee '"
+              + surface
+              + "' ("
+              + archetype.getId()
+              + ") is "
+              + archetype.getStatus()
+              + "; creation requires one of [APPROVED, ACTIVE]",
+          "refereeLabel",
+          surface,
+          "status",
+          archetype.getStatus(),
+          "allowedStatuses",
+          List.of(AscriptionStatusType.APPROVED, AscriptionStatusType.ACTIVE));
+    }
   }
 
   /**
@@ -119,20 +248,6 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
         .orElseThrow(() -> new ResourceNotFoundException(PrimitiveType.ARCHETYPE, id));
   }
 
-  /**
-   * Finds an in-effect Archetype by its schema title via repository query.
-   *
-   * @param title the Archetype's schema title
-   * @return an optional containing the archetype, or empty if not found
-   */
-  public java.util.Optional<ArchetypeEntity> findInEffectByTitle(String title) {
-    return archetypeRepo.findFirstByStatementTitleAndStatusIn(
-        title,
-        EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED).stream()
-            .map(Enum::name)
-            .toList());
-  }
-
   private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
     JsonNode stmt = archetype.getStatement();
     if (stmt == null || !stmt.has("title")) {
@@ -144,10 +259,12 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
     }
     String title = stmt.get("title").asText();
 
-    // Direct match for GSM base archetypes.
-    DefinitionSubjectType type = DefinitionSubjectType.fromArchetypeTitle(title);
-    if (type != null) {
-      return type;
+    String id = stmt.has("$id") && stmt.get("$id").isTextual() ? stmt.get("$id").asText() : null;
+
+    // Direct match only for the eight exact GSM seed identities.
+    if (id != null && ArchetypeParsingService.isGsmBaseId(id)) {
+      return DefinitionSubjectType.fromArchetypeTitle(
+          ArchetypeParsingService.parseIdentity(id).title());
     }
 
     // Tenant archetype: walk the top-level $ref chain to find the structural base.
@@ -163,9 +280,8 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
           title);
     }
 
-    Set<String> resolvedBases =
-        compositionValidation.resolveGsmBases(
-            refNode.asText(), title, this::resolveArchetypeSchema);
+    Set<String> resolvedBases = compositionValidation.resolveGsmBases(refNode.asText(), id,
+        this::resolveArchetypeSchema);
 
     if (resolvedBases.isEmpty()) {
       throw RuleViolationException.of(
@@ -189,14 +305,17 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
           resolvedBases);
     }
 
-    String baseName = resolvedBases.iterator().next();
-    type = DefinitionSubjectType.fromArchetypeTitle(baseName);
+    String baseId = resolvedBases.iterator().next();
+    DefinitionSubjectType type = ArchetypeParsingService.isGsmBaseId(baseId)
+        ? DefinitionSubjectType.fromArchetypeTitle(
+            ArchetypeParsingService.parseIdentity(baseId).title())
+        : null;
     if (type == null) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-          "Cannot map structural base '" + baseName + "' to a DefinitionSubjectType",
-          "baseName",
-          baseName);
+          "Cannot map structural base '" + baseId + "' to a DefinitionSubjectType",
+          "baseId",
+          baseId);
     }
     return type;
   }
@@ -206,13 +325,147 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   @Override
   public Map<String, Object> getIdentityBoundValues(AscriptionEntity entity) {
     JsonNode stmt = entity.getStatement();
-    if (stmt == null || !stmt.has("title")) return Map.of();
-    return Map.of("title", stmt.get("title").asText());
+    if (stmt == null
+        || !stmt.has("title")
+        || !stmt.get("title").isTextual()
+        || !stmt.has("$id")
+        || !stmt.get("$id").isTextual()) {
+      return Map.of();
+    }
+    ArchetypeParsingService.ArchetypeIdentity identity = ArchetypeParsingService
+        .parseIdentity(stmt.get("$id").asText());
+    return Map.of("stem", identity.stem(), "title", stmt.get("title").asText());
+  }
+
+  @Override
+  public void validateCreationUniqueness(AscriptionEntity entity) {
+    JsonNode statement = entity.getStatement();
+    ArchetypeParsingService.ArchetypeIdentity identity = ArchetypeParsingService
+        .parseIdentity(statement.get("$id").asText());
+    UUID definitionId = entity.getDefinition().getId();
+
+    archetypeRepo.flush();
+    UUID ownerDefinitionId = archetypeRepo.acquireDefinitionIdByStem(identity.stem(), definitionId);
+    if (!definitionId.equals(ownerDefinitionId)) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS,
+          "Archetype identity stem '"
+              + identity.stem()
+              + "' is permanently owned by Definition "
+              + ownerDefinitionId,
+          "stem",
+          identity.stem(),
+          "definitionId",
+          definitionId,
+          "ownerDefinitionId",
+          ownerDefinitionId);
+    }
+
+    Span.current()
+        .addEvent(
+            "gsm.archetype.stem.owner.acquired",
+            Attributes.builder()
+                .put("gsm.archetype.stem", identity.stem())
+                .put("gsm.definition.id", definitionId.toString())
+                .build());
+  }
+
+  @Override
+  public void validateStatusTransition(
+      AscriptionEntity entity,
+      AscriptionStatusType currentStatus,
+      AscriptionStatusType targetStatus) {
+    if (currentStatus != AscriptionStatusType.DRAFT
+        || targetStatus != AscriptionStatusType.PROPOSED) {
+      return;
+    }
+
+    UUID definitionId = entity.getDefinition().getId();
+    int expectedVersion = archetypeRepo.findAllByDefinitionIdOrderByTimestampDesc(definitionId).stream()
+        .mapToInt(AscriptionEntity::getVersion)
+        .filter(version -> version > 0)
+        .max()
+        .orElse(0)
+        + 1;
+    int candidateVersion = ArchetypeParsingService.parseIdentity(entity.getStatement().get("$id").asText()).version();
+    if (candidateVersion != expectedVersion) {
+      throw RuleViolationException.of(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ARCHETYPE_CANDIDATE_VERSION,
+          "Archetype candidate $id version "
+              + candidateVersion
+              + " must equal next Definition version "
+              + expectedVersion,
+          "definitionId",
+          definitionId,
+          "candidateVersion",
+          candidateVersion,
+          "expectedVersion",
+          expectedVersion);
+    }
+  }
+
+  @Override
+  public void validatePersistedStatusTransition(
+      AscriptionEntity entity,
+      AscriptionStatusType previousStatus,
+      AscriptionStatusType persistedStatus) {
+    if (previousStatus != AscriptionStatusType.PROPOSED
+        || persistedStatus != AscriptionStatusType.APPROVED) {
+      return;
+    }
+
+    int authoredVersion = ArchetypeParsingService.parseIdentity(entity.getStatement().get("$id").asText()).version();
+    int materializedVersion = entity.getVersion();
+    if (materializedVersion != authoredVersion) {
+      throw RuleViolationException.of(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_ARCHETYPE_VERSION_RECONCILIATION,
+          "Archetype materialized version "
+              + materializedVersion
+              + " does not match authored $id version "
+              + authoredVersion,
+          "ascriptionId",
+          entity.getId(),
+          "materializedVersion",
+          materializedVersion,
+          "authoredVersion",
+          authoredVersion);
+    }
   }
 
   @Override
   public List<Map.Entry<AscriptionEntity, String>> getRefereeReferences(AscriptionEntity entity) {
-    return List.of();
+    if (!(entity instanceof ArchetypeEntity archetype)) {
+      throw new IllegalArgumentException(
+          "Expected ArchetypeEntity, got "
+              + (entity == null ? "null" : entity.getClass().getSimpleName()));
+    }
+    if (archetype.getStatement() == null) {
+      throw new IllegalArgumentException("Archetype statement must not be null");
+    }
+
+    List<Map.Entry<AscriptionEntity, String>> references = new ArrayList<>();
+    schemaPositionWalker.walk(
+        archetype.getStatement(),
+        (schema, pointer) -> {
+          JsonNode refNode = schema.get("$ref");
+          if (refNode == null || !refNode.isTextual() || refNode.asText().startsWith("#")) {
+            return;
+          }
+
+          String ref = refNode.asText();
+          ArchetypeEntity target = archetypeRepo
+              .findResolvableByUri(ref)
+              .orElseThrow(
+                  () -> RuleViolationException.of(
+                      AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY,
+                      "Cannot resolve Archetype $ref '" + ref + "'",
+                      "ref",
+                      ref,
+                      "site",
+                      pointer + "/$ref"));
+          references.add(Map.entry(target, pointer + "/$ref"));
+        });
+    return List.copyOf(references);
   }
 
   @Override
@@ -226,28 +479,14 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
     return List.of();
   }
 
-  @Override
-  public void validateActivationUniqueness(AscriptionEntity entity) {
-    // Statement is immutable and was validated at creation — title is guaranteed
-    // non-null/non-blank.
-    String title = entity.getStatement().get("title").asText();
-    AscriptionUniquenessValidationService.validatePropertyAcrossDefinitions(
-        getSubjectType(),
-        "title",
-        title,
-        entity.getDefinition().getId(),
-        archetypeRepo.findAllByStatusIn(
-            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED)));
-  }
-
   // ---- Lifecycle hooks ----
 
   @Override
   public void onActivation(AscriptionEntity entity) {
     if (entity instanceof ArchetypeEntity archetypeEntity) {
-      // GSM §5: strict schema composition — all intermediaries must be in-effect.
+      // Revalidate immutable composition before provisioning indexes.
       compositionValidation.validateSchemaComposition(
-          archetypeEntity.getStatement(), true, this::resolveArchetypeSchema);
+          archetypeEntity.getStatement(), this::resolveArchetypeSchema);
       // $ref URI policy is NOT re-checked: statement is immutable (validated at
       // creation).
       indexProvisioning.provisionIndexes(
@@ -267,69 +506,33 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   // AllOf chain validation
   // ========================================================================
 
-  // ---- Public descendant resolution API ----
+  // ---- Descendant resolution API (package-private, test-covered) ----
 
-  /**
-   * Returns the set of all ancestor Archetype titles reachable through the schema composition chain
-   * (top-level {@code $ref} and {@code allOf} entries) of the given archetype. Includes the
-   * archetype's own title if present. Does not include titles that cannot be resolved at the time
-   * of the call (lenient mode). GSM base titles are included when reached.
-   *
-   * <p><b>Ordering guarantee:</b> the returned {@link LinkedHashSet} preserves insertion order,
-   * which is nearest-ancestor-first (depth-first traversal of the composition chain). The
-   * archetype's own title, when present, is always the first element. Callers (e.g., {@code
-   * NormService} governance chain validation) may rely on this ordering.
-   *
-   * @param archetypeId the ascription ID of the archetype to inspect
-   * @return the set of ancestor titles in nearest-ancestor-first order (may be empty for rootless
-   *     archetypes)
-   */
-  public Set<String> getAncestorTitles(UUID archetypeId) {
+  /** Returns Archetype family stems in nearest-ancestor-first order. */
+  Set<String> getAncestorStems(UUID archetypeId) {
     ArchetypeEntity archetype = findEntityById(archetypeId);
     JsonNode schema = archetype.getStatement();
-    String title = schema.has("title") ? schema.get("title").asText() : null;
 
     Set<String> ancestors = new LinkedHashSet<>();
-    if (title != null) {
-      ancestors.add(title);
-    }
-
     Set<String> visited = new HashSet<>();
-    if (title != null) {
-      visited.add(title);
+    if (schema.has("$id") && schema.get("$id").isTextual()) {
+      String id = schema.get("$id").asText();
+      visited.add(id);
+      ancestors.add(ArchetypeParsingService.parseIdentity(id).stem());
     }
 
-    collectAncestorTitles(schema, ancestors, visited);
+    collectAncestorStems(schema, ancestors, visited);
     return ancestors;
   }
 
-  /**
-   * Checks whether the given archetype is a descendant (via schema composition chain) of an
-   * ancestor identified by title. Returns true if the archetype's own title matches, or if any
-   * ancestor matches.
-   *
-   * @param archetypeId the ascription ID of the archetype to check
-   * @param ancestorTitle the title of the potential ancestor
-   * @return true if the archetype descends from the ancestor
-   */
-  public boolean isDescendantOf(UUID archetypeId, String ancestorTitle) {
-    return getAncestorTitles(archetypeId).contains(ancestorTitle);
+  boolean isDescendantOf(UUID archetypeId, String ancestorStem) {
+    return getAncestorStems(archetypeId).contains(ancestorStem);
   }
 
-  private void collectAncestorTitles(JsonNode schema, Set<String> ancestors, Set<String> visited) {
+  private void collectAncestorStems(JsonNode schema, Set<String> ancestors, Set<String> visited) {
     // Walk top-level $ref (base extension chain)
     if (schema.has("$ref") && schema.get("$ref").isTextual()) {
-      String ref = schema.get("$ref").asText();
-      String refTitle = ArchetypeParsingService.extractTitleFromRef(ref);
-      if (refTitle != null && visited.add(refTitle)) {
-        ancestors.add(refTitle);
-        if (!ArchetypeParsingService.isGsmBaseTitle(refTitle)) {
-          JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
-          if (intermediateSchema != null) {
-            collectAncestorTitles(intermediateSchema, ancestors, visited);
-          }
-        }
-      }
+      collectAncestorStem(schema.get("$ref").asText(), ancestors, visited);
     }
 
     // Walk allOf entries (facets)
@@ -339,35 +542,33 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
         if (!entry.has("$ref")) {
           continue;
         }
-        String ref = entry.get("$ref").asText();
-        String refTitle = ArchetypeParsingService.extractTitleFromRef(ref);
-        if (refTitle == null || !visited.add(refTitle)) {
-          continue;
-        }
-        ancestors.add(refTitle);
-        if (ArchetypeParsingService.isGsmBaseTitle(refTitle)) {
-          continue;
-        }
-        JsonNode intermediateSchema = resolveArchetypeSchema(refTitle);
-        if (intermediateSchema == null) {
-          continue; // lenient: unresolvable intermediary skipped
-        }
-        collectAncestorTitles(intermediateSchema, ancestors, visited);
+        collectAncestorStem(entry.get("$ref").asText(), ancestors, visited);
       }
+    }
+  }
+
+  private void collectAncestorStem(String ref, Set<String> ancestors, Set<String> visited) {
+    if (ref.startsWith("#") || !visited.add(ref)) {
+      return;
+    }
+
+    String stem = ArchetypeParsingService.parseIdentity(ref).stem();
+    if (ArchetypeParsingService.isGsmBaseId(ref)) {
+      ancestors.add(stem);
+      return;
+    }
+
+    JsonNode intermediateSchema = resolveArchetypeSchema(ref);
+    if (intermediateSchema != null) {
+      ancestors.add(stem);
+      collectAncestorStems(intermediateSchema, ancestors, visited);
     }
   }
 
   // Schema composition validation is delegated to
   // ArchetypeCompositionValidationService.
 
-  JsonNode resolveArchetypeSchema(String title) {
-    return archetypeRepo
-        .findFirstByStatementTitleAndStatusIn(
-            title,
-            EnumSet.of(AscriptionStatusType.ACTIVE, AscriptionStatusType.DEPRECATED).stream()
-                .map(Enum::name)
-                .toList())
-        .map(ArchetypeEntity::getStatement)
-        .orElse(null);
+  JsonNode resolveArchetypeSchema(String uri) {
+    return archetypeRepo.findResolvableByUri(uri).map(ArchetypeEntity::getStatement).orElse(null);
   }
 }

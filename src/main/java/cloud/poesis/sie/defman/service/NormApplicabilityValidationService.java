@@ -12,18 +12,19 @@ import dev.cel.compiler.CelCompiler;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
  * GSM Norm CEL applicability profile validation service.
  *
- * <p>Validates CEL applicability expressions against the GSM applicability profile: expressions
- * must be a pure conjunction of single-axis predicates with no OR, no ternary, no arithmetic, and
- * no cross-property comparisons. Also validates archetype references and property paths.
+ * <p>
+ * Validates CEL applicability expressions against the GSM applicability
+ * profile: expressions
+ * must be a pure conjunction of single-axis predicates with no OR, no ternary,
+ * no arithmetic, and
+ * no cross-property comparisons. Also validates archetype references and
+ * property paths.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -31,25 +32,25 @@ import org.springframework.stereotype.Service;
 @Service
 public class NormApplicabilityValidationService {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(NormApplicabilityValidationService.class);
-
   // ======================================================================
   // CEL profile constants
   // ======================================================================
 
-  private static final Set<String> APPLICABILITY_COMPARISON_OPS =
-      Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
+  private static final Set<String> APPLICABILITY_COMPARISON_OPS = Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_",
+      "@in");
   private static final Set<String> APPLICABILITY_ALLOWED_FUNCTIONS = Set.of("matches");
-  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS =
-      Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
+  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS = Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
 
   private final ArchetypeService archetypeService;
+  private final ArchetypeCompositionValidationService compositionValidation;
   private final CelCompiler celParser;
 
   public NormApplicabilityValidationService(
-      ArchetypeService archetypeService, CelCompiler celParser) {
+      ArchetypeService archetypeService,
+      ArchetypeCompositionValidationService compositionValidation,
+      CelCompiler celParser) {
     this.archetypeService = archetypeService;
+    this.compositionValidation = compositionValidation;
     this.celParser = celParser;
   }
 
@@ -67,7 +68,7 @@ public class NormApplicabilityValidationService {
       return;
     }
     CelExpr ast = parseApplicabilityCel(applicability);
-    Set<String> axes = new HashSet<>();
+    Set<ApplicabilityAxis> axes = new HashSet<>();
     validateApplicabilityExpr(ast, axes, true);
   }
 
@@ -78,44 +79,70 @@ public class NormApplicabilityValidationService {
    */
   public void validateApplicabilityReferences(String applicability) {
     CelExpr ast = parseApplicabilityCel(applicability);
-    Set<String> axes = new LinkedHashSet<>();
+    Set<ApplicabilityAxis> axes = new LinkedHashSet<>();
     collectAxes(ast, axes);
-    for (String axis : axes) {
-      int dot = axis.indexOf('.');
-      if (dot <= 0) continue;
-      String archetypeName = axis.substring(0, dot);
-      String propertyPath = axis.substring(dot + 1);
+    for (ApplicabilityAxis axis : axes) {
       // NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION
-      Optional<ArchetypeEntity> archetype = archetypeService.findInEffectByTitle(archetypeName);
-      if (archetype.isEmpty()) {
+      ArchetypeEntity archetype;
+      try {
+        archetype = archetypeService.resolveArchetypeUri(axis.archetypeId(), "applicability ref()");
+      } catch (RuleViolationException exception) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION,
-            "Applicability references Archetype '"
-                + archetypeName
-                + "' which does not exist as an active Archetype",
-            "archetypeName",
-            archetypeName,
-            "axis",
-            axis);
+            "Applicability ref() does not resolve to a governed Archetype URI: "
+                + axis.archetypeId(),
+            exception,
+            "archetypeId",
+            axis.archetypeId());
       }
       // NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION
-      JsonNode schema = archetype.get().getStatement();
-      if (!resolveSchemaProperty(schema, propertyPath)) {
+      JsonNode schema = archetype.getStatement();
+      if (!compositionValidation.resolvesPropertyPath(
+          schema,
+          axis.propertyPath(),
+          referencedId -> {
+            try {
+              return archetypeService
+                  .resolveArchetypeUri(referencedId, "applicability schema composition")
+                  .getStatement();
+            } catch (RuleViolationException exception) {
+              throw RuleViolationException.of(
+                  AscriptionConsistencyRuleType.NORM_APPLICABILITY_ARCHETYPE_REFERENCE_RESOLUTION,
+                  "Applicability schema composition reference does not resolve to a governed Archetype URI: "
+                      + referencedId,
+                  exception,
+                  "archetypeId",
+                  referencedId);
+            }
+          })) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_PROPERTY_PATH_RESOLUTION,
             "Applicability references property '"
-                + propertyPath
+                + axis.propertyPath()
                 + "' which does not exist in Archetype '"
-                + archetypeName
+                + axis.archetypeId()
                 + "' schema",
-            "archetypeName",
-            archetypeName,
+            "archetypeId",
+            axis.archetypeId(),
             "propertyPath",
-            propertyPath,
+            axis.propertyPath(),
             "axis",
-            axis);
+            axis.toString());
       }
     }
+  }
+
+  /**
+   * Returns distinct Archetype URIs referenced by an applicability expression.
+   */
+  public List<String> extractApplicabilityReferences(String applicability) {
+    if (applicability == null || applicability.isBlank() || "true".equals(applicability.trim())) {
+      return List.of();
+    }
+    CelExpr ast = parseApplicabilityCel(applicability);
+    Set<String> references = new LinkedHashSet<>();
+    collectApplicabilityReferences(ast, references);
+    return List.copyOf(references);
   }
 
   // ======================================================================
@@ -147,7 +174,8 @@ public class NormApplicabilityValidationService {
   // Applicability profile validation
   // ======================================================================
 
-  private void validateApplicabilityExpr(CelExpr expr, Set<String> axes, boolean topLevel) {
+  private void validateApplicabilityExpr(
+      CelExpr expr, Set<ApplicabilityAxis> axes, boolean topLevel) {
     CelExpr.ExprKind kind = expr.exprKind();
     switch (kind.getKind()) {
       case CALL -> {
@@ -189,6 +217,10 @@ public class NormApplicabilityValidationService {
               fn);
         }
         if ("!_".equals(fn) || "_!_".equals(fn)) {
+          if (call.args().size() != 1 || isConjunction(call.args().get(0))) {
+            throw invalidApplicabilityExpression(
+                "compound-expression negation is forbidden; negate only one axis predicate.");
+          }
           for (CelExpr arg : call.args()) {
             validateApplicabilityExpr(arg, axes, topLevel);
           }
@@ -196,6 +228,10 @@ public class NormApplicabilityValidationService {
         }
         if (APPLICABILITY_COMPARISON_OPS.contains(fn)) {
           if ("@in".equals(fn) && call.args().size() == 2) {
+            if (call.args().get(1).exprKind().getKind() != CelExpr.ExprKind.Kind.LIST) {
+              throw invalidApplicabilityExpression(
+                  "'in' requires a list literal with at least two elements.");
+            }
             validateInListConsistency(call.args().get(1));
           }
           if (topLevel) {
@@ -217,8 +253,21 @@ public class NormApplicabilityValidationService {
                 fn);
           }
           if (topLevel) {
-            String axis = extractAxis(call.target().get());
-            if (axis != null && !axes.add(axis)) {
+            ApplicabilityAxis axis = extractAxis(call.target().get());
+            if (axis == null) {
+              throw RuleViolationException.of(
+                  AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+                  "Applicability profile violation: .matches() must target a ref(\"$id\").property axis.",
+                  "field",
+                  "applicability",
+                  "construct",
+                  fn);
+            }
+            if (call.args().size() != 1 || !isStringLiteral(call.args().get(0))) {
+              throw invalidApplicabilityExpression(
+                  ".matches() requires exactly one static string literal argument.");
+            }
+            if (!axes.add(axis)) {
               throw RuleViolationException.of(
                   AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
                   "Applicability profile violation: duplicate axis '"
@@ -242,28 +291,34 @@ public class NormApplicabilityValidationService {
             "construct",
             fn);
       }
-      case SELECT, IDENT, CONSTANT, LIST -> {
-        /* leaf nodes */
-      }
-      default -> {
-        /* comprehension, map, struct */
-      }
+      case SELECT, IDENT, CONSTANT, LIST ->
+        throw invalidApplicabilityExpression(
+            "Applicability must be an axis predicate rooted at ref(\"$id\"), not a bare "
+                + kind.getKind().name().toLowerCase()
+                + " expression.");
+      default ->
+        throw invalidApplicabilityExpression(
+            "Applicability contains a forbidden CEL expression kind: " + kind.getKind());
     }
   }
 
-  private void validateSingleAxisPredicate(CelExpr.CelCall call, Set<String> axes) {
+  private void validateSingleAxisPredicate(CelExpr.CelCall call, Set<ApplicabilityAxis> axes) {
     for (CelExpr arg : call.args()) {
       rejectForbiddenInApplicabilityOperand(arg);
     }
-    Set<String> predAxes = new HashSet<>();
+    if (call.args().stream().anyMatch(NormApplicabilityValidationService::hasBareRoot)) {
+      throw invalidApplicabilityExpression(
+          "Bare title or identifier roots are forbidden; use ref(\"<Archetype URI>\").property.");
+    }
+    Set<ApplicabilityAxis> predAxes = new HashSet<>();
     for (CelExpr arg : call.args()) {
       collectAxes(arg, predAxes);
     }
-    if (predAxes.size() > 1) {
+    if (predAxes.size() != 1) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
-          "Applicability profile violation: cross-property comparison detected. "
-              + "Each applicability predicate must compare a single property to a literal. "
+          "Applicability profile violation: each predicate must compare exactly one "
+              + "ref(\"$id\").property axis to a literal. "
               + "Found axes: "
               + predAxes,
           "field",
@@ -271,7 +326,31 @@ public class NormApplicabilityValidationService {
           "axes",
           predAxes.toString());
     }
-    for (String axis : predAxes) {
+    int axisOperandCount = 0;
+    int literalOperandCount = 0;
+    for (CelExpr arg : call.args()) {
+      Set<ApplicabilityAxis> operandAxes = new HashSet<>();
+      collectAxes(arg, operandAxes);
+      if (operandAxes.size() == 1) {
+        axisOperandCount++;
+      } else if (operandAxes.isEmpty() && isStaticLiteral(arg)) {
+        literalOperandCount++;
+      } else {
+        throw RuleViolationException.of(
+            AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+            "Applicability profile violation: a ref(\"$id\").property axis must be compared to a static literal.",
+            "field",
+            "applicability");
+      }
+    }
+    if (axisOperandCount != 1 || literalOperandCount != 1) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+          "Applicability profile violation: a ref(\"$id\").property axis must be compared to exactly one static literal.",
+          "field",
+          "applicability");
+    }
+    for (ApplicabilityAxis axis : predAxes) {
       if (!axes.add(axis)) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
@@ -292,6 +371,9 @@ public class NormApplicabilityValidationService {
       case CALL -> {
         CelExpr.CelCall call = kind.call();
         String fn = call.function();
+        if (isRefCall(call)) {
+          return;
+        }
         if (APPLICABILITY_ARITHMETIC_OPS.contains(fn)) {
           throw RuleViolationException.of(
               AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
@@ -323,12 +405,13 @@ public class NormApplicabilityValidationService {
     }
   }
 
-  static void collectAxes(CelExpr expr, Set<String> axes) {
+  static void collectAxes(CelExpr expr, Set<ApplicabilityAxis> axes) {
     CelExpr.ExprKind kind = expr.exprKind();
     switch (kind.getKind()) {
       case SELECT -> {
-        String axis = extractAxis(expr);
-        if (axis != null) axes.add(axis);
+        ApplicabilityAxis axis = extractAxis(expr);
+        if (axis != null)
+          axes.add(axis);
       }
       case CALL -> {
         CelExpr.CelCall call = kind.call();
@@ -343,30 +426,127 @@ public class NormApplicabilityValidationService {
     }
   }
 
-  static String extractAxis(CelExpr expr) {
-    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT) return null;
-    CelExpr.CelSelect sel = expr.exprKind().select();
-    String field = sel.field();
-    CelExpr operand = sel.operand();
-    if (operand.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
-      return operand.exprKind().ident().name() + "." + field;
+  static ApplicabilityAxis extractAxis(CelExpr expr) {
+    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT)
+      return null;
+    StringBuilder propertyPath = new StringBuilder();
+    CelExpr root = expr;
+    while (root.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
+      CelExpr.CelSelect select = root.exprKind().select();
+      if (!propertyPath.isEmpty()) {
+        propertyPath.insert(0, '.');
+      }
+      propertyPath.insert(0, select.field());
+      root = select.operand();
     }
-    CelExpr root = operand;
+    if (root.exprKind().getKind() != CelExpr.ExprKind.Kind.CALL) {
+      return null;
+    }
+    CelExpr.CelCall refCall = root.exprKind().call();
+    if (!"ref".equals(refCall.function())) {
+      return null;
+    }
+    validateRefCall(refCall);
+    String archetypeId = refCall.args().getFirst().exprKind().constant().stringValue();
+    validateRefIdentity(archetypeId);
+    return new ApplicabilityAxis(archetypeId, propertyPath.toString());
+  }
+
+  private static boolean isRefCall(CelExpr.CelCall call) {
+    return "ref".equals(call.function())
+        && call.target().isEmpty()
+        && call.args().size() == 1
+        && call.args().getFirst().exprKind().getKind() == CelExpr.ExprKind.Kind.CONSTANT
+        && call.args().getFirst().exprKind().constant().getKind() == CelConstant.Kind.STRING_VALUE;
+  }
+
+  private static void validateRefCall(CelExpr.CelCall call) {
+    if (!isRefCall(call)) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+          "Applicability profile violation: ref() requires exactly one string-literal $id argument.",
+          "field",
+          "applicability",
+          "construct",
+          "ref");
+    }
+  }
+
+  private static void validateRefIdentity(String archetypeId) {
+    try {
+      ArchetypeParsingService.parseIdentity(archetypeId);
+    } catch (IllegalArgumentException exception) {
+      throw RuleViolationException.of(
+          AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+          "Applicability profile violation: ref() argument is not a grammar-conformant Archetype $id: "
+              + archetypeId,
+          "field",
+          "applicability",
+          "archetypeId",
+          archetypeId);
+    }
+  }
+
+  private static boolean isStaticLiteral(CelExpr expr) {
+    return switch (expr.exprKind().getKind()) {
+      case CONSTANT -> true;
+      case LIST ->
+        expr.exprKind().list().elements().stream()
+            .allMatch(element -> element.exprKind().getKind() == CelExpr.ExprKind.Kind.CONSTANT);
+      default -> false;
+    };
+  }
+
+  private static boolean isStringLiteral(CelExpr expr) {
+    return expr.exprKind().getKind() == CelExpr.ExprKind.Kind.CONSTANT
+        && expr.exprKind().constant().getKind() == CelConstant.Kind.STRING_VALUE;
+  }
+
+  private static boolean isConjunction(CelExpr expr) {
+    return expr.exprKind().getKind() == CelExpr.ExprKind.Kind.CALL
+        && "_&&_".equals(expr.exprKind().call().function());
+  }
+
+  private static boolean hasBareRoot(CelExpr expr) {
+    CelExpr root = expr;
     while (root.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
       root = root.exprKind().select().operand();
     }
-    if (root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT) {
-      CelExpr firstSelect = operand;
-      while (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT
-          && firstSelect.exprKind().select().operand().exprKind().getKind()
-              != CelExpr.ExprKind.Kind.IDENT) {
-        firstSelect = firstSelect.exprKind().select().operand();
+    return root.exprKind().getKind() == CelExpr.ExprKind.Kind.IDENT;
+  }
+
+  private static RuleViolationException invalidApplicabilityExpression(String detail) {
+    return RuleViolationException.of(
+        AscriptionConsistencyRuleType.NORM_APPLICABILITY_AXIS_PREDICATE_NORMAL_FORM,
+        "Applicability profile violation: " + detail,
+        "field",
+        "applicability");
+  }
+
+  private static void collectApplicabilityReferences(CelExpr expr, Set<String> references) {
+    CelExpr.ExprKind kind = expr.exprKind();
+    switch (kind.getKind()) {
+      case SELECT -> collectApplicabilityReferences(kind.select().operand(), references);
+      case CALL -> {
+        CelExpr.CelCall call = kind.call();
+        if ("ref".equals(call.function())) {
+          validateRefCall(call);
+          String archetypeId = call.args().getFirst().exprKind().constant().stringValue();
+          validateRefIdentity(archetypeId);
+          references.add(archetypeId);
+        }
+        call.target().ifPresent(target -> collectApplicabilityReferences(target, references));
+        for (CelExpr arg : call.args()) {
+          collectApplicabilityReferences(arg, references);
+        }
       }
-      if (firstSelect.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
-        return root.exprKind().ident().name() + "." + firstSelect.exprKind().select().field();
+      default -> {
+        /* no references */
       }
     }
-    return null;
+  }
+
+  record ApplicabilityAxis(String archetypeId, String propertyPath) {
   }
 
   // ======================================================================
@@ -430,20 +610,5 @@ public class NormApplicabilityValidationService {
       case BOOLEAN_VALUE -> String.valueOf(c.booleanValue());
       default -> c.toString();
     };
-  }
-
-  // ======================================================================
-  // Schema property resolution helper
-  // ======================================================================
-
-  static boolean resolveSchemaProperty(JsonNode schema, String propertyPath) {
-    String[] parts = propertyPath.split("\\.");
-    JsonNode current = schema;
-    for (String part : parts) {
-      JsonNode props = current.get("properties");
-      if (props == null || !props.has(part)) return false;
-      current = props.get(part);
-    }
-    return true;
   }
 }

@@ -8,9 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.dao.DataIntegrityViolationException;
 
 class PersistenceExceptionTranslationTest {
@@ -30,9 +33,8 @@ class PersistenceExceptionTranslationTest {
 
     @Test
     void returnsNullWhenCauseIsNotConstraintViolation() {
-      var dive =
-          new DataIntegrityViolationException(
-              "no hibernate cause", new RuntimeException("something else"));
+      var dive = new DataIntegrityViolationException(
+          "no hibernate cause", new RuntimeException("something else"));
 
       assertNull(PersistenceExceptionTranslationService.extractConstraintName(dive));
     }
@@ -61,6 +63,68 @@ class PersistenceExceptionTranslationTest {
           ((RuleViolationException) result).getRuleType());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "archetype",
+        "structure",
+        "mechanism",
+        "effector",
+        "receptor",
+        "interaction",
+        "directive",
+        "norm"
+    })
+    void everyDefinitionVersionConstraint_returnsTransitionVersionUniqueness(String table) {
+      var cve = new ConstraintViolationException(
+          "violation", null, "uq_" + table + "_definition_version");
+      var dive = new DataIntegrityViolationException("wrapped", cve);
+
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
+
+      assertInstanceOf(RuleViolationException.class, result);
+      assertEquals(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_VERSION_UNIQUENESS,
+          ((RuleViolationException) result).getRuleType());
+    }
+
+    @Test
+    void resolvableUriConstraint_returnsResolutionUniqueness() {
+      var cve = new ConstraintViolationException("violation", null, "uq_archetype_resolvable_uri");
+      var dive = new DataIntegrityViolationException("wrapped", cve);
+
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
+
+      assertInstanceOf(RuleViolationException.class, result);
+      assertEquals(
+          AscriptionConsistencyRuleType.ARCHETYPE_URI_RESOLUTION_UNIQUENESS,
+          ((RuleViolationException) result).getRuleType());
+    }
+
+    @Test
+    void approvedConstraint_returnsApprovalConvergence() {
+      var cve = new ConstraintViolationException("violation", null, "uq_norm_approved");
+      var dive = new DataIntegrityViolationException("wrapped", cve);
+
+      RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
+
+      assertInstanceOf(RuleViolationException.class, result);
+      assertEquals(
+          AscriptionStatusTransitionRuleType.ASCRIPTION_STATUS_TRANSITION_APPROVAL_CONVERGENCE,
+          ((RuleViolationException) result).getRuleType());
+    }
+
+    @Test
+    void directHibernateResolvableUriConstraint_returnsResolutionUniqueness() {
+      var exception = new ConstraintViolationException("violation", null, "uq_archetype_resolvable_uri");
+
+      RuntimeException result = PersistenceExceptionTranslationService.translate(exception);
+
+      assertInstanceOf(RuleViolationException.class, result);
+      assertEquals(
+          AscriptionConsistencyRuleType.ARCHETYPE_URI_RESOLUTION_UNIQUENESS,
+          ((RuleViolationException) result).getRuleType());
+    }
+
     @Test
     void archetypeIdFkeySuffix_returnsArchetypeReferenceIntegrity() {
       var cve = new ConstraintViolationException("violation", null, "ascription_archetype_id_fkey");
@@ -76,8 +140,7 @@ class PersistenceExceptionTranslationTest {
 
     @Test
     void outputArchetypeIdFkeySuffix_returnsEffectorArchetypeReferenceIntegrity() {
-      var cve =
-          new ConstraintViolationException("violation", null, "effector_output_archetype_id_fkey");
+      var cve = new ConstraintViolationException("violation", null, "effector_output_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
       RuntimeException result = PersistenceExceptionTranslationService.translate(dive);
@@ -90,8 +153,7 @@ class PersistenceExceptionTranslationTest {
 
     @Test
     void inputArchetypeIdFkeySuffix_returnsReceptorArchetypeReferenceIntegrity() {
-      var cve =
-          new ConstraintViolationException("violation", null, "receptor_input_archetype_id_fkey");
+      var cve = new ConstraintViolationException("violation", null, "receptor_input_archetype_id_fkey");
       var dive = new DataIntegrityViolationException("wrapped", cve);
 
       RuntimeException result = PersistenceExceptionTranslationService.translate(dive);

@@ -83,11 +83,7 @@ class OpenApiCustomizerConfig {
               "first",
               "Oldest ascription for this definition (by timestamp)",
               "last",
-              "Newest ascription for this definition (by timestamp)",
-              "latest-version",
-              "Most recent governance-approved ascription (version >= 1)",
-              "version-history",
-              "All governance-approved ascription versions for this definition"),
+              "Newest ascription for this definition (by timestamp)"),
           "AscriptionStatusTransition",
           linkedMap(
               "self", "This transition record",

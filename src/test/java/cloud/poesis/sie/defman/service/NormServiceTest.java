@@ -1,27 +1,38 @@
 package cloud.poesis.sie.defman.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.entity.NormEntity;
 import cloud.poesis.sie.defman.entity.StructureEntity;
+import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.NormRepository;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionCascadeType;
+import cloud.poesis.sie.defman.type.AscriptionStatusTransitionPathType;
+import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.cel.compiler.CelCompilerFactory;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -33,27 +44,31 @@ class NormServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock private NormRepository normRepo;
+  @Mock
+  private NormRepository normRepo;
 
-  @Mock private StructureService structureService;
+  @Mock
+  private StructureService structureService;
 
-  @Mock private ArchetypeService archetypeService;
+  @Mock
+  private ArchetypeService archetypeService;
 
-  @Mock private NormApplicabilityValidationService applicabilityValidation;
+  @Mock
+  private NormApplicabilityValidationService applicabilityValidation;
 
-  @Mock private NormAssertionValidationService assertionValidation;
+  @Mock
+  private NormAssertionValidationService assertionValidation;
 
   private NormService service;
 
   @BeforeEach
   void setUp() {
-    service =
-        new NormService(
-            normRepo,
-            structureService,
-            archetypeService,
-            applicabilityValidation,
-            assertionValidation);
+    service = new NormService(
+        normRepo,
+        structureService,
+        archetypeService,
+        applicabilityValidation,
+        assertionValidation);
   }
 
   // ========================================================================
@@ -77,6 +92,17 @@ class NormServiceTest {
     when(entity.getStatement()).thenReturn(statement);
 
     return entity;
+  }
+
+  static Stream<Arguments> applicabilityRefereeStatusMatrix() {
+    Set<AscriptionStatusType> refereeStatuses = Set.of(
+        AscriptionStatusType.APPROVED,
+        AscriptionStatusType.ACTIVE,
+        AscriptionStatusType.SUSPENDED,
+        AscriptionStatusType.DEPRECATED,
+        AscriptionStatusType.RETIRED);
+    return Stream.of(AscriptionStatusTransitionPathType.values())
+        .flatMap(path -> refereeStatuses.stream().map(status -> Arguments.of(path, status)));
   }
 
   // ========================================================================
@@ -139,6 +165,83 @@ class NormServiceTest {
         assertTrue(refs.stream().anyMatch(r -> r.getValue().equals("structure")));
         assertTrue(refs.stream().anyMatch(r -> r.getValue().equals("qualifier")));
       }
+
+      @Test
+      void referencesDistinctApplicabilityArchetypes() {
+        String deploymentId = "gsmarc://tenant/DeploymentProperties/v1";
+        String serviceId = "gsmarc://tenant/ServiceProperties/v2";
+        ObjectNode statement = MAPPER.createObjectNode();
+        statement.put("applicability", "expression");
+        NormEntity entity = stubNorm(UUID.randomUUID(), UUID.randomUUID(), statement);
+        ArchetypeEntity deployment = mock(ArchetypeEntity.class);
+        ArchetypeEntity serviceArchetype = mock(ArchetypeEntity.class);
+        when(applicabilityValidation.extractApplicabilityReferences("expression"))
+            .thenReturn(List.of(deploymentId, serviceId));
+        when(archetypeService.resolveArchetypeUri(deploymentId, "applicability ref()"))
+            .thenReturn(deployment);
+        when(archetypeService.resolveArchetypeUri(serviceId, "applicability ref()"))
+            .thenReturn(serviceArchetype);
+
+        var references = service.getRefereeReferences(entity);
+
+        assertEquals(4, references.size());
+        assertTrue(
+            references.stream()
+                .anyMatch(
+                    reference -> reference.getKey() == deployment
+                        && reference
+                            .getValue()
+                            .equals("applicability ref(" + deploymentId + ")")));
+        assertTrue(
+            references.stream()
+                .anyMatch(
+                    reference -> reference.getKey() == serviceArchetype
+                        && reference
+                            .getValue()
+                            .equals("applicability ref(" + serviceId + ")")));
+      }
+
+      @ParameterizedTest(name = "{0} with applicability referee {1}")
+      @MethodSource("cloud.poesis.sie.defman.service.NormServiceTest#applicabilityRefereeStatusMatrix")
+      void applicabilityArchetypeUsesLifecycleRefereeMatrix(
+          AscriptionStatusTransitionPathType path, AscriptionStatusType refereeStatus) {
+        String archetypeId = "gsmarc://tenant/DeploymentProperties/v1";
+        ObjectNode statement = MAPPER.createObjectNode();
+        statement.put(
+            "applicability", "ref(\"" + archetypeId + "\").environment == \"production\"");
+        NormEntity entity = stubNorm(UUID.randomUUID(), UUID.randomUUID(), statement);
+        ArchetypeEntity applicabilityArchetype = mock(ArchetypeEntity.class);
+        when(applicabilityArchetype.getId()).thenReturn(UUID.randomUUID());
+        when(applicabilityArchetype.getStatus()).thenReturn(refereeStatus);
+        when(archetypeService.resolveArchetypeUri(archetypeId, "applicability ref()"))
+            .thenReturn(applicabilityArchetype);
+        var realApplicabilityValidation = new NormApplicabilityValidationService(
+            archetypeService,
+            new ArchetypeCompositionValidationService(),
+            CelCompilerFactory.standardCelCompilerBuilder().build());
+        var normService = new NormService(
+            normRepo,
+            structureService,
+            archetypeService,
+            realApplicabilityValidation,
+            assertionValidation);
+
+        var applicabilityReference = normService.getRefereeReferences(entity).stream()
+            .filter(reference -> reference.getValue().startsWith("applicability ref("))
+            .toList();
+        var stateMachine = new AscriptionStateMachineService();
+
+        if (path.getRefereeAllowedStatuses().contains(refereeStatus)) {
+          assertDoesNotThrow(
+              () -> stateMachine.validateRefereePreconditions(
+                  applicabilityReference, path.getFrom(), path.getTo()));
+        } else {
+          assertThrows(
+              RuleViolationException.class,
+              () -> stateMachine.validateRefereePreconditions(
+                  applicabilityReference, path.getFrom(), path.getTo()));
+        }
+      }
     }
 
     @Nested
@@ -167,7 +270,7 @@ class NormServiceTest {
     @Test
     void validStatement_returnsEntity() {
       UUID structId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
+      String qualifierId = "gsmarc://tenant/TestQual/v1";
 
       StructureEntity structure = mock(StructureEntity.class);
       when(structureService.findEntityById(structId)).thenReturn(structure);
@@ -179,14 +282,14 @@ class NormServiceTest {
           .putObject("properties")
           .set("status", MAPPER.createObjectNode().put("type", "string"));
       when(qualifier.getStatement()).thenReturn(qualSchema);
-      when(archetypeService.findEntityById(qualId)).thenReturn(qualifier);
+      when(archetypeService.resolveArchetypeUri(qualifierId, "qualifier")).thenReturn(qualifier);
 
       DefinitionEntity def = mock(DefinitionEntity.class);
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
 
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structId.toString());
-      stmt.put("qualifier", qualId.toString());
+      stmt.put("qualifier", qualifierId);
       stmt.put("assertion", "status == \"OK\"");
       stmt.put("toleranceMode", "INSTANTANEOUS");
 
@@ -199,7 +302,7 @@ class NormServiceTest {
     @Test
     void withApplicability_validatesGuardReferencesAndPredicate() {
       UUID structId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
+      String qualifierId = "gsmarc://tenant/TestQual/v1";
 
       StructureEntity structure = mock(StructureEntity.class);
       when(structureService.findEntityById(structId)).thenReturn(structure);
@@ -211,7 +314,7 @@ class NormServiceTest {
           .putObject("properties")
           .set("status", MAPPER.createObjectNode().put("type", "string"));
       when(qualifier.getStatement()).thenReturn(qualSchema);
-      when(archetypeService.findEntityById(qualId)).thenReturn(qualifier);
+      when(archetypeService.resolveArchetypeUri(qualifierId, "qualifier")).thenReturn(qualifier);
 
       // Applicability references DeploymentProps — stub the archetype lookup
       ArchetypeEntity deployArch = mock(ArchetypeEntity.class);
@@ -221,14 +324,11 @@ class NormServiceTest {
           .putObject("properties")
           .set("environment", MAPPER.createObjectNode().put("type", "string"));
       when(deployArch.getStatement()).thenReturn(deploySchema);
-      when(archetypeService.findInEffectByTitle("DeploymentProperties"))
-          .thenReturn(Optional.of(deployArch));
-
       DefinitionEntity def = mock(DefinitionEntity.class);
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structId.toString());
-      stmt.put("qualifier", qualId.toString());
+      stmt.put("qualifier", qualifierId);
       stmt.put("applicability", "DeploymentProperties.environment == \"production\"");
       stmt.put("assertion", "status == \"OK\"");
       stmt.put("toleranceMode", "INSTANTANEOUS");
@@ -240,7 +340,7 @@ class NormServiceTest {
     @Test
     void withApplicability_trueDefault_skipsGuardReferences() {
       UUID structId = UUID.randomUUID();
-      UUID qualId = UUID.randomUUID();
+      String qualifierId = "gsmarc://tenant/TestQual/v1";
 
       StructureEntity structure = mock(StructureEntity.class);
       when(structureService.findEntityById(structId)).thenReturn(structure);
@@ -252,13 +352,13 @@ class NormServiceTest {
           .putObject("properties")
           .set("status", MAPPER.createObjectNode().put("type", "string"));
       when(qualifier.getStatement()).thenReturn(qualSchema);
-      when(archetypeService.findEntityById(qualId)).thenReturn(qualifier);
+      when(archetypeService.resolveArchetypeUri(qualifierId, "qualifier")).thenReturn(qualifier);
 
       DefinitionEntity def = mock(DefinitionEntity.class);
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       ObjectNode stmt = MAPPER.createObjectNode();
       stmt.put("structure", structId.toString());
-      stmt.put("qualifier", qualId.toString());
+      stmt.put("qualifier", qualifierId);
       stmt.put("applicability", "true");
       stmt.put("assertion", "status == \"OK\"");
       stmt.put("toleranceMode", "INSTANTANEOUS");
@@ -286,9 +386,10 @@ class NormServiceTest {
     }
 
     @Test
-    void nonStructureSource_returnsEmpty() {
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.NORM, UUID.randomUUID());
+    void applicabilityArchetypeSource_hasNoCascadeTargetFinder() {
+      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.ARCHETYPE, UUID.randomUUID());
       assertTrue(result.isEmpty());
+      verifyNoInteractions(normRepo);
     }
   }
 
