@@ -23,6 +23,7 @@ dev-up: export DB_USER := $(DB_USER)
 dev-up: export DB_PASSWORD := $(DB_PASSWORD)
 dev-up: export DEF_DB_ADMIN_PASSWORD := $(DEF_DB_ADMIN_PASSWORD)
 deploy-check prod-deploy: export DM_DB_PASSWORD := $(DM_DB_PASSWORD)
+deploy-check prod-deploy: export DM_PROTECTION_HASH_KEY := $(DM_PROTECTION_HASH_KEY)
 deploy-check prod-deploy: export DEF_DB_ADMIN_PASSWORD := $(DEF_DB_ADMIN_PASSWORD)
 deploy-check prod-deploy: export IMAGE_REPOSITORY := $(IMAGE_REPOSITORY)
 deploy-check prod-deploy: export IMAGE_TAG := $(IMAGE_TAG)
@@ -65,6 +66,7 @@ dev-check: check-tooling ## Preflight the dev flow (tooling, cluster, chart, dev
 deploy-check: check-tooling ## Preflight prod-deploy (env values file + required secrets)
 	@test -f "$(DM_ENV_FILE)" || { echo "Missing environment values file: $(DM_ENV_FILE)"; exit 1; }
 	@: "$${DM_DB_PASSWORD:?Missing DM_DB_PASSWORD in environment}"
+	@: "$${DM_PROTECTION_HASH_KEY:?Missing DM_PROTECTION_HASH_KEY in environment}"
 	@: "$${DEF_DB_ADMIN_PASSWORD:?Missing DEF_DB_ADMIN_PASSWORD in environment}"
 	@: "$${IMAGE_REPOSITORY:?Missing IMAGE_REPOSITORY in environment}"
 	@: "$${IMAGE_TAG:?Missing IMAGE_TAG in environment}"
@@ -121,6 +123,7 @@ prod-deploy: deploy-check ## Deploy to the DEPLOY_ENV cluster via Helm (CD entry
 		--set image.repository="$${IMAGE_REPOSITORY}" \
 		--set image.tag="$${IMAGE_TAG}" \
 		--set-string secrets.DB_PASSWORD="$${DM_DB_PASSWORD}" \
+		--set-string secrets.DM_PROTECTION_HASH_KEY="$${DM_PROTECTION_HASH_KEY}" \
 		--set-string definitiondatabase.secrets.DB_PASSWORD="$${DEF_DB_ADMIN_PASSWORD}" \
 		--set-string dbBootstrap.adminPassword="$${DEF_DB_ADMIN_PASSWORD}" \
 		--set-string dbBootstrap.dbPassword="$${DM_DB_PASSWORD}"
@@ -156,6 +159,7 @@ package-helm: ## Package the Helm chart into a .tgz
 HELM_TEMPLATE_DUMMY_ARGS := \
 	--set deployApp=true \
 	--set secrets.DB_PASSWORD=ci-template-validation-not-a-real-secret \
+	--set secrets.DM_PROTECTION_HASH_KEY=ci-template-validation-not-a-real-secret \
 	--set dbBootstrap.adminPassword=ci-template-validation-not-a-real-secret \
 	--set dbBootstrap.dbPassword=ci-template-validation-not-a-real-secret \
 	--set definitiondatabase.secrets.DB_PASSWORD=ci-template-validation-not-a-real-secret \

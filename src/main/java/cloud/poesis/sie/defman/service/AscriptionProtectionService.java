@@ -1,15 +1,21 @@
 package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
+import java.util.HexFormat;
 import java.util.Iterator;
+import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,10 +34,32 @@ import org.springframework.stereotype.Service;
 @Service
 public class AscriptionProtectionService {
 
-  private final ArchetypeSchemaResolverService resolvedSchema;
+  /**
+   * Author-facing digest names (the {@code hash.algorithm} enum) mapped to the HMAC construction
+   * that actually computes them.
+   */
+  private static final Map<String, String> MAC_ALGORITHMS = Map.of(
+      "SHA-256", "HmacSHA256",
+      "SHA-512", "HmacSHA512",
+      "SHA3-256", "HmacSHA3-256");
 
-  public AscriptionProtectionService(ArchetypeSchemaResolverService resolvedSchema) {
+  /**
+   * Constant hashed under the configured key to derive the key id that prefixes every stored hash.
+   * Truncated HMAC output, so it identifies the key without disclosing it.
+   */
+  private static final byte[] KEY_ID_LABEL =
+      "$gsm:dataProtection/keyId".getBytes(StandardCharsets.UTF_8);
+
+  private static final int KEY_ID_LENGTH = 8;
+
+  private final ArchetypeSchemaResolverService resolvedSchema;
+  private final byte[] hashKey;
+
+  public AscriptionProtectionService(
+      ArchetypeSchemaResolverService resolvedSchema,
+      @Value("${dm.protection.hash-key:}") String hashKey) {
     this.resolvedSchema = resolvedSchema;
+    this.hashKey = hashKey.getBytes(StandardCharsets.UTF_8);
   }
 
   // ======================================================================
@@ -77,6 +105,32 @@ public class AscriptionProtectionService {
     if (atRest.has("suppression")) {
       statement.remove(propName);
     }
+  }
+
+  /**
+   * Transforms a statement query filter operand into the form actually stored, so that an equality
+   * filter on a property protected at rest still matches (GSM §11, {@code GSM-PROC-49}).
+   *
+   * @param dpNode the resolved {@code $gsm:dataProtection} node for the property, or {@code null}
+   * @param propName the property being filtered on
+   * @param operand the caller-supplied filter value
+   * @return the operand in stored form, unchanged when the property has no at-rest measure
+   * @throws IllegalArgumentException if the property is suppressed at rest and so unmatchable
+   */
+  public String protectFilterOperand(JsonNode dpNode, String propName, String operand) {
+    if (dpNode == null || !dpNode.has("atRest")) {
+      return operand;
+    }
+    if (dpNode.get("atRest").has("suppression")) {
+      throw new IllegalArgumentException(
+          "Property '"
+              + propName
+              + "' is suppressed at rest by $gsm:dataProtection and cannot be filtered on.");
+    }
+    // Route the operand through the write path itself, so the two can never diverge.
+    ObjectNode probe = JsonNodeFactory.instance.objectNode().put(propName, operand);
+    applyAtRestProtection(dpNode, propName, probe);
+    return probe.path(propName).asText(operand);
   }
 
   // ======================================================================
@@ -176,23 +230,27 @@ public class AscriptionProtectionService {
   }
 
   /**
-   * Computes a hex-encoded hash of the given value.
+   * Computes a hex-encoded keyed hash (HMAC) of the given value.
+   *
+   * <p>The key is a service-held secret, not a per-value salt: the transform has to stay
+   * deterministic for {@code $gsm:queryable} properties to remain equality-searchable. What the key
+   * buys is that an attacker holding the stored digests cannot brute-force a low-entropy value
+   * (an email, a phone number) without also holding the key.
+   *
+   * <p>The result is prefixed with a key id — a truncated HMAC of a constant under the same key —
+   * because the transform is one-way and therefore cannot be re-keyed: changing the key silently
+   * makes every previously stored value unmatchable. The prefix makes that visible, and lets values
+   * written under a superseded key be identified.
    *
    * @param value the plaintext value to hash
-   * @param algorithm the hash algorithm name (e.g. {@code "SHA-256"})
-   * @return hex-encoded hash string
+   * @param algorithm the digest name declared by {@code hash.algorithm} (e.g. {@code "SHA-256"})
+   * @return {@code <keyId>:<hex>} keyed hash string
    * @throws RuleViolationException if the algorithm is not supported
+   * @throws InternalException if no hash key is configured
    */
   String computeHash(String value, String algorithm) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance(algorithm);
-      byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-      StringBuilder hex = new StringBuilder(hash.length * 2);
-      for (byte b : hash) {
-        hex.append(String.format("%02x", b));
-      }
-      return hex.toString();
-    } catch (NoSuchAlgorithmException e) {
+    String macAlgorithm = MAC_ALGORITHMS.get(algorithm);
+    if (macAlgorithm == null) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           "$gsm:dataProtection hash algorithm '" + algorithm + "' is not supported",
@@ -200,6 +258,23 @@ public class AscriptionProtectionService {
           "$gsm:dataProtection",
           "property",
           "hash.algorithm");
+    }
+    if (hashKey.length == 0) {
+      throw new InternalException(
+          "$gsm:dataProtection hash requires 'dm.protection.hash-key' to be configured");
+    }
+    try {
+      Mac mac = Mac.getInstance(macAlgorithm);
+      mac.init(new SecretKeySpec(hashKey, macAlgorithm));
+      // doFinal resets the Mac to its post-init state, so both digests use the same key.
+      String keyId =
+          HexFormat.of().formatHex(mac.doFinal(KEY_ID_LABEL)).substring(0, KEY_ID_LENGTH);
+      return keyId
+          + ":"
+          + HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+    } catch (GeneralSecurityException e) {
+      throw new InternalException(
+          "$gsm:dataProtection hash could not be computed with '" + macAlgorithm + "'", e);
     }
   }
 

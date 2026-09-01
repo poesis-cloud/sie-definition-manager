@@ -62,6 +62,9 @@ dm:
     archetype-schema-pattern: ${DM_ARCHETYPE_SCHEMA_PATTERN:classpath:gsm/schemas/*.schema.json}
   messaging:
     reliability-mode: ${DM_RELIABILITY_MODE:alo-idempotent}
+  protection:
+    # HMAC key for $gsm:dataProtection hash. Unset means hashed properties are rejected at write.
+    hash-key: ${DM_PROTECTION_HASH_KEY:}
   security:
     oauth2-login-enabled: ${DM_OAUTH2_LOGIN_ENABLED:false}
 

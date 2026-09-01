@@ -99,10 +99,12 @@ jobs:
       - name: Validate required deploy secrets
         env:
           DM_DB_PASSWORD: ${{ secrets.DM_DB_PASSWORD }}
+          DM_PROTECTION_HASH_KEY: ${{ secrets.DM_PROTECTION_HASH_KEY }}
           DEF_DB_ADMIN_PASSWORD: ${{ secrets.DEF_DB_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
           test -n "${DM_DB_PASSWORD}" || { echo "Missing required environment secret: DM_DB_PASSWORD" >&2; exit 1; }
+          test -n "${DM_PROTECTION_HASH_KEY}" || { echo "Missing required environment secret: DM_PROTECTION_HASH_KEY" >&2; exit 1; }
           test -n "${DEF_DB_ADMIN_PASSWORD}" || { echo "Missing required environment secret: DEF_DB_ADMIN_PASSWORD" >&2; exit 1; }
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
@@ -117,6 +119,7 @@ jobs:
       - name: Deploy with Makefile
         env:
           DM_DB_PASSWORD: ${{ secrets.DM_DB_PASSWORD }}
+          DM_PROTECTION_HASH_KEY: ${{ secrets.DM_PROTECTION_HASH_KEY }}
           DEF_DB_ADMIN_PASSWORD: ${{ secrets.DEF_DB_ADMIN_PASSWORD }}
           IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/sie-definition-manager
           IMAGE_TAG: ${{ needs.package.outputs.image_tag }}

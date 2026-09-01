@@ -69,6 +69,7 @@ env:
 
 secrets:
   DB_PASSWORD: ""
+  DM_PROTECTION_HASH_KEY: ""
 
 dbBootstrap:
   enabled: true

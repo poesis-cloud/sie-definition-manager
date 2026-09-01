@@ -41,6 +41,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "sie-definition-manager.fullname" . }}-secret
                   key: DB_PASSWORD
+            - name: DM_PROTECTION_HASH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sie-definition-manager.fullname" . }}-secret
+                  key: DM_PROTECTION_HASH_KEY
             - name: SCHEMA_REGISTRY_URL
               value: {{ .Values.env.SCHEMA_REGISTRY_URL | quote }}
             - name: KAFKA_BOOTSTRAP_SERVERS

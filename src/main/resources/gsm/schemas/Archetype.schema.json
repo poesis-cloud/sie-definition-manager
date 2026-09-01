@@ -156,13 +156,13 @@
         },
         "hash": {
           "type": "object",
-          "description": "One-way salted hash. DM-managed salt. Irreversible.",
+          "description": "One-way keyed hash (HMAC). DM-managed key. Irreversible and deterministic, so a hashed property stays equality-searchable.",
           "properties": {
             "algorithm": {
               "type": "string",
               "enum": [ "SHA-256", "SHA-512", "SHA3-256" ],
               "default": "SHA-256",
-              "description": "Hash algorithm (java.security.MessageDigest)."
+              "description": "Digest underlying the HMAC construction."
             }
           },
           "additionalProperties": false

@@ -533,6 +533,7 @@ public class AscriptionService implements SmartInitializingSingleton {
     JsonNode resolvedProperties = archetypeService.resolvedProperties(archetypeEntity);
     Map<String, String> targetFilters = resolveAliasFilters(resolvedProperties, statementFilters);
     validatePropertiesQueryability(type, archetypeEntity, resolvedProperties, targetFilters);
+    targetFilters = protectFilterOperands(resolvedProperties, targetFilters);
     List<FilterTarget> targets = List.of(new FilterTarget(archetypeEntity.getDefinition().getId(), targetFilters));
     Specification<AscriptionEntity> spec = buildFilterSpec(targets, status);
     return requireHandler(type).findAll(spec, pageable);
@@ -633,6 +634,25 @@ public class AscriptionService implements SmartInitializingSingleton {
                 + "'.");
       }
     }
+  }
+
+  /**
+   * Rewrites each filter operand into the form actually stored, so an equality filter on a property
+   * protected at rest (a hashed or masked property) still matches (GSM §11, {@code GSM-PROC-49}).
+   * Without this, the filter compares cleartext against a stored digest and never matches.
+   */
+  private Map<String, String> protectFilterOperands(
+      JsonNode resolvedProperties, Map<String, String> statementFilters) {
+    Map<String, String> protectedFilters = new LinkedHashMap<>();
+    for (var entry : statementFilters.entrySet()) {
+      protectedFilters.put(
+          entry.getKey(),
+          statementProtection.protectFilterOperand(
+              resolvedProperties.path(entry.getKey()).path("$gsm:dataProtection"),
+              entry.getKey(),
+              entry.getValue()));
+    }
+    return protectedFilters;
   }
 
   // ======================================================================

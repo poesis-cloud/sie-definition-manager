@@ -64,7 +64,7 @@ class AbstractControllerTest {
                       : archetype.getStatement().get("properties");
               return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
             });
-    controller = new AbstractController(new AscriptionProtectionService(resolvedSchema)) {
+    controller = new AbstractController(new AscriptionProtectionService(resolvedSchema, "k")) {
     };
   }
 
@@ -104,7 +104,9 @@ class AbstractControllerTest {
 
       // Password should be hashed (64 hex chars for SHA-256)
       String hashed = dto.getStatement().get("password").asText();
-      assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex hash, got: " + hashed);
+      assertTrue(
+          hashed.matches("[0-9a-f]{8}:[0-9a-f]{64}"),
+          "Expected SHA-256 hex hash, got: " + hashed);
       assertEquals("test-service", dto.getStatement().get("name").asText());
     }
 

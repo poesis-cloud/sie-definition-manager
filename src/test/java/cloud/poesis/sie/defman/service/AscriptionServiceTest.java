@@ -101,6 +101,9 @@ class AscriptionServiceTest {
               return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
             });
     when(structureHandler.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
+    // Default: unprotected properties pass their filter operand through untouched.
+    when(statementProtection.protectFilterOperand(any(), any(), any()))
+        .thenAnswer(invocation -> invocation.getArgument(2));
     when(structureHandler.getIdentityBoundValues(any())).thenReturn(Map.of());
     when(structureHandler.getRefereeReferences(any())).thenReturn(List.of());
     when(structureHandler.getCascadeTargetRoles()).thenReturn(Map.of());
@@ -572,6 +575,62 @@ class AscriptionServiceTest {
       // Alias resolved before the queryability gate — the error names the canonical
       // property
       assertTrue(ex.getMessage().contains("'secret'"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void findAllFiltered_hashedProperty_comparesTheStoredFormNotTheCleartext() {
+      String archetypeUri = "gsmarc://tenant/TestArchetype/v1";
+      UUID archDefId = UUID.randomUUID();
+      Map<String, String> filters = Map.of("email", "a@b.test");
+      Pageable pageable = PageRequest.of(0, 10);
+
+      ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+      DefinitionEntity archDef = mock(DefinitionEntity.class);
+      when(archDef.getId()).thenReturn(archDefId);
+      when(archetype.getDefinition()).thenReturn(archDef);
+
+      // "email" is queryable and hashed at rest — the stored value is a digest.
+      ObjectNode schema = MAPPER.createObjectNode();
+      ObjectNode props = schema.putObject("properties");
+      ObjectNode email = props.putObject("email");
+      email.put("type", "string").put("$gsm:queryable", true);
+      ObjectNode dp = email.putObject("$gsm:dataProtection");
+      dp.putObject("atRest").putObject("hash").put("algorithm", "SHA-256");
+      when(archetype.getStatement()).thenReturn(schema);
+
+      when(archetypeService.resolveForQuery(archetypeUri))
+          .thenReturn(
+              new ArchetypeService.ArchetypeResolution(archetype, DefinitionSubjectType.STRUCTURE));
+      when(statementProtection.protectFilterOperand(any(), eq("email"), eq("a@b.test")))
+          .thenReturn("deadbeef:stored-digest");
+
+      ArgumentCaptor<Specification<AscriptionEntity>> specCaptor = ArgumentCaptor.forClass(Specification.class);
+      when(structureHandler.findAll(specCaptor.capture(), eq(pageable))).thenReturn(Page.empty());
+
+      service.findAllFiltered(
+          DefinitionSubjectType.STRUCTURE, archetypeUri, filters, null, pageable);
+
+      Root<AscriptionEntity> root = mock(Root.class);
+      CriteriaQuery<?> query = mock(CriteriaQuery.class);
+      CriteriaBuilder cb = mock(CriteriaBuilder.class);
+      Path<Object> archPath = mock(Path.class);
+      Path<Object> defPath = mock(Path.class);
+      Path<Object> idPath = mock(Path.class);
+      when(root.get("archetype")).thenReturn(archPath);
+      when(archPath.get("definition")).thenReturn(defPath);
+      when(defPath.get("id")).thenReturn(idPath);
+      Path<Object> stmtPath = mock(Path.class);
+      when(root.get("statement")).thenReturn(stmtPath);
+      Expression<String> jsonExpr = mock(Expression.class);
+      when(cb.function(eq("jsonb_extract_path_text"), eq(String.class), eq(stmtPath), any()))
+          .thenReturn(jsonExpr);
+
+      specCaptor.getValue().toPredicate(root, query, cb);
+
+      // Cleartext would never match a stored digest (GSM-PROC-49).
+      verify(cb).equal(jsonExpr, "deadbeef:stored-digest");
+      verify(cb, never()).equal(jsonExpr, "a@b.test");
     }
 
     @Test

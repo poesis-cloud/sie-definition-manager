@@ -12,12 +12,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
+import cloud.poesis.sie.defman.exception.InternalException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -31,12 +35,18 @@ import org.junit.jupiter.api.Test;
 class AscriptionProtectionServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final String HASH_KEY = "test-hash-key";
+
+  /** Stored hashes are {@code <keyId>:<digest hex>} — the key id makes a key change detectable. */
+  private static final String KEYED_SHA256 = "[0-9a-f]{8}:[0-9a-f]{64}";
+
+  private static final String KEYED_SHA512 = "[0-9a-f]{8}:[0-9a-f]{128}";
 
   private final ArchetypeSchemaResolverService resolvedSchema =
       mock(ArchetypeSchemaResolverService.class);
 
   private final AscriptionProtectionService service =
-      new AscriptionProtectionService(resolvedSchema);
+      new AscriptionProtectionService(resolvedSchema, HASH_KEY);
 
   /** Wraps a schema as an Archetype whose resolved properties are the schema's own. */
   private ArchetypeEntity archetypeOf(JsonNode schema) {
@@ -63,7 +73,7 @@ class AscriptionProtectionServiceTest {
       service.applyAtRestProtection(dp, "ssn", statement);
 
       String hashed = statement.get("ssn").asText();
-      assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex, got: " + hashed);
+      assertTrue(hashed.matches(KEYED_SHA256), "Expected SHA-256 hex, got: " + hashed);
     }
 
     @Test
@@ -75,7 +85,7 @@ class AscriptionProtectionServiceTest {
       service.applyAtRestProtection(dp, "ssn", statement);
 
       String hashed = statement.get("ssn").asText();
-      assertTrue(hashed.matches("[0-9a-f]{128}"), "Expected SHA-512 hex, got: " + hashed);
+      assertTrue(hashed.matches(KEYED_SHA512), "Expected SHA-512 hex, got: " + hashed);
     }
 
     @Test
@@ -87,7 +97,7 @@ class AscriptionProtectionServiceTest {
       service.applyAtRestProtection(dp, "ssn", statement);
 
       String hashed = statement.get("ssn").asText();
-      assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA3-256 hex, got: " + hashed);
+      assertTrue(hashed.matches(KEYED_SHA256), "Expected SHA3-256 hex, got: " + hashed);
     }
 
     @Test
@@ -100,7 +110,7 @@ class AscriptionProtectionServiceTest {
 
       // SHA-256 default → 64 hex chars
       String hashed = statement.get("ssn").asText();
-      assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex, got: " + hashed);
+      assertTrue(hashed.matches(KEYED_SHA256), "Expected SHA-256 hex, got: " + hashed);
       // Verify it matches explicit SHA-256
       assertEquals(service.computeHash("123-45-6789", "SHA-256"), hashed);
     }
@@ -228,7 +238,7 @@ class AscriptionProtectionServiceTest {
       service.applyAtRestProtection(dp, "score", statement);
 
       String hashed = statement.get("score").asText();
-      assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex, got: " + hashed);
+      assertTrue(hashed.matches(KEYED_SHA256), "Expected SHA-256 hex, got: " + hashed);
       assertEquals(service.computeHash("42", "SHA-256"), hashed);
     }
   }
@@ -255,7 +265,7 @@ class AscriptionProtectionServiceTest {
 
       // Result is transformed
       String hashed = result.get("password").asText();
-      assertTrue(hashed.matches("[0-9a-f]{64}"), "Expected SHA-256 hex, got: " + hashed);
+      assertTrue(hashed.matches(KEYED_SHA256), "Expected SHA-256 hex, got: " + hashed);
       // Original is not mutated
       assertEquals("s3cret", statement.get("password").asText());
     }
@@ -423,7 +433,7 @@ class AscriptionProtectionServiceTest {
 
       JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
-      assertTrue(result.get("password").asText().matches("[0-9a-f]{64}"));
+      assertTrue(result.get("password").asText().matches(KEYED_SHA256));
       assertEquals("****1234", result.get("phone").asText());
       assertNull(result.get("secret"));
       assertEquals("test-service", result.get("name").asText());
@@ -457,19 +467,19 @@ class AscriptionProtectionServiceTest {
     @Test
     void sha256_produces64HexChars() {
       String hash = service.computeHash("hello", "SHA-256");
-      assertTrue(hash.matches("[0-9a-f]{64}"), "Expected 64 hex, got: " + hash);
+      assertTrue(hash.matches(KEYED_SHA256), "Expected 64 hex, got: " + hash);
     }
 
     @Test
     void sha512_produces128HexChars() {
       String hash = service.computeHash("hello", "SHA-512");
-      assertTrue(hash.matches("[0-9a-f]{128}"), "Expected 128 hex, got: " + hash);
+      assertTrue(hash.matches(KEYED_SHA512), "Expected 128 hex, got: " + hash);
     }
 
     @Test
     void sha3_256_produces64HexChars() {
       String hash = service.computeHash("hello", "SHA3-256");
-      assertTrue(hash.matches("[0-9a-f]{64}"), "Expected 64 hex, got: " + hash);
+      assertTrue(hash.matches(KEYED_SHA256), "Expected 64 hex, got: " + hash);
     }
 
     @Test
@@ -496,6 +506,109 @@ class AscriptionProtectionServiceTest {
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
       assertTrue(ex.getMessage().contains("BOGUS-ALG"));
+    }
+
+    @Test
+    void isKeyed_notABareDigestOfTheValue() throws Exception {
+      String bareDigest =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest("hello".getBytes(StandardCharsets.UTF_8)));
+
+      assertNotEquals(
+          bareDigest,
+          service.computeHash("hello", "SHA-256"),
+          "An unkeyed digest of a low-entropy value is brute-forceable");
+    }
+
+    @Test
+    void differentKeys_produceDifferentHashes() {
+      AscriptionProtectionService other =
+          new AscriptionProtectionService(resolvedSchema, "another-key");
+
+      assertNotEquals(service.computeHash("hello", "SHA-256"), other.computeHash("hello", "SHA-256"));
+    }
+
+    @Test
+    void keyIdPrefix_identifiesTheKeyWithoutDisclosingIt() {
+      AscriptionProtectionService other =
+          new AscriptionProtectionService(resolvedSchema, "another-key");
+
+      String keyId = service.computeHash("hello", "SHA-256").split(":")[0];
+      String otherKeyId = other.computeHash("hello", "SHA-256").split(":")[0];
+
+      // Stable for one key, different across keys — so a key change is detectable
+      // on stored values even though the hash itself cannot be re-keyed.
+      assertEquals(keyId, service.computeHash("world", "SHA-256").split(":")[0]);
+      assertNotEquals(keyId, otherKeyId);
+      assertFalse(HASH_KEY.contains(keyId), "Key id must not leak the key");
+    }
+
+    @Test
+    void blankKey_failsClosedRatherThanHashingUnkeyed() {
+      AscriptionProtectionService unkeyed = new AscriptionProtectionService(resolvedSchema, "");
+
+      InternalException ex =
+          assertThrows(InternalException.class, () -> unkeyed.computeHash("hello", "SHA-256"));
+
+      assertTrue(ex.getMessage().contains("dm.protection.hash-key"));
+    }
+  }
+
+  // ==================================================================
+  // protectFilterOperand
+  // ==================================================================
+
+  @Nested
+  class ProtectFilterOperand {
+
+    @Test
+    void hashedProperty_operandIsHashedSoTheFilterMatchesTheStoredValue() {
+      ObjectNode dp = dpAtRest();
+      dp.withObject("atRest").putObject("hash").put("algorithm", "SHA-256");
+      ObjectNode statement = MAPPER.createObjectNode().put("email", "a@b.test");
+      service.applyAtRestProtection(dp, "email", statement);
+
+      String operand = service.protectFilterOperand(dp, "email", "a@b.test");
+
+      assertEquals(statement.get("email").asText(), operand);
+    }
+
+    @Test
+    void maskedProperty_operandIsMaskedSoTheFilterMatchesTheStoredValue() {
+      ObjectNode dp = dpAtRest();
+      ObjectNode mask = dp.withObject("atRest").putObject("mask");
+      mask.put("from", "RIGHT");
+      ObjectNode with = mask.putObject("with");
+      with.put("character", "*");
+      with.put("occurrence", 4);
+      ObjectNode statement = MAPPER.createObjectNode().put("phone", "555-1234");
+      service.applyAtRestProtection(dp, "phone", statement);
+
+      String operand = service.protectFilterOperand(dp, "phone", "555-1234");
+
+      assertEquals(statement.get("phone").asText(), operand);
+    }
+
+    @Test
+    void unprotectedProperty_operandIsUnchanged() {
+      assertEquals("plain", service.protectFilterOperand(null, "name", "plain"));
+      assertEquals(
+          "plain", service.protectFilterOperand(MAPPER.createObjectNode(), "name", "plain"));
+    }
+
+    @Test
+    void suppressedProperty_isRejectedRatherThanSilentlyMatchingNothing() {
+      ObjectNode dp = dpAtRest();
+      dp.withObject("atRest").putObject("suppression");
+
+      IllegalArgumentException ex =
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> service.protectFilterOperand(dp, "secret", "anything"));
+
+      assertTrue(ex.getMessage().contains("secret"));
     }
   }
 
