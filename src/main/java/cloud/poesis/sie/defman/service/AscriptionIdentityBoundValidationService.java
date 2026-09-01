@@ -14,15 +14,11 @@ import org.springframework.stereotype.Service;
 /**
  * Validates identity-bound invariants for ascription entities.
  *
- * <p>
- * Enforces that identity-bound fields (both handler-declared entity-level
- * fields and {@code
- * $gsm:identityBound}-annotated statement properties) remain constant across
- * all ascriptions within
+ * <p>Enforces that identity-bound fields (both handler-declared entity-level fields and {@code
+ * $gsm:identityBound}-annotated statement properties) remain constant across all ascriptions within
  * the same definition.
  *
- * <p>
- * Consumed by {@link AscriptionService}.
+ * <p>Consumed by {@link AscriptionService}.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -39,21 +35,16 @@ class AscriptionIdentityBoundValidationService {
   /**
    * Validates identity-bound invariant for a new ascription entity.
    *
-   * <p>
-   * Checks both handler-declared (entity-level) and annotation-declared ({@code
-   * $gsm:identityBound}) fields against existing ascriptions in the same
-   * definition.
+   * <p>Checks both handler-declared (entity-level) and annotation-declared ({@code
+   * $gsm:identityBound}) fields against existing ascriptions in the same definition.
    *
-   * @param handler   the subtype handler providing identity-bound field
-   *                  declarations
-   * @param entity    the new ascription entity being created
-   * @param archetype the typing archetype (schema source for annotation
-   *                  discovery)
-   * @param <T>       the concrete ascription entity type
+   * @param handler the subtype handler providing identity-bound field declarations
+   * @param entity the new ascription entity being created
+   * @param archetype the typing archetype (schema source for annotation discovery)
+   * @param <T> the concrete ascription entity type
    * @throws RuleViolationException with {@link
-   *                                AscriptionConsistencyRuleType#ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION}
-   *                                if any
-   *                                identity-bound field changed
+   *     AscriptionConsistencyRuleType#ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION} if any
+   *     identity-bound field changed
    */
   <T extends AscriptionEntity> void validate(
       AscriptionSubtypeService<T> handler, T entity, ArchetypeEntity archetype) {

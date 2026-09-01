@@ -7,16 +7,12 @@ import java.util.function.BiConsumer;
 import org.springframework.stereotype.Component;
 
 /**
- * Recursively visits every Draft 2020-12 schema-valued position within a JSON
- * Schema, reporting
+ * Recursively visits every Draft 2020-12 schema-valued position within a JSON Schema, reporting
  * each location as a JSON Pointer to the given visitor.
  *
- * <p>
- * Package-private traversal utility shared by {@link ArchetypeService}, {@link
- * ArchetypeIdentityValidationService},
- * {@link ArchetypeAnnotationValidationService}, and {@link
- * AscriptionParsingValidationService} — a structural algorithm, not a domain
- * service, hence the
+ * <p>Package-private traversal utility shared by {@link ArchetypeService}, {@link
+ * ArchetypeIdentityValidationService}, {@link ArchetypeAnnotationValidationService}, and {@link
+ * AscriptionParsingValidationService} — a structural algorithm, not a domain service, hence the
  * {@code Walker} name.
  *
  * @author Clément Cazaud
@@ -25,24 +21,26 @@ import org.springframework.stereotype.Component;
 @Component
 class JsonSchemaPositionWalker {
 
-  private static final List<String> DIRECT_SCHEMA_KEYWORDS = List.of(
-      "additionalProperties",
-      "additionalItems",
-      "contains",
-      "contentSchema",
-      "else",
-      "if",
-      "items",
-      "not",
-      "propertyNames",
-      "then",
-      "unevaluatedItems",
-      "unevaluatedProperties");
+  private static final List<String> DIRECT_SCHEMA_KEYWORDS =
+      List.of(
+          "additionalProperties",
+          "additionalItems",
+          "contains",
+          "contentSchema",
+          "else",
+          "if",
+          "items",
+          "not",
+          "propertyNames",
+          "then",
+          "unevaluatedItems",
+          "unevaluatedProperties");
 
-  private static final List<String> ARRAY_OF_SCHEMA_KEYWORDS = List.of("allOf", "anyOf", "oneOf", "prefixItems");
+  private static final List<String> ARRAY_OF_SCHEMA_KEYWORDS =
+      List.of("allOf", "anyOf", "oneOf", "prefixItems");
 
-  private static final List<String> MAP_OF_SCHEMA_KEYWORDS = List.of("$defs", "definitions", "dependentSchemas",
-      "patternProperties", "properties");
+  private static final List<String> MAP_OF_SCHEMA_KEYWORDS =
+      List.of("$defs", "definitions", "dependentSchemas", "patternProperties", "properties");
 
   void walk(JsonNode schema, BiConsumer<JsonNode, String> visitor) {
     walk(schema, "", visitor);

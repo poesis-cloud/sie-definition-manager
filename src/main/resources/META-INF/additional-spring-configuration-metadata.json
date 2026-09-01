@@ -1,30 +1,24 @@
 {
-  "properties": [
-    {
-      "name": "dm.bootstrap.archetype-schema-pattern",
-      "type": "java.lang.String",
-      "description": "Spring resource pattern for GSM base archetype JSON Schema files."
-    },
-    {
-      "name": "dm.messaging.reliability-mode",
-      "type": "java.lang.String",
-      "description": "Kafka messaging reliability mode (alo-idempotent, eo, amo)."
-    },
-    {
-      "name": "dm.protection.hash-key",
-      "type": "java.lang.String",
-      "description": "Secret key for the $gsm:dataProtection hash measure (HMAC). Blank disables hashing: declared hashed properties are rejected at write time rather than stored under an unkeyed digest.",
-      "defaultValue": ""
-    },
-    {
-      "name": "dm.security.oauth2-login-enabled",
-      "type": "java.lang.Boolean",
-      "description": "Enable OAuth2 social login (GitHub, Google, Microsoft)."
-    },
-    {
-      "name": "otel.exporter.otlp.endpoint",
-      "type": "java.lang.String",
-      "description": "OpenTelemetry OTLP exporter endpoint URL."
-    }
-  ]
+  "properties": [ {
+    "name": "dm.bootstrap.archetype-schema-pattern",
+    "type": "java.lang.String",
+    "description": "Spring resource pattern for GSM base archetype JSON Schema files."
+  }, {
+    "name": "dm.messaging.reliability-mode",
+    "type": "java.lang.String",
+    "description": "Kafka messaging reliability mode (alo-idempotent, eo, amo)."
+  }, {
+    "name": "dm.protection.hash-key",
+    "type": "java.lang.String",
+    "description": "Secret key for the $gsm:dataProtection hash measure (HMAC). Blank disables hashing: declared hashed properties are rejected at write time rather than stored under an unkeyed digest.",
+    "defaultValue": ""
+  }, {
+    "name": "dm.security.oauth2-login-enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enable OAuth2 social login (GitHub, Google, Microsoft)."
+  }, {
+    "name": "otel.exporter.otlp.endpoint",
+    "type": "java.lang.String",
+    "description": "OpenTelemetry OTLP exporter endpoint URL."
+  } ]
 }

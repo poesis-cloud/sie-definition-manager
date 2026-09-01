@@ -44,31 +44,27 @@ class NormServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private NormRepository normRepo;
+  @Mock private NormRepository normRepo;
 
-  @Mock
-  private StructureService structureService;
+  @Mock private StructureService structureService;
 
-  @Mock
-  private ArchetypeService archetypeService;
+  @Mock private ArchetypeService archetypeService;
 
-  @Mock
-  private NormApplicabilityValidationService applicabilityValidation;
+  @Mock private NormApplicabilityValidationService applicabilityValidation;
 
-  @Mock
-  private NormAssertionValidationService assertionValidation;
+  @Mock private NormAssertionValidationService assertionValidation;
 
   private NormService service;
 
   @BeforeEach
   void setUp() {
-    service = new NormService(
-        normRepo,
-        structureService,
-        archetypeService,
-        applicabilityValidation,
-        assertionValidation);
+    service =
+        new NormService(
+            normRepo,
+            structureService,
+            archetypeService,
+            applicabilityValidation,
+            assertionValidation);
   }
 
   // ========================================================================
@@ -95,12 +91,13 @@ class NormServiceTest {
   }
 
   static Stream<Arguments> applicabilityRefereeStatusMatrix() {
-    Set<AscriptionStatusType> refereeStatuses = Set.of(
-        AscriptionStatusType.APPROVED,
-        AscriptionStatusType.ACTIVE,
-        AscriptionStatusType.SUSPENDED,
-        AscriptionStatusType.DEPRECATED,
-        AscriptionStatusType.RETIRED);
+    Set<AscriptionStatusType> refereeStatuses =
+        Set.of(
+            AscriptionStatusType.APPROVED,
+            AscriptionStatusType.ACTIVE,
+            AscriptionStatusType.SUSPENDED,
+            AscriptionStatusType.DEPRECATED,
+            AscriptionStatusType.RETIRED);
     return Stream.of(AscriptionStatusTransitionPathType.values())
         .flatMap(path -> refereeStatuses.stream().map(status -> Arguments.of(path, status)));
   }
@@ -188,21 +185,24 @@ class NormServiceTest {
         assertTrue(
             references.stream()
                 .anyMatch(
-                    reference -> reference.getKey() == deployment
-                        && reference
-                            .getValue()
-                            .equals("applicability ref(" + deploymentId + ")")));
+                    reference ->
+                        reference.getKey() == deployment
+                            && reference
+                                .getValue()
+                                .equals("applicability ref(" + deploymentId + ")")));
         assertTrue(
             references.stream()
                 .anyMatch(
-                    reference -> reference.getKey() == serviceArchetype
-                        && reference
-                            .getValue()
-                            .equals("applicability ref(" + serviceId + ")")));
+                    reference ->
+                        reference.getKey() == serviceArchetype
+                            && reference
+                                .getValue()
+                                .equals("applicability ref(" + serviceId + ")")));
       }
 
       @ParameterizedTest(name = "{0} with applicability referee {1}")
-      @MethodSource("cloud.poesis.sie.defman.service.NormServiceTest#applicabilityRefereeStatusMatrix")
+      @MethodSource(
+          "cloud.poesis.sie.defman.service.NormServiceTest#applicabilityRefereeStatusMatrix")
       void applicabilityArchetypeUsesLifecycleRefereeMatrix(
           AscriptionStatusTransitionPathType path, AscriptionStatusType refereeStatus) {
         String archetypeId = "gsmarc://tenant/DeploymentProperties/v1";
@@ -215,31 +215,36 @@ class NormServiceTest {
         when(applicabilityArchetype.getStatus()).thenReturn(refereeStatus);
         when(archetypeService.resolveArchetypeUri(archetypeId, "applicability ref()"))
             .thenReturn(applicabilityArchetype);
-        var realApplicabilityValidation = new NormApplicabilityValidationService(
-            archetypeService,
-            new ArchetypeCompositionValidationService(),
-            CelCompilerFactory.standardCelCompilerBuilder().build());
-        var normService = new NormService(
-            normRepo,
-            structureService,
-            archetypeService,
-            realApplicabilityValidation,
-            assertionValidation);
+        var realApplicabilityValidation =
+            new NormApplicabilityValidationService(
+                archetypeService,
+                new ArchetypeCompositionValidationService(),
+                CelCompilerFactory.standardCelCompilerBuilder().build());
+        var normService =
+            new NormService(
+                normRepo,
+                structureService,
+                archetypeService,
+                realApplicabilityValidation,
+                assertionValidation);
 
-        var applicabilityReference = normService.getRefereeReferences(entity).stream()
-            .filter(reference -> reference.getValue().startsWith("applicability ref("))
-            .toList();
+        var applicabilityReference =
+            normService.getRefereeReferences(entity).stream()
+                .filter(reference -> reference.getValue().startsWith("applicability ref("))
+                .toList();
         var stateMachine = new AscriptionStateMachineService();
 
         if (path.getRefereeAllowedStatuses().contains(refereeStatus)) {
           assertDoesNotThrow(
-              () -> stateMachine.validateRefereePreconditions(
-                  applicabilityReference, path.getFrom(), path.getTo()));
+              () ->
+                  stateMachine.validateRefereePreconditions(
+                      applicabilityReference, path.getFrom(), path.getTo()));
         } else {
           assertThrows(
               RuleViolationException.class,
-              () -> stateMachine.validateRefereePreconditions(
-                  applicabilityReference, path.getFrom(), path.getTo()));
+              () ->
+                  stateMachine.validateRefereePreconditions(
+                      applicabilityReference, path.getFrom(), path.getTo()));
         }
       }
     }
@@ -387,7 +392,8 @@ class NormServiceTest {
 
     @Test
     void applicabilityArchetypeSource_hasNoCascadeTargetFinder() {
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.ARCHETYPE, UUID.randomUUID());
+      var result =
+          service.findCascadeTargetsFrom(DefinitionSubjectType.ARCHETYPE, UUID.randomUUID());
       assertTrue(result.isEmpty());
       verifyNoInteractions(normRepo);
     }

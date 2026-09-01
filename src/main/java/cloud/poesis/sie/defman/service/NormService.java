@@ -25,11 +25,8 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Norm ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link NormEntity} ascriptions including
- * CEL
- * applicability/assertion profile validation (applicability and assertion
- * profiles) and governing
+ * <p>Manages lifecycle and persistence of {@link NormEntity} ascriptions including CEL
+ * applicability/assertion profile validation (applicability and assertion profiles) and governing
  * cascade from owning Structure.
  *
  * @author Clément Cazaud
@@ -80,10 +77,11 @@ public class NormService implements AscriptionSubtypeService<NormEntity> {
       assertionValidation.validateAssertion(statement.get("assertion").asText());
     }
 
-    UUID structureId = extractRequiredUuid(
-        statement,
-        "structure",
-        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
+    UUID structureId =
+        extractRequiredUuid(
+            statement,
+            "structure",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     StructureEntity structure = structureService.findEntityById(structureId);
 
     String qualifierUri = statement.path("qualifier").asText(null);
@@ -118,8 +116,10 @@ public class NormService implements AscriptionSubtypeService<NormEntity> {
     references.add(Map.entry(n.getStructure(), "structure"));
     references.add(Map.entry(n.getQualifier(), "qualifier"));
     String applicability = n.getStatement().path("applicability").asText("true");
-    for (String archetypeUri : applicabilityValidation.extractApplicabilityReferences(applicability)) {
-      ArchetypeEntity archetype = archetypeService.resolveArchetypeUri(archetypeUri, "applicability ref()");
+    for (String archetypeUri :
+        applicabilityValidation.extractApplicabilityReferences(applicability)) {
+      ArchetypeEntity archetype =
+          archetypeService.resolveArchetypeUri(archetypeUri, "applicability ref()");
       references.add(Map.entry(archetype, "applicability ref(" + archetypeUri + ")"));
     }
     return List.copyOf(references);

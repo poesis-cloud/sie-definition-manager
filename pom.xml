@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.13</version>
+    <version>3.5.16</version>
     <relativePath/>
   </parent>
 
@@ -18,13 +18,11 @@
 
   <properties>
     <java.version>21</java.version>
-    <!-- Override Spring Boot 3.5.13's managed versions flagged HIGH by the Trivy gate:
-         pgjdbc CVE-2026-42198 + CVE-2026-54291 (fixed 42.7.12),
-         spring-kafka CVE-2026-41731 (fixed 3.3.16). -->
+    <!-- Override Spring Boot 3.5.16's managed pgjdbc version (42.7.11), still flagged HIGH
+         by the Trivy gate: CVE-2026-42198 + CVE-2026-54291 (fixed 42.7.12). -->
     <postgresql.version>42.7.12</postgresql.version>
-    <spring-kafka.version>3.3.16</spring-kafka.version>
     <testcontainers.version>1.21.4</testcontainers.version>
-    <!-- OTel SDK/API/exporter version. Aligned with Spring Boot 3.5.13's
+    <!-- OTel SDK/API/exporter version. Aligned with Spring Boot 3.5.16's
          transitively-managed opentelemetry-bom (1.49.0). Pinned here as the
          single source of truth per S-001 HUDDLE decision. -->
     <otel.version>1.49.0</otel.version>

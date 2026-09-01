@@ -36,11 +36,9 @@ class ArchetypePropertyIndexationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private JdbcTemplate jdbcTemplate;
+  @Mock private JdbcTemplate jdbcTemplate;
 
-  @Mock
-  private ArchetypeSchemaResolverService resolvedSchema;
+  @Mock private ArchetypeSchemaResolverService resolvedSchema;
 
   private ArchetypePropertyIndexationService service;
 
@@ -50,9 +48,10 @@ class ArchetypePropertyIndexationServiceTest {
         .thenAnswer(
             invocation -> {
               ArchetypeEntity archetype = invocation.getArgument(0);
-              JsonNode properties = archetype.getStatement() == null
-                  ? null
-                  : archetype.getStatement().get("properties");
+              JsonNode properties =
+                  archetype.getStatement() == null
+                      ? null
+                      : archetype.getStatement().get("properties");
               return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
             });
     service = new ArchetypePropertyIndexationService(jdbcTemplate, resolvedSchema);
@@ -101,10 +100,11 @@ class ArchetypePropertyIndexationServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       when(def.getId()).thenReturn(defId);
 
-      ObjectNode stmt = MAPPER
-          .createObjectNode()
-          .put("$id", "gsmarc://tenant/TestArch/v1")
-          .put("title", "TestArch");
+      ObjectNode stmt =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://tenant/TestArch/v1")
+              .put("title", "TestArch");
       ObjectNode props = stmt.putObject("properties");
       ObjectNode envProp = props.putObject("env");
       envProp.put("type", "string");
@@ -127,10 +127,11 @@ class ArchetypePropertyIndexationServiceTest {
       DefinitionEntity def = mock(DefinitionEntity.class);
       when(def.getId()).thenReturn(defId);
 
-      ObjectNode stmt = MAPPER
-          .createObjectNode()
-          .put("$id", "gsmarc://tenant/TestArch/v1")
-          .put("title", "TestArch");
+      ObjectNode stmt =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://tenant/TestArch/v1")
+              .put("title", "TestArch");
       ObjectNode props = stmt.putObject("properties");
       ObjectNode tagsProp = props.putObject("tags");
       tagsProp.put("type", "array");
@@ -181,10 +182,12 @@ class ArchetypePropertyIndexationServiceTest {
 
     @Test
     void sameTitleAcrossNamespaceStems_producesDistinctIndexNames() {
-      ArchetypeEntity first = archetypeWithQueryableProps(
-          "SharedTitle", "gsmarc://tenant-a/domain/SharedTitle/v1", "x", "string");
-      ArchetypeEntity second = archetypeWithQueryableProps(
-          "SharedTitle", "gsmarc://tenant-b/domain/SharedTitle/v1", "x", "string");
+      ArchetypeEntity first =
+          archetypeWithQueryableProps(
+              "SharedTitle", "gsmarc://tenant-a/domain/SharedTitle/v1", "x", "string");
+      ArchetypeEntity second =
+          archetypeWithQueryableProps(
+              "SharedTitle", "gsmarc://tenant-b/domain/SharedTitle/v1", "x", "string");
 
       service.provisionIndexes(first, () -> "structure");
       service.provisionIndexes(second, () -> "structure");
@@ -200,10 +203,12 @@ class ArchetypePropertyIndexationServiceTest {
 
     @Test
     void sameStemAcrossVersions_producesDistinctIndexNames() {
-      ArchetypeEntity first = archetypeWithQueryableProps(
-          "Versioned", "gsmarc://tenant/domain/Versioned/v1", "x", "string");
-      ArchetypeEntity second = archetypeWithQueryableProps(
-          "Versioned", "gsmarc://tenant/domain/Versioned/v2", "x", "string");
+      ArchetypeEntity first =
+          archetypeWithQueryableProps(
+              "Versioned", "gsmarc://tenant/domain/Versioned/v1", "x", "string");
+      ArchetypeEntity second =
+          archetypeWithQueryableProps(
+              "Versioned", "gsmarc://tenant/domain/Versioned/v2", "x", "string");
 
       service.provisionIndexes(first, () -> "structure");
       service.provisionIndexes(second, () -> "structure");
@@ -329,10 +334,11 @@ class ArchetypePropertyIndexationServiceTest {
     DefinitionEntity def = mock(DefinitionEntity.class);
     when(def.getId()).thenReturn(defId);
 
-    ObjectNode stmt = MAPPER
-        .createObjectNode()
-        .put("$id", "gsmarc://tenant/" + title + "/v1")
-        .put("title", title);
+    ObjectNode stmt =
+        MAPPER
+            .createObjectNode()
+            .put("$id", "gsmarc://tenant/" + title + "/v1")
+            .put("title", title);
     ObjectNode props = stmt.putObject("properties");
     ObjectNode propNode = props.putObject(propName);
     propNode.put("type", propType);

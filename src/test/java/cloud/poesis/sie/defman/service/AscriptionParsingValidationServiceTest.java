@@ -55,15 +55,15 @@ class AscriptionParsingValidationServiceTest {
     assertTrue(!ArchetypeParsingService.isGsmBaseId("gsmarc://tenant/Structure/v1"));
   }
 
-  @Mock
-  private ArchetypeParsingService archetypeSchemaService;
+  @Mock private ArchetypeParsingService archetypeSchemaService;
 
   private AscriptionParsingValidationService svc;
 
   @BeforeEach
   void setUp() {
-    svc = new AscriptionParsingValidationService(
-        archetypeSchemaService, new JsonSchemaPositionWalker());
+    svc =
+        new AscriptionParsingValidationService(
+            archetypeSchemaService, new JsonSchemaPositionWalker());
   }
 
   // ========================================================================
@@ -100,9 +100,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -120,9 +121,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("count", "not-a-number");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -190,9 +192,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("name", "test").put("extra", 7);
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
       verify(archetypeSchemaService).findResolvableByUri(candidateId);
     }
@@ -215,8 +218,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
 
       assertDoesNotThrow(
-          () -> svc.validateStatement(
-              MAPPER.createObjectNode(), archetype, DefinitionSubjectType.STRUCTURE));
+          () ->
+              svc.validateStatement(
+                  MAPPER.createObjectNode(), archetype, DefinitionSubjectType.STRUCTURE));
       verify(archetypeSchemaService, never()).findResolvableByUri(defaultValue);
       verify(archetypeSchemaService, never()).findResolvableByUri(constValue);
       verify(archetypeSchemaService, never()).findResolvableByUri(enumValue);
@@ -256,9 +260,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -277,9 +282,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode().put("purpose", "demo");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.STRUCTURE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_NON_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -297,9 +303,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       ObjectNode statement = MAPPER.createObjectNode();
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.ARCHETYPE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.ARCHETYPE));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -330,19 +337,14 @@ class AscriptionParsingValidationServiceTest {
   // ========================================================================
 
   /**
-   * Closure is applied by DM at validation time, on a schema object that applies
-   * the whole resolved
-   * chain. These tests pin the behaviour a base-level
-   * {@code unevaluatedProperties} could not
+   * Closure is applied by DM at validation time, on a schema object that applies the whole resolved
+   * chain. These tests pin the behaviour a base-level {@code unevaluatedProperties} could not
    * provide: extension properties are accepted, undeclared properties are not.
    */
   @Nested
   class StatementClosure {
 
-    /**
-     * Mirrors the ITIP shape: a typing archetype extending a GSM base with domain
-     * properties.
-     */
+    /** Mirrors the ITIP shape: a typing archetype extending a GSM base with domain properties. */
     private ObjectNode sourcedDirectiveSchema() {
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("$id", "gsmarc://gsm-ontology/SourcedDirective/v1");
@@ -372,8 +374,9 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(sourcedDirectiveSchema());
 
       assertDoesNotThrow(
-          () -> svc.validateStatement(
-              sourcedDirectiveStatement(), archetype, DefinitionSubjectType.DIRECTIVE));
+          () ->
+              svc.validateStatement(
+                  sourcedDirectiveStatement(), archetype, DefinitionSubjectType.DIRECTIVE));
     }
 
     @Test
@@ -381,9 +384,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(sourcedDirectiveSchema());
       ObjectNode statement = sourcedDirectiveStatement().put("bogus", "x");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
       assertTrue(ex.getMessage().contains("bogus"));
     }
 
@@ -392,9 +396,10 @@ class AscriptionParsingValidationServiceTest {
       ArchetypeEntity archetype = stubArchetypeWithSchema(sourcedDirectiveSchema());
       ObjectNode statement = sourcedDirectiveStatement().put("$comment", "leaked");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> svc.validateStatement(statement, archetype, DefinitionSubjectType.DIRECTIVE));
       assertTrue(ex.getMessage().contains("$comment"));
     }
 
@@ -413,16 +418,18 @@ class AscriptionParsingValidationServiceTest {
 
       ArchetypeEntity archetype = stubArchetypeWithSchema(schema);
       assertDoesNotThrow(
-          () -> svc.validateStatement(
-              MAPPER.createObjectNode().put("name", "ok"),
-              archetype,
-              DefinitionSubjectType.STRUCTURE));
+          () ->
+              svc.validateStatement(
+                  MAPPER.createObjectNode().put("name", "ok"),
+                  archetype,
+                  DefinitionSubjectType.STRUCTURE));
       assertThrows(
           RuleViolationException.class,
-          () -> svc.validateStatement(
-              MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
-              archetype,
-              DefinitionSubjectType.STRUCTURE));
+          () ->
+              svc.validateStatement(
+                  MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
+                  archetype,
+                  DefinitionSubjectType.STRUCTURE));
     }
 
     @Test
@@ -451,10 +458,11 @@ class AscriptionParsingValidationServiceTest {
 
       assertThrows(
           RuleViolationException.class,
-          () -> svc.validateStatement(
-              MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
-              archetype,
-              DefinitionSubjectType.STRUCTURE));
+          () ->
+              svc.validateStatement(
+                  MAPPER.createObjectNode().put("name", "ok").put("bogus", 1),
+                  archetype,
+                  DefinitionSubjectType.STRUCTURE));
     }
 
     @Test
@@ -464,8 +472,9 @@ class AscriptionParsingValidationServiceTest {
       schema.put("type", "object");
       ObjectNode original = schema.deepCopy();
 
-      var closed = AscriptionParsingValidationService.applyStatementClosure(
-          schema, DefinitionSubjectType.STRUCTURE);
+      var closed =
+          AscriptionParsingValidationService.applyStatementClosure(
+              schema, DefinitionSubjectType.STRUCTURE);
 
       assertEquals(false, closed.get("unevaluatedProperties").booleanValue());
       assertEquals("Open", closed.get("title").asText());
@@ -473,10 +482,8 @@ class AscriptionParsingValidationServiceTest {
     }
 
     /**
-     * An Archetype statement is itself a JSON Schema, and the sealed Archetype
-     * meta-schema is
-     * deliberately open so tenants may declare vocabulary keywords (e.g. ITIP's
-     * {@code framework}).
+     * An Archetype statement is itself a JSON Schema, and the sealed Archetype meta-schema is
+     * deliberately open so tenants may declare vocabulary keywords (e.g. ITIP's {@code framework}).
      * Closing it would reject every framework archetype.
      */
     @Test

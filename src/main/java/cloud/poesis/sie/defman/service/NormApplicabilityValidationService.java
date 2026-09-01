@@ -18,13 +18,9 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Norm CEL applicability profile validation service.
  *
- * <p>
- * Validates CEL applicability expressions against the GSM applicability
- * profile: expressions
- * must be a pure conjunction of single-axis predicates with no OR, no ternary,
- * no arithmetic, and
- * no cross-property comparisons. Also validates archetype references and
- * property paths.
+ * <p>Validates CEL applicability expressions against the GSM applicability profile: expressions
+ * must be a pure conjunction of single-axis predicates with no OR, no ternary, no arithmetic, and
+ * no cross-property comparisons. Also validates archetype references and property paths.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -36,10 +32,11 @@ public class NormApplicabilityValidationService {
   // CEL profile constants
   // ======================================================================
 
-  private static final Set<String> APPLICABILITY_COMPARISON_OPS = Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_",
-      "@in");
+  private static final Set<String> APPLICABILITY_COMPARISON_OPS =
+      Set.of("_==_", "_!=_", "_<_", "_<=_", "_>_", "_>=_", "@in");
   private static final Set<String> APPLICABILITY_ALLOWED_FUNCTIONS = Set.of("matches");
-  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS = Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
+  private static final Set<String> APPLICABILITY_ARITHMETIC_OPS =
+      Set.of("_+_", "_-_", "_*_", "_%_", "_/_");
 
   private final ArchetypeService archetypeService;
   private final ArchetypeCompositionValidationService compositionValidation;
@@ -132,9 +129,7 @@ public class NormApplicabilityValidationService {
     }
   }
 
-  /**
-   * Returns distinct Archetype URIs referenced by an applicability expression.
-   */
+  /** Returns distinct Archetype URIs referenced by an applicability expression. */
   public List<String> extractApplicabilityReferences(String applicability) {
     if (applicability == null || applicability.isBlank() || "true".equals(applicability.trim())) {
       return List.of();
@@ -292,13 +287,13 @@ public class NormApplicabilityValidationService {
             fn);
       }
       case SELECT, IDENT, CONSTANT, LIST ->
-        throw invalidApplicabilityExpression(
-            "Applicability must be an axis predicate rooted at ref(\"$id\"), not a bare "
-                + kind.getKind().name().toLowerCase()
-                + " expression.");
+          throw invalidApplicabilityExpression(
+              "Applicability must be an axis predicate rooted at ref(\"$id\"), not a bare "
+                  + kind.getKind().name().toLowerCase()
+                  + " expression.");
       default ->
-        throw invalidApplicabilityExpression(
-            "Applicability contains a forbidden CEL expression kind: " + kind.getKind());
+          throw invalidApplicabilityExpression(
+              "Applicability contains a forbidden CEL expression kind: " + kind.getKind());
     }
   }
 
@@ -410,8 +405,7 @@ public class NormApplicabilityValidationService {
     switch (kind.getKind()) {
       case SELECT -> {
         ApplicabilityAxis axis = extractAxis(expr);
-        if (axis != null)
-          axes.add(axis);
+        if (axis != null) axes.add(axis);
       }
       case CALL -> {
         CelExpr.CelCall call = kind.call();
@@ -427,8 +421,7 @@ public class NormApplicabilityValidationService {
   }
 
   static ApplicabilityAxis extractAxis(CelExpr expr) {
-    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT)
-      return null;
+    if (expr.exprKind().getKind() != CelExpr.ExprKind.Kind.SELECT) return null;
     StringBuilder propertyPath = new StringBuilder();
     CelExpr root = expr;
     while (root.exprKind().getKind() == CelExpr.ExprKind.Kind.SELECT) {
@@ -491,8 +484,8 @@ public class NormApplicabilityValidationService {
     return switch (expr.exprKind().getKind()) {
       case CONSTANT -> true;
       case LIST ->
-        expr.exprKind().list().elements().stream()
-            .allMatch(element -> element.exprKind().getKind() == CelExpr.ExprKind.Kind.CONSTANT);
+          expr.exprKind().list().elements().stream()
+              .allMatch(element -> element.exprKind().getKind() == CelExpr.ExprKind.Kind.CONSTANT);
       default -> false;
     };
   }
@@ -546,8 +539,7 @@ public class NormApplicabilityValidationService {
     }
   }
 
-  record ApplicabilityAxis(String archetypeId, String propertyPath) {
-  }
+  record ApplicabilityAxis(String archetypeId, String propertyPath) {}
 
   // ======================================================================
   // In-list consistency validation

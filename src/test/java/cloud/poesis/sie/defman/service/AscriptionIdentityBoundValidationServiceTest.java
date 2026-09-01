@@ -30,7 +30,8 @@ class AscriptionIdentityBoundValidationServiceTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @SuppressWarnings("unchecked")
-  private final AscriptionSubtypeService<AscriptionEntity> handler = mock(AscriptionSubtypeService.class);
+  private final AscriptionSubtypeService<AscriptionEntity> handler =
+      mock(AscriptionSubtypeService.class);
 
   private AscriptionIdentityBoundValidationService service;
 
@@ -38,7 +39,9 @@ class AscriptionIdentityBoundValidationServiceTest {
   void setUp() {
     ArchetypeSchemaResolverService resolvedSchema = mock(ArchetypeSchemaResolverService.class);
     org.mockito.Mockito.lenient()
-        .when(resolvedSchema.resolvedProperties(org.mockito.ArgumentMatchers.any(ArchetypeEntity.class)))
+        .when(
+            resolvedSchema.resolvedProperties(
+                org.mockito.ArgumentMatchers.any(ArchetypeEntity.class)))
         .thenAnswer(
             invocation -> {
               ArchetypeEntity archetype = invocation.getArgument(0);
@@ -119,8 +122,9 @@ class AscriptionIdentityBoundValidationServiceTest {
       when(handler.getIdentityBoundValues(existing)).thenReturn(Map.of("purpose", "old-val"));
       when(handler.findAllByDefinitionId(defId)).thenReturn(List.of(existing));
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validate(handler, entity, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validate(handler, entity, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());
@@ -189,8 +193,9 @@ class AscriptionIdentityBoundValidationServiceTest {
       when(existing.getStatement()).thenReturn(existingStmt);
       when(handler.findAllByDefinitionId(defId)).thenReturn(List.of(existing));
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.validate(handler, entity, archetype));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.validate(handler, entity, archetype));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_PROPERTY_INTEGRITY_WITHIN_DEFINITION,
           ex.getRuleType());

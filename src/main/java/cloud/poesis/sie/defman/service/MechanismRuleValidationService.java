@@ -30,11 +30,8 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Starlark rule structural validation service.
  *
- * <p>
- * Validates Mechanism rule Starlark code against GSM constraints: syntax,
- * execution budget,
- * trigger uniqueness, sys.* fluent API conformance, global whitelist, and
- * best-effort dict literal
+ * <p>Validates Mechanism rule Starlark code against GSM constraints: syntax, execution budget,
+ * trigger uniqueness, sys.* fluent API conformance, global whitelist, and best-effort dict literal
  * schema conformance.
  *
  * @author Clément Cazaud
@@ -43,41 +40,43 @@ import org.springframework.stereotype.Service;
 @Service
 public class MechanismRuleValidationService {
 
-  private static final Set<String> ALLOWED_GLOBALS = Set.of("sys", "now", "uuid7", "fullmatch", "search");
+  private static final Set<String> ALLOWED_GLOBALS =
+      Set.of("sys", "now", "uuid7", "fullmatch", "search");
 
-  private static final Set<String> STARLARK_BUILTINS = Set.of(
-      "True",
-      "False",
-      "None",
-      "bool",
-      "dict",
-      "float",
-      "int",
-      "list",
-      "str",
-      "tuple",
-      "type",
-      "abs",
-      "all",
-      "any",
-      "dir",
-      "enumerate",
-      "fail",
-      "getattr",
-      "hasattr",
-      "hash",
-      "len",
-      "max",
-      "min",
-      "print",
-      "range",
-      "repr",
-      "reversed",
-      "sorted",
-      "zip",
-      "map",
-      "filter",
-      "struct");
+  private static final Set<String> STARLARK_BUILTINS =
+      Set.of(
+          "True",
+          "False",
+          "None",
+          "bool",
+          "dict",
+          "float",
+          "int",
+          "list",
+          "str",
+          "tuple",
+          "type",
+          "abs",
+          "all",
+          "any",
+          "dir",
+          "enumerate",
+          "fail",
+          "getattr",
+          "hasattr",
+          "hash",
+          "len",
+          "max",
+          "min",
+          "print",
+          "range",
+          "repr",
+          "reversed",
+          "sorted",
+          "zip",
+          "map",
+          "filter",
+          "struct");
 
   private static final Set<String> SYS_METHODS = Set.of("effect", "receive");
 
@@ -90,10 +89,7 @@ public class MechanismRuleValidationService {
   /** Valid read-only properties on the sys namespace object. */
   private static final Set<String> SYS_PROPERTIES = Set.of("id");
 
-  /**
-   * GSM §Mechanism V14: maximum number of top-level statements allowed in a
-   * Mechanism rule.
-   */
+  /** GSM §Mechanism V14: maximum number of top-level statements allowed in a Mechanism rule. */
   static final int MAX_RULE_STATEMENTS = 200;
 
   private static final Logger LOG = LoggerFactory.getLogger(MechanismRuleValidationService.class);
@@ -111,10 +107,7 @@ public class MechanismRuleValidationService {
   // Public API
   // ======================================================================
 
-  /**
-   * Validates a Starlark rule and returns the trigger Archetype $id.
-   * Package-private for tests.
-   */
+  /** Validates a Starlark rule and returns the trigger Archetype $id. Package-private for tests. */
   String validateStarlarkRule(String rule) {
     StarlarkFile file = parsingService.parseStarlark(rule);
 
@@ -190,7 +183,8 @@ public class MechanismRuleValidationService {
     // GSM §Mechanism V10: resolve Archetype URIs once for all downstream checks
     Map<String, ArchetypeEntity> resolvedArchetypes = new HashMap<>();
     for (String archetypeUri : referencedArchetypes) {
-      ArchetypeEntity resolved = archetypeService.resolveArchetypeUri(archetypeUri, "mechanism rule reference");
+      ArchetypeEntity resolved =
+          archetypeService.resolveArchetypeUri(archetypeUri, "mechanism rule reference");
       archetypeService.validateRefereeEligibility(resolved, "mechanism rule reference");
       resolvedArchetypes.put(archetypeUri, resolved);
     }
@@ -310,8 +304,7 @@ public class MechanismRuleValidationService {
   private CallExpression extractSysReceiveCall(StarlarkFile file) {
     for (Statement stmt : file.getStatements()) {
       CallExpression found = extractSysReceiveFromExpr(stmt);
-      if (found != null)
-        return found;
+      if (found != null) return found;
     }
     return null;
   }
@@ -334,12 +327,10 @@ public class MechanismRuleValidationService {
     for (Statement stmt : file.getStatements()) {
       if (stmt instanceof ExpressionStatement es
           && es.getExpression() instanceof CallExpression call) {
-        if (parsingService.isSysReceiveChain(call))
-          count++;
+        if (parsingService.isSysReceiveChain(call)) count++;
       }
       if (stmt instanceof AssignmentStatement as && as.getRHS() instanceof CallExpression call) {
-        if (parsingService.isSysReceiveChain(call))
-          count++;
+        if (parsingService.isSysReceiveChain(call)) count++;
       }
     }
     return count;
@@ -358,14 +349,12 @@ public class MechanismRuleValidationService {
   }
 
   private void validateSysCallsInExpr(Expression expr) {
-    if (!(expr instanceof CallExpression call))
-      return;
+    if (!(expr instanceof CallExpression call)) return;
 
     // sys.effect() chains
     if (parsingService.isSysEffectChain(call)) {
       List<ChainLink> chain = parsingService.unwrapEffectChain(call);
-      if (chain.isEmpty())
-        return;
+      if (chain.isEmpty()) return;
 
       // Validate chain order: effect → [by] → [receive → [on]]
       validateChainOrder(chain);
@@ -415,8 +404,7 @@ public class MechanismRuleValidationService {
   }
 
   /**
-   * Validate chain order: effect → [by] → [receive → [on]]. State machine with 4
-   * states: EFFECT →
+   * Validate chain order: effect → [by] → [receive → [on]]. State machine with 4 states: EFFECT →
    * BY → RECEIVE → ON.
    */
   private void validateChainOrder(List<ChainLink> chain) {
@@ -432,12 +420,13 @@ public class MechanismRuleValidationService {
     int state = 0; // 0=effect, 1=by, 2=receive, 3=on
     for (int i = 1; i < chain.size(); i++) {
       String method = chain.get(i).method();
-      int next = switch (method) {
-        case "by" -> 1;
-        case "receive" -> 2;
-        case "on" -> 3;
-        default -> -1;
-      };
+      int next =
+          switch (method) {
+            case "by" -> 1;
+            case "receive" -> 2;
+            case "on" -> 3;
+            default -> -1;
+          };
       if (next == -1) {
         throw RuleViolationException.of(
             AscriptionConsistencyRuleType.MECHANISM_RULE_SYS_FLUENT_API,
@@ -577,8 +566,7 @@ public class MechanismRuleValidationService {
   }
 
   private void collectSysArchetypeIdsInExpr(Expression expr, Set<String> names) {
-    if (!(expr instanceof CallExpression call))
-      return;
+    if (!(expr instanceof CallExpression call)) return;
 
     if (parsingService.isSysEffectChain(call)) {
       List<ChainLink> chain = parsingService.unwrapEffectChain(call);
@@ -612,38 +600,30 @@ public class MechanismRuleValidationService {
 
   private void validateDictLiteralInSysCall(
       Expression expr, Map<String, ArchetypeEntity> resolvedArchetypes) {
-    if (!(expr instanceof CallExpression call))
-      return;
-    if (!parsingService.isSysEffectChain(call))
-      return;
+    if (!(expr instanceof CallExpression call)) return;
+    if (!parsingService.isSysEffectChain(call)) return;
 
     // Unwrap chain to find root effect() args
     List<ChainLink> chain = parsingService.unwrapEffectChain(call);
-    if (chain.isEmpty())
-      return;
+    if (chain.isEmpty()) return;
 
     ChainLink effectLink = chain.get(0);
     List<Argument> args = effectLink.args();
-    if (args.size() < 2)
-      return;
+    if (args.size() < 2) return;
 
     // First arg = Archetype URI; second arg = data dict
     Expression firstArg = args.get(0).getValue();
-    if (!(firstArg instanceof StringLiteral sl))
-      return;
+    if (!(firstArg instanceof StringLiteral sl)) return;
     String archetypeId = sl.getValue();
 
     Expression secondArg = args.get(1).getValue();
-    if (!(secondArg instanceof DictExpression dict))
-      return;
+    if (!(secondArg instanceof DictExpression dict)) return;
 
     ArchetypeEntity archetype = resolvedArchetypes.get(archetypeId);
-    if (archetype == null)
-      return; // Archetype not yet in-effect; can't validate
+    if (archetype == null) return; // Archetype not yet in-effect; can't validate
 
     var schema = archetype.getStatement();
-    if (schema == null || !schema.has("properties"))
-      return;
+    if (schema == null || !schema.has("properties")) return;
 
     var properties = schema.get("properties");
     Set<String> schemaKeys = new HashSet<>();

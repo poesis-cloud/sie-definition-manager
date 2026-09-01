@@ -6,12 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 
 /**
- * Validates the Archetype URI {@code $id} grammar, {@code $id}/{@code title}
- * coherence, and
+ * Validates the Archetype URI {@code $id} grammar, {@code $id}/{@code title} coherence, and
  * root-only {@code $id} placement on Archetype JSON Schemas.
  *
- * <p>
- * This service is stateless.
+ * <p>This service is stateless.
  *
  * @author Clément Cazaud
  * @since 1.0.0

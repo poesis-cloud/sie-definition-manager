@@ -19,13 +19,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Validates Archetype schema composition: {@code $ref} chain convergence to a
- * GSM base, {@code
+ * Validates Archetype schema composition: {@code $ref} chain convergence to a GSM base, {@code
  * allOf} facet acyclicity, and {@code $gsm:sealed} enforcement.
  *
- * <p>
- * This service is stateless — schema resolution is provided via a
- * {@link Function} parameter at
+ * <p>This service is stateless — schema resolution is provided via a {@link Function} parameter at
  * each call site.
  *
  * @author Clément Cazaud
@@ -46,6 +43,16 @@ public class ArchetypeCompositionValidationService {
   private static final List<String> PROTECTION_STRENGTH =
       List.of("mask", "encryption", "hash", "suppression");
 
+  /**
+   * The JSON Schema dialect the GSM Archetype meta-schema extends (bootstrap exception).
+   *
+   * <p>It is a dialect reference, not an Archetype composition edge: it contributes no Archetype
+   * properties. Authored statements may not carry it — {@code
+   * ArchetypeAnnotationValidationService#validateRefUriPolicy} rejects every non-{@code gsmarc://}
+   * {@code $ref} at creation — so only the directly seeded GSM base can reach it here.
+   */
+  private static final String JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema";
+
   // ========================================================================
   // Schema composition validation
   // ========================================================================
@@ -53,13 +60,13 @@ public class ArchetypeCompositionValidationService {
   /**
    * Validates schema composition in non-strict (authoring-time) mode.
    *
-   * @param schema         the archetype JSON Schema to validate
-   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or
-   *                       {@code null} if not
-   *                       found
+   * @param schema the archetype JSON Schema to validate
+   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or {@code null} if not
+   *     found
    */
   void validateSchemaComposition(JsonNode schema, Function<String, JsonNode> schemaResolver) {
-    String id = schema.has("$id") && schema.get("$id").isTextual() ? schema.get("$id").asText() : null;
+    String id =
+        schema.has("$id") && schema.get("$id").isTextual() ? schema.get("$id").asText() : null;
 
     if (id != null && ArchetypeParsingService.isGsmBaseId(id)) {
       return;
@@ -103,19 +110,15 @@ public class ArchetypeCompositionValidationService {
   }
 
   /**
-   * Resolves the set of GSM base archetype titles reachable through the top-level
-   * {@code $ref}
+   * Resolves the set of GSM base archetype titles reachable through the top-level {@code $ref}
    * chain. Uses strict mode (unresolvable intermediaries cause an error).
    *
-   * @param ref            the initial {@code $ref} URI to walk
-   * @param ownId          the archetype's own exact ID (added to visited set to
-   *                       detect cycles), or {@code
+   * @param ref the initial {@code $ref} URI to walk
+   * @param ownId the archetype's own exact ID (added to visited set to detect cycles), or {@code
    *     null}
-   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or
-   *                       {@code null} if not
-   *                       found
-   * @return the set of resolved GSM base titles (empty for rootless archetypes,
-   *         typically 0 or 1)
+   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or {@code null} if not
+   *     found
+   * @return the set of resolved GSM base titles (empty for rootless archetypes, typically 0 or 1)
    */
   Set<String> resolveGsmBases(String ref, String ownId, Function<String, JsonNode> schemaResolver) {
     Set<String> resolvedBases = new HashSet<>();
@@ -128,10 +131,8 @@ public class ArchetypeCompositionValidationService {
   }
 
   /**
-   * Resolves a property path against the resolved composition chain formed by
-   * direct
-   * properties, external
-   * {@code $ref} inheritance, and inline or referenced {@code allOf} facets.
+   * Resolves a property path against the resolved composition chain formed by direct properties,
+   * external {@code $ref} inheritance, and inline or referenced {@code allOf} facets.
    */
   boolean resolvesPropertyPath(
       JsonNode schema, String propertyPath, Function<String, JsonNode> schemaResolver) {
@@ -145,20 +146,16 @@ public class ArchetypeCompositionValidationService {
   }
 
   /**
-   * Resolves the resolved property set of an Archetype schema — GSM §11.1
-   * annotation inheritance.
+   * Resolves the resolved property set of an Archetype schema — GSM §11.1 annotation inheritance.
    *
-   * <p>
-   * The resolved set composes, in increasing precedence: {@code allOf} facet
-   * properties, properties
-   * reachable through the top-level {@code $ref} chain, and the schema's own
-   * {@code properties}. It
-   * is the surface over which every property-scoped {@code $gsm:*} keyword MUST
-   * be resolved.
+   * <p>The resolved set composes, in increasing precedence: {@code allOf} facet properties,
+   * properties reachable through the top-level {@code $ref} chain, and the schema's own {@code
+   * properties}. It is the surface over which every property-scoped {@code $gsm:*} keyword MUST be
+   * resolved.
    *
-   * @param schema         the archetype JSON Schema
-   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or
-   *                       {@code null} if not found
+   * @param schema the archetype JSON Schema
+   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or {@code null} if not
+   *     found
    * @return resolved property name → property schema, in resolution order
    */
   public Map<String, JsonNode> resolvedProperties(
@@ -202,9 +199,10 @@ public class ArchetypeCompositionValidationService {
     JsonNode refNode = schema.get("$ref");
     if (refNode != null && refNode.isTextual()) {
       String ref = refNode.asText();
-      String activeRef = (ref.startsWith("#") ? System.identityHashCode(rootSchema) + ":" + ref : ref)
-          + "@"
-          + pathIndex;
+      String activeRef =
+          (ref.startsWith("#") ? System.identityHashCode(rootSchema) + ":" + ref : ref)
+              + "@"
+              + pathIndex;
       if (activeRefs.add(activeRef)) {
         try {
           JsonNode referencedSchema;
@@ -246,8 +244,7 @@ public class ArchetypeCompositionValidationService {
   }
 
   /**
-   * Walks the top-level $ref chain linearly: current → intermediate → ... → GSM
-   * base. Collects GSM
+   * Walks the top-level $ref chain linearly: current → intermediate → ... → GSM base. Collects GSM
    * bases, enforces acyclicity, sealed checks, and URI format.
    */
   private void walkRefChain(
@@ -317,8 +314,7 @@ public class ArchetypeCompositionValidationService {
   }
 
   /**
-   * Validates allOf entries (facets). Enforces URI format, acyclicity, and sealed
-   * checks. Does NOT
+   * Validates allOf entries (facets). Enforces URI format, acyclicity, and sealed checks. Does NOT
    * collect or check for GSM base convergence — allOf is for facets only.
    */
   private void validateAllOfEntries(
@@ -426,8 +422,8 @@ public class ArchetypeCompositionValidationService {
       Map<String, String> siblingOwners = new LinkedHashMap<>();
       int facetIndex = 0;
       for (JsonNode facet : allOf) {
-        Map<String, JsonNode> facetProperties = collectResolvedProperties(facet, documentRoot, schemaResolver,
-            activeRefs);
+        Map<String, JsonNode> facetProperties =
+            collectResolvedProperties(facet, documentRoot, schemaResolver, activeRefs);
         String facetOwner = facetDescription(facet, facetIndex);
         for (Map.Entry<String, JsonNode> property : facetProperties.entrySet()) {
           String previousOwner = siblingOwners.putIfAbsent(property.getKey(), facetOwner);
@@ -486,9 +482,9 @@ public class ArchetypeCompositionValidationService {
 
   /**
    * Joins an ancestor's {@code $gsm:*} keywords into a descendant's redeclaration of the same
-   * property — GSM §11.1. Booleans join by disjunction, aliases by union, and
-   * {@code $gsm:dataProtection} by the strongest measure per phase, so narrowing a property's
-   * schema can never drop protection, queryability, uniqueness or identity binding.
+   * property — GSM §11.1. Booleans join by disjunction, aliases by union, and {@code
+   * $gsm:dataProtection} by the strongest measure per phase, so narrowing a property's schema can
+   * never drop protection, queryability, uniqueness or identity binding.
    */
   private static JsonNode joinAnnotations(
       JsonNode inherited, JsonNode declared, String propertyName) {
@@ -518,9 +514,10 @@ public class ArchetypeCompositionValidationService {
 
     JsonNode inheritedProtection = inherited.path("$gsm:dataProtection");
     if (inheritedProtection.isObject()) {
-      ObjectNode protection = joined.path("$gsm:dataProtection").isObject()
-          ? (ObjectNode) joined.get("$gsm:dataProtection")
-          : joined.putObject("$gsm:dataProtection");
+      ObjectNode protection =
+          joined.path("$gsm:dataProtection").isObject()
+              ? (ObjectNode) joined.get("$gsm:dataProtection")
+              : joined.putObject("$gsm:dataProtection");
       for (String phase : PROTECTION_PHASES) {
         JsonNode inheritedPhase = inheritedProtection.path(phase);
         if (!inheritedPhase.isObject()) {
@@ -550,7 +547,7 @@ public class ArchetypeCompositionValidationService {
     if (!phase.isObject()) {
       return strongest;
     }
-    for (Iterator<String> measures = phase.fieldNames(); measures.hasNext();) {
+    for (Iterator<String> measures = phase.fieldNames(); measures.hasNext(); ) {
       strongest = Math.max(strongest, PROTECTION_STRENGTH.indexOf(measures.next()));
     }
     return strongest;
@@ -580,6 +577,9 @@ public class ArchetypeCompositionValidationService {
           "ref",
           ref);
     }
+    if (JSON_SCHEMA_DIALECT.equals(ref)) {
+      return new ResolvedSchema(null, null, ref);
+    }
     try {
       ArchetypeParsingService.parseIdentity(ref);
     } catch (IllegalArgumentException exception) {
@@ -605,7 +605,8 @@ public class ArchetypeCompositionValidationService {
 
   private String localCycleKey(JsonNode documentRoot, String pointer) {
     JsonNode id = documentRoot.get("$id");
-    String documentId = id != null && id.isTextual() ? id.asText() : "@" + System.identityHashCode(documentRoot);
+    String documentId =
+        id != null && id.isTextual() ? id.asText() : "@" + System.identityHashCode(documentRoot);
     return pointer.isEmpty() ? documentId : documentId + "#" + pointer;
   }
 
@@ -648,8 +649,7 @@ public class ArchetypeCompositionValidationService {
     return null;
   }
 
-  private record ResolvedSchema(JsonNode schema, JsonNode documentRoot, String cycleKey) {
-  }
+  private record ResolvedSchema(JsonNode schema, JsonNode documentRoot, String cycleKey) {}
 
   private boolean isSealedBaseArchetype(String id, Function<String, JsonNode> schemaResolver) {
     JsonNode schema = schemaResolver.apply(id);

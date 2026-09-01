@@ -40,14 +40,14 @@ class MechanismPortDerivationServiceTest {
   private static final String RECEPTOR_ID = "gsmarc://gsm/Receptor/v1";
 
   private final MechanismRuleParsingService parsingService = new MechanismRuleParsingService();
-  @Mock
-  private ArchetypeService archetypeService;
+  @Mock private ArchetypeService archetypeService;
 
   private MechanismPortDerivationService service;
 
   @BeforeEach
   void setUp() {
-    service = new MechanismPortDerivationService(parsingService, archetypeService, new ObjectMapper());
+    service =
+        new MechanismPortDerivationService(parsingService, archetypeService, new ObjectMapper());
   }
 
   // ========================================================================
@@ -66,10 +66,11 @@ class MechanismPortDerivationServiceTest {
     when(arch.getId()).thenReturn(UUID.randomUUID());
     when(arch.getDefinition()).thenReturn(def);
     when(arch.getStatus()).thenReturn(status);
-    ObjectNode schema = MAPPER
-        .createObjectNode()
-        .put("$id", "gsmarc://tenant/" + title + "/v1")
-        .put("title", title);
+    ObjectNode schema =
+        MAPPER
+            .createObjectNode()
+            .put("$id", "gsmarc://tenant/" + title + "/v1")
+            .put("title", title);
     when(arch.getStatement()).thenReturn(schema);
     return arch;
   }
@@ -130,7 +131,8 @@ class MechanismPortDerivationServiceTest {
 
       @Test
       void sysReceiveWithOn_capturesPortName() {
-        List<PortSignature> sigs = service.collectPortSignatures("sys.receive(\"Feedback\").on(\"FbPort\")");
+        List<PortSignature> sigs =
+            service.collectPortSignatures("sys.receive(\"Feedback\").on(\"FbPort\")");
         assertEquals(1, sigs.size());
         assertEquals(new PortSignature("receptor", "Feedback", "FbPort"), sigs.get(0));
       }
@@ -148,7 +150,8 @@ class MechanismPortDerivationServiceTest {
 
       @Test
       void namedEffect_capturesBy() {
-        List<PortSignature> sigs = service.collectPortSignatures("sys.effect(\"Order\", {}).by(\"CustomPort\")");
+        List<PortSignature> sigs =
+            service.collectPortSignatures("sys.effect(\"Order\", {}).by(\"CustomPort\")");
         assertEquals(1, sigs.size());
         assertEquals(new PortSignature("effector", "Order", "CustomPort"), sigs.get(0));
       }
@@ -159,7 +162,8 @@ class MechanismPortDerivationServiceTest {
 
       @Test
       void effectReceive_producesEffectorAndReceptor() {
-        List<PortSignature> sigs = service.collectPortSignatures("sys.effect(\"Out\", {}).receive(\"Ack\")");
+        List<PortSignature> sigs =
+            service.collectPortSignatures("sys.effect(\"Out\", {}).receive(\"Ack\")");
         assertEquals(2, sigs.size());
         assertEquals(new PortSignature("effector", "Out", null), sigs.get(0));
         assertEquals(new PortSignature("receptor", "Ack", null), sigs.get(1));
@@ -167,8 +171,9 @@ class MechanismPortDerivationServiceTest {
 
       @Test
       void effectReceiveOn_capturesPortName() {
-        List<PortSignature> sigs = service.collectPortSignatures(
-            "sys.effect(\"Out\", {}).receive(\"Ack\").on(\"AckPort\")");
+        List<PortSignature> sigs =
+            service.collectPortSignatures(
+                "sys.effect(\"Out\", {}).receive(\"Ack\").on(\"AckPort\")");
         assertEquals(2, sigs.size());
         assertEquals(new PortSignature("receptor", "Ack", "AckPort"), sigs.get(1));
       }
@@ -226,8 +231,8 @@ class MechanismPortDerivationServiceTest {
     void resolvesBaseAndDataArchetypesByUri() {
       String inputId = "gsmarc://tenant/events/InputType/v1";
       String outputId = "gsmarc://tenant/events/OutputType/v2";
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\"" + inputId + "\")\nsys.effect(\"" + outputId + "\", {})");
+      MechanismEntity mechanism =
+          stubMechanism("sys.receive(\"" + inputId + "\")\nsys.effect(\"" + outputId + "\", {})");
       ArchetypeEntity effector = mockArchetypeWithTitle("Effector");
       ArchetypeEntity receptor = mockArchetypeWithTitle("Receptor");
       ArchetypeEntity input = mockArchetypeWithTitle("InputType");
@@ -250,12 +255,13 @@ class MechanismPortDerivationServiceTest {
 
     @Test
     void derivesEffectorAndReceptorSpecs() {
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\""
-              + id("InputType")
-              + "\")\nsys.effect(\""
-              + id("OutputType")
-              + "\", {})");
+      MechanismEntity mechanism =
+          stubMechanism(
+              "sys.receive(\""
+                  + id("InputType")
+                  + "\")\nsys.effect(\""
+                  + id("OutputType")
+                  + "\", {})");
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("Effector");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("Receptor");
@@ -288,8 +294,8 @@ class MechanismPortDerivationServiceTest {
 
     @Test
     void baseArchetypeNotEligible_failsHard() {
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\"" + id("X") + "\")\nsys.effect(\"" + id("Y") + "\", {})");
+      MechanismEntity mechanism =
+          stubMechanism("sys.receive(\"" + id("X") + "\")\nsys.effect(\"" + id("Y") + "\", {})");
       when(archetypeService.resolveForCreation(EFFECTOR_ID))
           .thenThrow(
               RuleViolationException.of(
@@ -301,25 +307,27 @@ class MechanismPortDerivationServiceTest {
 
     @Test
     void dataArchetypeNotEligible_failsHard() {
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\""
-              + id("MissingType")
-              + "\")\nsys.effect(\""
-              + id("AlsoMissing")
-              + "\", {})");
+      MechanismEntity mechanism =
+          stubMechanism(
+              "sys.receive(\""
+                  + id("MissingType")
+                  + "\")\nsys.effect(\""
+                  + id("AlsoMissing")
+                  + "\", {})");
 
       ArchetypeEntity effArchetype = mockArchetypeWithTitle("Effector");
       ArchetypeEntity recArchetype = mockArchetypeWithTitle("Receptor");
-      ArchetypeEntity missingType = mockArchetypeWithStatus("MissingType", AscriptionStatusType.RETIRED);
+      ArchetypeEntity missingType =
+          mockArchetypeWithStatus("MissingType", AscriptionStatusType.RETIRED);
       stubTyping(EFFECTOR_ID, effArchetype);
       stubTyping(RECEPTOR_ID, recArchetype);
 
       when(archetypeService.resolveArchetypeUri(id("MissingType"), "mechanism rule reference"))
           .thenReturn(missingType);
       doThrow(
-          RuleViolationException.of(
-              AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY,
-              "Archetype Referee is not eligible"))
+              RuleViolationException.of(
+                  AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY,
+                  "Archetype Referee is not eligible"))
           .when(archetypeService)
           .validateRefereeEligibility(missingType, "mechanism rule reference");
 
@@ -345,14 +353,15 @@ class MechanismPortDerivationServiceTest {
 
     @Test
     void namedPortArchetypeFound_usesIt() {
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\""
-              + id("InputType")
-              + "\")\nsys.effect(\""
-              + id("OutputType")
-              + "\", {}).by(\""
-              + id("CustomEff")
-              + "\")");
+      MechanismEntity mechanism =
+          stubMechanism(
+              "sys.receive(\""
+                  + id("InputType")
+                  + "\")\nsys.effect(\""
+                  + id("OutputType")
+                  + "\", {}).by(\""
+                  + id("CustomEff")
+                  + "\")");
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("Effector");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("Receptor");
@@ -379,14 +388,15 @@ class MechanismPortDerivationServiceTest {
 
     @Test
     void namedPortArchetypeNotEligible_failsHard() {
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\""
-              + id("InputType")
-              + "\")\nsys.effect(\""
-              + id("OutputType")
-              + "\", {}).by(\""
-              + id("UnknownPort")
-              + "\")");
+      MechanismEntity mechanism =
+          stubMechanism(
+              "sys.receive(\""
+                  + id("InputType")
+                  + "\")\nsys.effect(\""
+                  + id("OutputType")
+                  + "\", {}).by(\""
+                  + id("UnknownPort")
+                  + "\")");
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("Effector");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("Receptor");
@@ -410,16 +420,17 @@ class MechanismPortDerivationServiceTest {
 
     @Test
     void receiveChainWithOn_derivesTypedReceptor() {
-      MechanismEntity mechanism = stubMechanism(
-          "sys.receive(\""
-              + id("Trigger")
-              + "\")\nsys.effect(\""
-              + id("OutType")
-              + "\", {}).receive(\""
-              + id("AckType")
-              + "\").on(\""
-              + id("AckPort")
-              + "\")");
+      MechanismEntity mechanism =
+          stubMechanism(
+              "sys.receive(\""
+                  + id("Trigger")
+                  + "\")\nsys.effect(\""
+                  + id("OutType")
+                  + "\", {}).receive(\""
+                  + id("AckType")
+                  + "\").on(\""
+                  + id("AckPort")
+                  + "\")");
 
       ArchetypeEntity baseEff = mockArchetypeWithTitle("Effector");
       ArchetypeEntity baseRec = mockArchetypeWithTitle("Receptor");

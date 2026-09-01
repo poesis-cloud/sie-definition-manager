@@ -17,29 +17,19 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Manages PostgreSQL index provisioning and deprovisioning on ascription
- * statement JSONB columns,
+ * Manages PostgreSQL index provisioning and deprovisioning on ascription statement JSONB columns,
  * driven by {@code $gsm:*} annotations declared in Archetype schemas.
  *
- * <p>
- * <b>Precondition for indexation</b> ({@link #provisionIndexes}): an Archetype
- * is activated and
- * its JSON Schema declares properties annotated with {@code $gsm:queryable} (→
- * BTREE or GIN partial
- * index) or {@code $gsm:unique} (→ UNIQUE partial index scoped to
- * ACTIVE/DEPRECATED status). Only
+ * <p><b>Precondition for indexation</b> ({@link #provisionIndexes}): an Archetype is activated and
+ * its JSON Schema declares properties annotated with {@code $gsm:queryable} (→ BTREE or GIN partial
+ * index) or {@code $gsm:unique} (→ UNIQUE partial index scoped to ACTIVE/DEPRECATED status). Only
  * annotated properties produce indexes; unannotated properties are ignored.
  *
- * <p>
- * <b>Precondition for deindexation</b> ({@link #deprovisionIndexes}): an
- * Archetype is
- * deactivated (deprecated or withdrawn) and the same annotation scan identifies
- * the indexes to
+ * <p><b>Precondition for deindexation</b> ({@link #deprovisionIndexes}): an Archetype is
+ * deactivated (deprecated or withdrawn) and the same annotation scan identifies the indexes to
  * drop.
  *
- * <p>
- * Both operations are idempotent: {@code CREATE INDEX IF NOT EXISTS} /
- * {@code DROP INDEX IF
+ * <p>Both operations are idempotent: {@code CREATE INDEX IF NOT EXISTS} / {@code DROP INDEX IF
  * EXISTS}.
  *
  * @author Clément Cazaud
@@ -48,13 +38,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class ArchetypePropertyIndexationService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ArchetypePropertyIndexationService.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ArchetypePropertyIndexationService.class);
 
   private final JdbcTemplate jdbcTemplate;
   private final ArchetypeSchemaResolverService resolvedSchema;
 
-  record IndexSpec(String indexName, String ddl, String type, String propertyName) {
-  }
+  record IndexSpec(String indexName, String ddl, String type, String propertyName) {}
 
   public ArchetypePropertyIndexationService(
       JdbcTemplate jdbcTemplate, ArchetypeSchemaResolverService resolvedSchema) {
@@ -63,19 +53,14 @@ public class ArchetypePropertyIndexationService {
   }
 
   /**
-   * Provisions indexes for properties annotated with {@code $gsm:queryable} or
-   * {@code $gsm:unique}
+   * Provisions indexes for properties annotated with {@code $gsm:queryable} or {@code $gsm:unique}
    * in the archetype's JSON Schema.
    *
-   * <p>
-   * Called by {@link ArchetypeService#onActivation} when an Archetype transitions
-   * to ACTIVE.
+   * <p>Called by {@link ArchetypeService#onActivation} when an Archetype transitions to ACTIVE.
    *
-   * @param archetype         the archetype entity whose schema annotations drive
-   *                          index creation
-   * @param tableNameSupplier lazily resolved table name — only invoked when the
-   *                          archetype's resolved composition chain declares at
-   *                          least one property
+   * @param archetype the archetype entity whose schema annotations drive index creation
+   * @param tableNameSupplier lazily resolved table name — only invoked when the archetype's
+   *     resolved composition chain declares at least one property
    */
   public void provisionIndexes(ArchetypeEntity archetype, Supplier<String> tableNameSupplier) {
     JsonNode stmt = archetype.getStatement();
@@ -92,7 +77,8 @@ public class ArchetypePropertyIndexationService {
     }
     String archetypeUri = archetypeUri(stmt);
 
-    List<IndexSpec> specs = collectIndexSpecs(properties, archetypeId, archetypeUri, tableNameSupplier.get());
+    List<IndexSpec> specs =
+        collectIndexSpecs(properties, archetypeId, archetypeUri, tableNameSupplier.get());
 
     for (IndexSpec spec : specs) {
       try {
@@ -110,20 +96,15 @@ public class ArchetypePropertyIndexationService {
   }
 
   /**
-   * Deprovisions indexes previously created for properties annotated with
-   * {@code $gsm:queryable} or
+   * Deprovisions indexes previously created for properties annotated with {@code $gsm:queryable} or
    * {@code $gsm:unique} in the archetype's JSON Schema.
    *
-   * <p>
-   * Called by {@link ArchetypeService#onDeactivation} when an Archetype is
-   * deprecated or
+   * <p>Called by {@link ArchetypeService#onDeactivation} when an Archetype is deprecated or
    * withdrawn.
    *
-   * @param archetype         the archetype entity whose schema annotations drive
-   *                          index removal
-   * @param tableNameSupplier lazily resolved table name — only invoked when the
-   *                          archetype's resolved composition chain declares at
-   *                          least one property
+   * @param archetype the archetype entity whose schema annotations drive index removal
+   * @param tableNameSupplier lazily resolved table name — only invoked when the archetype's
+   *     resolved composition chain declares at least one property
    */
   public void deprovisionIndexes(ArchetypeEntity archetype, Supplier<String> tableNameSupplier) {
     JsonNode stmt = archetype.getStatement();
@@ -140,7 +121,8 @@ public class ArchetypePropertyIndexationService {
     }
     String archetypeUri = archetypeUri(stmt);
 
-    List<IndexSpec> specs = collectIndexSpecs(properties, archetypeId, archetypeUri, tableNameSupplier.get());
+    List<IndexSpec> specs =
+        collectIndexSpecs(properties, archetypeId, archetypeUri, tableNameSupplier.get());
 
     for (IndexSpec spec : specs) {
       String dropDdl = "DROP INDEX IF EXISTS " + spec.indexName();
@@ -175,25 +157,27 @@ public class ArchetypePropertyIndexationService {
         String ddl;
         if ("GIN".equals(indexType)) {
           jsonbPath = "(statement->'" + escapeJsonbKey(propName) + "')";
-          ddl = "CREATE INDEX IF NOT EXISTS "
-              + indexName
-              + " ON "
-              + tableName
-              + " USING GIN ("
-              + jsonbPath
-              + ")"
-              + " WHERE archetype_id = "
-              + archetypeIdLiteral;
+          ddl =
+              "CREATE INDEX IF NOT EXISTS "
+                  + indexName
+                  + " ON "
+                  + tableName
+                  + " USING GIN ("
+                  + jsonbPath
+                  + ")"
+                  + " WHERE archetype_id = "
+                  + archetypeIdLiteral;
         } else {
-          ddl = "CREATE INDEX IF NOT EXISTS "
-              + indexName
-              + " ON "
-              + tableName
-              + " ("
-              + jsonbPath
-              + ")"
-              + " WHERE archetype_id = "
-              + archetypeIdLiteral;
+          ddl =
+              "CREATE INDEX IF NOT EXISTS "
+                  + indexName
+                  + " ON "
+                  + tableName
+                  + " ("
+                  + jsonbPath
+                  + ")"
+                  + " WHERE archetype_id = "
+                  + archetypeIdLiteral;
         }
 
         specs.add(new IndexSpec(indexName, ddl, "queryable/" + indexType, propName));
@@ -204,16 +188,17 @@ public class ArchetypePropertyIndexationService {
         String indexName = "idx_gsm_u_" + identityHash + "_" + sanitizedProp;
         String jsonbPath = "(statement->>'" + escapeJsonbKey(propName) + "')";
 
-        String ddl = "CREATE UNIQUE INDEX IF NOT EXISTS "
-            + indexName
-            + " ON "
-            + tableName
-            + " ("
-            + jsonbPath
-            + ")"
-            + " WHERE archetype_id = "
-            + archetypeIdLiteral
-            + " AND status IN ('ACTIVE','DEPRECATED')";
+        String ddl =
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+                + indexName
+                + " ON "
+                + tableName
+                + " ("
+                + jsonbPath
+                + ")"
+                + " WHERE archetype_id = "
+                + archetypeIdLiteral
+                + " AND status IN ('ACTIVE','DEPRECATED')";
 
         specs.add(new IndexSpec(indexName, ddl, "unique", propName));
       }
@@ -238,8 +223,9 @@ public class ArchetypePropertyIndexationService {
 
   static String identityHash(String archetypeUri) {
     try {
-      byte[] digest = MessageDigest.getInstance("SHA-256")
-          .digest(archetypeUri.getBytes(StandardCharsets.UTF_8));
+      byte[] digest =
+          MessageDigest.getInstance("SHA-256")
+              .digest(archetypeUri.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(digest, 0, 16);
     } catch (NoSuchAlgorithmException exception) {
       throw new IllegalStateException("SHA-256 is unavailable", exception);

@@ -8,13 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.lang.reflect.Field;
-import java.util.UUID;
-
-import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.lang.reflect.Field;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
 
 class AscriptionEntityTest {
 

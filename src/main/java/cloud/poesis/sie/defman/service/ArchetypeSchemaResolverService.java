@@ -18,19 +18,17 @@ import org.springframework.stereotype.Service;
  * The single Archetype {@code gsmarc://} URI → JSON Schema resolver, and the resolver of an
  * Archetype's <b>resolved composition chain</b> (GSM §11.1 annotation inheritance).
  *
- * <p>
- * Every caller that walks a composition chain — composition validation, annotation validation,
+ * <p>Every caller that walks a composition chain — composition validation, annotation validation,
  * Norm applicability, index provisioning — MUST resolve URIs through {@link #resolveUri}, so that
  * one Archetype yields one resolved property set per request. Property-scoped {@code $gsm:*}
  * keywords are inherited through schema composition, so annotation-driven behaviour (queryability,
- * aliasing, uniqueness, identity binding, data protection, indexation) MUST read
- * {@link #resolvedProperties} rather than the Archetype's own {@code properties} block, which sees
- * only locally declared members.
+ * aliasing, uniqueness, identity binding, data protection, indexation) MUST read {@link
+ * #resolvedProperties} rather than the Archetype's own {@code properties} block, which sees only
+ * locally declared members.
  *
- * <p>
- * Because an Archetype {@code $ref} names a version-pinned URI and an approved version is
- * immutable, a resolved property set is stable for the lifetime of the referenced Ascription and
- * is cached by Ascription id.
+ * <p>Because an Archetype {@code $ref} names a version-pinned URI and an approved version is
+ * immutable, a resolved property set is stable for the lifetime of the referenced Ascription and is
+ * cached by Ascription id.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -55,14 +53,11 @@ public class ArchetypeSchemaResolverService {
   }
 
   /**
-   * Returns the resolved {@code properties} node of an Archetype: its own
-   * declared properties
-   * composed with every property inherited through its {@code $ref} chain and
-   * {@code allOf} facets.
+   * Returns the resolved {@code properties} node of an Archetype: its own declared properties
+   * composed with every property inherited through its {@code $ref} chain and {@code allOf} facets.
    *
    * @param archetype the typing, qualifier or data Archetype
-   * @return a {@code properties}-shaped node; empty when the archetype declares
-   *         and inherits none
+   * @return a {@code properties}-shaped node; empty when the archetype declares and inherits none
    */
   public ObjectNode resolvedProperties(ArchetypeEntity archetype) {
     if (archetype == null || archetype.getStatement() == null) {
@@ -73,8 +68,7 @@ public class ArchetypeSchemaResolverService {
   }
 
   /**
-   * Returns the resolved {@code properties} node of an unpersisted Archetype
-   * schema. Used at
+   * Returns the resolved {@code properties} node of an unpersisted Archetype schema. Used at
    * authoring time, before the Archetype has an Ascription id to cache against.
    *
    * @param schema the archetype JSON Schema being authored
@@ -90,8 +84,7 @@ public class ArchetypeSchemaResolverService {
   /**
    * Resolves a version-pinned Archetype URI to the JSON Schema it names.
    *
-   * <p>
-   * The governed Ascription is authoritative. GSM base schemas are seeded from the vendored
+   * <p>The governed Ascription is authoritative. GSM base schemas are seeded from the vendored
    * classpath snapshot, so the snapshot is consulted only before seeding has materialized their
    * rows — never to override a governed statement.
    *

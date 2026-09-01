@@ -13,7 +13,8 @@ class AscriptionConsistencyRuleTypeTest {
 
   @Test
   void archetypeStemUniqueness_hasStablePublicMetadata() {
-    AscriptionConsistencyRuleType rule = AscriptionConsistencyRuleType.ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS;
+    AscriptionConsistencyRuleType rule =
+        AscriptionConsistencyRuleType.ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS;
 
     assertEquals("gsm:rules/archetype/stem/uniqueness-across-definitions", rule.getType());
     assertEquals("Archetype stem uniqueness across definitions", rule.getTitle());
@@ -22,7 +23,8 @@ class AscriptionConsistencyRuleTypeTest {
 
   @Test
   void archetypeUriResolutionUniqueness_hasStablePublicMetadata() {
-    AscriptionConsistencyRuleType rule = AscriptionConsistencyRuleType.ARCHETYPE_URI_RESOLUTION_UNIQUENESS;
+    AscriptionConsistencyRuleType rule =
+        AscriptionConsistencyRuleType.ARCHETYPE_URI_RESOLUTION_UNIQUENESS;
 
     assertEquals("gsm:rules/archetype/uri/resolution-uniqueness", rule.getType());
     assertEquals("Archetype URI resolution uniqueness", rule.getTitle());
@@ -31,7 +33,8 @@ class AscriptionConsistencyRuleTypeTest {
 
   @Test
   void archetypeAllOfPropertyDisjointness_hasStablePublicMetadata() {
-    AscriptionConsistencyRuleType rule = AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS;
+    AscriptionConsistencyRuleType rule =
+        AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS;
 
     assertEquals("gsm:rules/archetype/allof/property-disjointness", rule.getType());
     assertEquals("Archetype allOf property disjointness", rule.getTitle());
@@ -40,7 +43,8 @@ class AscriptionConsistencyRuleTypeTest {
 
   @Test
   void archetypeAllOfPropertyTypeStability_hasStablePublicMetadata() {
-    AscriptionConsistencyRuleType rule = AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY;
+    AscriptionConsistencyRuleType rule =
+        AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY;
 
     assertEquals("gsm:rules/archetype/allof/property-type-stability", rule.getType());
     assertEquals("Archetype allOf property type stability", rule.getTitle());

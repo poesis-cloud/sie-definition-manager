@@ -527,7 +527,8 @@ class AscriptionProtectionServiceTest {
       AscriptionProtectionService other =
           new AscriptionProtectionService(resolvedSchema, "another-key");
 
-      assertNotEquals(service.computeHash("hello", "SHA-256"), other.computeHash("hello", "SHA-256"));
+      assertNotEquals(
+          service.computeHash("hello", "SHA-256"), other.computeHash("hello", "SHA-256"));
     }
 
     @Test

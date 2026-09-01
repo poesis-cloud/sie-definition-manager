@@ -38,10 +38,11 @@ public class AscriptionProtectionService {
    * Author-facing digest names (the {@code hash.algorithm} enum) mapped to the HMAC construction
    * that actually computes them.
    */
-  private static final Map<String, String> MAC_ALGORITHMS = Map.of(
-      "SHA-256", "HmacSHA256",
-      "SHA-512", "HmacSHA512",
-      "SHA3-256", "HmacSHA3-256");
+  private static final Map<String, String> MAC_ALGORITHMS =
+      Map.of(
+          "SHA-256", "HmacSHA256",
+          "SHA-512", "HmacSHA512",
+          "SHA3-256", "HmacSHA3-256");
 
   /**
    * Constant hashed under the configured key to derive the key id that prefixes every stored hash.
@@ -234,8 +235,8 @@ public class AscriptionProtectionService {
    *
    * <p>The key is a service-held secret, not a per-value salt: the transform has to stay
    * deterministic for {@code $gsm:queryable} properties to remain equality-searchable. What the key
-   * buys is that an attacker holding the stored digests cannot brute-force a low-entropy value
-   * (an email, a phone number) without also holding the key.
+   * buys is that an attacker holding the stored digests cannot brute-force a low-entropy value (an
+   * email, a phone number) without also holding the key.
    *
    * <p>The result is prefixed with a key id — a truncated HMAC of a constant under the same key —
    * because the transform is one-way and therefore cannot be re-keyed: changing the key silently

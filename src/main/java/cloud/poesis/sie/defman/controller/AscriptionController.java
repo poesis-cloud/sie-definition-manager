@@ -51,38 +51,33 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Unified REST controller for all GSM ascription types.
  *
- * <p>
- * Single resource endpoint {@code /api/v1/ascriptions} — the archetype (via
- * archetypeUri)
+ * <p>Single resource endpoint {@code /api/v1/ascriptions} — the archetype (via archetypeUri)
  * discriminates the entity type, not the URL path.
  *
- * <p>
- * HAL link relations on every ascription:
+ * <p>HAL link relations on every ascription:
  *
  * <ul>
- * <li>{@code self} — this ascription resource (RFC 4287)
- * <li>{@code describedby} (RFC 6892) — composed JSON Schema: static Ascription
- * envelope with the
- * per-instance Archetype schema inlined as the {@code statement} property
- * ({@code
+ *   <li>{@code self} — this ascription resource (RFC 4287)
+ *   <li>{@code describedby} (RFC 6892) — composed JSON Schema: static Ascription envelope with the
+ *       per-instance Archetype schema inlined as the {@code statement} property ({@code
  *       application/schema+json})
- * <li>{@code type} (RFC 6903 §6) — the typing Archetype Definition
- * <li>{@code collection} (RFC 6573) — the ascription collection for this
- * ascription's parent
- * Definition
- * <li>{@code create-form} (RFC 6861) — the endpoint that accepts new
- * ascriptions
+ *   <li>{@code type} (RFC 6903 §6) — the typing Archetype Definition
+ *   <li>{@code collection} (RFC 6573) — the ascription collection for this ascription's parent
+ *       Definition
+ *   <li>{@code create-form} (RFC 6861) — the endpoint that accepts new ascriptions
  * </ul>
  *
  * @author Clément Cazaud
  * @since 1.0.0
  */
 @RestController
-@RequestMapping(value = "/api/v1/ascriptions", produces = {
-    MediaTypes.HAL_JSON_VALUE,
-    MediaTypes.HAL_FORMS_JSON_VALUE,
-    MediaType.APPLICATION_JSON_VALUE
-})
+@RequestMapping(
+    value = "/api/v1/ascriptions",
+    produces = {
+      MediaTypes.HAL_JSON_VALUE,
+      MediaTypes.HAL_FORMS_JSON_VALUE,
+      MediaType.APPLICATION_JSON_VALUE
+    })
 @Tag(name = "Ascriptions", description = "CRUD for GSM ascriptions")
 public class AscriptionController extends AbstractController {
 
@@ -104,14 +99,24 @@ public class AscriptionController extends AbstractController {
 
   /** Explicit-fetch design — see README.md § "Single-item fetch pattern". */
   @PostMapping
-  @Operation(summary = "Create an ascription", description = "Creates a new ascription. The Archetype URI determines the GSM type; statement must conform to the Archetype's JSON Schema.")
+  @Operation(
+      summary = "Create an ascription",
+      description =
+          "Creates a new ascription. The Archetype URI determines the GSM type; statement must conform to the Archetype's JSON Schema.")
   @ApiResponse(responseCode = "201", description = "Ascription created")
-  @ApiResponse(responseCode = "400", description = "Validation error (schema, malformed or unresolved identity)", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  @ApiResponse(responseCode = "409", description = "Conflict (identity-bound, duplicate identity, or referee lifecycle)", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "400",
+      description = "Validation error (schema, malformed or unresolved identity)",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "Conflict (identity-bound, duplicate identity, or referee lifecycle)",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public ResponseEntity<EntityModel<AscriptionDto>> create(
       @Valid @RequestBody AscriptionCreationDto request) {
-    AscriptionEntity entity = ascriptionService.create(
-        request.getArchetypeUri(), request.getStatement(), request.getDefinitionId());
+    AscriptionEntity entity =
+        ascriptionService.create(
+            request.getArchetypeUri(), request.getStatement(), request.getDefinitionId());
     EntityModel<AscriptionDto> model = wrapWithLinks(entity);
     URI location = linkTo(AscriptionController.class).slash(entity.getId()).toUri();
     return ResponseEntity.created(location).body(model);
@@ -125,7 +130,10 @@ public class AscriptionController extends AbstractController {
   @GetMapping("/{id}")
   @Operation(summary = "Get ascription by ID")
   @ApiResponse(responseCode = "200", description = "Ascription found")
-  @ApiResponse(responseCode = "404", description = "Ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "Ascription not found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public EntityModel<AscriptionDto> getById(
       @Parameter(description = "Ascription ID") @PathVariable UUID id) {
     AscriptionEntity entity = ascriptionService.getById(id);
@@ -134,24 +142,38 @@ public class AscriptionController extends AbstractController {
 
   /** Explicit-fetch design — see README.md § "Batch fetch pattern". */
   @GetMapping
-  @Operation(summary = "List ascriptions (paginated)", description = "Filter by subject type and optionally by status, archetype, "
-      + "and queryable statement properties (statement.{prop}=value). "
-      + "Filter keys declared as $gsm:aliases on the archetype resolve "
-      + "to their canonical property.")
+  @Operation(
+      summary = "List ascriptions (paginated)",
+      description =
+          "Filter by subject type and optionally by status, archetype, "
+              + "and queryable statement properties (statement.{prop}=value). "
+              + "Filter keys declared as $gsm:aliases on the archetype resolve "
+              + "to their canonical property.")
   @ApiResponse(responseCode = "200", description = "Paged list of ascriptions")
-  @ApiResponse(responseCode = "400", description = "Invalid type, status, or query filter", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "400",
+      description = "Invalid type, status, or query filter",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public PagedModel<EntityModel<AscriptionDto>> list(
-      @Parameter(description = "GSM subject type (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)") @RequestParam String type,
-      @Parameter(description = "Optional lifecycle status filter") @RequestParam(required = false) AscriptionStatusType status,
-      @Parameter(description = "Optional exact URI of the typing Archetype") @RequestParam(required = false) String archetype,
+      @Parameter(
+              description =
+                  "GSM subject type (STRUCTURE, MECHANISM, EFFECTOR, RECEPTOR, INTERACTION, ARCHETYPE, NORM, DIRECTIVE)")
+          @RequestParam
+          String type,
+      @Parameter(description = "Optional lifecycle status filter") @RequestParam(required = false)
+          AscriptionStatusType status,
+      @Parameter(description = "Optional exact URI of the typing Archetype")
+          @RequestParam(required = false)
+          String archetype,
       @ParameterObject @PageableDefault(size = 20) Pageable pageable,
       HttpServletRequest request) {
     DefinitionSubjectType subjectType = DefinitionSubjectType.fromValue(type);
     // Extract statement.* filter params
     Map<String, String> statementFilters = extractStatementFilters(request);
 
-    Page<? extends AscriptionEntity> page = ascriptionService.findAllFiltered(
-        subjectType, archetype, statementFilters, status, pageable);
+    Page<? extends AscriptionEntity> page =
+        ascriptionService.findAllFiltered(
+            subjectType, archetype, statementFilters, status, pageable);
 
     String typeName = subjectType.name();
     String statusName = (status != null) ? status.name() : null;
@@ -159,17 +181,28 @@ public class AscriptionController extends AbstractController {
   }
 
   /**
-   * Composed JSON Schema for this ascription: Ascription envelope with the
-   * per-instance Archetype
-   * schema inlined as the {@code statement} property. IANA {@code describedby}
-   * (RFC 6892) link
+   * Composed JSON Schema for this ascription: Ascription envelope with the per-instance Archetype
+   * schema inlined as the {@code statement} property. IANA {@code describedby} (RFC 6892) link
    * target.
    */
   @GetMapping(value = "/{id}/schema", produces = "application/schema+json")
-  @Operation(summary = "Get the composed schema for this ascription", description = "Returns the Ascription envelope schema with the typing Archetype's JSON Schema "
-      + "inlined as the statement property.")
-  @ApiResponse(responseCode = "200", description = "JSON Schema document", content = @Content(mediaType = "application/schema+json", schema = @Schema(type = "object", description = "JSON Schema document (draft 2020-12)")))
-  @ApiResponse(responseCode = "404", description = "Ascription not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @Operation(
+      summary = "Get the composed schema for this ascription",
+      description =
+          "Returns the Ascription envelope schema with the typing Archetype's JSON Schema "
+              + "inlined as the statement property.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "JSON Schema document",
+      content =
+          @Content(
+              mediaType = "application/schema+json",
+              schema =
+                  @Schema(type = "object", description = "JSON Schema document (draft 2020-12)")))
+  @ApiResponse(
+      responseCode = "404",
+      description = "Ascription not found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public JsonNode getSchema(@Parameter(description = "Ascription ID") @PathVariable UUID id) {
     AscriptionEntity entity = ascriptionService.getById(id);
     ObjectNode envelope = buildAscriptionEnvelope();
@@ -223,10 +256,12 @@ public class AscriptionController extends AbstractController {
       String status,
       String archetype,
       Map<String, String> statementFilters) {
-    List<EntityModel<AscriptionDto>> content = page.getContent().stream().map(this::wrapWithLinks).toList();
-    PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
-        page.getSize(), page.getNumber(),
-        page.getTotalElements(), page.getTotalPages());
+    List<EntityModel<AscriptionDto>> content =
+        page.getContent().stream().map(this::wrapWithLinks).toList();
+    PagedModel.PageMetadata metadata =
+        new PagedModel.PageMetadata(
+            page.getSize(), page.getNumber(),
+            page.getTotalElements(), page.getTotalPages());
     PagedModel<EntityModel<AscriptionDto>> model = PagedModel.of(content, metadata);
     model.add(listSelfLink(type, status, archetype, statementFilters, page.getPageable()));
     return model;
@@ -241,10 +276,8 @@ public class AscriptionController extends AbstractController {
   }
 
   /**
-   * IANA RFC 6892 {@code describedby} — composed JSON Schema: Ascription envelope
-   * with the
-   * per-instance Archetype schema inlined as the {@code statement} property
-   * ({@code
+   * IANA RFC 6892 {@code describedby} — composed JSON Schema: Ascription envelope with the
+   * per-instance Archetype schema inlined as the {@code statement} property ({@code
    * application/schema+json}).
    */
   private Link describedbyLinkFor(UUID ascriptionId) {
@@ -260,8 +293,7 @@ public class AscriptionController extends AbstractController {
   }
 
   /**
-   * IANA RFC 6573 {@code collection} — the ascription collection for this
-   * ascription's parent
+   * IANA RFC 6573 {@code collection} — the ascription collection for this ascription's parent
    * Definition.
    */
   private Link collectionLinkFor(UUID definitionId) {
@@ -282,11 +314,12 @@ public class AscriptionController extends AbstractController {
       String archetype,
       Map<String, String> statementFilters,
       Pageable pageable) {
-    var builder = linkTo(AscriptionController.class)
-        .toUriComponentsBuilder()
-        .queryParam("type", type)
-        .queryParam("page", pageable.getPageNumber())
-        .queryParam("size", pageable.getPageSize());
+    var builder =
+        linkTo(AscriptionController.class)
+            .toUriComponentsBuilder()
+            .queryParam("type", type)
+            .queryParam("page", pageable.getPageNumber())
+            .queryParam("size", pageable.getPageSize());
     if (status != null) {
       builder.queryParam("status", status);
     }

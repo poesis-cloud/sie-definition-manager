@@ -32,8 +32,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * Tests Effector lifecycle descriptors: identity-bound values, referee
- * references, cascade target
+ * Tests Effector lifecycle descriptors: identity-bound values, referee references, cascade target
  * roles, create, findEntityById, and findCascadeTargetsFrom.
  */
 @ExtendWith(MockitoExtension.class)
@@ -42,14 +41,11 @@ class EffectorServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private EffectorRepository effectorRepo;
+  @Mock private EffectorRepository effectorRepo;
 
-  @Mock
-  private MechanismService mechanismService;
+  @Mock private MechanismService mechanismService;
 
-  @Mock
-  private ArchetypeService archetypeService;
+  @Mock private ArchetypeService archetypeService;
 
   private EffectorService service;
 
@@ -197,7 +193,8 @@ class EffectorServiceTest {
 
     @Test
     void otherType_returnsEmpty() {
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
+      var result =
+          service.findCascadeTargetsFrom(DefinitionSubjectType.STRUCTURE, UUID.randomUUID());
 
       assertTrue(result.isEmpty());
     }

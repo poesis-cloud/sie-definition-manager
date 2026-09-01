@@ -18,12 +18,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
- * Contract for GSM subject type handlers. Each of the 8 GSM subject types
- * (Structure, Mechanism,
- * Effector, Receptor, Interaction, Archetype, Directive, Norm) implements this
- * interface. The
- * {@link AscriptionService} facade delegates to the appropriate handler for
- * type-specific logic.
+ * Contract for GSM subject type handlers. Each of the 8 GSM subject types (Structure, Mechanism,
+ * Effector, Receptor, Interaction, Archetype, Directive, Norm) implements this interface. The
+ * {@link AscriptionService} facade delegates to the appropriate handler for type-specific logic.
  *
  * @param <T> the concrete ascription entity type
  * @author Clément Cazaud
@@ -46,12 +43,11 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
   AbstractAscriptionRepository<T> getRepository();
 
   /**
-   * Creates a subtype-specific entity from the given definition, archetype, and
-   * statement.
+   * Creates a subtype-specific entity from the given definition, archetype, and statement.
    *
-   * @param definition   the stable identity
+   * @param definition the stable identity
    * @param archetypeRef the typing archetype
-   * @param statement    the JSON statement payload
+   * @param statement the JSON statement payload
    * @return the constructed entity (not yet persisted)
    */
   T create(DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement);
@@ -60,8 +56,7 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
    * Returns identity-bound field values for the given entity.
    *
    * @param entity the ascription entity
-   * @return map of field name to value (empty if this subtype has no
-   *         identity-bound fields)
+   * @return map of field name to value (empty if this subtype has no identity-bound fields)
    */
   Map<String, Object> getIdentityBoundValues(AscriptionEntity entity);
 
@@ -83,7 +78,7 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
   /**
    * Finds cascade target entities originating from a source ascription.
    *
-   * @param sourceType         the source subject type
+   * @param sourceType the source subject type
    * @param sourceAscriptionId the source ascription UUID
    * @return list of target entities (empty if none)
    */
@@ -100,73 +95,63 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
   }
 
   /**
-   * Validates activation uniqueness constraints (e.g., Structure purpose,
-   * Mechanism function).
+   * Validates activation uniqueness constraints (e.g., Structure purpose, Mechanism function).
    *
    * @param entity the ascription entity being activated
    */
-  default void validateActivationUniqueness(AscriptionEntity entity) {
-  }
+  default void validateActivationUniqueness(AscriptionEntity entity) {}
 
   /**
    * Validates subtype-specific permanent uniqueness constraints during creation.
    *
    * @param entity the transient ascription entity being created
    */
-  default void validateCreationUniqueness(AscriptionEntity entity) {
-  }
+  default void validateCreationUniqueness(AscriptionEntity entity) {}
 
   /**
-   * Validates subtype-specific lifecycle constraints after locking and refreshing
-   * the entity.
+   * Validates subtype-specific lifecycle constraints after locking and refreshing the entity.
    *
-   * @param entity        the current ascription
+   * @param entity the current ascription
    * @param currentStatus the authoritative current status
-   * @param targetStatus  the requested target status
+   * @param targetStatus the requested target status
    */
   default void validateStatusTransition(
       AscriptionEntity entity,
       AscriptionStatusType currentStatus,
-      AscriptionStatusType targetStatus) {
-  }
+      AscriptionStatusType targetStatus) {}
 
   /**
-   * Validates subtype-specific persisted transition results after flush and
-   * entity refresh.
+   * Validates subtype-specific persisted transition results after flush and entity refresh.
    *
-   * @param entity          the refreshed ascription
-   * @param previousStatus  the status before persistence
+   * @param entity the refreshed ascription
+   * @param previousStatus the status before persistence
    * @param persistedStatus the persisted target status
    */
   default void validatePersistedStatusTransition(
       AscriptionEntity entity,
       AscriptionStatusType previousStatus,
-      AscriptionStatusType persistedStatus) {
-  }
+      AscriptionStatusType persistedStatus) {}
 
   /**
    * Hook called when an entity transitions to ACTIVE.
    *
    * @param entity the ascription entity being activated
    */
-  default void onActivation(AscriptionEntity entity) {
-  }
+  default void onActivation(AscriptionEntity entity) {}
 
   /**
    * Hook called when an entity leaves in-effect status (ACTIVE/DEPRECATED).
    *
    * @param entity the ascription entity being deactivated
    */
-  default void onDeactivation(AscriptionEntity entity) {
-  }
+  default void onDeactivation(AscriptionEntity entity) {}
 
   /**
    * Hook called after an entity is created and persisted.
    *
    * @param saved the persisted ascription entity
    */
-  default void afterCreate(AscriptionEntity saved) {
-  }
+  default void afterCreate(AscriptionEntity saved) {}
 
   // ======================================================================
   // Repository mutation convenience defaults
@@ -199,7 +184,7 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
   /**
    * Returns a page of ascriptions for this subtype filtered by status.
    *
-   * @param status   the lifecycle status filter
+   * @param status the lifecycle status filter
    * @param pageable pagination parameters
    * @return page of matching ascription entities
    */
@@ -210,7 +195,7 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
   /**
    * Returns a page of ascriptions for this subtype matching a specification.
    *
-   * @param spec     the JPA specification
+   * @param spec the JPA specification
    * @param pageable pagination parameters
    * @return page of matching ascription entities
    */
@@ -219,8 +204,7 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
   }
 
   /**
-   * Returns all ascriptions for a given definition, ordered by timestamp
-   * descending.
+   * Returns all ascriptions for a given definition, ordered by timestamp descending.
    *
    * @param definitionId the definition UUID
    * @return ordered list of ascription entities
@@ -233,7 +217,7 @@ public interface AscriptionSubtypeService<T extends AscriptionEntity> {
    * Returns all ascriptions for a given definition filtered by statuses.
    *
    * @param definitionId the definition UUID
-   * @param statuses     the status filter
+   * @param statuses the status filter
    * @return list of matching ascription entities
    */
   default List<T> findAllByDefinitionIdAndStatus(

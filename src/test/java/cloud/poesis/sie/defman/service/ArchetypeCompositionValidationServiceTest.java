@@ -25,9 +25,7 @@ class ArchetypeCompositionValidationServiceTest {
 
   private ArchetypeCompositionValidationService service;
 
-  /**
-   * Maps exact Archetype URIs to their JSON Schemas; simulates the repository.
-   */
+  /** Maps exact Archetype URIs to their JSON Schemas; simulates the repository. */
   private Map<String, JsonNode> schemaStore;
 
   private Function<String, JsonNode> schemaResolver;
@@ -48,28 +46,31 @@ class ArchetypeCompositionValidationServiceTest {
 
     @Test
     void baseArchetype_exempt() {
-      ObjectNode schema = MAPPER
-          .createObjectNode()
-          .put("$id", "gsmarc://gsm/Structure/v1")
-          .put("title", "Structure");
+      ObjectNode schema =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://gsm/Structure/v1")
+              .put("title", "Structure");
       assertDoesNotThrow(() -> service.validateSchemaComposition(schema, schemaResolver));
     }
 
     @Test
     void baseArchetype_allExempt() {
-      for (String title : List.of(
-          "Structure",
-          "Mechanism",
-          "Interaction",
-          "Archetype",
-          "Effector",
-          "Receptor",
-          "Directive",
-          "Norm")) {
-        ObjectNode schema = MAPPER
-            .createObjectNode()
-            .put("$id", "gsmarc://gsm/" + title + "/v1")
-            .put("title", title);
+      for (String title :
+          List.of(
+              "Structure",
+              "Mechanism",
+              "Interaction",
+              "Archetype",
+              "Effector",
+              "Receptor",
+              "Directive",
+              "Norm")) {
+        ObjectNode schema =
+            MAPPER
+                .createObjectNode()
+                .put("$id", "gsmarc://gsm/" + title + "/v1")
+                .put("title", title);
         assertDoesNotThrow(
             () -> service.validateSchemaComposition(schema, schemaResolver),
             "Expected exempt: " + title);
@@ -78,15 +79,17 @@ class ArchetypeCompositionValidationServiceTest {
 
     @Test
     void tenantArchetypeWithBaseTitle_isNotExempt() {
-      ObjectNode schema = MAPPER
-          .createObjectNode()
-          .put("$id", "gsmarc://tenant/Structure/v1")
-          .put("title", "Structure")
-          .put("$ref", "gsmarc://tenant/MissingBase/v1");
+      ObjectNode schema =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://tenant/Structure/v1")
+              .put("title", "Structure")
+              .put("$ref", "gsmarc://tenant/MissingBase/v1");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertTrue(ex.getMessage().contains("gsmarc://tenant/MissingBase/v1"));
     }
@@ -151,9 +154,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantMeta");
       schema.put("$ref", "gsmarc://gsm/Archetype/v1");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
       assertTrue(ex.getMessage().contains("sealed"));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
     }
@@ -195,9 +199,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantThing");
       schema.putArray("allOf").addObject().put("$ref", "https://example.com/not-gsm");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
       assertTrue(ex.getMessage().contains("gsmarc://"));
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_EXCLUSIVE_BASE_CONVERGENCE,
@@ -223,12 +228,14 @@ class ArchetypeCompositionValidationServiceTest {
       schemaB.put("$ref", "gsmarc://gsm/A/v1");
       schemaStore.put("gsmarc://gsm/B/v1", schemaB);
 
-      ObjectNode schema = MAPPER.createObjectNode().put("$id", "gsmarc://gsm/A/v1").put("title", "A");
+      ObjectNode schema =
+          MAPPER.createObjectNode().put("$id", "gsmarc://gsm/A/v1").put("title", "A");
       schema.put("$ref", "gsmarc://gsm/B/v1");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
       assertTrue(ex.getMessage().contains("Cycle") || ex.getMessage().contains("already visited"));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, ex.getRuleType());
     }
@@ -238,9 +245,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
       schema.putArray("allOf").addObject().put("$ref", "gsmarc://gsm/NonExistent/v1");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, ex.getRuleType());
     }
 
@@ -250,9 +258,10 @@ class ArchetypeCompositionValidationServiceTest {
       schema.putArray("allOf").addObject().put("$ref", "gsmarc://gsm/NonExistent/v1");
 
       // Activation-time (strict=true): rejects unresolvable allOf intermediary.
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
       assertTrue(ex.getMessage().contains("Cannot resolve"));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, ex.getRuleType());
     }
@@ -274,9 +283,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "TenantType");
       schema.putArray("allOf").addObject().put("$ref", "gsmarc://gsm/SealedFacet/v1");
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_NON_SEALED, ex.getRuleType());
       assertTrue(ex.getMessage().contains("SealedFacet"));
     }
@@ -302,11 +312,12 @@ class ArchetypeCompositionValidationServiceTest {
       midSchema.put("$ref", "gsmarc://gsm/Structure/v1");
       schemaStore.put(intermediaryId, midSchema);
 
-      ObjectNode schema = MAPPER
-          .createObjectNode()
-          .put("$id", "gsmarc://tenant/TopLevel/v1")
-          .put("title", "TopLevel")
-          .put("$ref", intermediaryId);
+      ObjectNode schema =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://tenant/TopLevel/v1")
+              .put("title", "TopLevel")
+              .put("$ref", intermediaryId);
 
       assertDoesNotThrow(() -> service.validateSchemaComposition(schema, schemaResolver));
     }
@@ -328,9 +339,10 @@ class ArchetypeCompositionValidationServiceTest {
       allOf.add(objectSchema("shared", "string"));
       allOf.add(objectSchema("shared", "string"));
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS,
@@ -359,9 +371,10 @@ class ArchetypeCompositionValidationServiceTest {
       allOf.addObject().put("$ref", transitiveId);
       allOf.add(objectSchema("externalOnly", "string"));
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS,
@@ -418,9 +431,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = objectSchema("value", "integer");
       schema.put("$ref", baseId);
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY,
@@ -513,9 +527,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = objectSchema("path/with~tokens", "integer");
       schema.putArray("allOf").add(objectSchema("path/with~tokens", "string"));
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY,
@@ -528,9 +543,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "MissingLocalFacet");
       schema.putArray("allOf").addObject().put("$ref", "#/$defs/Missing");
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
     }
@@ -540,9 +556,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "UnsupportedAnchor");
       schema.putArray("allOf").addObject().put("$ref", "#named-anchor");
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
     }
@@ -555,9 +572,10 @@ class ArchetypeCompositionValidationServiceTest {
       schema.putObject("$defs").set("Loop", loop);
       schema.putArray("allOf").addObject().put("$ref", "#/$defs/Loop");
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, exception.getRuleType());
@@ -576,9 +594,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "ExternalCycle");
       schema.putArray("allOf").addObject().put("$ref", firstId);
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, exception.getRuleType());
@@ -589,9 +608,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "RootLocalCycle");
       schema.putArray("allOf").addObject().put("$ref", "#");
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(
           AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_ACYCLICITY, exception.getRuleType());
@@ -615,9 +635,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "InvalidTransitiveRef");
       schema.putArray("allOf").addObject().put("$ref", facetId);
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, exception.getRuleType());
     }
@@ -631,9 +652,10 @@ class ArchetypeCompositionValidationServiceTest {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "UnresolvedTransitiveRef");
       schema.putArray("allOf").addObject().put("$ref", facetId);
 
-      RuleViolationException exception = assertThrows(
-          RuleViolationException.class,
-          () -> service.validateSchemaComposition(schema, schemaResolver));
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.validateSchemaComposition(schema, schemaResolver));
 
       assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_INTEGRITY, exception.getRuleType());
     }
@@ -666,7 +688,8 @@ class ArchetypeCompositionValidationServiceTest {
 
     @Test
     void directRefToBase_returnsSingleBase() {
-      Set<String> bases = service.resolveGsmBases("gsmarc://gsm/Structure/v1", "MyStruct", schemaResolver);
+      Set<String> bases =
+          service.resolveGsmBases("gsmarc://gsm/Structure/v1", "MyStruct", schemaResolver);
       assertEquals(Set.of("gsmarc://gsm/Structure/v1"), bases);
     }
 
@@ -676,16 +699,75 @@ class ArchetypeCompositionValidationServiceTest {
       midSchema.put("$ref", "gsmarc://gsm/Mechanism/v1");
       schemaStore.put("gsmarc://gsm/MiddleLayer/v1", midSchema);
 
-      Set<String> bases = service.resolveGsmBases("gsmarc://gsm/MiddleLayer/v1", "MyMechanism", schemaResolver);
+      Set<String> bases =
+          service.resolveGsmBases("gsmarc://gsm/MiddleLayer/v1", "MyMechanism", schemaResolver);
       assertEquals(Set.of("gsmarc://gsm/Mechanism/v1"), bases);
     }
 
     @Test
     void unresolvableIntermediary_throws() {
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class,
-          () -> service.resolveGsmBases("gsmarc://gsm/NonExistent/v1", "MyType", schemaResolver));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class,
+              () ->
+                  service.resolveGsmBases("gsmarc://gsm/NonExistent/v1", "MyType", schemaResolver));
       assertTrue(ex.getMessage().contains("Cannot resolve"));
+    }
+  }
+
+  // ========================================================================
+  // JSON Schema dialect bootstrap exception
+  // ========================================================================
+
+  @Nested
+  class JsonSchemaDialectRef {
+
+    private static final String DIALECT = "https://json-schema.org/draft/2020-12/schema";
+
+    /**
+     * The seeded GSM Archetype meta-schema composes the JSON Schema dialect through {@code allOf} —
+     * resolving it must yield the schema's own properties, not a violation. This is what {@code
+     * ArchetypeService#reconcileBaseArchetypeIndexes} walks at startup.
+     */
+    @Test
+    void allOfFacetOnDialect_contributesNoPropertiesAndIsAccepted() {
+      ObjectNode schema =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://gsm/Archetype/v1")
+              .put("title", "Archetype");
+      schema.putArray("allOf").addObject().put("$ref", DIALECT);
+      schema.putObject("properties").putObject("$gsm:sealed").put("type", "boolean");
+
+      Map<String, JsonNode> resolved = service.resolvedProperties(schema, schemaResolver);
+
+      assertEquals(Set.of("$gsm:sealed"), resolved.keySet());
+    }
+
+    @Test
+    void topLevelRefToDialect_contributesNoProperties() {
+      ObjectNode schema =
+          MAPPER
+              .createObjectNode()
+              .put("$id", "gsmarc://gsm/Archetype/v1")
+              .put("title", "Archetype")
+              .put("$ref", DIALECT);
+
+      assertEquals(Map.of(), service.resolvedProperties(schema, schemaResolver));
+    }
+
+    /** Any other external URI stays a norm violation. */
+    @Test
+    void otherExternalRef_stillRejected() {
+      ObjectNode schema = MAPPER.createObjectNode().put("title", "ExternalRef");
+      schema.putArray("allOf").addObject().put("$ref", "https://example.com/schema");
+
+      RuleViolationException exception =
+          assertThrows(
+              RuleViolationException.class,
+              () -> service.resolvedProperties(schema, schemaResolver));
+
+      assertEquals(AscriptionConsistencyRuleType.ARCHETYPE_REF_NORM, exception.getRuleType());
     }
   }
 
@@ -712,9 +794,10 @@ class ArchetypeCompositionValidationServiceTest {
   }
 
   private void assertDisjointnessViolation(ObjectNode schema) {
-    RuleViolationException exception = assertThrows(
-        RuleViolationException.class,
-        () -> service.validateSchemaComposition(schema, schemaResolver));
+    RuleViolationException exception =
+        assertThrows(
+            RuleViolationException.class,
+            () -> service.validateSchemaComposition(schema, schemaResolver));
     assertEquals(
         AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS,
         exception.getRuleType());
@@ -722,9 +805,10 @@ class ArchetypeCompositionValidationServiceTest {
   }
 
   private void assertTypeStabilityViolation(ObjectNode schema) {
-    RuleViolationException exception = assertThrows(
-        RuleViolationException.class,
-        () -> service.validateSchemaComposition(schema, schemaResolver));
+    RuleViolationException exception =
+        assertThrows(
+            RuleViolationException.class,
+            () -> service.validateSchemaComposition(schema, schemaResolver));
     assertEquals(
         AscriptionConsistencyRuleType.ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY,
         exception.getRuleType());

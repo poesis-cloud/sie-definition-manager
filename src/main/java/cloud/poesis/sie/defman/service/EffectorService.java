@@ -23,11 +23,8 @@ import org.springframework.stereotype.Service;
 /**
  * GSM Effector ascription service.
  *
- * <p>
- * Manages lifecycle and persistence of {@link EffectorEntity} ascriptions with
- * constitutive
- * cascade from owning Mechanism and dependent cascade to downstream
- * Interactions.
+ * <p>Manages lifecycle and persistence of {@link EffectorEntity} ascriptions with constitutive
+ * cascade from owning Mechanism and dependent cascade to downstream Interactions.
  *
  * @author Clément Cazaud
  * @since 1.0.0
@@ -61,14 +58,16 @@ public class EffectorService implements AscriptionSubtypeService<EffectorEntity>
   @Override
   public EffectorEntity create(
       DefinitionEntity definition, ArchetypeEntity archetypeRef, JsonNode statement) {
-    UUID mechanismId = extractRequiredUuid(
-        statement,
-        "mechanism",
-        AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
+    UUID mechanismId =
+        extractRequiredUuid(
+            statement,
+            "mechanism",
+            AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE);
     MechanismEntity mechanism = mechanismService.findEntityById(mechanismId);
 
     String dataArchetypeUri = statement.path("archetype").asText(null);
-    ArchetypeEntity dataArchetype = archetypeService.resolveArchetypeUri(dataArchetypeUri, "archetype");
+    ArchetypeEntity dataArchetype =
+        archetypeService.resolveArchetypeUri(dataArchetypeUri, "archetype");
 
     return new EffectorEntity(definition, archetypeRef, statement, mechanism, dataArchetype);
   }

@@ -36,14 +36,11 @@ class DirectiveServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private DirectiveRepository directiveRepo;
+  @Mock private DirectiveRepository directiveRepo;
 
-  @Mock
-  private StructureService structureService;
+  @Mock private StructureService structureService;
 
-  @Mock
-  private ArchetypeService archetypeService;
+  @Mock private ArchetypeService archetypeService;
 
   private DirectiveService service;
 
@@ -126,8 +123,9 @@ class DirectiveServiceTest {
       ArchetypeEntity archetype = mock(ArchetypeEntity.class);
       ObjectNode emptyStatement = MAPPER.createObjectNode();
 
-      RuleViolationException ex = assertThrows(
-          RuleViolationException.class, () -> service.create(def, archetype, emptyStatement));
+      RuleViolationException ex =
+          assertThrows(
+              RuleViolationException.class, () -> service.create(def, archetype, emptyStatement));
       assertEquals(
           AscriptionConsistencyRuleType.ASCRIPTION_STATEMENT_COMPLIANCE_TO_GSM_ARCHETYPE,
           ex.getRuleType());
@@ -155,7 +153,8 @@ class DirectiveServiceTest {
     ArchetypeEntity qualifier = mock(ArchetypeEntity.class);
     when(qualifier.getDefinition()).thenReturn(qualifierDef);
 
-    ObjectNode stmt = MAPPER.createObjectNode().put("verb", verb).put("modal", modal).put("purpose", purpose);
+    ObjectNode stmt =
+        MAPPER.createObjectNode().put("verb", verb).put("modal", modal).put("purpose", purpose);
 
     DirectiveEntity directive = mock(DirectiveEntity.class);
     when(directive.getDefinition()).thenReturn(defEntity);
@@ -281,7 +280,8 @@ class DirectiveServiceTest {
 
     @Test
     void nonStructureSource_returnsEmpty() {
-      var result = service.findCascadeTargetsFrom(DefinitionSubjectType.DIRECTIVE, UUID.randomUUID());
+      var result =
+          service.findCascadeTargetsFrom(DefinitionSubjectType.DIRECTIVE, UUID.randomUUID());
       assertTrue(result.isEmpty());
     }
   }

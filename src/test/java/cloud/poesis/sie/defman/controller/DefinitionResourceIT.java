@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import cloud.poesis.sie.defman.AbstractPostgresIT;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,38 +26,26 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Integration tests for Definition endpoints against a real PostgreSQL instance
- * (Testcontainers).
+ * Integration tests for Definition endpoints against a real PostgreSQL instance (Testcontainers).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("tc")
-@Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class DefinitionResourceIT {
+class DefinitionResourceIT extends AbstractPostgresIT {
 
   private static final String ARCHETYPE_ID = "gsmarc://gsm/Archetype/v1";
   private static final String STRUCTURE_ID = "gsmarc://gsm/Structure/v1";
 
-  @Container
-  static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
-
   @DynamicPropertySource
-  static void pgProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", pg::getJdbcUrl);
-    registry.add("spring.datasource.username", pg::getUsername);
-    registry.add("spring.datasource.password", pg::getPassword);
+  static void datasourceProperties(DynamicPropertyRegistry registry) {
+    registerIsolatedDatabase(registry);
   }
 
-  @Autowired
-  MockMvc mvc;
-  @Autowired
-  ObjectMapper mapper;
+  @Autowired MockMvc mvc;
+  @Autowired ObjectMapper mapper;
 
   // ================================================================
   // Shared state across ordered tests
@@ -74,14 +63,15 @@ class DefinitionResourceIT {
   @Test
   @Order(1)
   void setup_listSeedArchetypes() throws Exception {
-    MvcResult result = mvc.perform(
-        get("/api/v1/ascriptions")
-            .param("type", "archetype")
-            .param("status", "ACTIVE")
-            .param("size", "20"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
-        .andReturn();
+    MvcResult result =
+        mvc.perform(
+                get("/api/v1/ascriptions")
+                    .param("type", "archetype")
+                    .param("status", "ACTIVE")
+                    .param("size", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$._embedded.ascriptions", hasSize(8)))
+            .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     JsonNode items = body.at("/_embedded/ascriptions");
@@ -109,12 +99,13 @@ class DefinitionResourceIT {
     request.put("archetypeUri", ARCHETYPE_ID);
     request.set("statement", statement);
 
-    MvcResult result = mvc.perform(
-        post("/api/v1/ascriptions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(mapper.writeValueAsString(request)))
-        .andExpect(status().isCreated())
-        .andReturn();
+    MvcResult result =
+        mvc.perform(
+                post("/api/v1/ascriptions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     String collectionHref = body.at("/_links/collection/href").asText();
@@ -132,12 +123,13 @@ class DefinitionResourceIT {
     request.put("archetypeUri", STRUCTURE_ID);
     request.set("statement", statement);
 
-    MvcResult result = mvc.perform(
-        post("/api/v1/ascriptions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(mapper.writeValueAsString(request)))
-        .andExpect(status().isCreated())
-        .andReturn();
+    MvcResult result =
+        mvc.perform(
+                post("/api/v1/ascriptions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andReturn();
 
     JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
     String collHref = body.at("/_links/collection/href").asText();

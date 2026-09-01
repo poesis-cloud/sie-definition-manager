@@ -23,29 +23,18 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
 @ActiveProfiles("tc")
-@Testcontainers
-class ArchetypeStemOwnershipIT {
-
-  @Container
-  static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:16.3-alpine");
+class ArchetypeStemOwnershipIT extends AbstractPostgresIT {
 
   @DynamicPropertySource
-  static void pgProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", pg::getJdbcUrl);
-    registry.add("spring.datasource.username", pg::getUsername);
-    registry.add("spring.datasource.password", pg::getPassword);
+  static void datasourceProperties(DynamicPropertyRegistry registry) {
+    registerIsolatedDatabase(registry);
   }
 
-  @Autowired
-  JdbcTemplate jdbc;
-  @Autowired
-  DataSource dataSource;
+  @Autowired JdbcTemplate jdbc;
+  @Autowired DataSource dataSource;
 
   @Test
   void bootstrapPermanentlyOwnsAllEightSeedStems() {
@@ -99,14 +88,16 @@ class ArchetypeStemOwnershipIT {
 
     assertThrows(
         DataIntegrityViolationException.class,
-        () -> jdbc.update(
-            "UPDATE archetype_stem_owner SET definition_id = ?::uuid WHERE stem = ?",
-            secondDefinitionId.toString(),
-            stem));
+        () ->
+            jdbc.update(
+                "UPDATE archetype_stem_owner SET definition_id = ?::uuid WHERE stem = ?",
+                secondDefinitionId.toString(),
+                stem));
     assertThrows(
         DataIntegrityViolationException.class,
-        () -> jdbc.update(
-            "UPDATE archetype_stem_owner SET stem = ? WHERE stem = ?", stem + "/moved", stem));
+        () ->
+            jdbc.update(
+                "UPDATE archetype_stem_owner SET stem = ? WHERE stem = ?", stem + "/moved", stem));
     assertThrows(
         DataIntegrityViolationException.class,
         () -> jdbc.update("DELETE FROM archetype_stem_owner WHERE stem = ?", stem));
@@ -170,9 +161,10 @@ class ArchetypeStemOwnershipIT {
   }
 
   private UUID createDefinition(Connection connection) throws SQLException {
-    try (PreparedStatement statement = connection.prepareStatement(
-        "INSERT INTO definition (subject_type)"
-            + " VALUES ('ARCHETYPE'::definition_subject_type) RETURNING id")) {
+    try (PreparedStatement statement =
+        connection.prepareStatement(
+            "INSERT INTO definition (subject_type)"
+                + " VALUES ('ARCHETYPE'::definition_subject_type) RETURNING id")) {
       try (ResultSet result = statement.executeQuery()) {
         result.next();
         return result.getObject(1, UUID.class);
@@ -189,8 +181,8 @@ class ArchetypeStemOwnershipIT {
   }
 
   private UUID acquire(Connection connection, String stem, UUID definitionId) throws SQLException {
-    try (PreparedStatement statement = connection
-        .prepareStatement("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)")) {
+    try (PreparedStatement statement =
+        connection.prepareStatement("SELECT gsm_acquire_archetype_stem_owner(?::text, ?::uuid)")) {
       statement.setString(1, stem);
       statement.setString(2, definitionId.toString());
       try (ResultSet result = statement.executeQuery()) {

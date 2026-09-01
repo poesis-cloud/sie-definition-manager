@@ -25,10 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-/**
- * Unit tests for {@link ArchetypeSchemaResolverService} — GSM §11.1 annotation
- * inheritance.
- */
+/** Unit tests for {@link ArchetypeSchemaResolverService} — GSM §11.1 annotation inheritance. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ArchetypeSchemaResolverServiceTest {
@@ -39,15 +36,15 @@ class ArchetypeSchemaResolverServiceTest {
   private static final String CHILD_URI = "gsmarc://tenant/ChildComponent/v1";
   private static final String FACET_URI = "gsmarc://tenant/Facet/v1";
 
-  @Mock
-  private ArchetypeParsingService archetypeParsing;
+  @Mock private ArchetypeParsingService archetypeParsing;
 
   private ArchetypeSchemaResolverService service;
 
   @BeforeEach
   void setUp() {
-    service = new ArchetypeSchemaResolverService(
-        archetypeParsing, new ArchetypeCompositionValidationService(), MAPPER);
+    service =
+        new ArchetypeSchemaResolverService(
+            archetypeParsing, new ArchetypeCompositionValidationService(), MAPPER);
   }
 
   // ========================================================================
@@ -159,7 +156,11 @@ class ArchetypeSchemaResolverServiceTest {
       // Descendant only narrows the value; it declares no $gsm:* of its own.
       ObjectNode child = schema(CHILD_URI, "ChildComponent");
       child.put("$ref", PARENT_URI);
-      child.with("properties").putObject("functionalDomain").put("type", "string").put("pattern", "^bgm-");
+      child
+          .with("properties")
+          .putObject("functionalDomain")
+          .put("type", "string")
+          .put("pattern", "^bgm-");
 
       ObjectNode resolved = service.resolvedProperties(archetype(UUID.randomUUID(), child));
 
@@ -167,7 +168,11 @@ class ArchetypeSchemaResolverServiceTest {
           resolved.path("functionalDomain").path("$gsm:queryable").asBoolean(),
           "Narrowing a pattern must not drop the ancestor's $gsm:queryable");
       assertTrue(
-          resolved.path("functionalDomain").path("$gsm:dataProtection").path("atRest").path("suppression")
+          resolved
+              .path("functionalDomain")
+              .path("$gsm:dataProtection")
+              .path("atRest")
+              .path("suppression")
               .asBoolean(),
           "Narrowing a pattern must not drop the ancestor's $gsm:dataProtection");
     }
@@ -373,10 +378,10 @@ class ArchetypeSchemaResolverServiceTest {
       ObjectNode schema = schema(CHILD_URI, "ChildComponent");
       queryableProperty(schema, "ownProp");
 
-      assertFalse(service.resolvedProperties((com.fasterxml.jackson.databind.JsonNode) schema)
-          .isEmpty());
-      assertFalse(service.resolvedProperties((com.fasterxml.jackson.databind.JsonNode) schema)
-          .isEmpty());
+      assertFalse(
+          service.resolvedProperties((com.fasterxml.jackson.databind.JsonNode) schema).isEmpty());
+      assertFalse(
+          service.resolvedProperties((com.fasterxml.jackson.databind.JsonNode) schema).isEmpty());
     }
   }
 

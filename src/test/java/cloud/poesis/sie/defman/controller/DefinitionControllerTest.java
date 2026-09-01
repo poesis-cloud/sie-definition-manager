@@ -37,17 +37,13 @@ class DefinitionControllerTest {
 
   private static final String TYPING_ARCHETYPE_ID = "gsmarc://test/TestArchetype/v1";
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-  @Autowired
-  private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-  @MockitoBean
-  private DefinitionService definitionService;
+  @MockitoBean private DefinitionService definitionService;
 
-  @MockitoBean
-  private AscriptionProtectionService statementProtection;
+  @MockitoBean private AscriptionProtectionService statementProtection;
 
   private UUID defId;
   private DefinitionEntity definitionEntity;

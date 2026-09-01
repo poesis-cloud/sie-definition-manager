@@ -10,11 +10,8 @@ import java.util.UUID;
 /**
  * Unified creation request for any GSM ascription type.
  *
- * <p>
- * The Archetype URI determines the GSM type and the expected statement schema.
- * FK references
- * (structureId, mechanismId, etc.) are part of the {@code statement} payload
- * and validated against
+ * <p>The Archetype URI determines the GSM type and the expected statement schema. FK references
+ * (structureId, mechanismId, etc.) are part of the {@code statement} payload and validated against
  * the archetype's JSON Schema.
  *
  * @author Clément Cazaud
@@ -27,8 +24,11 @@ public class AscriptionCreationDto {
   @NotNull
   private final String archetypeUri;
 
-  @Schema(description = "JSON payload conforming to the Archetype's schema. "
-      + "Query the Archetype ascription to discover the expected structure.", implementation = Map.class)
+  @Schema(
+      description =
+          "JSON payload conforming to the Archetype's schema. "
+              + "Query the Archetype ascription to discover the expected structure.",
+      implementation = Map.class)
   @NotNull
   private final JsonNode statement;
 

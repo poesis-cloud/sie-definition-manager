@@ -27,8 +27,7 @@ class ArchetypeParsingServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Mock
-  private ArchetypeRepository archetypeRepository;
+  @Mock private ArchetypeRepository archetypeRepository;
 
   private ArchetypeParsingService service;
 
@@ -143,8 +142,9 @@ class ArchetypeParsingServiceTest {
 
     @Test
     void parsesNormativeIdentityComponents() {
-      ArchetypeParsingService.ArchetypeIdentity identity = ArchetypeParsingService.parseIdentity(
-          "gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier/v12");
+      ArchetypeParsingService.ArchetypeIdentity identity =
+          ArchetypeParsingService.parseIdentity(
+              "gsmarc://gsm-ontology/scap/cpe/ScapPlatformIdentifier/v12");
 
       assertEquals("gsm-ontology", identity.authority());
       assertEquals("scap/cpe/", identity.namespacePath());
