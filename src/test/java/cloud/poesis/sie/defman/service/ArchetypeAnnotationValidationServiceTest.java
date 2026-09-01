@@ -9,7 +9,9 @@ import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
@@ -21,8 +23,33 @@ class ArchetypeAnnotationValidationServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
+  private static final ArchetypeSchemaResolverService RESOLVED_SCHEMA = resolvedSchemaStub();
+
   private final ArchetypeAnnotationValidationService service =
-      new ArchetypeAnnotationValidationService(new JsonSchemaPositionWalker());
+      new ArchetypeAnnotationValidationService(new JsonSchemaPositionWalker(), RESOLVED_SCHEMA);
+
+  /** Stub resolving the composition chain's property set to the schema's own declarations. */
+  private static ArchetypeSchemaResolverService resolvedSchemaStub() {
+    ArchetypeSchemaResolverService stub = mock(ArchetypeSchemaResolverService.class);
+    when(stub.resolvedProperties(org.mockito.ArgumentMatchers.any(JsonNode.class)))
+        .thenAnswer(
+            invocation -> {
+              JsonNode schema = invocation.getArgument(0);
+              JsonNode properties = schema == null ? null : schema.get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
+    when(stub.resolvedProperties(org.mockito.ArgumentMatchers.any(ArchetypeEntity.class)))
+        .thenAnswer(
+            invocation -> {
+              ArchetypeEntity archetype = invocation.getArgument(0);
+              JsonNode properties =
+                  archetype.getStatement() == null
+                      ? null
+                      : archetype.getStatement().get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
+    return stub;
+  }
 
   // ========================================================================
   // Annotation validation
@@ -131,6 +158,71 @@ class ArchetypeAnnotationValidationServiceTest {
     }
 
     @Nested
+    class DataProtection {
+
+      @Test
+      void queryableWithAtRestEncryption_rejected() {
+        ObjectNode propNode = prop("string");
+        propNode.put("$gsm:queryable", true);
+        propNode
+            .putObject("$gsm:dataProtection")
+            .putObject("atRest")
+            .putObject("encryption")
+            .put("algorithm", "AES-256-GCM");
+        ObjectNode schema = schemaWithProperty("card", propNode);
+
+        RuleViolationException ex =
+            assertThrows(
+                RuleViolationException.class,
+                () -> service.validateArchetypeAnnotations(schema, List.of()));
+        assertEquals(
+            AscriptionConsistencyRuleType.ARCHETYPE_DATA_PROTECTION_QUERYABLE_EXCLUSIVITY,
+            ex.getRuleType());
+      }
+
+      @Test
+      void queryableWithAtRestHash_accepted() {
+        ObjectNode propNode = prop("string");
+        propNode.put("$gsm:queryable", true);
+        propNode
+            .putObject("$gsm:dataProtection")
+            .putObject("atRest")
+            .putObject("hash")
+            .put("algorithm", "SHA-256");
+        ObjectNode schema = schemaWithProperty("email", propNode);
+
+        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, List.of()));
+      }
+
+      @Test
+      void unimplementedMeasure_rejected() {
+        ObjectNode propNode = prop("string");
+        propNode
+            .putObject("$gsm:dataProtection")
+            .putObject("inTransit")
+            .putObject("encryption")
+            .put("algorithm", "AES-256-GCM");
+        ObjectNode schema = schemaWithProperty("card", propNode);
+
+        UnsupportedProtectionMeasureException ex =
+            assertThrows(
+                UnsupportedProtectionMeasureException.class,
+                () -> service.validateArchetypeAnnotations(schema, List.of()));
+        assertEquals("inTransit.encryption", ex.getMeasure());
+        assertEquals("card", ex.getPropertyName());
+      }
+
+      @Test
+      void implementedMeasures_accepted() {
+        ObjectNode propNode = prop("string");
+        propNode.putObject("$gsm:dataProtection").putObject("inTransit").put("suppression", true);
+        ObjectNode schema = schemaWithProperty("secret", propNode);
+
+        assertDoesNotThrow(() -> service.validateArchetypeAnnotations(schema, List.of()));
+      }
+    }
+
+    @Nested
     class CollectIdentityBoundFields {
 
       @Test
@@ -148,7 +240,8 @@ class ArchetypeAnnotationValidationServiceTest {
         props.set("gamma", p3);
 
         Set<String> result =
-            ArchetypeAnnotationValidationService.collectIdentityBoundFields(schema);
+            ArchetypeAnnotationValidationService.collectIdentityBoundFields(
+                schema.get("properties"));
         assertEquals(Set.of("alpha", "gamma"), result);
       }
 
@@ -156,7 +249,8 @@ class ArchetypeAnnotationValidationServiceTest {
       void noProperties_returnsEmpty() {
         ObjectNode schema = MAPPER.createObjectNode();
         Set<String> result =
-            ArchetypeAnnotationValidationService.collectIdentityBoundFields(schema);
+            ArchetypeAnnotationValidationService.collectIdentityBoundFields(
+                schema.get("properties"));
         assertTrue(result.isEmpty());
       }
     }

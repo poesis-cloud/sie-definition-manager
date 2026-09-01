@@ -2,6 +2,7 @@ package cloud.poesis.sie.defman.service;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
@@ -26,9 +27,13 @@ import org.springframework.stereotype.Service;
 public class ArchetypeAnnotationValidationService {
 
   private final JsonSchemaPositionWalker schemaPositionWalker;
+  private final ArchetypeSchemaResolverService resolvedSchema;
 
-  ArchetypeAnnotationValidationService(JsonSchemaPositionWalker schemaPositionWalker) {
+  ArchetypeAnnotationValidationService(
+      JsonSchemaPositionWalker schemaPositionWalker,
+      ArchetypeSchemaResolverService resolvedSchema) {
     this.schemaPositionWalker = schemaPositionWalker;
+    this.resolvedSchema = resolvedSchema;
   }
 
   // ========================================================================
@@ -62,26 +67,69 @@ public class ArchetypeAnnotationValidationService {
   void validateArchetypeAnnotations(JsonNode schema, List<ArchetypeEntity> existingAscriptions) {
     validateTopLevelAnnotations(schema);
 
-    JsonNode properties = schema.get("properties");
-    if (properties == null || !properties.isObject()) {
-      return;
-    }
-
-    Set<String> identityBoundFields = new HashSet<>();
-
-    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
-      String propName = entry.getKey();
-      JsonNode propSchema = entry.getValue();
-
-      checkUnknownAnnotations(propSchema, propName);
-
-      if (ArchetypeParsingService.hasAnnotation(propSchema, "$gsm:identityBound")) {
-        identityBoundFields.add(propName);
+    JsonNode ownProperties = schema.get("properties");
+    if (ownProperties != null && ownProperties.isObject()) {
+      for (Map.Entry<String, JsonNode> entry : ownProperties.properties()) {
+        checkUnknownAnnotations(entry.getValue(), entry.getKey());
       }
     }
 
-    validateAliasUnambiguity(properties);
-    validateIdentityBoundSetImmutability(existingAscriptions, identityBoundFields);
+    // GSM §11.1: annotation-driven rules resolve over the inherited surface.
+    JsonNode resolvedProperties = resolvedSchema.resolvedProperties(schema);
+    if (resolvedProperties.isEmpty()) {
+      return;
+    }
+
+    validateAliasUnambiguity(resolvedProperties);
+    validateDataProtection(resolvedProperties);
+    validateIdentityBoundSetImmutability(
+        existingAscriptions, collectIdentityBoundFields(resolvedProperties));
+  }
+
+  // ========================================================================
+  // $gsm:dataProtection — GSM-PROC-14 exclusivity, GSM-PROC-48 measure support
+  // ========================================================================
+
+  /** Measures the processor implements; a declared measure outside this set fails closed. */
+  private static final Set<String> SUPPORTED_MEASURES = Set.of("hash", "mask", "suppression");
+
+  private static final List<String> PROTECTION_PHASES = List.of("atRest", "inTransit");
+
+  private void validateDataProtection(JsonNode properties) {
+    for (Map.Entry<String, JsonNode> entry : properties.properties()) {
+      String propName = entry.getKey();
+      JsonNode dataProtection = entry.getValue().path("$gsm:dataProtection");
+      if (!dataProtection.isObject()) {
+        continue;
+      }
+
+      if (dataProtection.path("atRest").has("encryption")
+          && ArchetypeParsingService.hasAnnotation(entry.getValue(), "$gsm:queryable")) {
+        throw RuleViolationException.of(
+            AscriptionConsistencyRuleType.ARCHETYPE_DATA_PROTECTION_QUERYABLE_EXCLUSIVITY,
+            "Property '"
+                + propName
+                + "' declares both $gsm:queryable and $gsm:dataProtection.atRest.encryption; "
+                + "ciphertext is not indexable",
+            "property",
+            propName);
+      }
+
+      for (String phase : PROTECTION_PHASES) {
+        JsonNode measures = dataProtection.path(phase);
+        if (!measures.isObject()) {
+          continue;
+        }
+        measures
+            .fieldNames()
+            .forEachRemaining(
+                measure -> {
+                  if (!SUPPORTED_MEASURES.contains(measure)) {
+                    throw new UnsupportedProtectionMeasureException(phase, measure, propName);
+                  }
+                });
+      }
+    }
   }
 
   // ========================================================================
@@ -208,7 +256,8 @@ public class ArchetypeAnnotationValidationService {
       return;
     }
 
-    Set<String> firstIdentityBound = collectIdentityBoundFields(firstStmt);
+    Set<String> firstIdentityBound =
+        collectIdentityBoundFields(resolvedSchema.resolvedProperties(firstStmt));
     if (!firstIdentityBound.equals(currentSet)) {
       throw RuleViolationException.of(
           AscriptionConsistencyRuleType.ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY,
@@ -226,9 +275,8 @@ public class ArchetypeAnnotationValidationService {
     }
   }
 
-  static Set<String> collectIdentityBoundFields(JsonNode schema) {
+  static Set<String> collectIdentityBoundFields(JsonNode properties) {
     Set<String> result = new HashSet<>();
-    JsonNode properties = schema.get("properties");
     if (properties == null || !properties.isObject()) {
       return result;
     }

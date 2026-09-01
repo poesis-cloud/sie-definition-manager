@@ -530,8 +530,9 @@ public class AscriptionService implements SmartInitializingSingleton {
           "Typing Archetype '" + archetype + "' does not describe subject type " + type + ".");
     }
     ArchetypeEntity archetypeEntity = resolution.archetype();
-    Map<String, String> targetFilters = resolveAliasFilters(archetypeEntity, statementFilters);
-    validatePropertiesQueryability(type, archetypeEntity, targetFilters);
+    JsonNode resolvedProperties = archetypeService.resolvedProperties(archetypeEntity);
+    Map<String, String> targetFilters = resolveAliasFilters(resolvedProperties, statementFilters);
+    validatePropertiesQueryability(type, archetypeEntity, resolvedProperties, targetFilters);
     List<FilterTarget> targets = List.of(new FilterTarget(archetypeEntity.getDefinition().getId(), targetFilters));
     Specification<AscriptionEntity> spec = buildFilterSpec(targets, status);
     return requireHandler(type).findAll(spec, pageable);
@@ -572,17 +573,17 @@ public class AscriptionService implements SmartInitializingSingleton {
   /**
    * Resolves {@code $gsm:aliases} filter keys to their canonical property name on
    * the typing
-   * archetype's declared schema. Keys matching a canonical property are kept
+   * archetype's resolved composition chain. Keys matching a canonical property
+   * are kept
    * as-is; unknown keys
    * are kept unchanged so the queryability validation rejects them under their
    * submitted name.
    */
   private static Map<String, String> resolveAliasFilters(
-      ArchetypeEntity archetypeEntity, Map<String, String> statementFilters) {
-    JsonNode properties = archetypeEntity.getStatement().path("properties");
+      JsonNode resolvedProperties, Map<String, String> statementFilters) {
     Map<String, String> resolved = new LinkedHashMap<>();
     for (var entry : statementFilters.entrySet()) {
-      resolved.put(resolveCanonicalName(properties, entry.getKey()), entry.getValue());
+      resolved.put(resolveCanonicalName(resolvedProperties, entry.getKey()), entry.getValue());
     }
     return resolved;
   }
@@ -606,21 +607,22 @@ public class AscriptionService implements SmartInitializingSingleton {
 
   /**
    * Validates that every statement filter key is annotated {@code $gsm:queryable}
-   * in the archetype
-   * schema.
+   * in the
+   * archetype's resolved composition chain (GSM §11.1 — inherited annotations
+   * count).
    */
   private static void validatePropertiesQueryability(
       DefinitionSubjectType type,
       ArchetypeEntity archetypeEntity,
+      JsonNode resolvedProperties,
       Map<String, String> statementFilters) {
     JsonNode schema = archetypeEntity.getStatement();
-    JsonNode properties = schema.path("properties");
     for (String propName : statementFilters.keySet()) {
       if (type == DefinitionSubjectType.ARCHETYPE
           && ARCHETYPE_SYSTEM_QUERY_PROPERTIES.contains(propName)) {
         continue;
       }
-      JsonNode propSchema = properties.path(propName);
+      JsonNode propSchema = resolvedProperties.path(propName);
       if (propSchema.isMissingNode() || !propSchema.path("$gsm:queryable").asBoolean(false)) {
         throw new IllegalArgumentException(
             "Property '"
@@ -644,12 +646,8 @@ public class AscriptionService implements SmartInitializingSingleton {
    * statement in place.
    */
   private void applyDataProtection(JsonNode statement, ArchetypeEntity archetype) {
-    JsonNode archetypeStmt = archetype.getStatement();
-    if (archetypeStmt == null) {
-      return;
-    }
-    JsonNode properties = archetypeStmt.get("properties");
-    if (properties == null || !properties.isObject()) {
+    JsonNode properties = archetypeService.resolvedProperties(archetype);
+    if (properties.isEmpty()) {
       return;
     }
 

@@ -9,6 +9,7 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.service.AscriptionProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
@@ -73,7 +74,7 @@ public abstract class AbstractController {
   protected AscriptionDto mapEntityToAscriptionDto(
       AscriptionEntity ascription, ArchetypeEntity archetype) {
     JsonNode statement = statementProtection.applyInTransitProtection(
-        ascription.getStatement(), archetype.getStatement());
+        ascription.getStatement(), archetype);
     return new AscriptionDto(
         ascription.getId(),
         statement,
@@ -130,6 +131,17 @@ public abstract class AbstractController {
   ProblemDetail mapResourceNotFoundExceptionToProblemDetail(ResourceNotFoundException exception) {
     return constructProblemDetail(
         HttpStatus.NOT_FOUND,
+        exception.getMessage(),
+        exception.getTitle(),
+        exception.getType(),
+        exception.getExtensions());
+  }
+
+  @ExceptionHandler(UnsupportedProtectionMeasureException.class)
+  ProblemDetail mapUnsupportedProtectionMeasureExceptionToProblemDetail(
+      UnsupportedProtectionMeasureException exception) {
+    return constructProblemDetail(
+        HttpStatus.NOT_IMPLEMENTED,
         exception.getMessage(),
         exception.getTitle(),
         exception.getType(),
@@ -261,7 +273,8 @@ public abstract class AbstractController {
           ARCHETYPE_ID_TITLE_COHERENCE,
           ARCHETYPE_ID_ROOT_EXCLUSIVITY,
           ARCHETYPE_IDENTITY_BOUND_PROPERTY_IMMUTABILITY,
-          ARCHETYPE_ALIAS_UNAMBIGUITY ->
+          ARCHETYPE_ALIAS_UNAMBIGUITY,
+          ARCHETYPE_DATA_PROTECTION_QUERYABLE_EXCLUSIVITY ->
         HttpStatus.BAD_REQUEST;
       case ASCRIPTION_PROPERTY_UNIQUENESS_ACROSS_DEFINITIONS,
           ARCHETYPE_STEM_UNIQUENESS_ACROSS_DEFINITIONS,

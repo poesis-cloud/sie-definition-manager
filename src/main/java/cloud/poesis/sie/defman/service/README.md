@@ -22,11 +22,16 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ║  │ ArchetypeService ──→ ArchetypeIdentityValidationService         │    ║
 ║  │                  ──→ ArchetypeAnnotationValidationService       │    ║
 ║  │                  ──→ ArchetypeCompositionValidationService      │    ║
+║  │                  ──→ ArchetypeSchemaResolverService             │    ║
 ║  │                  ──→ ArchetypePropertyIndexationService         │    ║
 ║  │                  ──→ JsonSchemaPositionWalker                   │    ║
 ║  │                                                                  │    ║
 ║  │  ArchetypeIdentityValidationService ──→ JsonSchemaPositionWalker│    ║
 ║  │  ArchetypeAnnotationValidationService ──→ JsonSchemaPositionWalker   ║
+║  │                                       ──→ ArchetypeSchemaResolverService  ║
+║  │  ArchetypeSchemaResolverService  ──→ ArchetypeParsingService     │    ║
+║  │                                  ──→ ArchetypeCompositionValidationService║
+║  │  ArchetypePropertyIndexationService ──→ ArchetypeSchemaResolverService    ║
 ║  └──────────────────────────────────────────────────────────────────┘    ║
 ║                                                                          ║
 ║  ┌─ Mechanism ──────────────────────────────────────────────────────┐    ║
@@ -81,9 +86,9 @@ LEGEND:  ──→ injection   ···→ list injection   @L = @Lazy
 ║       │──→ ArchetypeParsingService                                      ║
 ║       └──→ JsonSchemaPositionWalker                                     ║
 ║                                                                          ║
-║  AscriptionIdentityBoundValidationService  (no service deps)            ║
-║  AscriptionUniquenessValidationService     (no service deps)            ║
-║  AscriptionProtectionService               (no service deps)            ║
+║  AscriptionIdentityBoundValidationService ──→ ArchetypeSchemaResolverService  ║
+║  AscriptionUniquenessValidationService    ──→ ArchetypeSchemaResolverService  ║
+║  AscriptionProtectionService              ──→ ArchetypeSchemaResolverService  ║
 ║  AscriptionParsingService                  (static utilities)           ║
 ║  ArchetypeParsingService                   (no service deps)            ║
 ║  DefinitionService                         (no service deps)            ║
@@ -131,8 +136,9 @@ for lifecycle hooks.
 | --------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ArchetypeIdentityValidationService`    | `ArchetypeService` | Validates Archetype URI `$id` grammar, `$id`/`title` coherence, and root-only `$id` placement                                                |
 | `ArchetypeAnnotationValidationService`  | `ArchetypeService` | Validates `$gsm:*` annotation vocabulary and `$ref` URI policy on Archetype schemas; collects identity-bound fields                          |
-| `ArchetypeCompositionValidationService` | `ArchetypeService` | Validates `$ref` chain convergence to GSM base archetypes, `allOf` facet acyclicity, `$gsm:sealed` enforcement                               |
-| `ArchetypePropertyIndexationService`    | `ArchetypeService` | Provisions/deprovisions PostgreSQL JSONB indexes driven by `$gsm:queryable` and `$gsm:unique` annotations; idempotent DDL via `JdbcTemplate` |
+| `ArchetypeCompositionValidationService` | `ArchetypeService` | Validates `$ref` chain convergence to GSM base archetypes, `allOf` facet acyclicity, `$gsm:sealed` enforcement; resolves the composition chain's property set                               |
+| `ArchetypeSchemaResolverService`        | `ArchetypeService`, `ArchetypeAnnotationValidationService`, `ArchetypePropertyIndexationService`, `AscriptionIdentityBoundValidationService`, `AscriptionUniquenessValidationService`, `AscriptionProtectionService` | The single `gsmarc://` URI → schema resolver (governed store first, vendored classpath snapshot as fallback for GSM bases), and GSM §11.1 annotation inheritance: resolves an Archetype's property set over its resolved composition chain (own `properties` + `$ref` chain + `allOf` facets); cached per Ascription id |
+| `ArchetypePropertyIndexationService`    | `ArchetypeService` | Provisions/deprovisions PostgreSQL JSONB indexes driven by `$gsm:queryable` and `$gsm:unique` annotations resolved over the composition chain; idempotent DDL via `JdbcTemplate` |
 
 ### 2.3 Mechanism subsidiary services
 
@@ -160,7 +166,7 @@ for lifecycle hooks.
 | `AscriptionParsingValidationService`       | Validates ascription statements against archetype JSON Schemas                                                                                                 |
 | `AscriptionIdentityBoundValidationService` | Validates identity-bound field immutability across ascriptions of the same definition                                                                          |
 | `AscriptionUniquenessValidationService`    | Validates handler-defined activation uniqueness constraints                                                                                                    |
-| `AscriptionProtectionService`              | Applies `$gsm:dataProtection` measures (hash, mask, suppression) at write-time                                                                                 |
+| `AscriptionProtectionService`              | Applies `$gsm:dataProtection` measures (hash, mask, suppression) at write-time and read-time; fails closed on a declared measure the processor does not implement                |
 | `AscriptionParsingService`                 | Static utilities for statement field extraction (UUID parsing, required-field validation)                                                                      |
 | `ArchetypeParsingService`                  | Schema inspection utilities: annotation detection, title extraction, `$ref` resolution, base-type checking                                                     |
 | `DefinitionService`                        | Stable identity resolution/creation for `DefinitionEntity`                                                                                                     |

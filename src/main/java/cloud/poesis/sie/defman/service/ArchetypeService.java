@@ -50,6 +50,7 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   private final ArchetypeIdentityValidationService identityValidation;
   private final ArchetypeAnnotationValidationService annotationValidation;
   private final ArchetypeCompositionValidationService compositionValidation;
+  private final ArchetypeSchemaResolverService schemaResolver;
   private final JsonSchemaPositionWalker schemaPositionWalker;
 
   public ArchetypeService(
@@ -58,13 +59,28 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
       ArchetypeIdentityValidationService identityValidation,
       ArchetypeAnnotationValidationService annotationValidation,
       ArchetypeCompositionValidationService compositionValidation,
+      ArchetypeSchemaResolverService schemaResolver,
       JsonSchemaPositionWalker schemaPositionWalker) {
     this.archetypeRepo = archetypeRepo;
     this.indexProvisioning = indexProvisioning;
     this.identityValidation = identityValidation;
     this.annotationValidation = annotationValidation;
     this.compositionValidation = compositionValidation;
+    this.schemaResolver = schemaResolver;
     this.schemaPositionWalker = schemaPositionWalker;
+  }
+
+  /**
+   * Returns the Archetype's resolved {@code properties} node — own declarations
+   * composed with
+   * everything inherited through its {@code $ref} chain and {@code allOf} facets
+   * (GSM §11.1).
+   *
+   * @param archetype the resolved Archetype
+   * @return the resolved {@code properties} node
+   */
+  public JsonNode resolvedProperties(ArchetypeEntity archetype) {
+    return schemaResolver.resolvedProperties(archetype);
   }
 
   @Override
@@ -502,6 +518,30 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
     }
   }
 
+  /**
+   * Provisions indexes for the GSM base Archetypes.
+   *
+   * <p>
+   * The bases are inserted straight to ACTIVE by the bootstrap seed runner, so they never pass
+   * through {@link #onActivation}, the only other provisioning trigger. Tenant Archetypes need no
+   * equivalent sweep: an Archetype's resolved composition chain is fixed for its whole lifetime
+   * (GSM §11.1), so what {@link #onActivation} provisions stays correct. DDL is idempotent.
+   *
+   * @return the number of base Archetypes provisioned
+   */
+  public int reconcileBaseArchetypeIndexes() {
+    int reconciled = 0;
+    for (String baseUri : ArchetypeParsingService.gsmBaseIds()) {
+      ArchetypeEntity base = archetypeRepo.findResolvableByUri(baseUri).orElse(null);
+      if (base != null) {
+        indexProvisioning.provisionIndexes(
+            base, () -> resolveSubjectType(base).name().toLowerCase());
+        reconciled++;
+      }
+    }
+    return reconciled;
+  }
+
   // ========================================================================
   // AllOf chain validation
   // ========================================================================
@@ -569,6 +609,6 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   // ArchetypeCompositionValidationService.
 
   JsonNode resolveArchetypeSchema(String uri) {
-    return archetypeRepo.findResolvableByUri(uri).map(ArchetypeEntity::getStatement).orElse(null);
+    return schemaResolver.resolveUri(uri);
   }
 }

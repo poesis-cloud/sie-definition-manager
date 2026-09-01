@@ -51,12 +51,15 @@ public class ArchetypePropertyIndexationService {
   private static final Logger LOG = LoggerFactory.getLogger(ArchetypePropertyIndexationService.class);
 
   private final JdbcTemplate jdbcTemplate;
+  private final ArchetypeSchemaResolverService resolvedSchema;
 
   record IndexSpec(String indexName, String ddl, String type, String propertyName) {
   }
 
-  public ArchetypePropertyIndexationService(JdbcTemplate jdbcTemplate) {
+  public ArchetypePropertyIndexationService(
+      JdbcTemplate jdbcTemplate, ArchetypeSchemaResolverService resolvedSchema) {
     this.jdbcTemplate = jdbcTemplate;
+    this.resolvedSchema = resolvedSchema;
   }
 
   /**
@@ -83,8 +86,8 @@ public class ArchetypePropertyIndexationService {
     UUID archetypeId = archetype.getId();
     String schemaTitle = stmt.has("title") ? stmt.get("title").asText() : archetypeId.toString();
 
-    JsonNode properties = stmt.get("properties");
-    if (properties == null || !properties.isObject()) {
+    JsonNode properties = resolvedSchema.resolvedProperties(archetype);
+    if (properties.isEmpty()) {
       return;
     }
     String archetypeUri = archetypeUri(stmt);
@@ -132,8 +135,8 @@ public class ArchetypePropertyIndexationService {
     UUID archetypeId = archetype.getId();
     String schemaTitle = stmt.has("title") ? stmt.get("title").asText() : archetypeId.toString();
 
-    JsonNode properties = stmt.get("properties");
-    if (properties == null || !properties.isObject()) {
+    JsonNode properties = resolvedSchema.resolvedProperties(archetype);
+    if (properties.isEmpty()) {
       return;
     }
     String archetypeUri = archetypeUri(stmt);

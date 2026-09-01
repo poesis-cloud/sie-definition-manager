@@ -24,6 +24,7 @@ import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
@@ -90,6 +91,15 @@ class AscriptionServiceTest {
   @BeforeEach
   @SuppressWarnings("unchecked")
   void setUp() {
+    when(archetypeService.resolvedProperties(any()))
+        .thenAnswer(
+            invocation -> {
+              ArchetypeEntity archetype = invocation.getArgument(0);
+              JsonNode properties = archetype == null || archetype.getStatement() == null
+                  ? null
+                  : archetype.getStatement().get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
     when(structureHandler.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
     when(structureHandler.getIdentityBoundValues(any())).thenReturn(Map.of());
     when(structureHandler.getRefereeReferences(any())).thenReturn(List.of());

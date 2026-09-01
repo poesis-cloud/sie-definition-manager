@@ -219,7 +219,7 @@ already returns 409).
 | `ARCHETYPE_URI_RESOLUTION_UNIQUENESS` / consistency                          | `gsm:rules/archetype/uri/resolution-uniqueness`                           | an Archetype URI is resolvable by at most one row with `version > 0`; candidates may duplicate                                                                                                                                               | concurrent `POST` APPROVE / DB guard   | 409                        |
 | `ARCHETYPE_ID_ROOT_EXCLUSIVITY` / consistency                                | `gsm:rules/archetype/id/root-exclusivity`                                 | `$id` appears only on the statement root; data-valued annotations are ignored                                                                                                                                                                | `POST` CREATE (parse)                  | 400, JSON Pointer          |
 | `ARCHETYPE_REF_INTEGRITY` / consistency                                      | `gsm:rules/archetype/ref/integrity`                                       | every grammar-valid `gsmarc://` `$ref` resolves to one registered Archetype. `ARCHETYPE_REF_NORM` remains URI-form validation                                                                                                                | `POST` CREATE (parse)                  | 400, field `$ref`          |
-| `ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS` / consistency                        | `gsm:rules/archetype/allof/property-disjointness`                         | sibling `allOf` facets have disjoint effective top-level property names                                                                                                                                                                      | `POST` CREATE (parse)                  | 400, field `allOf`         |
+| `ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS` / consistency                        | `gsm:rules/archetype/allof/property-disjointness`                         | sibling `allOf` facets have disjoint resolved top-level property names                                                                                                                                                                      | `POST` CREATE (parse)                  | 400, field `allOf`         |
 | `ARCHETYPE_ALLOF_PROPERTY_TYPE_STABILITY` / consistency                      | `gsm:rules/archetype/allof/property-type-stability`                       | a host does not redeclare an inherited property with a different explicit JSON Schema type set                                                                                                                                               | `POST` CREATE (parse)                  | 400, property pointer      |
 
 Implementation home: `ArchetypeParsingService` (grammar + component extraction),
@@ -330,7 +330,7 @@ is not a lifecycle Referee. A resolvable `gsmarc://` `$ref` resolves through
 are the exact Archetype URI for external nodes and
 `(document $id, canonical JSON Pointer)` for local nodes.
 
-#### Effective-property composition algorithm
+#### Resolved-property composition algorithm
 
 The two `allOf` rules are conservative and deterministic:
 

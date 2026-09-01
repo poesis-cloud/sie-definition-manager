@@ -43,13 +43,15 @@ class ArchetypeSeedRunnerTest {
     private ResourcePatternResolver resolver;
     @Mock
     private ApplicationArguments args;
+    @Mock
+    private cloud.poesis.sie.defman.service.ArchetypeService archetypeService;
 
     private static final String SCHEMA_PATTERN = "classpath:gsm/schemas/*.schema.json";
     private ArchetypeSeedRunner runner;
 
     @BeforeEach
     void setUp() {
-        runner = new ArchetypeSeedRunner(jdbc, mapper, resolver, SCHEMA_PATTERN);
+        runner = new ArchetypeSeedRunner(jdbc, mapper, resolver, SCHEMA_PATTERN, archetypeService);
     }
 
     // ========================================================================
@@ -67,6 +69,15 @@ class ArchetypeSeedRunnerTest {
 
             // No trigger disable/enable; no inserts
             verify(jdbc, never()).execute(anyString());
+        }
+
+        @Test
+        void provisionsBaseIndexesEvenWhenSeedingIsSkipped() throws Exception {
+            when(jdbc.queryForObject("SELECT count(*) FROM archetype", Long.class)).thenReturn(8L);
+
+            runner.run(args);
+
+            verify(archetypeService).reconcileBaseArchetypeIndexes();
         }
 
         @Test

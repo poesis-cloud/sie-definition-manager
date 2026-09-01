@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -17,12 +18,15 @@ import cloud.poesis.sie.defman.entity.AscriptionStatusTransitionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.exception.ResourceNotFoundException;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
+import cloud.poesis.sie.defman.service.ArchetypeSchemaResolverService;
 import cloud.poesis.sie.defman.service.AscriptionProtectionService;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusTransitionRuleType;
 import cloud.poesis.sie.defman.type.AscriptionStatusType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
 import cloud.poesis.sie.defman.type.PrimitiveType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.URI;
@@ -47,7 +51,20 @@ class AbstractControllerTest {
   private final AbstractController controller;
 
   AbstractControllerTest() {
-    controller = new AbstractController(new AscriptionProtectionService()) {
+    ArchetypeSchemaResolverService resolvedSchema =
+        org.mockito.Mockito.mock(ArchetypeSchemaResolverService.class);
+    org.mockito.Mockito.lenient()
+        .when(resolvedSchema.resolvedProperties(org.mockito.ArgumentMatchers.any(ArchetypeEntity.class)))
+        .thenAnswer(
+            invocation -> {
+              ArchetypeEntity archetype = invocation.getArgument(0);
+              JsonNode properties =
+                  archetype.getStatement() == null
+                      ? null
+                      : archetype.getStatement().get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
+    controller = new AbstractController(new AscriptionProtectionService(resolvedSchema)) {
     };
   }
 
@@ -139,7 +156,7 @@ class AbstractControllerTest {
     }
 
     @Test
-    void encryptionInTransit_silentlyIgnored() {
+    void encryptionInTransit_failsClosed() {
       ObjectNode archetypeSchema = MAPPER.createObjectNode();
       archetypeSchema.put("title", "TestSchema");
       ObjectNode props = archetypeSchema.putObject("properties");
@@ -152,7 +169,9 @@ class AbstractControllerTest {
 
       AscriptionEntity entity = stubEntity(archetypeSchema, statement);
 
-      assertDoesNotThrow(() -> controller.mapEntityToAscriptionDto(entity, entity.getArchetype()));
+      assertThrows(
+          UnsupportedProtectionMeasureException.class,
+          () -> controller.mapEntityToAscriptionDto(entity, entity.getArchetype()));
     }
 
     @Test
@@ -353,6 +372,21 @@ class AbstractControllerTest {
         assertEquals(rule.getDescription(), problem.getProperties().get("ruleDescription"));
         assertEquals("/properties/nested/$id", problem.getProperties().get("path"));
       }
+    }
+
+    @Test
+    void unsupportedProtectionMeasure_mapsToNotImplemented() {
+      UnsupportedProtectionMeasureException exception =
+          new UnsupportedProtectionMeasureException("atRest", "encryption", "card");
+
+      ProblemDetail problem =
+          controller.mapUnsupportedProtectionMeasureExceptionToProblemDetail(exception);
+
+      assertEquals(501, problem.getStatus());
+      assertEquals(URI.create("gsm:exceptions/unsupported-protection-measure"), problem.getType());
+      assertEquals("Protection measure not implemented", problem.getTitle());
+      assertEquals("card", problem.getProperties().get("property"));
+      assertEquals("atRest.encryption", problem.getProperties().get("measure"));
     }
 
     @Test

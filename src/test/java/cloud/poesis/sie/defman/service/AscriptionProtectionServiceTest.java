@@ -8,8 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +32,20 @@ class AscriptionProtectionServiceTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private final AscriptionProtectionService service = new AscriptionProtectionService();
+  private final ArchetypeSchemaResolverService resolvedSchema =
+      mock(ArchetypeSchemaResolverService.class);
+
+  private final AscriptionProtectionService service =
+      new AscriptionProtectionService(resolvedSchema);
+
+  /** Wraps a schema as an Archetype whose resolved properties are the schema's own. */
+  private ArchetypeEntity archetypeOf(JsonNode schema) {
+    ArchetypeEntity archetype = mock(ArchetypeEntity.class);
+    JsonNode properties = schema == null ? null : schema.get("properties");
+    when(resolvedSchema.resolvedProperties(archetype))
+        .thenReturn(properties instanceof ObjectNode node ? node : MAPPER.createObjectNode());
+    return archetype;
+  }
 
   // ==================================================================
   // applyAtRestProtection
@@ -145,14 +162,21 @@ class AscriptionProtectionServiceTest {
     }
 
     @Test
-    void encryption_silentlyIgnored() {
+    void encryption_failsClosed() {
       ObjectNode dp = dpAtRest();
       dp.withObject("atRest").putObject("encryption").put("algorithm", "AES-256-GCM");
       ObjectNode statement = MAPPER.createObjectNode().put("card", "4111-1111");
 
-      service.applyAtRestProtection(dp, "card", statement);
+      UnsupportedProtectionMeasureException exception =
+          assertThrows(
+              UnsupportedProtectionMeasureException.class,
+              () -> service.applyAtRestProtection(dp, "card", statement));
 
-      assertEquals("4111-1111", statement.get("card").asText());
+      assertEquals("atRest.encryption", exception.getMeasure());
+      assertEquals(
+          "4111-1111",
+          statement.get("card").asText(),
+          "Value must not be persisted unprotected when the measure is unimplemented");
     }
 
     @Test
@@ -227,7 +251,7 @@ class AscriptionProtectionServiceTest {
 
       ObjectNode statement = MAPPER.createObjectNode().put("password", "s3cret");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       // Result is transformed
       String hashed = result.get("password").asText();
@@ -249,7 +273,7 @@ class AscriptionProtectionServiceTest {
 
       ObjectNode statement = MAPPER.createObjectNode().put("phone", "555-1234");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertEquals("****1234", result.get("phone").asText());
       assertEquals("555-1234", statement.get("phone").asText());
@@ -263,7 +287,7 @@ class AscriptionProtectionServiceTest {
       ObjectNode statement =
           MAPPER.createObjectNode().put("secret", "top-secret").put("env", "prod");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertNull(result.get("secret"));
       assertEquals("prod", result.get("env").asText());
@@ -272,7 +296,7 @@ class AscriptionProtectionServiceTest {
     }
 
     @Test
-    void encryptionInTransit_silentlyIgnored() {
+    void encryptionInTransit_failsClosed() {
       ObjectNode archetypeSchema =
           schemaWithInTransit(
               "card",
@@ -281,10 +305,14 @@ class AscriptionProtectionServiceTest {
                   .set("encryption", MAPPER.createObjectNode().put("algorithm", "AES-256-GCM")));
 
       ObjectNode statement = MAPPER.createObjectNode().put("card", "4111-1111");
+      ArchetypeEntity archetype = archetypeOf(archetypeSchema);
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      UnsupportedProtectionMeasureException exception =
+          assertThrows(
+              UnsupportedProtectionMeasureException.class,
+              () -> service.applyInTransitProtection(statement, archetype));
 
-      assertEquals("4111-1111", result.get("card").asText());
+      assertEquals("inTransit.encryption", exception.getMeasure());
     }
 
     @Test
@@ -297,7 +325,7 @@ class AscriptionProtectionServiceTest {
 
       ObjectNode statement = MAPPER.createObjectNode().put("name", "test");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertSame(statement, result, "Should return original reference when no transform needed");
     }
@@ -315,7 +343,7 @@ class AscriptionProtectionServiceTest {
 
       ObjectNode statement = MAPPER.createObjectNode().put("ssn", "hashed-at-rest");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertSame(statement, result, "Should return original reference when only atRest defined");
     }
@@ -324,7 +352,7 @@ class AscriptionProtectionServiceTest {
     void nullArchetypeSchema_returnsSameReference() {
       ObjectNode statement = MAPPER.createObjectNode().put("name", "test");
 
-      JsonNode result = service.applyInTransitProtection(statement, null);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(null));
 
       assertSame(statement, result);
     }
@@ -335,7 +363,7 @@ class AscriptionProtectionServiceTest {
       // No "properties" key at all
       ObjectNode statement = MAPPER.createObjectNode().put("name", "test");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertSame(statement, result);
     }
@@ -348,7 +376,7 @@ class AscriptionProtectionServiceTest {
       // Statement does NOT contain "password"
       ObjectNode statement = MAPPER.createObjectNode().put("name", "test");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertSame(statement, result, "No inTransit field present → no copy needed");
     }
@@ -393,7 +421,7 @@ class AscriptionProtectionServiceTest {
               .put("secret", "top-secret")
               .put("name", "test-service");
 
-      JsonNode result = service.applyInTransitProtection(statement, archetypeSchema);
+      JsonNode result = service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertTrue(result.get("password").asText().matches("[0-9a-f]{64}"));
       assertEquals("****1234", result.get("phone").asText());
@@ -410,7 +438,7 @@ class AscriptionProtectionServiceTest {
           MAPPER.createObjectNode().put("secret", "top-secret").put("env", "prod");
       String originalJson = statement.toString();
 
-      service.applyInTransitProtection(statement, archetypeSchema);
+      service.applyInTransitProtection(statement, archetypeOf(archetypeSchema));
 
       assertEquals(
           originalJson,

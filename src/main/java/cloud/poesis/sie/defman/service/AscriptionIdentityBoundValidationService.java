@@ -30,6 +30,12 @@ import org.springframework.stereotype.Service;
 @Service
 class AscriptionIdentityBoundValidationService {
 
+  private final ArchetypeSchemaResolverService resolvedSchema;
+
+  AscriptionIdentityBoundValidationService(ArchetypeSchemaResolverService resolvedSchema) {
+    this.resolvedSchema = resolvedSchema;
+  }
+
   /**
    * Validates identity-bound invariant for a new ascription entity.
    *
@@ -114,12 +120,8 @@ class AscriptionIdentityBoundValidationService {
       UUID definitionId,
       java.util.Set<String> normalizedFields,
       java.util.function.Function<UUID, List<? extends AscriptionEntity>> existingFinder) {
-    JsonNode archetypeStmt = archetype.getStatement();
-    if (archetypeStmt == null) {
-      return;
-    }
-    JsonNode properties = archetypeStmt.get("properties");
-    if (properties == null || !properties.isObject()) {
+    JsonNode properties = resolvedSchema.resolvedProperties(archetype);
+    if (properties.isEmpty()) {
       return;
     }
 

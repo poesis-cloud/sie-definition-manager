@@ -148,6 +148,15 @@ public class ArchetypeParsingService {
     return GSM_BASE_IDS.contains(id);
   }
 
+  /**
+   * The version-pinned URIs of the GSM base Archetypes.
+   *
+   * @return an unmodifiable set of base Archetype URIs
+   */
+  public static Set<String> gsmBaseIds() {
+    return GSM_BASE_IDS;
+  }
+
   // ======================================================================
   // Schema resolution
   // ======================================================================

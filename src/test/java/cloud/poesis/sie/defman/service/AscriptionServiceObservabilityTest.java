@@ -12,6 +12,7 @@ import cloud.poesis.sie.defman.entity.AscriptionEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.opentelemetry.api.common.AttributeKey;
@@ -65,6 +66,18 @@ class AscriptionServiceObservabilityTest {
 
     @BeforeEach
     void setUpHandler() {
+        org.mockito.Mockito.lenient()
+                .when(archetypeService.resolvedProperties(any()))
+                .thenAnswer(
+                        invocation -> {
+                            ArchetypeEntity archetype = invocation.getArgument(0);
+                            JsonNode properties = archetype == null || archetype.getStatement() == null
+                                    ? null
+                                    : archetype.getStatement().get("properties");
+                            return properties instanceof ObjectNode node
+                                    ? node
+                                    : new ObjectMapper().createObjectNode();
+                        });
         when(structureHandler.getSubjectType()).thenReturn(DefinitionSubjectType.STRUCTURE);
         when(structureHandler.getCascadeTargetRoles()).thenReturn(Map.of());
         when(structureHandler.getRefereeReferences(any())).thenReturn(List.of());

@@ -341,7 +341,7 @@ public enum AscriptionConsistencyRuleType implements RuleType {
     ARCHETYPE_ALLOF_PROPERTY_DISJOINTNESS(
             "gsm:rules/archetype/allof/property-disjointness",
             "Archetype allOf property disjointness",
-            "Sibling allOf facets must expose disjoint effective top-level property names. "
+            "Sibling allOf facets must expose disjoint resolved top-level property names. "
                     + "A shared property is a flat-namespace conflation; compose facets through "
                     + "distinct mount properties instead."),
 
@@ -402,6 +402,16 @@ public enum AscriptionConsistencyRuleType implements RuleType {
                     + "of the declaring Archetype schema, nor any alias declared on "
                     + "another property of the same schema — alias-to-canonical "
                     + "query resolution must be unambiguous."),
+
+    ARCHETYPE_DATA_PROTECTION_QUERYABLE_EXCLUSIVITY(
+            "gsm:rules/archetype/data-protection/queryable-exclusivity",
+            "Archetype data protection queryable exclusivity",
+            "A property resolved over the composition chain must not carry both "
+                    + "$gsm:queryable and $gsm:dataProtection.atRest.encryption. "
+                    + "Randomised authenticated encryption yields a different "
+                    + "ciphertext per write, so an equality index over it can never "
+                    + "match. $gsm:queryable with atRest.hash remains permitted "
+                    + "because a keyed hash is deterministic."),
 
     // ====================================================================
     // ASCRIPTION — cross-cutting statement validation

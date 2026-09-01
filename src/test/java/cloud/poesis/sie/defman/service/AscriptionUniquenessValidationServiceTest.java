@@ -17,6 +17,7 @@ import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.repository.AscriptionRepository;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import cloud.poesis.sie.defman.type.DefinitionSubjectType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
@@ -36,11 +37,24 @@ class AscriptionUniquenessValidationServiceTest {
 
   @Mock private AscriptionRepository ascriptionRepository;
 
+  @Mock private ArchetypeSchemaResolverService resolvedSchema;
+
   private AscriptionUniquenessValidationService service;
 
   @BeforeEach
   void setUp() {
-    service = new AscriptionUniquenessValidationService(ascriptionRepository);
+    Mockito.lenient()
+        .when(resolvedSchema.resolvedProperties(Mockito.any(ArchetypeEntity.class)))
+        .thenAnswer(
+            invocation -> {
+              ArchetypeEntity archetype = invocation.getArgument(0);
+              JsonNode properties =
+                  archetype.getStatement() == null
+                      ? null
+                      : archetype.getStatement().get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
+    service = new AscriptionUniquenessValidationService(ascriptionRepository, resolvedSchema);
   }
 
   // ========================================================================

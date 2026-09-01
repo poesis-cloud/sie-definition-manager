@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.entity.DefinitionEntity;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.UUID;
@@ -37,11 +39,23 @@ class ArchetypePropertyIndexationServiceTest {
   @Mock
   private JdbcTemplate jdbcTemplate;
 
+  @Mock
+  private ArchetypeSchemaResolverService resolvedSchema;
+
   private ArchetypePropertyIndexationService service;
 
   @BeforeEach
   void setUp() {
-    service = new ArchetypePropertyIndexationService(jdbcTemplate);
+    when(resolvedSchema.resolvedProperties(any(ArchetypeEntity.class)))
+        .thenAnswer(
+            invocation -> {
+              ArchetypeEntity archetype = invocation.getArgument(0);
+              JsonNode properties = archetype.getStatement() == null
+                  ? null
+                  : archetype.getStatement().get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
+    service = new ArchetypePropertyIndexationService(jdbcTemplate, resolvedSchema);
   }
 
   // ========================================================================

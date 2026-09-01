@@ -322,7 +322,7 @@ class ArchetypeCompositionValidationServiceTest {
   class ConservativeCompositionParity {
 
     @Test
-    void siblingInlineFacetsWithSharedEffectiveProperty_rejected() {
+    void siblingInlineFacetsWithSharedResolvedProperty_rejected() {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "Conflicted");
       var allOf = schema.putArray("allOf");
       allOf.add(objectSchema("shared", "string"));
@@ -339,7 +339,7 @@ class ArchetypeCompositionValidationServiceTest {
     }
 
     @Test
-    void siblingLocalExternalAndTransitiveFacetsUseEffectiveProperties() {
+    void siblingLocalExternalAndTransitiveFacetsUseResolvedProperties() {
       String externalId = "gsmarc://tenant/ExternalFacet/v1";
       String transitiveId = "gsmarc://tenant/TransitiveFacet/v1";
       schemaStore.put(externalId, objectSchema("externalOnly", "string"));
@@ -369,7 +369,7 @@ class ArchetypeCompositionValidationServiceTest {
     }
 
     @Test
-    void siblingLocalFacetsWithSharedEffectiveProperty_rejected() {
+    void siblingLocalFacetsWithSharedResolvedProperty_rejected() {
       ObjectNode schema = MAPPER.createObjectNode().put("title", "LocalConflict");
       ObjectNode definitions = schema.putObject("$defs");
       definitions.set("First", objectSchema("shared", "string"));
@@ -382,7 +382,7 @@ class ArchetypeCompositionValidationServiceTest {
     }
 
     @Test
-    void siblingExternalFacetsWithSharedEffectiveProperty_rejected() {
+    void siblingExternalFacetsWithSharedResolvedProperty_rejected() {
       String firstId = "gsmarc://tenant/FirstFacet/v1";
       String secondId = "gsmarc://tenant/SecondFacet/v1";
       schemaStore.put(firstId, objectSchema("shared", "string"));
@@ -396,7 +396,7 @@ class ArchetypeCompositionValidationServiceTest {
     }
 
     @Test
-    void siblingTransitiveFacetsWithSharedEffectiveProperty_rejected() {
+    void siblingTransitiveFacetsWithSharedResolvedProperty_rejected() {
       String sourceId = "gsmarc://tenant/SourceFacet/v1";
       String firstId = "gsmarc://tenant/FirstTransitiveFacet/v1";
       String secondId = "gsmarc://tenant/SecondTransitiveFacet/v1";

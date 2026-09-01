@@ -36,7 +36,19 @@ class AscriptionIdentityBoundValidationServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new AscriptionIdentityBoundValidationService();
+    ArchetypeSchemaResolverService resolvedSchema = mock(ArchetypeSchemaResolverService.class);
+    org.mockito.Mockito.lenient()
+        .when(resolvedSchema.resolvedProperties(org.mockito.ArgumentMatchers.any(ArchetypeEntity.class)))
+        .thenAnswer(
+            invocation -> {
+              ArchetypeEntity archetype = invocation.getArgument(0);
+              com.fasterxml.jackson.databind.JsonNode properties =
+                  archetype.getStatement() == null
+                      ? null
+                      : archetype.getStatement().get("properties");
+              return properties instanceof ObjectNode node ? node : MAPPER.createObjectNode();
+            });
+    service = new AscriptionIdentityBoundValidationService(resolvedSchema);
   }
 
   // ========================================================================

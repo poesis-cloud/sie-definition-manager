@@ -1,6 +1,8 @@
 package cloud.poesis.sie.defman.service;
 
+import cloud.poesis.sie.defman.entity.ArchetypeEntity;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
+import cloud.poesis.sie.defman.exception.UnsupportedProtectionMeasureException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,6 +27,12 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class AscriptionProtectionService {
+
+  private final ArchetypeSchemaResolverService resolvedSchema;
+
+  public AscriptionProtectionService(ArchetypeSchemaResolverService resolvedSchema) {
+    this.resolvedSchema = resolvedSchema;
+  }
 
   // ======================================================================
   // atRest — write-time protection (Ascription authoring)
@@ -51,8 +59,7 @@ public class AscriptionProtectionService {
     String textValue = value.isTextual() ? value.asText() : value.toString();
 
     if (atRest.has("encryption")) {
-      // Encryption not yet implemented — silently skip
-      return;
+      throw unsupportedMeasure("atRest", "encryption", propName);
     }
 
     if (atRest.has("hash")) {
@@ -80,16 +87,17 @@ public class AscriptionProtectionService {
    * Applies {@code $gsm:dataProtection.inTransit} measures to the statement, returning a (possibly
    * deep-copied) result safe for API responses. The original statement is never mutated.
    *
+   * <p>Annotations are resolved over the archetype's resolved composition chain (GSM §11.1), so a
+   * property whose protection is declared by an ancestor archetype is protected here.
+   *
    * @param statement the ascription statement payload
-   * @param archetypeSchema the archetype schema containing {@code $gsm:dataProtection} annotations
+   * @param archetype the typing archetype whose resolved composition chain carries {@code
+   *     $gsm:dataProtection} annotations
    * @return the transformed statement (deep-copied only when transformation is needed)
    */
-  public JsonNode applyInTransitProtection(JsonNode statement, JsonNode archetypeSchema) {
-    if (archetypeSchema == null) {
-      return statement;
-    }
-    JsonNode properties = archetypeSchema.get("properties");
-    if (properties == null || !properties.isObject()) {
+  public JsonNode applyInTransitProtection(JsonNode statement, ArchetypeEntity archetype) {
+    JsonNode properties = resolvedSchema.resolvedProperties(archetype);
+    if (properties.isEmpty()) {
       return statement;
     }
 
@@ -131,8 +139,7 @@ public class AscriptionProtectionService {
       String textValue = value.isTextual() ? value.asText() : value.toString();
 
       if (inTransit.has("encryption")) {
-        // Encryption not yet implemented — silently skip
-        continue;
+        throw unsupportedMeasure("inTransit", "encryption", fieldName);
       }
 
       if (inTransit.has("hash")) {
@@ -157,6 +164,16 @@ public class AscriptionProtectionService {
   // ======================================================================
   // Shared primitives
   // ======================================================================
+
+  /**
+   * Guards the write and read paths against a declared measure this processor cannot apply.
+   * Archetype authoring rejects these already; this is the last line before an unprotected value
+   * would be persisted or returned.
+   */
+  private static UnsupportedProtectionMeasureException unsupportedMeasure(
+      String phase, String measure, String propName) {
+    return new UnsupportedProtectionMeasureException(phase, measure, propName);
+  }
 
   /**
    * Computes a hex-encoded hash of the given value.

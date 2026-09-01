@@ -1,6 +1,7 @@
 package cloud.poesis.sie.defman.bootstrap;
 
 import cloud.poesis.sie.defman.service.ArchetypeParsingService;
+import cloud.poesis.sie.defman.service.ArchetypeService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -60,24 +61,28 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
   private final ObjectMapper mapper;
   private final ResourcePatternResolver resolver;
   private final String schemaPattern;
+  private final ArchetypeService archetypeService;
 
   /**
    * Constructs the seed runner.
    *
-   * @param jdbc          JDBC template for raw SQL operations
-   * @param mapper        Jackson mapper for JSON schema parsing
-   * @param resolver      classpath resource resolver
-   * @param schemaPattern glob pattern for GSM archetype schema files
+   * @param jdbc             JDBC template for raw SQL operations
+   * @param mapper           Jackson mapper for JSON schema parsing
+   * @param resolver         classpath resource resolver
+   * @param schemaPattern    glob pattern for GSM archetype schema files
+   * @param archetypeService the Archetype service owning index provisioning
    */
   public ArchetypeSeedRunner(
       JdbcTemplate jdbc,
       ObjectMapper mapper,
       ResourcePatternResolver resolver,
-      @Value("${dm.bootstrap.archetype-schema-pattern}") String schemaPattern) {
+      @Value("${dm.bootstrap.archetype-schema-pattern}") String schemaPattern,
+      ArchetypeService archetypeService) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.resolver = resolver;
     this.schemaPattern = schemaPattern;
+    this.archetypeService = archetypeService;
   }
 
   @Override
@@ -89,9 +94,13 @@ public class ArchetypeSeedRunner implements ApplicationRunner {
       LOG.info(
           "GSM base archetypes already seeded ({} row(s)); reconciled stem ownership and skipped bootstrap.",
           count);
-      return;
+    } else {
+      doSeed();
     }
-    doSeed();
+    // Bases are inserted at ACTIVE, so they never reach ArchetypeService#onActivation.
+    LOG.info(
+        "Provisioned property indexes for {} GSM base archetype(s).",
+        archetypeService.reconcileBaseArchetypeIndexes());
   }
 
   private void doSeed() throws IOException {

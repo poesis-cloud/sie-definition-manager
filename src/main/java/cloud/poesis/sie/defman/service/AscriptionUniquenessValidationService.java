@@ -41,9 +41,12 @@ import org.springframework.stereotype.Service;
 public class AscriptionUniquenessValidationService {
 
   private final AscriptionRepository ascriptionRepository;
+  private final ArchetypeSchemaResolverService resolvedSchema;
 
-  AscriptionUniquenessValidationService(AscriptionRepository ascriptionRepository) {
+  AscriptionUniquenessValidationService(
+      AscriptionRepository ascriptionRepository, ArchetypeSchemaResolverService resolvedSchema) {
     this.ascriptionRepository = ascriptionRepository;
+    this.resolvedSchema = resolvedSchema;
   }
 
   // ======================================================================
@@ -63,12 +66,8 @@ public class AscriptionUniquenessValidationService {
    *     duplicate is found
    */
   void validate(JsonNode statement, ArchetypeEntity archetype, UUID definitionId) {
-    JsonNode archetypeStmt = archetype.getStatement();
-    if (archetypeStmt == null) {
-      return;
-    }
-    JsonNode properties = archetypeStmt.get("properties");
-    if (properties == null || !properties.isObject()) {
+    JsonNode properties = resolvedSchema.resolvedProperties(archetype);
+    if (properties.isEmpty()) {
       return;
     }
 

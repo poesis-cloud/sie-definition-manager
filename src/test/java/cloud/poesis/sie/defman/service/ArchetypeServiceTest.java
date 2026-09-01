@@ -65,6 +65,9 @@ class ArchetypeServiceTest {
   @Mock
   private ArchetypeCompositionValidationService compositionValidation;
 
+  @Mock
+  private ArchetypeSchemaResolverService schemaResolver;
+
   private ArchetypeService service;
 
   @BeforeEach
@@ -75,7 +78,15 @@ class ArchetypeServiceTest {
         identityValidation,
         annotationValidation,
         compositionValidation,
+        schemaResolver,
         new JsonSchemaPositionWalker());
+    // Mirrors the production resolver's governed-store lookup so the repository stubs
+    // in each test drive URI resolution as well.
+    when(schemaResolver.resolveUri(anyString()))
+        .thenAnswer(invocation -> archetypeRepo
+            .findResolvableByUri(invocation.getArgument(0))
+            .map(ArchetypeEntity::getStatement)
+            .orElse(null));
   }
 
   // ========================================================================
@@ -646,6 +657,27 @@ class ArchetypeServiceTest {
       AscriptionEntity notArchetype = mock(AscriptionEntity.class);
       service.onDeactivation(notArchetype);
       verify(indexProvisioning, never()).deprovisionIndexes(any(), any());
+    }
+
+    @Test
+    void reconcileBaseArchetypeIndexes_provisionsEverySeededBase() {
+      ArchetypeEntity structure = archetypeWithBaseTitle("Structure");
+      when(archetypeRepo.findResolvableByUri(anyString())).thenReturn(Optional.empty());
+      when(archetypeRepo.findResolvableByUri("gsmarc://gsm/Structure/v1"))
+          .thenReturn(Optional.of(structure));
+
+      assertEquals(1, service.reconcileBaseArchetypeIndexes());
+
+      verify(indexProvisioning).provisionIndexes(eq(structure), any());
+    }
+
+    @Test
+    void reconcileBaseArchetypeIndexes_ignoresBasesAbsentFromTheStore() {
+      when(archetypeRepo.findResolvableByUri(anyString())).thenReturn(Optional.empty());
+
+      assertEquals(0, service.reconcileBaseArchetypeIndexes());
+
+      verify(indexProvisioning, never()).provisionIndexes(any(), any());
     }
 
     private ArchetypeEntity archetypeWithBaseTitle(String title) {

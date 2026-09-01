@@ -3,12 +3,19 @@ package cloud.poesis.sie.defman.service;
 import cloud.poesis.sie.defman.exception.RuleViolationException;
 import cloud.poesis.sie.defman.type.AscriptionConsistencyRuleType;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -26,6 +33,18 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class ArchetypeCompositionValidationService {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ArchetypeCompositionValidationService.class);
+
+  private static final List<String> BOOLEAN_ANNOTATIONS =
+      List.of("$gsm:identityBound", "$gsm:queryable", "$gsm:unique");
+
+  private static final List<String> PROTECTION_PHASES = List.of("atRest", "inTransit");
+
+  /** Ordered by disclosure: a later measure reveals strictly less than an earlier one. */
+  private static final List<String> PROTECTION_STRENGTH =
+      List.of("mask", "encryption", "hash", "suppression");
 
   // ========================================================================
   // Schema composition validation
@@ -68,7 +87,7 @@ public class ArchetypeCompositionValidationService {
     if (id != null) {
       activeCompositionRefs.add(id);
     }
-    collectEffectiveProperties(schema, schema, schemaResolver, activeCompositionRefs);
+    collectResolvedProperties(schema, schema, schemaResolver, activeCompositionRefs);
 
     // 0 bases → rootless archetype (valid: usable as qualifier/facet/data
     // archetype).
@@ -109,7 +128,8 @@ public class ArchetypeCompositionValidationService {
   }
 
   /**
-   * Resolves a property path against the effective schema formed by direct
+   * Resolves a property path against the resolved composition chain formed by
+   * direct
    * properties, external
    * {@code $ref} inheritance, and inline or referenced {@code allOf} facets.
    */
@@ -122,6 +142,36 @@ public class ArchetypeCompositionValidationService {
         0,
         schemaResolver,
         new HashSet<>());
+  }
+
+  /**
+   * Resolves the resolved property set of an Archetype schema — GSM §11.1
+   * annotation inheritance.
+   *
+   * <p>
+   * The resolved set composes, in increasing precedence: {@code allOf} facet
+   * properties, properties
+   * reachable through the top-level {@code $ref} chain, and the schema's own
+   * {@code properties}. It
+   * is the surface over which every property-scoped {@code $gsm:*} keyword MUST
+   * be resolved.
+   *
+   * @param schema         the archetype JSON Schema
+   * @param schemaResolver resolves an Archetype URI to its JSON Schema, or
+   *                       {@code null} if not found
+   * @return resolved property name → property schema, in resolution order
+   */
+  public Map<String, JsonNode> resolvedProperties(
+      JsonNode schema, Function<String, JsonNode> schemaResolver) {
+    if (schema == null || !schema.isObject()) {
+      return Map.of();
+    }
+    Set<String> activeRefs = new HashSet<>();
+    JsonNode id = schema.get("$id");
+    if (id != null && id.isTextual()) {
+      activeRefs.add(id.asText());
+    }
+    return collectResolvedProperties(schema, schema, schemaResolver, activeRefs);
   }
 
   // ========================================================================
@@ -342,7 +392,7 @@ public class ArchetypeCompositionValidationService {
     }
   }
 
-  private Map<String, JsonNode> collectEffectiveProperties(
+  private Map<String, JsonNode> collectResolvedProperties(
       JsonNode schema,
       JsonNode documentRoot,
       Function<String, JsonNode> schemaResolver,
@@ -364,7 +414,7 @@ public class ArchetypeCompositionValidationService {
       }
       try {
         inherited.putAll(
-            collectEffectiveProperties(
+            collectResolvedProperties(
                 resolved.schema(), resolved.documentRoot(), schemaResolver, activeRefs));
       } finally {
         activeRefs.remove(resolved.cycleKey());
@@ -376,7 +426,7 @@ public class ArchetypeCompositionValidationService {
       Map<String, String> siblingOwners = new LinkedHashMap<>();
       int facetIndex = 0;
       for (JsonNode facet : allOf) {
-        Map<String, JsonNode> facetProperties = collectEffectiveProperties(facet, documentRoot, schemaResolver,
+        Map<String, JsonNode> facetProperties = collectResolvedProperties(facet, documentRoot, schemaResolver,
             activeRefs);
         String facetOwner = facetDescription(facet, facetIndex);
         for (Map.Entry<String, JsonNode> property : facetProperties.entrySet()) {
@@ -388,19 +438,24 @@ public class ArchetypeCompositionValidationService {
                     + previousOwner
                     + " and "
                     + facetOwner
-                    + " both expose effective property '"
+                    + " both expose resolved property '"
                     + property.getKey()
                     + "'; use distinct mount properties",
                 "field",
                 "allOf");
           }
-          inherited.putIfAbsent(property.getKey(), property.getValue());
+          // The $ref chain outranks facets for the schema body, but never drops their annotations.
+          inherited.merge(
+              property.getKey(),
+              property.getValue(),
+              (fromRefChain, fromFacet) ->
+                  joinAnnotations(fromFacet, fromRefChain, property.getKey()));
         }
         facetIndex++;
       }
     }
 
-    Map<String, JsonNode> effective = new LinkedHashMap<>(inherited);
+    Map<String, JsonNode> resolved = new LinkedHashMap<>(inherited);
     JsonNode directProperties = schema.get("properties");
     if (directProperties != null && directProperties.isObject()) {
       directProperties
@@ -418,10 +473,87 @@ public class ArchetypeCompositionValidationService {
                       "field",
                       "/properties/" + escapeJsonPointerToken(property.getKey()));
                 }
-                effective.put(property.getKey(), property.getValue());
+                resolved.put(
+                    property.getKey(),
+                    inheritedProperty == null
+                        ? property.getValue()
+                        : joinAnnotations(
+                            inheritedProperty, property.getValue(), property.getKey()));
               });
     }
-    return effective;
+    return resolved;
+  }
+
+  /**
+   * Joins an ancestor's {@code $gsm:*} keywords into a descendant's redeclaration of the same
+   * property — GSM §11.1. Booleans join by disjunction, aliases by union, and
+   * {@code $gsm:dataProtection} by the strongest measure per phase, so narrowing a property's
+   * schema can never drop protection, queryability, uniqueness or identity binding.
+   */
+  private static JsonNode joinAnnotations(
+      JsonNode inherited, JsonNode declared, String propertyName) {
+    if (!inherited.isObject()) {
+      return declared;
+    }
+    if (!declared.isObject()) {
+      // A boolean schema carries no annotations of its own; keep the ancestor's.
+      return inherited;
+    }
+    ObjectNode joined = declared.deepCopy();
+
+    for (String annotation : BOOLEAN_ANNOTATIONS) {
+      if (inherited.path(annotation).asBoolean(false)) {
+        joined.put(annotation, true);
+      }
+    }
+
+    JsonNode inheritedAliases = inherited.path("$gsm:aliases");
+    if (inheritedAliases.isArray()) {
+      Set<String> aliases = new LinkedHashSet<>();
+      inheritedAliases.forEach(alias -> aliases.add(alias.asText()));
+      joined.path("$gsm:aliases").forEach(alias -> aliases.add(alias.asText()));
+      ArrayNode merged = joined.putArray("$gsm:aliases");
+      aliases.forEach(merged::add);
+    }
+
+    JsonNode inheritedProtection = inherited.path("$gsm:dataProtection");
+    if (inheritedProtection.isObject()) {
+      ObjectNode protection = joined.path("$gsm:dataProtection").isObject()
+          ? (ObjectNode) joined.get("$gsm:dataProtection")
+          : joined.putObject("$gsm:dataProtection");
+      for (String phase : PROTECTION_PHASES) {
+        JsonNode inheritedPhase = inheritedProtection.path(phase);
+        if (!inheritedPhase.isObject()) {
+          continue;
+        }
+        JsonNode declaredPhase = protection.path(phase);
+        if (measureStrength(declaredPhase) < measureStrength(inheritedPhase)) {
+          if (declaredPhase.isObject()) {
+            LOG.warn(
+                "Property '{}' redeclares $gsm:dataProtection.{} as {} but an ancestor requires {};"
+                    + " the ancestor's measure is applied and the redeclaration is inert",
+                propertyName,
+                phase,
+                declaredPhase.fieldNames().next(),
+                inheritedPhase.fieldNames().next());
+          }
+          protection.set(phase, inheritedPhase.deepCopy());
+        }
+      }
+    }
+    return joined;
+  }
+
+  /** Rank of the strongest measure declared in a protection phase, or -1 when none is declared. */
+  private static int measureStrength(JsonNode phase) {
+    int strongest = -1;
+    if (!phase.isObject()) {
+      return strongest;
+    }
+    for (Iterator<String> measures = phase.fieldNames(); measures.hasNext();) {
+      strongest = Math.max(strongest, PROTECTION_STRENGTH.indexOf(measures.next()));
+    }
+    return strongest;
   }
 
   private ResolvedSchema resolveSchema(
