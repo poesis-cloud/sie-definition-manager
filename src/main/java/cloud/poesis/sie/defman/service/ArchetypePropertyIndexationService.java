@@ -74,8 +74,8 @@ public class ArchetypePropertyIndexationService {
    * @param archetype         the archetype entity whose schema annotations drive
    *                          index creation
    * @param tableNameSupplier lazily resolved table name — only invoked when the
-   *                          archetype has
-   *                          annotated properties that require index provisioning
+   *                          archetype's resolved composition chain declares at
+   *                          least one property
    */
   public void provisionIndexes(ArchetypeEntity archetype, Supplier<String> tableNameSupplier) {
     JsonNode stmt = archetype.getStatement();
@@ -122,9 +122,8 @@ public class ArchetypePropertyIndexationService {
    * @param archetype         the archetype entity whose schema annotations drive
    *                          index removal
    * @param tableNameSupplier lazily resolved table name — only invoked when the
-   *                          archetype has
-   *                          annotated properties that require index
-   *                          deprovisioning
+   *                          archetype's resolved composition chain declares at
+   *                          least one property
    */
   public void deprovisionIndexes(ArchetypeEntity archetype, Supplier<String> tableNameSupplier) {
     JsonNode stmt = archetype.getStatement();

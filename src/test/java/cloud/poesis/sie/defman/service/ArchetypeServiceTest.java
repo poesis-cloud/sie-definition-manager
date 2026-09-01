@@ -590,6 +590,21 @@ class ArchetypeServiceTest {
           ex.getRuleType());
     }
 
+    /** Skipping provisioning for rootless Archetypes must not weaken GSM-PROC-8 typing. */
+    @Test
+    void rootlessArchetype_stillRejectedInTheTypingRole() {
+      String id = "gsmarc://iso25010/product-quality/ProductAvailability/v1";
+      ArchetypeEntity entity = mockArchetype(
+          MAPPER.createObjectNode().put("$id", id).put("title", "ProductAvailability"));
+      when(archetypeRepo.findResolvableByUri(id)).thenReturn(Optional.of(entity));
+
+      RuleViolationException ex = assertThrows(RuleViolationException.class, () -> service.resolveForCreation(id));
+      assertEquals(
+          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+          ex.getRuleType());
+      assertTrue(ex.getMessage().contains("no structural base"));
+    }
+
     @Test
     void allBaseArchetypes_resolveCorrectly() {
       Map<String, DefinitionSubjectType> expected = Map.of(
@@ -678,6 +693,54 @@ class ArchetypeServiceTest {
       assertEquals(0, service.reconcileBaseArchetypeIndexes());
 
       verify(indexProvisioning, never()).provisionIndexes(any(), any());
+    }
+
+    @Test
+    void onActivation_rootlessArchetype_skipsProvisioningInsteadOfFailingActivation() {
+      ArchetypeEntity facet = rootlessArchetype();
+
+      assertDoesNotThrow(() -> service.onActivation(facet));
+
+      verify(indexProvisioning, never()).provisionIndexes(any(), any());
+    }
+
+    @Test
+    void onDeactivation_rootlessArchetype_skipsDeprovisioningInsteadOfFailingDeactivation() {
+      ArchetypeEntity facet = rootlessArchetype();
+
+      assertDoesNotThrow(() -> service.onDeactivation(facet));
+
+      verify(indexProvisioning, never()).deprovisionIndexes(any(), any());
+    }
+
+    @Test
+    void onActivation_refChainConvergingToNoBase_skipsProvisioning() {
+      String id = "gsmarc://tenant/FacetHeir/v1";
+      ObjectNode stmt = MAPPER.createObjectNode()
+          .put("$id", id)
+          .put("title", "FacetHeir")
+          .put("$ref", "gsmarc://tenant/Facet/v1");
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(stmt);
+      when(compositionValidation.resolveGsmBases(eq("gsmarc://tenant/Facet/v1"), eq(id), any()))
+          .thenReturn(Set.of());
+
+      assertDoesNotThrow(() -> service.onActivation(entity));
+
+      verify(indexProvisioning, never()).provisionIndexes(any(), any());
+    }
+
+    /** A rootless facet as authored in gsm-ontology: own queryable properties, no top-level $ref. */
+    private ArchetypeEntity rootlessArchetype() {
+      ObjectNode stmt = MAPPER.createObjectNode()
+          .put("$id", "gsmarc://iso25010/product-quality/ProductAvailability/v1")
+          .put("title", "ProductAvailability");
+      stmt.putObject("properties").putObject("uptimeTarget").put("$gsm:queryable", true);
+
+      ArchetypeEntity entity = mock(ArchetypeEntity.class);
+      when(entity.getStatement()).thenReturn(stmt);
+
+      return entity;
     }
 
     private ArchetypeEntity archetypeWithBaseTitle(String title) {

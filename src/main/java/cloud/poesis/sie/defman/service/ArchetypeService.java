@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -265,6 +266,35 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
   }
 
   private DefinitionSubjectType resolveSubjectType(ArchetypeEntity archetype) {
+    Optional<DefinitionSubjectType> subjectType = findSubjectType(archetype);
+    if (subjectType.isPresent()) {
+      return subjectType.get();
+    }
+    JsonNode stmt = archetype.getStatement();
+    String title = stmt.get("title").asText();
+    throw RuleViolationException.of(
+        AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
+        "Rootless archetype '"
+            + title
+            + "' cannot be used as archetype_id — "
+            + (stmt.path("$ref").isTextual()
+                ? "$ref chain does not converge to any GSM base"
+                : "no structural base (top-level $ref to a GSM base required)"),
+        "title",
+        title);
+  }
+
+  /**
+   * Derives the {@link DefinitionSubjectType} this Archetype <em>confers on the Ascriptions it
+   * types</em> — read off the GSM base its top-level {@code $ref} chain converges to, and used to
+   * name the primitive table those Ascriptions land in. This is not the subject type of the
+   * Archetype itself, which is always {@code ARCHETYPE} (see {@link #getSubjectType()}).
+   *
+   * <p>
+   * Empty for a rootless Archetype (GSM §9.2): converging to no base, it types no Ascription and so
+   * confers nothing. It remains a valid first-class Archetype in the qualifier and data roles.
+   */
+  private Optional<DefinitionSubjectType> findSubjectType(ArchetypeEntity archetype) {
     JsonNode stmt = archetype.getStatement();
     if (stmt == null || !stmt.has("title")) {
       throw RuleViolationException.of(
@@ -279,35 +309,22 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
 
     // Direct match only for the eight exact GSM seed identities.
     if (id != null && ArchetypeParsingService.isGsmBaseId(id)) {
-      return DefinitionSubjectType.fromArchetypeTitle(
-          ArchetypeParsingService.parseIdentity(id).title());
+      return Optional.of(
+          DefinitionSubjectType.fromArchetypeTitle(
+              ArchetypeParsingService.parseIdentity(id).title()));
     }
 
     // Tenant archetype: walk the top-level $ref chain to find the structural base.
     JsonNode refNode = stmt.get("$ref");
     if (refNode == null || !refNode.isTextual()) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-          "Rootless archetype '"
-              + title
-              + "' cannot be used as archetype_id — no structural base "
-              + "(top-level $ref to a GSM base required)",
-          "title",
-          title);
+      return Optional.empty();
     }
 
     Set<String> resolvedBases = compositionValidation.resolveGsmBases(refNode.asText(), id,
         this::resolveArchetypeSchema);
 
     if (resolvedBases.isEmpty()) {
-      throw RuleViolationException.of(
-          AscriptionConsistencyRuleType.ASCRIPTION_ARCHETYPE_BASED_ON_GSM_ARCHETYPE,
-          "Rootless archetype '"
-              + title
-              + "' cannot be used as archetype_id — $ref chain does not "
-              + "converge to any GSM base",
-          "title",
-          title);
+      return Optional.empty();
     }
     // resolvedBases.size() > 1 is already rejected by validateSchemaComposition
     // at authoring time; defensive check here for safety.
@@ -333,7 +350,7 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
           "baseId",
           baseId);
     }
-    return type;
+    return Optional.of(type);
   }
 
   // ---- Lifecycle descriptors ----
@@ -505,16 +522,21 @@ public class ArchetypeService implements AscriptionSubtypeService<ArchetypeEntit
           archetypeEntity.getStatement(), this::resolveArchetypeSchema);
       // $ref URI policy is NOT re-checked: statement is immutable (validated at
       // creation).
-      indexProvisioning.provisionIndexes(
-          archetypeEntity, () -> resolveSubjectType(archetypeEntity).name().toLowerCase());
+      // Rootless: confers no subject type, so there is no typed population to index (GSM §11.1).
+      findSubjectType(archetypeEntity)
+          .ifPresent(
+              type -> indexProvisioning.provisionIndexes(
+                  archetypeEntity, () -> type.name().toLowerCase()));
     }
   }
 
   @Override
   public void onDeactivation(AscriptionEntity entity) {
     if (entity instanceof ArchetypeEntity archetypeEntity) {
-      indexProvisioning.deprovisionIndexes(
-          archetypeEntity, () -> resolveSubjectType(archetypeEntity).name().toLowerCase());
+      findSubjectType(archetypeEntity)
+          .ifPresent(
+              type -> indexProvisioning.deprovisionIndexes(
+                  archetypeEntity, () -> type.name().toLowerCase()));
     }
   }
 
