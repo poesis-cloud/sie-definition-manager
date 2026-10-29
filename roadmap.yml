@@ -5,5 +5,12 @@ milestones:
   - version: v1.0.0
     current: true
   - version: v1.1.0
+    features:
+      - https://github.com/poesis-cloud/sie-definition-manager/issues/15
   - version: v1.2.0
+    features:
+      - https://github.com/poesis-cloud/sie-definition-manager/issues/16
   - version: v1.3.0
+    features:
+      - https://github.com/poesis-cloud/sie-definition-manager/issues/17
+      - https://github.com/poesis-cloud/sie-definition-manager/issues/19
