@@ -177,3 +177,10 @@ The SIE umbrella overview lives at `../README.md`.
 
 [Business Source License 1.1](LICENSE) — see [LICENSE](LICENSE) for the change
 date and change license terms.
+
+<!-- roadmap:start -->
+## Roadmap
+
+![Roadmap](docs/roadmap.svg)
+
+<!-- roadmap:end -->
