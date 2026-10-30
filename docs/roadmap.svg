@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="670" viewBox="0 0 1640 670" font-family="Helvetica, Arial, sans-serif">
+<rect width="1640" height="670" fill="#fff"/><rect width="1640" height="70" fill="#0b1f2c"/>
+<text x="60" y="45" font-size="28" font-weight="700" fill="#fff">Poesis</text>
+<text x="60" y="125" font-size="16" font-weight="700" fill="#1580c8">PRODUCT ROADMAP</text>
+<text x="60" y="170" font-size="40" font-weight="700" fill="#0b1f2c">Definition Manager</text>
+<rect x="1330" y="125" width="250" height="46" rx="8" fill="#1580c8"/><text x="1455" y="155" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">CURRENT · v1.0.0</text>
+<line x1="60" y1="270" x2="1580" y2="270" stroke="#c9d6df" stroke-width="3"/>
+<text x="250.0" y="230" font-size="20" font-weight="700" fill="#1580c8" text-anchor="middle">v1.0.0 · CURRENT</text>
+<circle cx="250.0" cy="270" r="14" fill="#1580c8" stroke="#1580c8" stroke-width="4"/>
+<rect x="85.0" y="380" width="330" height="200" fill="#fff" stroke="#d5e2eb"/><rect x="85.0" y="380" width="330" height="6" fill="#1580c8"/>
+<text x="105.0" y="420" font-size="16" font-style="italic" fill="#5b6b78">To be defined</text>
+<text x="630.0" y="230" font-size="20" font-weight="700" fill="#0b1f2c" text-anchor="middle">v1.1.0</text>
+<circle cx="630.0" cy="270" r="14" fill="#fff" stroke="#1580c8" stroke-width="4"/>
+<rect x="500.0" y="300" width="260" height="56" rx="12" fill="#eaf3fa" stroke="#c9dff0"/><text x="630.0" y="324" font-size="16" font-weight="700" fill="#1580c8" text-anchor="middle">DATE TBD</text><text x="630.0" y="346" font-size="14" fill="#0b1f2c" text-anchor="middle">Capa: opportus</text>
+<rect x="465.0" y="380" width="330" height="200" fill="#fff" stroke="#d5e2eb"/><rect x="465.0" y="380" width="330" height="6" fill="#1580c8"/>
+<text x="485.0" y="420" font-size="17" font-weight="700" fill="#0b1f2c">• Graduate data-quality conformance</text>
+<text x="1010.0" y="230" font-size="20" font-weight="700" fill="#0b1f2c" text-anchor="middle">v1.2.0</text>
+<circle cx="1010.0" cy="270" r="14" fill="#fff" stroke="#1580c8" stroke-width="4"/>
+<rect x="880.0" y="300" width="260" height="56" rx="12" fill="#eaf3fa" stroke="#c9dff0"/><text x="1010.0" y="324" font-size="16" font-weight="700" fill="#1580c8" text-anchor="middle">DATE TBD</text><text x="1010.0" y="346" font-size="14" fill="#0b1f2c" text-anchor="middle">Capa: opportus</text>
+<rect x="845.0" y="380" width="330" height="200" fill="#fff" stroke="#d5e2eb"/><rect x="845.0" y="380" width="330" height="6" fill="#1580c8"/>
+<text x="865.0" y="420" font-size="17" font-weight="700" fill="#0b1f2c">• Enhanced DNA model</text>
+<text x="1390.0" y="230" font-size="20" font-weight="700" fill="#0b1f2c" text-anchor="middle">v1.3.0</text>
+<circle cx="1390.0" cy="270" r="14" fill="#fff" stroke="#1580c8" stroke-width="4"/>
+<rect x="1225.0" y="380" width="330" height="200" fill="#fff" stroke="#d5e2eb"/><rect x="1225.0" y="380" width="330" height="6" fill="#1580c8"/>
+<text x="1245.0" y="420" font-size="17" font-weight="700" fill="#0b1f2c">• Definitions lifecycle events medi…</text>
+<text x="1245.0" y="444" font-size="17" font-weight="700" fill="#0b1f2c">• OTel signals</text>
+<line x1="60" y1="620" x2="1580" y2="620" stroke="#d5e2eb"/><text x="60" y="648" font-size="12" fill="#5b6b78">POESIS / ROADMAP · generated from roadmap.yml and GitHub milestones</text></svg>
