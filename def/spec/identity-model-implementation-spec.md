@@ -18,7 +18,7 @@ and it was deleted as protecting data that does not exist).
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1 — DM core**                   | sie-definition-manager (+ gsm-specifications prose/base schemas, + gsm-ontology prerequisites: L5 §2.10 and Starlark L9 §2.9) | version column + assignment on `PROPOSED → APPROVED`; stem as identity-bound property + **permanent** uniqueness across Definitions (all statuses; owner table + acquisition function, not `UNIQUE(stem)`); candidate Archetype URI at DRAFT/PROPOSED becoming resolvable at APPROVED; `$id` grammar, validation, exact Archetype URI resolution, and the §2.4 eligibility matrix; all external Archetype references by `$id` (§2.7); title demotion (§2.8); Starlark rule-reference validation by `$id` (§2.9) |
 | **2 — CEL applicability refs**    | gsm-specifications, sie-definition-manager, gsm-ontology                                                                      | `ref("$id")` applicability profile replacing bare title roots (§3); catalogue expression migration; removal of the last title lookup + `uq_archetype_title`                                                                                                                                                                                                                                                                                                                                                     |
-| **3 — Operator identity runtime** | sie-operator                                                                                                                  | `$id`-based frame matching + Starlark dispatch, plus the deterministic CEL `ref()` binding contract, consuming WP1's `version`/`$id` API surface (§4)                                                                                                                                                                                                                                                                                                                                                           |
+| **3 — Operator identity runtime** | sie-definition-operator                                                                                                       | `$id`-based frame matching + Starlark dispatch, plus the deterministic CEL `ref()` binding contract, consuming WP1's `version`/`$id` API surface (§4)                                                                                                                                                                                                                                                                                                                                                           |
 
 WP2/WP3 depend on WP1's API surface, not on gates. Out of scope: the catalogue
 generator (ontology.json → composites re-pinning) and the separate
@@ -445,7 +445,7 @@ The list endpoint uses exact `archetypeUri` filtering for the typing Archetype a
 generic statement filters. Archetype subjects may combine the system-owned root filters
 `statement.$id` and `statement.title` without a typing selector; additional statement properties
 remain gated by `$gsm:queryable` and require `archetypeUri`. This supplies
-sie-operator's `ArchetypeAscriptionDto.version` and removes the internal UUID from
+sie-definition-operator's `ArchetypeAscriptionDto.version` and removes the internal UUID from
 the public typing contract.
 
 ### 2.5 Exact Archetype URI keys only (no title fallback)
@@ -903,7 +903,7 @@ Mechanical rewrite of all Norm applicability expressions (78 statements):
 `elements[]` (every referenced archetype is a catalogue member). Lint **L9**:
 applicability roots must be `ref()` calls whose argument is an L5-coherent `$id`.
 
-## 4. WP3 — Operator identity runtime (sie-operator)
+## 4. WP3 — Operator identity runtime (sie-definition-operator)
 
 `sys.receive`/`sys.effect` dispatch and `OperationFrameDto` frame matching compare
 **titles** today, and derived Effector/Receptor statements carry archetype
@@ -1059,7 +1059,7 @@ not additive, and clients are co-updated in this pre-production work package.
       every response exposes subject `version` and its stable Definition link, with no
       Archetype identity body field. The generic list endpoint has no subtype-only exact
       Archetype filter. Norm responses retain the generic Ascription envelope with no
-      derived top-level metadata. sie-operator obtains exact port typing identity from
+      derived top-level metadata. sie-definition-operator obtains exact port typing identity from
       the existing per-ascription composed schema resource.
 - [x] Lint L5 generalized in gsm-ontology (§2.10) — landed 2026-08-22.
 - [x] `gsm.puml` amendments: §Identity matches §2.1; `$id` authorship changed to

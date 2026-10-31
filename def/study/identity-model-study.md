@@ -251,7 +251,7 @@ no longer load-bearing.
 1. **Four-repo migration**: defman (DDL + ≥6 services + repository + schema mappers),
    gsm-specifications (normative amendment: candidate-to-resolvable Archetype
    identity, semantic reference equality, CEL profile; vendored-schema sync +
-   `GsmSchemaVendorSyncTest`), sie-operator (dispatch strings; its DTOs carry an
+   `GsmSchemaVendorSyncTest`), sie-definition-operator (dispatch strings; its DTOs carry an
    `int version` the DM currently cannot supply — fixed by version materialization),
    gsm-ontology (lint L5 generalization to `/v[1-9][0-9]*`, composite re-pinning
    workflow) — staged, but each phase is a real change with review surface. Ripple:
