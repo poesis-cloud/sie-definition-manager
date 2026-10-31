@@ -344,7 +344,7 @@ class AscriptionParsingValidationServiceTest {
   @Nested
   class StatementClosure {
 
-    /** Mirrors the ITIP shape: a typing archetype extending a GSM base with domain properties. */
+    /** Mirrors the OIP shape: a typing archetype extending a GSM base with domain properties. */
     private ObjectNode sourcedDirectiveSchema() {
       ObjectNode schema = MAPPER.createObjectNode();
       schema.put("$id", "gsmarc://gsm-ontology/SourcedDirective/v1");
@@ -483,7 +483,7 @@ class AscriptionParsingValidationServiceTest {
 
     /**
      * An Archetype statement is itself a JSON Schema, and the sealed Archetype meta-schema is
-     * deliberately open so tenants may declare vocabulary keywords (e.g. ITIP's {@code framework}).
+     * deliberately open so tenants may declare vocabulary keywords (e.g. OIP's {@code framework}).
      * Closing it would reject every framework archetype.
      */
     @Test
