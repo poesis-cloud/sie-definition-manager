@@ -12,14 +12,14 @@ and telemetry catalogs).
 
 ## Architecture decision records
 
-| ADR                                                                                | Decision                                                  |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| [authorship-not-a-gsm-concern.md](adr/authorship-not-a-gsm-concern.md)             | Authorship stays out of GSM primitives                    |
-| [uniform-polymorphic-ascription-api.md](adr/uniform-polymorphic-ascription-api.md) | One polymorphic Ascription API across the 8 subject types |
-
-Product-level ADRs (observability collector topology, log sink switch) live in
-the Poesis workspace at `portfolio/sie-definition/architecture/`, outside this
-repository.
+| ADR                                                                                                  | Decision                                                              |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [authorship-not-a-gsm-concern.md](adr/authorship-not-a-gsm-concern.md)                               | Authorship stays out of GSM primitives                                |
+| [uniform-polymorphic-ascription-api.md](adr/uniform-polymorphic-ascription-api.md)                   | One polymorphic Ascription API across the 8 subject types             |
+| [adr-001-otel-collector-and-conventions.md](adr/adr-001-otel-collector-and-conventions.md)           | OpenTelemetry collector topology, sampling and attribute vocabulary   |
+| [adr-002-aop-broad-instrumentation-policy.md](adr/adr-002-aop-broad-instrumentation-policy.md)       | AOP-based broad instrumentation policy                                |
+| [adr-003-otel-native-observability-posture.md](adr/adr-003-otel-native-observability-posture.md)     | OTel-native observability posture (logs + traces; metrics roadmapped) |
+| [adr-005-in-class-instrumentation-discipline.md](adr/adr-005-in-class-instrumentation-discipline.md) | In-class instrumentation discipline                                   |
 
 ## Design studies
 
