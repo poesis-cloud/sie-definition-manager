@@ -114,4 +114,4 @@ is not adopted now.
 ## Notes
 
 Authorship of ascriptions is out of scope for DM and GSM; it is carried by client
-frameworks. See the ITIP frameworks foundations.
+frameworks. See the OIP frameworks foundations.
