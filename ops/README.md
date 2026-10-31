@@ -82,8 +82,7 @@ helm lint sie/sie-definition-manager/ops/helm \
 
 ## Observability modes (`observability.mode`)
 
-Per ADR-001 D-1 (`portfolio/sie-definition/architecture/adr-001-otel-collector-and-conventions.md`
-in the Poesis workspace, outside this repository),
+Per [ADR-001](../def/adr/adr-001-otel-collector-and-conventions.md) D-1,
 the chart exposes a single Helm value — `observability.mode` — that selects how
 OpenTelemetry data leaves the pod. The Helm template translates the mode into
 SDK env vars (`OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER`,

@@ -9,7 +9,7 @@ adrs: [ADR-001, ADR-002]
 **Status:** Active
 **Story:** [S-004b](../../../products/sie-definition/sprint-2/stories/S-004b.md)
 **Feature:** [F-01](../../../products/sie-definition/features/F-01-otel-observability-baseline.md)
-**ADRs:** [ADR-001](../../../products/sie-definition/architecture/adr-001-otel-collector-and-conventions.md), [ADR-002](../../../products/sie-definition/architecture/adr-002-aop-broad-instrumentation-policy.md)
+**ADRs:** [ADR-001](adr/adr-001-otel-collector-and-conventions.md), [ADR-002](adr/adr-002-aop-broad-instrumentation-policy.md)
 
 ---
 

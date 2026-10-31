@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * <p>Resource attributes are intentionally NOT re-added on the span here, avoiding drift between
  * the env contract and Java code.
  *
- * <p>See ADR-001: products/sie-definition/architecture/adr-001-otel-collector-and-conventions.md
+ * <p>See ADR-001: def/adr/adr-001-otel-collector-and-conventions.md
  */
 @Component
 public class StartupSpanEmitter {

@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
  * OpenTelemetry} bean (typically an {@code OpenTelemetrySdk} wired to an {@code
  * InMemorySpanExporter}).
  *
- * <p>See ADR-001: products/sie-definition/architecture/adr-001-otel-collector-and-conventions.md
+ * <p>See ADR-001: def/adr/adr-001-otel-collector-and-conventions.md
  */
 @Configuration
 public class OpenTelemetryConfig {
