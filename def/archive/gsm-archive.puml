@@ -33,7 +33,7 @@ skinparam noteBorderColor #57606A
 '   itself... Applying a pertinent/pragamatical way its own model. Many Rules
 '   are already present in GSM notes.
 ' - Defines Rules of Policy handling of Qualifier formats, and define formats
-'   (ITIP schemas presets).
+'   (OIP schemas presets).
 ' - Challenge inter-system governance (Composition VS Relational) articulations
 '   mechanisms. Looks like relational governance governor produce Directives as
 '   state objects to consume and derivate by governed system's governor via its

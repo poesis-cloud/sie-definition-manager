@@ -16,7 +16,7 @@ statement-plane design was specified (`identity` + `identityIssuer`, defined onc
 ## Decision
 
 **Authorship is not defined in GSM base schemas and requires no DM change.** It is
-carried by client frameworks — specifically the ITIP framework layer.
+carried by client frameworks — specifically the OIP framework layer.
 
 ## Rationale
 
@@ -148,5 +148,5 @@ Independent of this decision:
 
 ## Notes
 
-See the ITIP frameworks foundations for the facet definition and its composition into
+See the OIP frameworks foundations for the facet definition and its composition into
 the framework bases.
