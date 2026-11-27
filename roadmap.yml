@@ -1,5 +1,5 @@
 scope: product
-name: Definition Manager
+name: SIE Definition Manager
 repos: [sie-definition-manager, sie-definition-database, sie-definition-graph-database]
 milestones:
   - version: v1.0.0
