@@ -1,0 +1,62 @@
+name: dco
+
+# Developer Certificate of Origin (see CONTRIBUTING.md): every commit is signed off by its author,
+# and its author is a person. An AI assistant may appear as Co-Authored-By, never as the author.
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    name: Verify DCO sign-off
+    if: github.event_name == 'pull_request' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Signed-off-by on every commit
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT}" = pull_request ]; then
+            commits="$(git rev-list --no-merges "${BASE_SHA}..${HEAD_SHA}")"
+          elif printf '%s' "${BEFORE_SHA}" | grep -qE '^0+$'; then
+            commits="$(git rev-list --no-merges -n 1 "${AFTER_SHA}")"
+          else
+            commits="$(git rev-list --no-merges "${BEFORE_SHA}..${AFTER_SHA}")"
+          fi
+
+          fail=0
+          while IFS= read -r sha; do
+            [ -z "${sha}" ] && continue
+            author="$(git show -s --format='%an <%ae>' "${sha}")"
+            if printf '%s' "${author}" | grep -qiE '^Claude <|@anthropic\.com>$'; then
+              echo "FAIL  ${sha:0:12}  author is an AI assistant: ${author}"
+              echo "      commit as yourself; the assistant may only be a Co-Authored-By trailer"
+              fail=1
+            elif git show -s --format='%B' "${sha}" | grep -qxF "Signed-off-by: ${author}"; then
+              echo "PASS  ${sha:0:12}  Signed-off-by: ${author}"
+            else
+              echo "FAIL  ${sha:0:12}  missing or mismatched Signed-off-by"
+              echo "      expected: Signed-off-by: ${author}   (git commit -s)"
+              found="$(git show -s --format='%B' "${sha}" | grep -i '^Signed-off-by:' || true)"
+              printf '%s\n' "${found:-(no Signed-off-by trailer)}" | sed 's/^/      found:    /'
+              fail=1
+            fi
+          done <<< "${commits}"
+
+          if [ "${fail}" -ne 0 ]; then
+            echo "Sign off with 'git commit -s' (amend: git commit --amend --no-edit -s), see CONTRIBUTING.md."
+            exit 1
+          fi
